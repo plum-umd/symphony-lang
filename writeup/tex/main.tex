@@ -1,0 +1,61 @@
+\documentclass{article}
+
+
+\input{darais-latex-imports}
+\input{darais-latex-macros}
+
+\begin{document}
+
+F⁅[H] \footnotesize
+M⁅Aːrclcl@{␠}l
+  A⁅ ρ     ⧼∈⧽ ‹prin›              ⧼≜⧽ ❴⦑Alice⦒,⦑Bob⦒,…❵                     & ⟪principles⟫
+  A⁃ P     ⧼∈⧽ ‹prin-set›          ⧼≜⧽ ℘(‹prin›)                             & ⟪set of principles⟫
+  A⁃ φ     ⧼∈⧽ ‹protocol›          ⧼⩴⧽ ⦑yao⦒ ¦ ⦑bgw⦒ ¦ ⦑gmw⦒                 & ⟪supported MPC protocols⟫
+  A⁃ κ     ⧼∈⧽ ‹kind›              ⧼⩴⧽ ⦑type⦒ ¦ ⦑prin⦒                       & ⟪quantifiable things at type-leve⟫
+  A⁃ «cbτ» ⧼∈⧽ ‹circuit-base-type› ⧼⩴⧽ ⦑int⦒ ¦ ⦑bool⦒                        & ⟪circuit base types⟫
+  A⁃ «cτ»  ⧼∈⧽ ‹circuit-type›      ⧼⩴⧽ «cbτ» ¦ «cbτ»,…,«cbτ» ↣ «cbτ»,…,«cbτ» & ⟪base type or first-order function between base types⟫
+  A⁃ α     ⧼∈⧽ ‹type-variable›     ⧼ ⧽
+  A⁃ ς     ⧼∈⧽ ‹circuit-ops›       ⧼⩴⧽ ⦑bool⦒ ¦ ⦑arith⦒
+  A⁃ τ     ⧼∈⧽ ‹type›              ⧼⩴⧽ α ¦ ⦑unit⦒ ¦ ⦑int⦒ ¦ ⦑bool⦒ & ⟪type variables and base types⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ τ × τ ¦ τ → τ               & ⟪pairs and functions (will have sums too eventually)⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ τ❴P❵                        & ⟪Same value living in the clear on multiple parties⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ τ[φ:P]                      & ⟪Same value secret shared in some protocol between multiple parties⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ τ⟨P⟩                        & ⟪Different values living in the clear on multiple parties (SIMD)⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑CIR⦒❴ς:P❵␣«cτ»             & ⟪Circuit with ops and embedded inputs from parties⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑{MPC}⦒❴P ↦ P❵␣τ            & ⟪MPC with inputs from parties ⸨P₁⸩ and computed between parties ⸨P₂⸩⟫
+  A⁃ x     ⧼∈⧽ ‹term-variable›     ⧼ ⧽
+  A⁃ i     ⧼∈⧽ ℤ                   ⧼ ⧽
+  A⁃ b     ⧼∈⧽ 𝔹                   ⧼ ⧽
+  A⁃ d     ⧼∈⧽ 𝔻                   ⧼ ⧽
+  A⁃ s     ⧼∈⧽ 𝕊                   ⧼ ⧽
+  A⁃ ν     ⧼∈⧽ ‹circuit-variable›  ⧼ ⧽
+  A⁃ «ce»  ⧼∈⧽ ‹circuit-term›      ⧼⩴⧽ i ¦ b                        & ⟪literals (also doubles? strings?)⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ν ¦ x                        & ⟪circuit variables and program variables (when publicly visible)⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ∼x                           & ⟪embedding secret (or secret-shared) inputs in a circuit⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⌊e⌋                          & ⟪embedding a first-class-constructed circuit in a circuit⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑let⦒␣ν,…,ν = «ce»␣⦑in⦒␣«ce» & ⟪let-binding⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑❪λ❫⦒␣ν,…,ν⍪ «ce»            & ⟪first-order circuit function creation⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ «ce»(«ce»,…,«ce»)            & ⟪first-order circuit function application⟫
+  A⁃ e     ⧼∈⧽ ‹term›              ⧼⩴⧽ i ¦ b ¦ d ¦ s ¦ x ¦ ()   & ⟪Literals, variables and unit⟫   
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑let⦒␣x=e␣⦑in⦒␣e         & ⟪let-binding⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑❪λ❫⦒␣x⍪e                & ⟪higher-order function creation⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ e␣e                      & ⟪higher-order function application⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑❪Λ❫⦒␣α⍪e                & ⟪type-abstraction (à la System F)⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ e@τ                      & ⟪type-application (à la System F)⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ e,e                      & ⟪tuple creation⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑if⦒␣e␣⦑then⦒␣e␣⦑else⦒␣e & ⟪conditionals⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ e❴P❵                     & ⟪Broadcast identical value to parties⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ e[φ:P]                   & ⟪Secret-share value to parties⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ e⟨P⟩                     & ⟪Broadcast bundled (SIMD) value to parties⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑wfold⦒␣e␣❴ α,x,y⍪ e ❵   & ⟪fold over bundle⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑mpc⦒❴φ:P❵␣e             & ⟪evaluate a circuit in MPC between parties⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑return⦒␣e               & ⟪return in MPC monad⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ x ← e ⨟ e                & ⟪bind in MPC monad⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑circuit⦒␣«ce»           & ⟪circuit creation⟫
+ A⁆
+M⁆
+\caption{Syntax}
+F⁆
+
+\end{document}
+\endinput

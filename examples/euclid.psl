@@ -1,0 +1,42 @@
+principal A
+principal B
+principal C
+
+def euclid : ℤ → ℤ → ℤ×ℤ×ℤ
+def euclid = λ a b →
+  euclidRec (a,1,0) (b,0,1)
+
+def euclidRec : ℤ → ℤ → ℤ → ℤ → ℤ×ℤ×ℤ
+def euclidRec = λ r0 s0 t0 r1 s1 t1 →
+  let r2 = r0 - q1 × r1 in
+  let s2 = s0 - q1 × s1 in
+  let t2 = t0 - q1 × t1 in
+  if r2 =? 0 
+  then r1,s1,t1
+  else euclidRec (r1,s1,t1) (r2,s2,t2)
+
+def euclidMPC : [A]ℤ → [B]ℤ ⇉ [C]ℤ
+def euclidMPC = λ aS bS →
+  let c = sec{A,B↣C} a <? b in
+  let out = 
+    par[C] { unseal(c) } 
+    -- par[A,B] { 1 }
+  in out
+
+def mpcEuclidAbs = Λ α : pal.
+                   Λ β : pal.
+                   Λ γ : pal.
+                   λ a : seal[α] ℤ.
+                   λ b : seal[β] ℤ.
+  let c = sec[α,β,γ] { seal[γ] (a <? b) } in
+  let out = 
+    par[C] { unseal(c) } 
+    par[A,B] { 1 }
+  in 
+  out
+
+def mpcEuclid2 = λ ().
+  let a = par[A] { read () } in
+  let b = par[B] { read () } in
+  let out = mpcEuclidAbs @ A @ B @ C (seal[A] a) (seal[B] b) in
+  out

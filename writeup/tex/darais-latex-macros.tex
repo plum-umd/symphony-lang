@@ -1,0 +1,40 @@
+\newcommand{\shortnearrow}{\mathrel{\rotatebox[origin=c]{33}{$\rightarrow$}}}
+\newcommand{\shortsearrow}{\mathrel{\rotatebox[origin=c]{-33}{$\rightarrow$}}}
+
+\newcommand{\slashedrel}[1]{\mathrel{\centernot{#1}}}
+
+\newcommand{\note}[1]{{\color{red}#1}}
+\newcommand{\todo}[1]{\note{TODO: #1}}
+
+%\newcommand*\circled[1]{\tikz[baseline=(char.base)]{\node[shape=circle,draw,inner sep=0.66pt] (char) {#1};}}
+\newcommand*\circled[1]{\textcircled{\raisebox{-0.1pt}{\scalebox{0.66}{#1}}}}
+
+\newcommand{\mtext}[1]{\ifmmode\operatorname{#1}\else\textnormal{#1}\fi}
+\newcommand{\mtexttt}[1]{\ifmmode\operatorname{\mathtt{#1}}\else\textnormal{\texttt{#1}}\fi}
+\newcommand{\mtextit}[1]{\ifmmode\operatorname{\mathit{#1}}\else\textnormal{\textit{#1}}\fi}
+\newcommand{\mtextbf}[1]{\ifmmode\operatorname{\mathbf{#1}}\else\textnormal{\textbf{#1}}\fi}
+\newcommand{\mtextsc}[1]{\ifmmode\operatorname{\textsc{\smaller #1}}\else\textnormal{\textsc{\smaller #1}}\fi}
+
+% colors %
+
+\definecolor{cbsafeABright}{RGB}{8,72,145}
+\definecolor{cbsafeADark}{RGB}{109,36,150}
+
+\definecolor{cbsafeBBright}{RGB}{85,119,13}
+\definecolor{cbsafeBDark}{RGB}{109,70,17}
+
+\definecolor{cbsafeCBright}{RGB}{150,48,89}
+\definecolor{cbsafeCDark}{RGB}{70,24,48}
+
+\newcommand{\colorMATHA}{cbsafeABright}
+\newcommand{\colorSYNTAXA}{cbsafeADark!80!black}
+\newcommand{\colorMATHB}{cbsafeBBright}
+\newcommand{\colorSYNTAXB}{cbsafeBDark}
+\newcommand{\colorMATHC}{cbsafeCBright}
+\newcommand{\colorSYNTAXC}{cbsafeCDark}
+
+\newcommand{\colorTEXT}{black}
+
+\newcommand{\colorMATH}{\colorMATHA}
+\newcommand{\colorSYNTAX}{\colorSYNTAXA}
+
