@@ -30,6 +30,7 @@ lexer = lexerBasic puns kws prim ops
       , "circuit"
       , "mpc"
       , "do"
+      , "case"
       ]
     prim = list
       [ "yao","bgw","gmw","none"
@@ -39,15 +40,18 @@ lexer = lexerBasic puns kws prim ops
       , "𝔹","bool"
       , "MPC"
       , "CIR"
+      , "list"
       , "true","false"
       , "𝟙","unit"
       , "•","()"
       , "𝟘","empty"
+      , "∷","::"
       ]
     ops = list 
       [ "+","-"
       , "×","*"
-      , "≡"
+      , "/"
+      , "≡","=="
       , "≤","<="
       , "<"
       , "^"
@@ -150,36 +154,38 @@ pKind = cpWithContextRendered $ concat
 -- cbτ ∈ circuit-base-type ⩴ ℤ | 𝔹
 type ACirBaseType = Annotated FullContext CirBaseType
 data CirBaseType =
-    ℤCBT -- ℤ
-  | 𝔹CBT -- 𝔹
+    ℤCBT                            -- ℤ          /  int
+  | 𝔹CBT                            -- 𝔹          /  bool
+  | ACirBaseType :×♯: ACirBaseType  -- cbτ × cbτ  /  cbτ * cbτ
   deriving (Eq,Ord,Show)
 makePrettySum ''CirBaseType
 
 pCirBaseType ∷ CParser TokenBasic ACirBaseType
-pCirBaseType = cpWithContextRendered $ concat
-  [ do concat [cpSyntax "ℤ",cpSyntax "int"] ; return ℤCBT
-  , do concat [cpSyntax "𝔹",cpSyntax "bool"] ; return 𝔹CBT
+pCirBaseType = fmixfixWithContext "circuit-base-type" $ concat
+  [ fmixTerminal $ concat
+      [ do concat [cpSyntax "ℤ",cpSyntax "int"] ; return ℤCBT
+      , do concat [cpSyntax "𝔹",cpSyntax "bool"] ; return 𝔹CBT
+      ]
+  , fmixInfixL (𝕟64 60) $ do concat [cpSyntax "×",cpSyntax "*"] ; return (:×♯:)
   ]
 
 -- cτ ∈ circuit-type ⩴ cbτ
---                   | cbτ,…,cbτ ↣ cbτ,…,cbτ
+--                   | cbτ ↣ cbτ
 type ACirType = Annotated FullContext CirType
 data CirType =
-    BaseCT ACirBaseType                -- cbτ
-  | 𝐿 ACirBaseType :↣: 𝐿 ACirBaseType  -- cbτ,…,cbτ ↣ cbτ,…,cbτ
+    BaseCT ACirBaseType            -- cbτ        /  cbτ
+  | ACirBaseType :↣: ACirBaseType  -- cbτ ↣ cbτ  /  cbτ >-> cbτ
   deriving (Eq,Ord,Show)
 makePrettySum ''CirType
 
 pCirType ∷ CParser TokenBasic ACirType
 pCirType = cpWithContextRendered $ do
-  bτ ← pCirBaseType
+  bτ₁ ← pCirBaseType
   concat
-    [ do cpSyntax ","
-         bτs₁ ← cpManySepBy (cpSyntax ",") pCirBaseType
-         concat [cpSyntax "↣",cpSyntax ">->"]
-         bτs₂ ← cpOneOrMoreSepBy (cpSyntax ",") pCirBaseType
-         return $ (bτ:&bτs₁) :↣: bτs₂
-    , return $ BaseCT bτ
+    [ do concat [cpSyntax "↣",cpSyntax ">->"]
+         bτ₂ ← pCirBaseType
+         return $ bτ₁ :↣: bτ₂
+    , return $ BaseCT bτ₁
     ]
 
 -- ς ∈ circuit-ops
@@ -204,6 +210,7 @@ pCirOps = cpWithContextRendered $ concat
 --          | τ × τ | τ → τ 
 --          | τ{P} | τ[φ:P] | τ⟨P⟩ 
 --          | CIR{ς:P} cτ | MPC{P ⪫ P} τ
+--          | list τ
 type AType = Annotated FullContext Type
 data Type =
     VarT 𝕏                        -- α             /  α
@@ -217,6 +224,7 @@ data Type =
   | BundleT AType APrins          -- τ⟨P⟩          /  τ<P>
   | CirT ACirOps APrins ACirType  -- CIR{ς:P} cτ   /  CIR cτ
   | MpcT APrins APrins AType      -- MPC{P ⪫ P} τ  /  MPC{P >- P} τ
+  | ListT AType                   -- list τ        /  list τ
   deriving (Eq,Ord,Show)
 makePrettySum ''Type
 
@@ -263,6 +271,99 @@ pType = fmixfixWithContext "type" $ concat
       ps₂ ← pPrins
       cpSyntax "}"
       return $ MpcT ps₁ ps₂
+  , fmixPrefix (𝕟64 200) $ do cpSyntax "list" ; return ListT
+  ]
+
+--------------
+-- Literals --
+--------------
+
+pBool ∷ CParser TokenBasic 𝔹
+pBool = concat
+  [ do cpSyntax "true" ; return True
+  , do cpSyntax "false" ; return False
+  ]
+
+---------------------
+-- Circuit Pattern --
+---------------------
+
+-- cψ ∈ pattern ⩴ x | cψ,cψ | _
+type ACirPat = Annotated FullContext CirPat
+data CirPat =
+    VarCirP 𝕏                -- x      /  x
+  | TupCirP ACirPat ACirPat  -- cψ,cψ  /  cψ,cψ
+  | WildCirP                 -- _      /  _
+  deriving (Eq,Ord,Show)
+makePrettySum ''CirPat
+
+pCirPat ∷ CParser TokenBasic ACirPat
+pCirPat = fmixfixWithContext "circuit-pattern" $ concat
+  [ fmixTerminal $ concat
+      [ do x ← cpName ; return $ VarCirP x
+      , do cpSyntax "_" ; return WildCirP
+      ]
+  , fmixInfixL (𝕟64 20) $ do cpSyntax "," ; return TupCirP
+  ]
+
+-------------------
+-- Circuit Terms --
+-------------------
+
+-- ce ∈ circuit-term ⩴ i | b | ν | x | ~x | ⌊e⌋
+--                   | let ν,…,ν = ce in ce
+--                   | λ ν,…,ν → ce
+--                   | ce(ce,…,ce)
+type ACirExp = Annotated FullContext CirExp
+data CirExp =
+    IntC ℤ                         -- i                  /  i
+  | BoolC 𝔹                        -- b                  /  b
+  | VarC 𝕏                         -- x                  /  x
+  | EmbedC AExp                    -- ⌊e⌋                /  |_e_|
+  | LetC ACirPat ACirExp ACirExp   -- let cψ = ce in ce  /  let cψ = ce in ce
+  | LamC ACirPat ACirExp           -- λ cψ → ce          /  fun cψ -> ce
+  | AppC ACirExp ACirExp           -- ce ce              /  ce ce
+  | ShareC ACirExp AProt APrins    -- ce[φ:P]            /  ce[φ:P]
+  | PrimC 𝕊 (𝐿 ACirExp)            -- φₓ[ce,…,ce]        /  φₓ[ce,…,ce]
+  deriving (Eq,Ord,Show)
+
+pCirExp ∷ CParser TokenBasic ACirExp
+pCirExp = fmixfixWithContext "circuit" $ concat
+  [ fmixTerminal $ concat
+      [ do i ← cpInteger ; return $ IntC i
+      , do b ← pBool ; return $ BoolC b
+      , do x ← cpName ; return $ VarC x
+      , do concat [cpSyntax "⌊",cpSyntax "|_"]
+           e ← pExp
+           concat [cpSyntax "⌋",cpSyntax "_|"]
+           return $ EmbedC e
+      ]
+  , fmixPrefix (𝕟64 10) $ do
+      cpSyntax "let"
+      cψ ← pCirPat
+      cpSyntax "="
+      ce ← pCirExp
+      cpSyntax "in"
+      return $ LetC cψ ce
+  , fmixPrefix (𝕟64 10) $ do
+      concat [cpSyntax "λ",cpSyntax "fun"]
+      cψ ← pCirPat
+      concat [cpSyntax "→",cpSyntax "->"]
+      return $ LamC cψ
+  , fmixInfixL (𝕟64 200) $ return AppC
+  , fmixPostfix (𝕟64 100) $ do 
+      cpSyntax "["
+      φ ← pProt
+      cpSyntax ":"
+      ps ← pPrins
+      cpSyntax "]"
+      return $ \ ce → ShareC ce φ ps
+  , fmixInfixL (𝕟64 50) $ do cpSyntax "+" ; return $ \ e₁ e₂ → PrimC "PLUS" $ list [e₁,e₂]
+  , fmixInfixL (𝕟64 60) $ do cpSyntax "×" ; return $ \ e₁ e₂ → PrimC "TIMES" $ list [e₁,e₂]
+  , fmixInfixL (𝕟64 60) $ do cpSyntax "/" ; return $ \ e₁ e₂ → PrimC "DIVIDE" $ list [e₁,e₂]
+  , fmixInfix (𝕟64 40) $ do cpSyntax "<" ; return $ \ e₁ e₂ → PrimC "LT" $ list [e₁,e₂]
+  , fmixInfix (𝕟64 40) $ do concat [cpSyntax "≤",cpSyntax "<="] ; return $ \ e₁ e₂ → PrimC "LTE" $ list [e₁,e₂]
+  , fmixInfix (𝕟64 40) $ do concat [cpSyntax "≡",cpSyntax "=="] ; return $ \ e₁ e₂ → PrimC "EQ" $ list [e₁,e₂]
   ]
 
 -------------
@@ -277,7 +378,6 @@ data Pat =
   | TupP APat APat  -- ψ,ψ  /  ψ,ψ
   | WildP           -- _    /  _
   deriving (Eq,Ord,Show)
-makePrettySum ''Pat
 
 pPat ∷ CParser TokenBasic APat
 pPat = fmixfixWithContext "pattern" $ concat
@@ -289,85 +389,13 @@ pPat = fmixfixWithContext "pattern" $ concat
   , fmixInfixL (𝕟64 20) $ do cpSyntax "," ; return TupP
   ]
 
---------------
--- Literals --
---------------
-
-pBool ∷ CParser TokenBasic 𝔹
-pBool = concat
-  [ do cpSyntax "true" ; return True
-  , do cpSyntax "false" ; return False
-  ]
-
--------------------
--- Circuit Terms --
--------------------
-
--- ce ∈ circuit-term ⩴ i | b | ν | x | ~x | ⌊e⌋
---                   | let ν,…,ν = ce in ce
---                   | λ ν,…,ν → ce
---                   | ce(ce,…,ce)
-type ACirExp = Annotated FullContext CirExp
-data CirExp =
-    IntC ℤ                       -- i                 /  i
-  | BoolC 𝔹                      -- b                 /  b
-  | VarC 𝕏                       -- x                 /  x
-  | WireC 𝕏                      -- ~x                /  ~x
-  | EmbedC AExp                  -- ⌊e⌋               /  |_e_|
-  | LetC (𝐿 𝕏) ACirExp ACirExp   -- let x = ce in ce  /  let x = ce in ce
-  | LamC (𝐿 𝕏) ACirExp           -- λ x,…,x → ce      /  fun x,…,x -> ce
-  | AppC ACirExp (𝐿 ACirExp)     -- ce(ce,…,ce)       /  ce(ce,…,ce)
-  | ShareC ACirExp AProt APrins  -- ce[φ:P]           /  ce[φ:P]
-  | PrimC 𝕊 (𝐿 ACirExp)          -- φₓ[ce,…,ce]       /  φₓ[ce,…,ce]
-  deriving (Eq,Ord,Show)
-
-pCirExp ∷ CParser TokenBasic ACirExp
-pCirExp = fmixfixWithContext "circuit" $ concat
-  [ fmixTerminal $ concat
-      [ do i ← cpInteger ; return $ IntC i
-      , do b ← pBool ; return $ BoolC b
-      , do x ← cpName ; return $ VarC x
-      , do cpSyntax "~" ; x ← cpName ; return $ WireC x
-      , do concat [cpSyntax "⌊",cpSyntax "|_"]
-           e ← pExp
-           concat [cpSyntax "⌋",cpSyntax "_|"]
-           return $ EmbedC e
-      ]
-  , fmixPrefix (𝕟64 10) $ do
-      cpSyntax "let"
-      xs ← cpOneOrMoreSepBy (cpSyntax ",") cpName
-      cpSyntax "="
-      ce ← pCirExp
-      cpSyntax "in"
-      return $ LetC xs ce
-  , fmixPrefix (𝕟64 10) $ do
-      concat [cpSyntax "λ",cpSyntax "fun"]
-      xs ← cpManySepBy (cpSyntax ",") cpName
-      concat [cpSyntax "→",cpSyntax "->"]
-      return $ LamC xs
-  , fmixPostfix (𝕟64 200) $ do
-      cpSyntax "("
-      ces ← cpManySepBy (cpSyntax ",") pCirExp
-      cpSyntax ")"
-      return $ \ ce → AppC ce ces
-  , fmixPostfix (𝕟64 100) $ do 
-      cpSyntax "["
-      φ ← pProt
-      cpSyntax ":"
-      ps ← pPrins
-      cpSyntax "]"
-      return $ \ ce → ShareC ce φ ps
-  , fmixInfixL (𝕟64 50) $ do cpSyntax "+" ; return $ \ e₁ e₂ → PrimC "PLUS" $ list [e₁,e₂]
-  , fmixInfix (𝕟64 40) $ do cpSyntax "<" ; return $ \ e₁ e₂ → PrimC "LT" $ list [e₁,e₂]
-  ]
-
 -------------------
 -- Program Terms --
 -------------------
 
 -- e ∈ term ⩴ i | b | d | s | x | •
 --          | let x = e in e
---          | λ x → e
+--          | λ x ψ → e
 --          | e e
 --          | Λ α → e
 --          | e@τ
@@ -383,28 +411,31 @@ pCirExp = fmixfixWithContext "circuit" $ concat
 --          | circuit ce
 type AExp = Annotated FullContext Exp
 data Exp =
-    IntE ℤ                    -- i                    /  i
-  | BoolE 𝔹                   -- b                    /  b
-  | DblE 𝔻                    -- d                    /  d
-  | StrE 𝕊                    -- s                    /  s
-  | VarE 𝕏                    -- x                    /  x
-  | BulE                      -- •                    /  ()
-  | LetE APat AExp AExp       -- let ψ = e in e       /  let ψ = e in e
-  | LamE APat AExp            -- λ ψ → e              /  fun ψ → e
-  | AppE AExp AExp            -- e e                  /  e e
-  | TLamE (𝐿 𝕏) AExp          -- Λ α → e              /  abs α → e
-  | TAppE AExp AType          -- e@τ                  /  e@τ
-  | TupE AExp AExp            -- e,e                  /  e,e
-  | IfE AExp AExp AExp        -- if e then e else e   /  if e then e else e
-  | LocE AExp APrins          -- e{P}                 /  e{P}
-  | ShareE AExp AProt APrins  -- e[φ:P]               /  e[φ:P]
-  | BundleE AExp APrins       -- e⟨P⟩                 /  e<P>
-  | WFold AExp 𝕏 𝕏 𝕏 AExp     -- wfold e {x,x,x → e}  /  wfold e {x,x,x -> e}
-  | MPCE AProt APrins AExp    -- mpc{φ:P} e           /  mpc{φ:P} e
-  | ReturnE AExp              -- return e             /  return e
-  | BindE APat AExp AExp      -- ψ ← e₁ ; e₂          /  ψ <- e₁ ; e₂
-  | CircuitE ACirExp          -- circuit e            /  circuit e
-  | PrimE 𝕊 (𝐿 AExp)          -- φₓ[e,…,e]            /  φₓ[e,…,e]
+    IntE ℤ                        -- i                    /  i
+  | BoolE 𝔹                       -- b                    /  b
+  | DblE 𝔻                        -- d                    /  d
+  | StrE 𝕊                        -- s                    /  s
+  | VarE 𝕏                        -- x                    /  x
+  | BulE                          -- •                    /  ()
+  | LetE APat AExp AExp           -- let ψ = e in e       /  let ψ = e in e
+  | LamE 𝕏 APat AExp              -- λ x ψ → e            /  fun x ψ → e
+  | AppE AExp AExp                -- e e                  /  e e
+  | TLamE (𝐿 𝕏) AExp              -- Λ α → e              /  abs α → e
+  | TAppE AExp AType              -- e@τ                  /  e@τ
+  | TupE AExp AExp                -- e,e                  /  e,e
+  | IfE AExp AExp AExp            -- if e then e else e   /  if e then e else e
+  | LocE AExp APrins              -- e{P}                 /  e{P}
+  | ShareE AExp AProt APrins      -- e[φ:P]               /  e[φ:P]
+  | BundleE AExp APrins           -- e⟨P⟩                 /  e<P>
+  | WFold AExp 𝕏 APat APat AExp   -- wfold e {α,ψ,ψ → e}  /  wfold e {α,ψ,ψ -> e}
+  | MPCE AProt APrins AExp        -- mpc{φ:P} e           /  mpc{φ:P} e
+  | ReturnE AExp                  -- return e             /  return e
+  | BindE APat AExp AExp          -- ψ ← e₁ ; e₂          /  ψ <- e₁ ; e₂
+  | CircuitE ACirExp              -- circuit e            /  circuit e
+  | NilE                          -- []                   /  []
+  | ConsE AExp AExp               -- e ∷ e                /  e :: e
+  | CaseE AExp (𝐿 (APat ∧ AExp))  -- case e {φ→e;…}       / case e {φ->e;…}
+  | PrimE 𝕊 (𝐿 AExp)              -- φₓ[e,…,e]            /  φₓ[e,…,e]
   deriving (Eq,Ord,Show)
 
 pExp ∷ CParser TokenBasic AExp
@@ -419,16 +450,27 @@ pExp = fmixfixWithContext "exp" $ concat
       , do cpSyntax "wfold"
            e₁ ← pExp
            cpSyntax "{"
-           x₁ ← cpName
+           x ← cpName
            cpSyntax ","
-           x₂ ← cpName
+           ψ₁ ← pPat
            cpSyntax ","
-           x₃ ← cpName
+           ψ₂ ← pPat
            concat [cpSyntax "→",cpSyntax "->"]
            e₂ ← pExp
            cpSyntax "}"
-           return $ WFold e₁ x₁ x₂ x₃ e₂
+           return $ WFold e₁ x ψ₁ ψ₂ e₂
       , do cpSyntax "circuit" ; ce ← pCirExp ; return $ CircuitE ce
+      , do cpSyntax "[]" ; return NilE
+      , do cpSyntax "case"
+           e ← pExp
+           cpSyntax "{"
+           φes ← cpManySepBy (cpSyntax ";") $ do 
+             φ ← pPat
+             cpSyntax ";"
+             e' ← pExp
+             return $ φ :* e'
+           cpSyntax "}"
+           return $ CaseE e φes
       ]
   , fmixPrefix (𝕟64 10) $ do
       cpSyntax "let"
@@ -439,9 +481,10 @@ pExp = fmixfixWithContext "exp" $ concat
       return $ LetE ψ e
   , fmixPrefix (𝕟64 10) $ do
       concat [cpSyntax "λ",cpSyntax "fun"]
+      x ← cpName
       ψ ← pPat
       concat [cpSyntax "→",cpSyntax "->"]
-      return $ LamE ψ
+      return $ LamE x ψ
   , fmixInfixL (𝕟64 200) $ return AppE
   , fmixPostfix (𝕟64 200) $ do
       cpSyntax "@"
@@ -488,12 +531,18 @@ pExp = fmixfixWithContext "exp" $ concat
       e ← pExp
       cpSyntax ";"
       return $ BindE ψ e
+  , fmixInfixR (𝕟64 30) $ do concat [cpSyntax "∷",cpSyntax "::"] ; return ConsE
   , fmixInfixL (𝕟64 50) $ do cpSyntax "+" ; return $ \ e₁ e₂ → PrimE "PLUS" $ list [e₁,e₂]
+  , fmixInfixL (𝕟64 60) $ do cpSyntax "×" ; return $ \ e₁ e₂ → PrimE "TIMES" $ list [e₁,e₂]
+  , fmixInfixL (𝕟64 60) $ do cpSyntax "/" ; return $ \ e₁ e₂ → PrimE "DIVIDE" $ list [e₁,e₂]
   , fmixInfix (𝕟64 40) $ do cpSyntax "<" ; return $ \ e₁ e₂ → PrimE "LT" $ list [e₁,e₂]
+  , fmixInfix (𝕟64 40) $ do concat [cpSyntax "≤",cpSyntax "<="] ; return $ \ e₁ e₂ → PrimE "LTE" $ list [e₁,e₂]
+  , fmixInfix (𝕟64 40) $ do concat [cpSyntax "≡",cpSyntax "=="] ; return $ \ e₁ e₂ → PrimE "EQ" $ list [e₁,e₂]
   ]
       
 
 makePrettySum ''CirExp
+makePrettySum ''Pat
 makePrettySum ''Exp
 
 -- s ∈ top-level ⩴ def x : τ | def x = τ
@@ -557,49 +606,3 @@ testParser = do
   ls₂ ← tokenizeIO lexer ts₂
   _tls₂ ← parseIO cpTLs ls₂
   out "file done"
-
--- testParser ∷ IO ()
--- testParser = rtimeIO "MAIN" $ do
---   pprint $ ppHeader "<LIB>"
---   s₁ ← read "files/pantheon/lib.psl"
---   pprint $ ppHeader "PRE..." ; flushOut
---   pprint *$ now
---   ts₁' ← rtime "PRE 1" $ \ () → tokens s₁
---   pprint *$ now
---   pprint $ ppHeader "TOKENIZING..." ; flushOut
---   pprint *$ now
---   ts₁ ← rtimeIO "TOK 1" $ tokenizeIO lexer ts₁'
---   pprint *$ now
---   pprint $ ppHeader "DONE" ; flushOut
---   pprint $ ppHeader "PARSING..." ; flushOut
---   pprint *$ now
---   void $ rtimeIO "PAR 1" $ parseIOMain cpTLs ts₁
---   pprint *$ now
---   pprint $ ppHeader "DONE" ; flushOut
---   pprint $ ppHeader "<FILE>"
---   s₂ ← read "files/pantheon/simple.psl"
---   pprint $ ppHeader "PRE..." ; flushOut
---   pprint *$ now
---   ts₂' ← rtime "PRE 2" $ \ () → tokens s₂
---   pprint *$ now
---   pprint $ ppHeader "TOKENIZING..." ; flushOut
---   pprint *$ now
---   ts₂ ← rtimeIO "TOK 2" $ tokenizeIO lexer ts₂'
---   pprint *$ now
---   pprint $ ppHeader "DONE" ; flushOut
---   pprint $ ppHeader "PARSING..." ; flushOut
---   pprint *$ now
---   void $ rtimeIO "PAR 2" $ parseIOMain cpTLs ts₂
---   pprint *$ now
---   pprint $ ppHeader "DONE" ; flushOut
--- 
--- -- -- testParseExpSuccess ∷ IO ()
--- -- -- testParseExpSuccess = parseIOMain (pFinal $ pSkip (shape eTWhitespaceL) parseExp) ∘ stream *$ tokenizeIO tokExp $ tokens "(((((- 1))) + - 2 + 3 * 4 ^ 5 ^ 6 !))"
--- -- -- 
--- -- -- testParseExpFailure1 ∷ IO ()
--- -- -- testParseExpFailure1 = parseIOMain parseExp ∘ stream *$ tokenizeIO tokExp $ tokens "((9 = ((- 1))) + 2 + 3 * 4 ^ 5 ^ 6 !))"
--- -- -- 
--- -- -- testParseExpFailure2 ∷ IO ()
--- -- -- testParseExpFailure2 = parseIOMain parseExp ∘ stream *$ tokenizeIO tokExp $ tokens "(((((- 1))) + 2 + 3 * 4 ^ 5 ^ ! = 0))"
--- -- -- 
--- -- -- 

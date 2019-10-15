@@ -13,14 +13,14 @@
              ;; define several category of keywords
              (x-keywords '("primitive" "principal" "trust" "security"
                            "def" "λ" "fun" "Λ" "abs" "let" "in" "if"
-                           "then" "else" "circuit" "mpc" "do"))
+                           "then" "else" "circuit" "mpc" "do" "case"))
              (x-types '("yao" "bgw" "gmw" "none" "☆" "type" "ℙ" "prin"
-                        "ℤ" "int" "𝔹" "bool" "MPC" "CIR" "true"
-                        "false" "𝟙" "unit" "•" "()" "𝟘" "empty"))
+                        "ℤ" "int" "𝔹" "bool" "MPC" "CIR" "list" "true"
+                        "false" "𝟙" "unit" "•" "()" "𝟘" "empty" "∷" "::"))
              (x-events '("(" ")" "{" "}" "[" "]" "<" ">" "⟨" "⟩" " " ":"
                          ";" "→" "->" "←" "<-" "↣" ">->" "⪫" "->-" "⫫"
                          "_||_" "=" "~" "_"))
-             (x-functions '("+" "-" "×" "*" "≡" "≤" "<=" "<" "^"))
+             (x-functions '("+" "-" "×" "*" "/" "≡" "==" "≤" "<=" "<" "^"))
              (x-constants '())
 
             ;; generate regex string for each category of keywords
