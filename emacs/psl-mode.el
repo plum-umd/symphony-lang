@@ -13,7 +13,8 @@
              ;; define several category of keywords
              (x-keywords '("primitive" "principal" "trust" "security"
                            "def" "λ" "fun" "Λ" "abs" "let" "in" "if"
-                           "then" "else" "circuit" "mpc" "do" "case"))
+                           "then" "else" "circuit" "mpc" "do" "case"
+                           "rλ" "rfun"))
              (x-types '("yao" "bgw" "gmw" "none" "☆" "type" "ℙ" "prin"
                         "ℤ" "int" "𝔹" "bool" "MPC" "CIR" "list" "true"
                         "false" "𝟙" "unit" "•" "()" "𝟘" "empty" "∷" "::"))

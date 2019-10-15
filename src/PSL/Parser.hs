@@ -24,6 +24,7 @@ lexer = lexerBasic puns kws prim ops
       , "security"
       , "def"
       , "λ","fun"
+      , "rλ","rfun"
       , "Λ","abs"
       , "let","in"
       , "if","then","else"
@@ -418,7 +419,7 @@ data Exp =
   | VarE 𝕏                        -- x                    /  x
   | BulE                          -- •                    /  ()
   | LetE APat AExp AExp           -- let ψ = e in e       /  let ψ = e in e
-  | LamE 𝕏 APat AExp              -- λ x ψ → e            /  fun x ψ → e
+  | LamE (𝑂 𝕏) APat AExp          -- λ x ψ → e            /  fun x ψ → e
   | AppE AExp AExp                -- e e                  /  e e
   | TLamE (𝐿 𝕏) AExp              -- Λ α → e              /  abs α → e
   | TAppE AExp AType              -- e@τ                  /  e@τ
@@ -481,10 +482,15 @@ pExp = fmixfixWithContext "exp" $ concat
       return $ LetE ψ e
   , fmixPrefix (𝕟64 10) $ do
       concat [cpSyntax "λ",cpSyntax "fun"]
+      ψ ← pPat
+      concat [cpSyntax "→",cpSyntax "->"]
+      return $ LamE None ψ
+  , fmixPrefix (𝕟64 10) $ do
+      concat [cpSyntax "rλ",cpSyntax "rfun"]
       x ← cpName
       ψ ← pPat
       concat [cpSyntax "→",cpSyntax "->"]
-      return $ LamE x ψ
+      return $ LamE None ψ
   , fmixInfixL (𝕟64 200) $ return AppE
   , fmixPostfix (𝕟64 200) $ do
       cpSyntax "@"

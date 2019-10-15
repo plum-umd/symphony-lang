@@ -15,11 +15,11 @@ security C ⫫ D -- TODO relax to say some number of corruptions
 
 -- tracks who participates, also checks C,D
 def compareInline : ℤ{A} → ℤ{B} → MPC{A,B ⪫ C,D} 𝔹[yao:E,F]
-def compareInline = λ a → λ b → mpc{yao:C,D} circuit ~a < ~b [yao:E,F]
+def compareInline = λ a → λ b → mpc{yao:C,D} circuit a < b [yao:E,F]
 
 -- just tracks who participates
 def compareCIR : ℤ{A} → ℤ{B} → CIR{bool:A,B} 𝔹
-def compareCIR = λ a → λ b → circuit ~a < ~b
+def compareCIR = λ a → λ b → circuit a < b
 
 def compareMPC : ℤ{A} → ℤ{B} → MPC{A,B ⪫ C,D} 𝔹[yao:E,F]
 def compareMPC = λ a → λ b →
@@ -28,7 +28,7 @@ def compareMPC = λ a → λ b →
 
 def send : ℤ{A} → MPC{A⪫} 𝔹{B}
 def send = λ a →
-  do b ← mpc{none:} circuit ~a {B};
+  do b ← mpc{none:} circuit a {B};
   return b
 
 def send : ℤ{A} → MPC{A⪫} 𝔹{B}
@@ -37,7 +37,7 @@ def send = λ a →
 
 def distribute : ℤ{A} → MPC{A⪫} ℤ[yao:B,C]
 def distribute = λ a →
-  do bc ← mpc{none:} circuit ~a {B,C};
+  do bc ← mpc{none:} circuit a {B,C};
   return bc
 
 def combine : ℤ[bgw:A,B] → MPC{A⪫} ℤ{C}
@@ -62,11 +62,11 @@ def swap = λ ab → λ ac →
 
 def compareConstInline : ℤ{B,C} → ℤ{A} → MPC{A ⪫ B,C} 𝔹{D}
 def compareConstInline = λ x → λ a →
-  do c ← mpc{gmw:B,C} circuit x < ~a {D};
+  do c ← mpc{gmw:B,C} circuit x < a {D};
   retun c
 
 def compareConstCIR : ℤ → ℤ{A} → CIR{bool:A} 𝔹{D}
-def compareConstCIR = λ x → λ a → circuit x < ~a {D}
+def compareConstCIR = λ x → λ a → circuit x < a {D}
 
 def compareConstMPC : ℤ → ℤ{A} → MPC{A ⪫ B,C} 𝔹{D}
 def compareConstMPC = λ x → λ a →
