@@ -8,58 +8,50 @@
 
 F⁅[H] \footnotesize
 M⁅Aːrclcl@{␠}l
-  A⁅ ρ     ⧼∈⧽ ‹prin›              ⧼≜⧽ ❴⦑Alice⦒,⦑Bob⦒,…❵              & ⟪principles⟫
-  A⁃ P     ⧼∈⧽ ‹prin-set›          ⧼≜⧽ ℘(‹prin›)                      & ⟪set of principles⟫
-  A⁃ φ     ⧼∈⧽ ‹protocol›          ⧼⩴⧽ ⦑yao⦒ ¦ ⦑bgw⦒ ¦ ⦑gmw⦒          & ⟪supported MPC protocols⟫
-  A⁃ κ     ⧼∈⧽ ‹kind›              ⧼⩴⧽ ⦑type⦒ ¦ ⦑prin⦒                & ⟪quantifiable things at type-leve⟫
-  A⁃ «cbτ» ⧼∈⧽ ‹circuit-base-type› ⧼⩴⧽ ⦑int⦒ ¦ ⦑bool⦒ ¦ «cbt» × «cbt» & ⟪circuit base types⟫
-  A⁃ «cτ»  ⧼∈⧽ ‹circuit-type›      ⧼⩴⧽ «cbτ» ¦ «cbτ» ↣ «cbτ»          & ⟪base type or first-order function between base types⟫
+  A⁅ κ     ⧼∈⧽ ‹kind›              ⧼⩴⧽ ⦑type⦒ ¦ ⦑prin⦒                      & ⟪quantifiable things at the type-level⟫
   A⁃ α     ⧼∈⧽ ‹type-variable›     ⧼ ⧽
-  A⁃ ς     ⧼∈⧽ ‹circuit-ops›       ⧼⩴⧽ ⦑bool⦒ ¦ ⦑arith⦒
-  A⁃ τ     ⧼∈⧽ ‹type›              ⧼⩴⧽ α ¦ ⦑unit⦒ ¦ ⦑int⦒ ¦ ⦑bool⦒ & ⟪type variables and base types⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ τ × τ ¦ τ → τ               & ⟪pairs and functions (will have sums too eventually)⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ τ❴P❵                        & ⟪Same value living in the clear on multiple parties⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ τ[φ:P]                      & ⟪Same value secret shared in some protocol between multiple parties⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ τ⟨P⟩                        & ⟪Different values living in the clear on multiple parties (SIMD)⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑CIR⦒❴ς:P❵␣«cτ»             & ⟪Circuit with ops and embedded inputs from parties⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑{MPC}⦒❴P ↦ P❵␣τ            & ⟪MPC with inputs from parties ⸨P₁⸩ and computed between parties ⸨P₂⸩⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑list⦒␣τ                    & ⟪lists⟫
+  A⁃ p     ⧼∈⧽ ‹principal›         ⧼≜⧽ ❴⦑Alice⦒,⦑Bob⦒,…❵                    & ⟪principals⟫
+  A⁃ ρ     ⧼∈⧽ ‹prin-exp›          ⧼⩴⧽ α ¦ p                                & ⟪principals⟫
+  A⁃ P     ⧼∈⧽ ‹prin-set›          ⧼≜⧽ ℘(‹prin›)                            & ⟪set of principals⟫
+  A⁃ σ     ⧼∈⧽ ‹scheme›            ⧼⩴⧽ ⦑ashare⦒ ¦ ⦑sshare⦒                  & ⟪supported secret sharing protocols⟫
+  A⁃ ς     ⧼∈⧽ ‹circuit-ops›       ⧼⩴⧽ ⦑bcir⦒ ¦ ⦑acir⦒                      & ⟪supported circuit types⟫
+  A⁃ c     ⧼∈⧽ ‹constraint›        ⧼⩴⧽ P ⊆ P                                & ⟪constraints⟫
+  A⁃ τ     ⧼∈⧽ ‹type›              ⧼⩴⧽ α ¦ ⦑unit⦒ ¦ ⦑bool⦒ ¦ ⦑string⦒       & ⟪type variables and base types⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑nat⦒[n.n] ¦ ⦑int⦒[n.n] ¦ ⦑float⦒[n] & ⟪naturals, integers (fixed point) and floats⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ τ + τ ¦ τ × τ ¦ ⦑list⦒␣τ             & ⟪tagged unions, tuples and lists⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ τ → τ                                & ⟪functions⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ∀␣α⦂κ⍪c,…,c ⇒ τ
+  A⁃       ⧼ ⧽                     ⧼¦⧽ τ❴⦑sec⦒:P❵                           & ⟪“secret”: a secret value known by multiple parties⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ τ❴⦑par⦒:P❵                           & ⟪“parallel”: different values for multiple parties (SIMD)⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ τ❴σ:P❵                               & ⟪“shared”: a secret value secret-shared between parties⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ τ❴ς:P❵                               & ⟪“circuit”: a circuit with embedded inputs from multiple parties⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑{MPC}⦒❴P ↦ P❵␣τ                     & ⟪MPC with inputs from parties and computed between parties⟫
   A⁃ x     ⧼∈⧽ ‹term-variable›     ⧼ ⧽
-  A⁃ ν     ⧼∈⧽ ‹circuit-variable›  ⧼ ⧽
   A⁃ i     ⧼∈⧽ ℤ                   ⧼ ⧽
   A⁃ b     ⧼∈⧽ 𝔹                   ⧼ ⧽
   A⁃ d     ⧼∈⧽ 𝔻                   ⧼ ⧽
   A⁃ s     ⧼∈⧽ 𝕊                   ⧼ ⧽
-  A⁃ ⊙     ⧼∈⧽ ‹operation›         ⧼⩴⧽ {+} ¦ {×} ¦ {/} ¦ {<} ¦ {≤} ¦ {≡}  & ⟪operations⟫
-  A⁃ «cψ»  ⧼∈⧽ ‹circuit-pattern›   ⧼⩴⧽ ν ¦ «cψ»,«cψ» ¦ ‗                  & ⟪circuit patterns⟫
-  A⁃ «ce»  ⧼∈⧽ ‹circuit-term›      ⧼⩴⧽ i ¦ b ¦ ν                          & ⟪literals and variables⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ x                                  & ⟪program variables (when publicly visible or secretly accessible)⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ «ce» ⊙ «ce»                        & ⟪operation⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑let⦒␣«cψ» = «ce»␣⦑in⦒␣«ce»        & ⟪let-binding⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑❪λ❫⦒␣«cψ» → «ce»                   & ⟪first-order circuit function creation⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ «ce» «ce»                          & ⟪first-order circuit function application⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ «ce»,«ce»                          & ⟪pairs⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ ⌊e⌋                                & ⟪embedding a first-class-constructed circuit in a circuit⟫
-  A⁃ ψ     ⧼∈⧽ ‹pattern›           ⧼⩴⧽ x ¦ • ¦ ψ,ψ ¦ ‗                    & ⟪Patterns⟫
-  A⁃ e     ⧼∈⧽ ‹term›              ⧼⩴⧽ i ¦ b ¦ d ¦ s ¦ x ¦ •              & ⟪literals, variables and unit⟫   
-  A⁃       ⧼ ⧽                     ⧼¦⧽ «e» ⊙ «e»                          & ⟪operation⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑let⦒␣ψ=e␣⦑in⦒␣e                   & ⟪let-binding⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑❪λ❫⦒␣x␣ψ → e                        & ⟪(recursive) higher-order function creation⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ e␣e                                & ⟪higher-order function application⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑❪Λ❫⦒␣α → e                          & ⟪type-abstraction (à la System F)⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ e@τ                                & ⟪type-application (à la System F)⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ e,e                                & ⟪tuple creation⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑if⦒␣e␣⦑then⦒␣e␣⦑else⦒␣e           & ⟪conditionals⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ e❴P❵                               & ⟪Broadcast identical value to parties⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ e[φ:P]                             & ⟪Secret-share value to parties⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ e⟨P⟩                               & ⟪Broadcast bundled (SIMD) value to parties⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑wfold⦒␣e␣❴ α,ψ,ψ → e ❵            & ⟪fold over bundle⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑mpc⦒❴φ:P❵␣e                       & ⟪evaluate a circuit in MPC between parties⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑return⦒␣e                         & ⟪return in MPC monad⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ x ← e ⨟ e                          & ⟪bind in MPC monad⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑circuit⦒␣«ce»                     & ⟪circuit creation⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ [] ¦ e∷e                           & ⟪list intro⟫
-  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑case⦒␣e␣❴[] → e ⨟x∷x → e❵         & ⟪list elim⟫
+  A⁃ φ     ⧼∈⧽ ‹protocol›          ⧼⩴⧽ ⦑yao⦒ ¦ ⦑bgw⦒ ¦ ⦑gmw⦒                               & ⟪supported MPC protocols⟫
+  A⁃ ⊙     ⧼∈⧽ ‹operation›         ⧼⩴⧽ {∨} ¦ {∧} ¦ {+} ¦ {×} ¦ {/} ¦ {<} ¦ {≤} ¦ {≡} ¦ {?} & ⟪operations⟫
+  A⁃ ψ     ⧼∈⧽ ‹pattern›           ⧼⩴⧽ x ¦ • ¦ ⦑❪ι❫⦒ₙ␣ψ ¦ ψ,ψ ¦ [] ¦ ψ∷ψ                   & ⟪variables, unit, tagged unions, tuples, lists⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ∅ ¦ ⟨ψ@ρ⟩⧺ψ ¦ ‗                                     & ⟪bundles, wildcard⟫
+  A⁃ e     ⧼∈⧽ ‹term›              ⧼⩴⧽ x ¦ b ¦ s ¦ i ¦ d ¦ •                               & ⟪variables and literals⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑if⦒␣e␣⦑then⦒␣e␣⦑else⦒␣e                            & ⟪conditionals⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑❪ι❫⦒ₙ␣e ¦ e,e ¦ [] ¦ e∷e                           & ⟪tagged unions, tuples and lists⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑let⦒␣ψ=e␣⦑in⦒␣e                                    & ⟪let-binding⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑case⦒␣e␣❴ψ → e⨟…ψ → e❵                             & ⟪pattern matching⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑❪λ❫⦒␣x␣ψ → e                                       & ⟪(recursive) function creation⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ e␣e                                                 & ⟪function application⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑❪Λ❫⦒␣α → e                                         & ⟪type abstraction (à la System F)⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ e@τ                                                 & ⟪type application (à la System F)⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑par⦒❴P❵␣e                                          & ⟪do computation in parallel⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑circuit⦒␣e                                         & ⟪build a circuit with input from parties⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑share⦒❴σ:P❵␣e                                      & ⟪secret-share value to parties⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ∅ ¦ ⟨e@ρ⟩ ¦ e⧺e                                     & ⟪building literal bundles⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑mpc⦒❴φ:P❵␣e                                        & ⟪evaluate a circuit in MPC between parties⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑return⦒␣e                                          & ⟪return in MPC monad⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ x ← e ⨟ e                                           & ⟪bind in MPC monad⟫
+  A⁃       ⧼ ⧽                     ⧼¦⧽ ⦑prim⦒[⊙](e,…,e)                                    & ⟪primitive operation⟫
   A⁆
 M⁆
 \caption{Syntax}

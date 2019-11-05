@@ -1,0 +1,59 @@
+principal A
+principal B
+
+def list-cond : 
+    𝔹{bcir:A,B} 
+  → list ℤ{bcir:A,B}
+  → list ℤ{bcir:A,B} 
+  → list ℤ{bcir:A,B}
+def list-cond = rλ rec b → λ xs → λ ys → case xs,ys
+  { [],_ → ys
+  ; _,[] → xs
+  ; x∷xs′,y∷ys′ → circuit b ? x ◇ y ∷ rec bs′ xs′ ys′
+  }
+
+def split : list ℤ{par:A,B} → list ℤ{par:A,B} × list ℤ{par:A,B}
+def split = rλ rec xs → case xs
+  { [] → [] , []
+  ; [x] → [] , [x]
+  ; x₁∷x₂∷xs →
+      let xs₁,xs₂ = rec xs in
+      x₁∷xs₁,x₂∷xs₂
+  }
+
+def merge : 
+    list ℤ{bcir:A,B}
+  → list ℤ{bcir:A,B}
+  → list ℤ{bcir:A,B}
+def merge = rλ rec xs → λ ys →
+  case xs,ys
+  { [],_ → ys
+  ; _,[] → xs
+  ; x∷xs′,y∷ys′ →
+      list-cond (circuit x ≤ y)
+                (circuit x ∷ rec xs′ ys)
+                (circuit y ∷ rec xs ys′)
+  }
+
+def msort : list ℤ{par:A,B} → list ℤ{bcir:A,B}
+def msort = rλ rec xs → case xs 
+  { [] → []
+  ; [⟨x@A;y@B⟩] →
+      let b = x ≤ y in
+      [ circuit b ? x ◇ y , circuit b ? y ◇ x ]
+  ; x₁∷x₂∷xs′ →
+      let xs₁ : list ℤ{par:A,B} in
+      let xs₂ : list ℤ{par:A,B} in
+      let xs₁,xs₂ = split xs in
+
+      let ys₁ : list ℤ{bcir:A,B} in
+      let ys₁ = rec xs₁ in
+
+      let ys₁ : list ℤ{bcir:A,B} in
+      let ys₂ = rec xs₂ in
+
+      merge ys₁ ys₂
+  }
+
+def msort-mpc : list ℤ{par:A,B} → MPC{A,B ⪫ A,B} list ℤ
+def msort-mpc = λ xs → mpc{gmw:A,B} msort xs

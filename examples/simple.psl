@@ -14,40 +14,37 @@ security C ⫫ D -- TODO relax to say some number of corruptions
 -- delegate thing as a function
 
 -- tracks who participates, also checks C,D
-def compareInline : ℤ{A} → ℤ{B} → MPC{A,B ⪫ C,D} 𝔹[yao:E,F]
-def compareInline = λ a → λ b → mpc{yao:C,D} circuit a < b [yao:E,F]
+def compareInline : ℤ{sec:A} → ℤ{sec:B} → MPC{A,B ⪫ C,D} 𝔹{ashare:E,F}
+def compareInline = λ a → λ b → mpc{yao:C,D} share{ashare:E,F} circuit a < b
 
 -- just tracks who participates
-def compareCIR : ℤ{A} → ℤ{B} → CIR{bool:A,B} 𝔹
+def compareCIR : ℤ{sec:A} → ℤ{sec:B} → 𝔹{bcir:A,B}
 def compareCIR = λ a → λ b → circuit a < b
 
-def compareMPC : ℤ{A} → ℤ{B} → MPC{A,B ⪫ C,D} 𝔹[yao:E,F]
+def compareMPC : ℤ{sec:A} → ℤ{sec:B} → MPC{A,B ⪫ C,D} 𝔹{ashare:E,F}
 def compareMPC = λ a → λ b →
-  do c ← mpc{yao:C,D} compareCIR a b [yao:E,F];
+  do c ← mpc{yao:C,D} share{ashare:E,F} compareCIR a b;
   return c
 
-def send : ℤ{A} → MPC{A⪫} 𝔹{B}
+def send : ℤ{sec:A} → MPC{A⪫} 𝔹{sec:B}
 def send = λ a →
-  do b ← mpc{none:} circuit a {B};
+  do b ← mpc{none:} share{B} circuit a;
   return b
 
-def send : ℤ{A} → MPC{A⪫} 𝔹{B}
-def send = λ a →
-  return a {B}
-
-def distribute : ℤ{A} → MPC{A⪫} ℤ[yao:B,C]
+def distribute : ℤ{sec:A} → MPC{A⪫} ℤ{sshare:B,C}
 def distribute = λ a →
-  do bc ← mpc{none:} circuit a {B,C};
+  do bc ← mpc{none:} share{sshare:B,C} circuit a;
   return bc
 
-def combine : ℤ[bgw:A,B] → MPC{A⪫} ℤ{C}
+def combine : ℤ{sshare:A,B} → MPC{A⪫} ℤ{sec:C}
 def combine = λ ab →
-  do c ← mpc{none:} circuit ab {C};
+  do c ← mpc{none:} share{C} circuit ab;
   return c
 
-def split : ℤ{A} → MPC{A⪫} ℤ[yao:B,C] × ℤ[bgw:C,D]
+def split : ℤ{sec:A} → MPC{A⪫} ℤ{ashare:B,C} × ℤ{ashare:C,D}
 def split = λ a →
-  do bc,cd ← mpc{none:} circuit a [yao:B,C] , a [bgw:C,D];
+  let aa = circuit a in
+  do bc,cd ← mpc{none:} (share{ashare:B,C} aa) , (share{ashare:C,D} aa);
   return bc,cd
 
 -- def split2 : ℤ{A} → MPC{A} ℤ{yao:B,C|bgw:C,D}
@@ -55,20 +52,20 @@ def split = λ a →
 --   c ← mpc circuit a {B,C|C,D};
 --   return c;
 
-def swap : ℤ[yao:A,B] → ℤ[bgw:A,C] → MPC{A,B,C⪫} ℤ[bgw:A,C] × ℤ[yao:A,B]
+def swap : ℤ{ashare:A,B} → ℤ{ashare:A,C} → MPC{A,B,C⪫} ℤ{ashare:A,C} × ℤ{ashare:A,B}
 def swap = λ ab → λ ac →
-  do ra,rb ← mpc{none:} circuit ab [bgw:A,C] , ac [yao:A,B];
+  do ra,rb ← mpc{none:} (share{ashare:A,C} circuit ab) , (share{ashare:A,B} circuit ac);
   return ra,rb
 
-def compareConstInline : ℤ{B,C} → ℤ{A} → MPC{A ⪫ B,C} 𝔹{D}
+def compareConstInline : ℤ → ℤ{sec:A} → MPC{A ⪫ B,C} 𝔹{sec:D}
 def compareConstInline = λ x → λ a →
-  do c ← mpc{gmw:B,C} circuit x < a {D};
+  do c ← mpc{gmw:B,C} share{D} circuit x < a;
   retun c
 
-def compareConstCIR : ℤ → ℤ{A} → CIR{bool:A} 𝔹{D}
-def compareConstCIR = λ x → λ a → circuit x < a {D}
+def compareConstCIR : ℤ → ℤ{sec:A} → 𝔹{bcir:A}
+def compareConstCIR = λ x → λ a → circuit x < a
 
-def compareConstMPC : ℤ → ℤ{A} → MPC{A ⪫ B,C} 𝔹{D}
+def compareConstMPC : ℤ → ℤ{sec:A} → MPC{A ⪫ B,C} 𝔹{sec:D}
 def compareConstMPC = λ x → λ a →
-  do c ← mpc{gmw:B,C} compareConstCIR a b {D};
+  do c ← mpc{gmw:B,C} share{D} compareConstCIR a b;
   return c

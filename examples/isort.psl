@@ -1,0 +1,32 @@
+principal A
+principal B
+
+def list-cond : 
+    𝔹{bcir:A,B} 
+  → list ℤ{bcir:A,B}
+  → list ℤ{bcir:A,B} 
+  → list ℤ{bcir:A,B}
+def list-cond = rλ rec b → λ xs → λ ys → case xs,ys
+  { [],_ → ys
+  ; _,[] → xs
+  ; x∷xs′,y∷ys′ → circuit b ? x ◇ y ∷ rec bs′ xs′ ys′
+  }
+
+def insert : ∀ P:ℙ. {P} ⊆ {A,B} ⇒ ℤ{sec:P} → list ℤ{bcir:A,B} → list ℤ{bcir:A,B}
+def insert = rλ rec x → λ ys → case ys
+  { [] → circuit x ∷ []
+  ; y∷ys′ → 
+      list-cond (circuit x ≤ y)
+                (circuit x ∷ circuit y ∷ ys′)
+                (circuit y ∷ rec x ys′)
+  }
+
+def isort : list ℤ{par:A,B} → list ℤ{bcir:A,B}
+def isort = rλ rec xys → case xys
+  { [] → []
+  ; ⟨x@A;y@B⟩∷xys′ → insert@A x (insert@B y (rec xys′))
+  }
+
+def isort-mpc : list ℤ{par:A,B} → MPC{A,B ⪫ A,B} list ℤ
+def isort-mpc = λ xys → mpc{yao:A,B} isort xys
+

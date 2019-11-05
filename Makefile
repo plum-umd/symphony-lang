@@ -43,6 +43,10 @@ clean:
 	rm -f $(NAME).cabal
 	rm -rf doc
 
+.PHONY:
+re:
+	touch src/PSL.hs
+
 .PHONY: hoogle
 hoogle:
 	stack hoogle -- generate --local
