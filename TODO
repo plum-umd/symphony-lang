@@ -1,0 +1,7 @@
+circuit lattice: 
+
+bcir: ⊕
+bpcir: ⊕,+
+pcir: +
+acir: +,×
+ucir: ⊕,+,×

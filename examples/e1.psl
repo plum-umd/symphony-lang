@@ -1,0 +1,14 @@
+principal A
+principal B
+
+def op : ℤ{sec:A} → ℤ{sec:B} → ℤ{pcir:A,B}
+def op = λ x → λ y → circuit x + y
+
+def main₁ : ℤ{sec:A} → ℤ{sec:B} → MPC{A,B ⪫ A,B} 𝔹{sshare:A,B}
+def main₁ = λ x → λ y → mpc{bgw:A,B} op x y
+
+def main₂ : ℤ{sec:A} → ℤ{sec:B} → MPC{A,B ⪫ A,B} 𝔹{ashare:A,B}
+def main₂ = λ x → λ y → mpc{bgw:A,B} op x y
+
+def main₃ : ℤ{sec:A} → ℤ{sec:B} → MPC{A,B ⪫ A,B} 𝔹{yshare:A,B}
+def main₃ = λ x → λ y → mpc{yao:A,B} op x y
