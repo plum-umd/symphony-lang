@@ -1,0 +1,108 @@
+principal A
+principal B
+
+ℤ{ssec:A,B} -- shared secret between A and B
+ℤ{psec:A,B} -- private secret for A and B
+ℤ{cir:ashare:A,B} -- a circuit with inputs from A and B which are additive shared
+ℤ{acir:sshare:A,B} -- an arithmetic circuit with inputs from A and B which are shamir shared
+
+def op : ℤ{joint:A} → ℤ{joint:B} → ℤ{pcir:A,B}
+def op = λ (x : ℤ{joint:A}) → λ y → circuit( (x : ℤ) + y )
+
+def op : ℤ{joint:A} → ℤ{joint:B} → ℤ{pcir:A,B}
+def op = λ (x : ℤ{joint:A}) → λ y → (circuit x : ℤ{ncir:A})) + (circuit y : ℤ{ncir:B})) : ℤ{acir:A,B}
+
+def contrived-example₁ : ℤ{joint:A} → ℤ{ncir:A,B} → ℤ{acir:A,B}
+def contrived-example₁ = λ x → λ y → ~x + ~y
+
+def contrived-example₂ : ℤ{joint:A} → ℤ{joint:A,B} → ℤ{acir:A,B}
+def contrived-example₂ = λ x → λ y → --  ~x + y
+  x + y
+
+def example-two-prv : ℤ{prv:A,B} → ℤ{prv:A,B}
+def example-two-prv = λ x →
+  let z : ℤ{prv:A,B}
+  let z = prv{A,B} { x + x }
+  in z
+
+def example-two-jnt : ℤ{jnt:A,B} → ℤ{jnt:A,B}
+def example-two-jnt = λ x →
+  let z : ℤ{jnt:A,B}
+  let z = jnt{A,B} { x + x }
+  in z
+
+def example-two-enc : ℤ{prv:A} → ℤ{prv:B} → ℤ{enc:A,B}
+def example-two-enc = λ x → λ y → 
+  let xS : ℤ{enc:A,B}
+  let xS = ~x
+  let yS : ℤ{enc:A,B}
+  let yS = share{A,B} { y + y }
+  let c = ~xS + ~yS
+  let wrong : (enc{A,B} ℤ){jnt:A,B}
+  let wrong = ⟨A ⇒ xS.A , B ⇒ yS.B⟩
+  let cx : (enc{A,B} ℤ){jnt:C,D}
+  let cx = send xS to C and D
+  (mpc{bgw:A,B} reveal ~xS + ~yS : MPC{A,B} ℤ{jnt:A,B}
+
+(mpc{yao:A,B} cira) : MPC{A,B} ℤ{joint:A,B}
+
+def blah : ℕ → ℕ
+def blah = λ x → x + 1
+
+  ⊤
+ /   \
+bcir acir ccir  ×     ℘{ashare,yshare,sshare}
+ \   /
+  ⊥
+
+def isort : list ℤ{prv:A,B} → list ℤ{ucir:A,B}
+
+ucir = bcir + acir + ≤ stuff and supports ℤ and 𝔹
+
+bcir = ⊕, ∧, ∨, etc. and supports 𝔹
+
+acir = +,× and supports ℤ types
+
+ccir = ≤, ≡, etc. on ℤ
+
+⊥ = ncir
+
+access modality: prv, jnt, enc (like jnt but encrypted, e.g., secret shared)
+representation modality: acir, bcir, ncir, etc. (e.g., operators like + overloaded)
+
+def blah : ℤ{priv:A,B} → ℤ{acir:A,B}
+def blah = λ x →
+  x : ℤ{priv:A,B}
+
+  x.A : ℤ{joint:A}
+  x.B
+
+  x.A
+  x[A]
+  x@A
+
+  a : ℤ{joint:A}  
+  b : ℤ{joint:B}
+
+  {A ≔ a, B ≔ b}
+
+  { fst: x
+  , snd: y 
+  }
+  
+  {a@A, b@B}
+  {A: a, B: b}
+  {A ⇒ a, B ⇒ b}
+
+  { A : a }
+
+
+def main₁ : ℤ{joint:A} → ℤ{joint:B} → MPC{A,B ⪫ A,B} 𝔹{sshare:A,B}
+def main₁ = λ x → λ y → mpc{bgw:A,B} op x y
+
+def main₂ : ℤ{joint:A} → ℤ{joint:B} → MPC{A,B ⪫ A,B} 𝔹{ashare:A,B}
+def main₂ = λ x → λ y → mpc{bgw:A,B} op x y
+
+def main₃ : ℤ{joint:A} → ℤ{joint:B} → MPC{A,B ⪫ A,B} 𝔹{yshare:A,B}
+def main₃ = λ x → λ y → mpc{yao:A,B} op x y
+

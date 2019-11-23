@@ -1,4 +1,5 @@
 primitive PLUS : ℤ → ℤ → ℤ
+
 primitive MINUS : ℤ → ℤ → ℤ
 primitive TIMES : ℤ → ℤ → ℤ
 

@@ -10,21 +10,22 @@ levelLAM  = 𝕟64 10
 levelLET  = 𝕟64 10
 levelCASE = 𝕟64 10
 
-levelCOMMA,levelCONS,levelMPC,levelPAR,levelCIRCUIT,levelSHARE,levelASCR ∷ ℕ64
+levelCOMMA,levelCONS,levelMPC,levelPAR,levelSHARE,levelASCR ∷ ℕ64
 
 levelCOMMA   = 𝕟64 20
 levelCONS    = 𝕟64 21
 levelMPC     = 𝕟64 24
 levelPAR     = 𝕟64 25
-levelCIRCUIT = 𝕟64 25
 levelSHARE   = 𝕟64 25
 levelASCR    = 𝕟64 29
 
-levelCOND,levelCOMPARE,levelPLUS,levelTIMES ∷ ℕ64
+levelCOND,levelCOMPARE,levelPLUS,levelTIMES,levelCIRCUIT,levelACCESS ∷ ℕ64
 levelCOND    = 𝕟64 30
 levelCOMPARE = 𝕟64 40
 levelPLUS    = 𝕟64 50
 levelTIMES   = 𝕟64 60
+levelCIRCUIT = 𝕟64 70
+levelACCESS  = 𝕟64 80
 
 levelARROW,levelMPCTY,levelTUNION,levelTUPLE ∷ ℕ64
 levelARROW  = 𝕟64 40
@@ -75,17 +76,21 @@ lexer = lexerBasic puns kws prim ops
       , "if","then","else"
       , "circuit"
       , "mpc"
+      , "reveal"
       , "do"
       , "case"
       , "share"
       ]
     prim = list
       [ "yao","bgw","gmw","none"
-      , "ashare","sshare"
-      , "sec","par"
+      , "nshare","yshare","gshare","sshare"
+      , "ssec","isec"
       , "☆","type"
       , "ℙ","prin"
       , "ℤ","int"
+      , "ℤ64","int64"
+      , "ℕ","nat"
+      , "ℕ64","nat64"
       , "𝔹","bool"
       , "𝕊","string"
       , "MPC"
@@ -97,7 +102,7 @@ lexer = lexerBasic puns kws prim ops
       , "𝟘","empty"
       , "[]"
       , "∷","::"
-      , "bcir","acir"
+      , "ncir","bcir","acir","ccir","ucir"
       ]
     ops = list 
       [ "+","-"
@@ -170,14 +175,18 @@ pPrins = cpWithContextRendered $ pow ^$ cpManySepBy (cpSyntax ",") pPrin
 -- σ ∈ scheme ⩴  add | shamir
 type AScheme = Annotated FullContext Scheme
 data Scheme = 
-    AddS     -- ashare
+    NoS      -- nshare
+  | GMWS     -- gshare
+  | YaoS     -- yshare
   | ShamirS  -- sshare
   deriving (Eq,Ord,Show)
 makePrettySum ''Scheme
 
 pScheme ∷ CParser TokenBasic AScheme
 pScheme = cpWithContextRendered $ concat
-  [ do cpSyntax "ashare" ; return AddS
+  [ do cpSyntax "nshare" ; return NoS
+  , do cpSyntax "gshare" ; return GMWS
+  , do cpSyntax "yshare" ; return YaoS
   , do cpSyntax "sshare" ; return ShamirS
   ]
 
@@ -188,15 +197,21 @@ pScheme = cpWithContextRendered $ concat
 -- ς ∈ circuit-ops ⩴ bcir | acir
 type ACirOps = Annotated FullContext CirOps
 data CirOps = 
-    BoolCO   -- bcir
+    NoCO     -- ncir
+  | BoolCO   -- bcir
   | ArithCO  -- acir
+  | CompCO   -- ccir
+  | UnivCO   -- ucir
   deriving (Eq,Ord,Show)
 makePrettySum ''CirOps
 
 pCirOps ∷ CParser TokenBasic ACirOps
 pCirOps = cpWithContextRendered $ concat
-  [ do cpSyntax "bcir" ; return BoolCO
+  [ do cpSyntax "ncir" ; return NoCO
+  , do cpSyntax "bcir" ; return BoolCO
   , do cpSyntax "acir" ; return ArithCO
+  , do cpSyntax "ccir" ; return CompCO
+  , do cpSyntax "ucir" ; return UnivCO
   ]
 
 ----------------
@@ -226,34 +241,32 @@ pConstr = cpWithContextRendered $ concat
 ----------
 
 -- τ ∈ type ⩴ α | 𝟙 | 𝔹 | 𝕊 
---          | ℕ[n.n] | ℤ[n.n] | 𝔽[n]
---          | τ + τ | τ × τ | list τ
+--          | ℕn.n | ℤn.n | 𝔽n
+--          | τ + τ | τ × τ | list τ | array τ
 --          | τ → τ 
 --          | ∀ α:κ. [c,…,c] ⇒ τ
---          | τ{sec:P} 
---          | τ{par:P} 
---          | τ{σ:P} 
---          | τ{ς:P} 
---          | MPC{P ⪫ P} τ
+--          | τ{ssec:P} 
+--          | τ{isec:P} 
+--          | τ{ς:σ:P} 
+--          | MPC{P} τ
 type AType = Annotated FullContext Type
 data Type =
-    VarT 𝕏                            -- α                   /  α
-  | UnitT                             -- 𝟙                   /  unit
-  | 𝔹T                                -- 𝔹                   /  bool
-  | 𝕊T                                -- 𝕊                   /  string
-  | ℕT (𝑂 (ℕ ∧ ℕ))                    -- ℕ[n.n]              /  nat[n.n]
-  | ℤT (𝑂 (ℕ ∧ ℕ))                    -- ℤ[n.n]              /  int[n.n]
-  | 𝔽T (𝑂 ℕ)                          -- 𝔽[n]                /  float[n]
-  | AType :+: AType                   -- τ + τ               /  τ + τ
-  | AType :×: AType                   -- τ × τ               /  τ × τ
-  | ListT AType                       -- list τ              /  list τ
-  | AType :→: AType                   -- τ → τ               /  τ -> τ
-  | ForallT 𝕏 AKind (𝐿 AConstr) AType -- ∀ α:κ. [c,…,c] ⇒ τ  /  forall α:κ. [c,…,c] => τ
-  | SecT AType APrins                 -- τ{sec:P}            /  τ{sec:P}
-  | ParT AType APrins                 -- τ{par:P}            /  τ{par:P}
-  | ShareT AType AScheme APrins       -- τ{σ:P}              /  τ{σ:P}
-  | CirT AType ACirOps APrins         -- τ{ς:P}              /  τ{ς:P}
-  | MpcT APrins APrins AType          -- MPC{P ⪫ P} τ        /  MPC{P >- P} τ
+    VarT 𝕏                             -- α                   /  α
+  | UnitT                              -- 𝟙                   /  unit
+  | 𝔹T                                 -- 𝔹                   /  bool
+  | 𝕊T                                 -- 𝕊                   /  string
+  | ℕT (𝑂 (ℕ ∧ 𝑂 ℕ))                   -- ℕn.n                /  natn.n
+  | ℤT (𝑂 (ℕ ∧ 𝑂 ℕ))                   -- ℤn.n                /  intn.n
+  | 𝔽T ℕ                               -- 𝔽n                  /  floatn
+  | AType :+: AType                    -- τ + τ               /  τ + τ
+  | AType :×: AType                    -- τ × τ               /  τ × τ
+  | ListT AType                        -- list τ              /  list τ
+  | AType :→: AType                    -- τ → τ               /  τ -> τ
+  | ForallT 𝕏 AKind (𝐿 AConstr) AType  -- ∀ α:κ. [c,…,c] ⇒ τ  /  forall α:κ. [c,…,c] => τ
+  | SSecT AType APrins                 -- τ{sec:P}            /  τ{sec:P}
+  | ISecT AType APrins                 -- τ{par:P}            /  τ{par:P}
+  | CirT AType ACirOps AScheme APrins  -- τ{ς:σ:P}            /  τ{ς:σ:P}
+  | MpcT APrins AType                  -- MPC{P} τ            /  MPC{P} τ
   deriving (Eq,Ord,Show)
 makePrettySum ''Type
 
@@ -265,30 +278,21 @@ pType = fmixfixWithContext "type" $ concat
       , do concat [cpSyntax "𝔹",cpSyntax "bool"] ; return 𝔹T
       , do concat [cpSyntax "𝕊",cpSyntax "string"] ; return 𝕊T
       , do concat [cpSyntax "ℕ",cpSyntax "nat"]
-           o ← cpOptional $ do
-             cpSyntax "["
-             n₁ ← cpNatural 
+           return $ ℕT None
+      , do concat [cpSyntax "ℕ64",cpSyntax "nat64"]
+           n ← cpOptional $ do
              cpSyntax "."
-             n₂ ← cpNatural
-             cpSyntax "]"
-             return $ n₁ :* n₂
-           return $ ℕT o
+             cpNatural
+           return $ ℕT $ Some $ 64 :* n
       , do concat [cpSyntax "ℤ",cpSyntax "int"]
-           o ← cpOptional $ do
-             cpSyntax "["
-             n₁ ← cpNatural 
+           return $ ℤT None
+      , do concat [cpSyntax "ℤ64",cpSyntax "int64"]
+           n ← cpOptional $ do
              cpSyntax "."
-             n₂ ← cpNatural
-             cpSyntax "]"
-             return $ n₁ :* n₂  
-           return $ ℤT o
-      , do concat [cpSyntax "𝔽",cpSyntax "float"]
-           o ← cpOptional $ do
-             cpSyntax "["
-             n ← cpNatural
-             cpSyntax "]"
-             return n
-           return $ 𝔽T o
+             cpNatural
+           return $ ℤT $ Some $ 64 :* n
+      , do concat [cpSyntax "𝔽64",cpSyntax "float64"]
+           return $ 𝔽T 64
       , do cpSyntax "(" ; τ ← pType ; cpSyntax ")" ; return $ extract τ
       ]
   , fmixInfixL levelPLUS $ do concat [cpSyntax "+"] ; return (:+:)
@@ -308,40 +312,43 @@ pType = fmixfixWithContext "type" $ concat
       return $ ForallT α κ cs
   , fmixPostfix levelMODE $ do 
       cpSyntax "{"
-      cpSyntax "sec"
+      cpSyntax "ssec"
       cpSyntax ":"
       ps ← pPrins
       cpSyntax "}"
-      return $ \ τ → SecT τ ps
+      return $ \ τ → SSecT τ ps
   , fmixPostfix levelMODE $ do 
       cpSyntax "{"
-      cpSyntax "par"
+      cpSyntax "isec"
       cpSyntax ":"
       ps ← pPrins
       cpSyntax "}"
-      return $ \ τ → ParT τ ps
+      return $ \ τ → ISecT τ ps
   , fmixPostfix levelMODE $ do 
       cpSyntax "{"
-      σ ← pScheme
-      cpSyntax ":"
+      ς :* σ ← tries
+        [ do ς ← pCirOps
+             Annotated cxt () ← cpWithContextRendered $ cpSyntax ":"
+             σ ← ifNone (Annotated cxt NoS) ^$ cpOptional $ do
+                 σ ← pScheme
+                 cpSyntax ":"
+                 return σ
+             return $ ς :* σ
+        , do σ ← pScheme
+             Annotated cxt () ← cpWithContextRendered $ cpSyntax ":"
+             return $ Annotated cxt NoCO :* σ
+        ]
       ps ← pPrins
       cpSyntax "}"
-      return $ \ τ → ShareT τ σ ps
-  , fmixPostfix levelMODE $ do 
-      cpSyntax "{"
-      ς ← pCirOps
-      cpSyntax ":"
-      ps ← pPrins
-      cpSyntax "}"
-      return $ \ τ → CirT τ ς ps
+      return $ \ τ → CirT τ ς σ ps
   , fmixPrefix levelMPCTY $ do
       cpSyntax "MPC"
       cpSyntax "{"
-      ps₁ ← pPrins
-      concat [cpSyntax "⪫",cpSyntax ">>-"]
-      ps₂ ← pPrins
+      ps ← pPrins
+      -- concat [cpSyntax "⪫",cpSyntax ">>-"]
+      -- ps₂ ← pPrins
       cpSyntax "}"
-      return $ MpcT ps₁ ps₂
+      return $ MpcT ps
   ]
 
 --------------
@@ -447,7 +454,7 @@ pPat = fmixfixWithContext "pattern" $ concat
 --          | Λ α → e
 --          | e@τ
 --          | par{P} e
---          | circuit e
+--          | ~e
 --          | share{σ:P} e
 --          | ∅ | ⟨P⇒e⟩ | e~e
 --          | mpc{φ:P} e
@@ -475,13 +482,17 @@ data Exp =
   | AppE AExp AExp                 -- e e                   /  e e
   | TLamE 𝕏 AExp                   -- Λ α → e               /  abs α → e
   | TAppE AExp AType               -- e@τ                   /  e@τ
+  | SoloE APrin AExp               -- {P} e                 /  {P} e
   | ParE APrins AExp               -- par{P} e              /  par{P} e
-  | CirE AExp                      -- circuit e             /  circuit e
+  | CirE AExp                      -- ~e                    /  ~e
   | ShareE (𝑂 AScheme) APrins AExp -- share{σ:P} e          /  share{φ:P} e
   | EmptyE                         -- ∅                     /  empty
   | BundleOneE AExp APrin          -- ⟨e@ρ⟩                 /  <e@ρ>
   | BundleUnionE AExp AExp         -- e⧺e                   /  e++e
+  | BundleSetE (𝐿 (APrin ∧ AExp))  -- ⟨P⇒e,…,P⇒e⟩           /  <P=>e,…,P=>e>
+  | BundleAccessE AExp APrin       -- e.P                   /  e.P
   | MPCE AProt APrins AExp         -- mpc{φ:P} e            /  mpc{φ:P} e
+  | RevealE APrins AExp            -- reveal{P} e           /  mpc{φ:P} e
   | ReturnE AExp                   -- return e              /  return e
   | BindE APat AExp AExp           -- ψ ← e₁ ; e₂           /  ψ <- e₁ ; e₂
   | PrimE 𝕊 (𝐿 AExp)               -- prim[⊙](e,…,e)        /  𝑁/𝐴
@@ -534,6 +545,14 @@ pExp = fmixfixWithContext "exp" $ concat
            a ← annotatedTag ^$ cpWithContextRendered $ concat [cpSyntax "⟩",cpSyntax ">"]
            return $ extract $ foldOnFrom eρs (Annotated a EmptyE) $ \ (Annotated a₁ (e₁ :* ρ₁)) e₂ → 
              Annotated a₁ $ BundleUnionE (Annotated a₁ $ BundleOneE e₁ ρ₁) e₂
+      , do cpSyntax "⟨"
+           pes ← cpManySepBy (cpSyntax ";") $ do
+             p ← pPrin
+             concat [cpSyntax "⇒",cpSyntax "=>"]
+             e ← pExp
+             return $ p :* e
+           cpSyntax "⟩"
+           return $ BundleSetE pes
       ]
   , fmixPrefix levelIF $ do
       cpSyntax "if"
@@ -551,14 +570,14 @@ pExp = fmixfixWithContext "exp" $ concat
       x ← cpName
       cpSyntax ":"
       τ ← pType
-      cpSyntax "in"
+      void $ cpOptional $ cpSyntax "in"
       return $ LetTyE x τ
   , fmixPrefix levelLET $ do
       cpSyntax "let"
       ψ ← pPat
       cpSyntax "="
       e ← pExp
-      cpSyntax "in"
+      void $ cpOptional $ cpSyntax "in"
       return $ LetE ψ e
   , fmixPrefix levelLAM $ do
       concat [cpSyntax "λ",cpSyntax "fun"]
@@ -581,13 +600,18 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntax "@"
       τ ← pType
       return $ \ e → TAppE e τ
+  , fmixPrefix levelPAR $ do
+      cpSyntax "{"
+      p ← pPrin
+      cpSyntax "}"
+      return $ SoloE p
   , fmixPrefix levelPAR $ do 
       cpSyntax "par"
       cpSyntax "{"
       ps ← pPrins
       cpSyntax "}"
       return $ ParE ps
-  , fmixPrefix levelCIRCUIT $ do cpSyntax "circuit" ; return CirE
+  , fmixPrefix levelCIRCUIT $ do cpSyntax "~" ; return CirE
   , fmixPrefix levelSHARE $ do 
       cpSyntax "share"
       cpSyntax "{"
@@ -598,6 +622,7 @@ pExp = fmixfixWithContext "exp" $ concat
       ps ← pPrins
       cpSyntax "}"
       return $ ShareE σO ps
+  , fmixPostfix levelACCESS $ do cpSyntax "." ; p ← pPrin ; return $ \ e → BundleAccessE e p
   , fmixInfixL levelPLUS $ do concat [cpSyntax "⧺",cpSyntax "++"] ; return BundleUnionE
   , fmixPrefix levelMPC $ do
       cpSyntax "mpc"
@@ -607,13 +632,19 @@ pExp = fmixfixWithContext "exp" $ concat
       ps ← pPrins
       cpSyntax "}"
       return $ MPCE φ ps
+  , fmixPrefix levelMPC $ do
+      cpSyntax "reveal"
+      cpSyntax "{"
+      ps ← pPrins
+      cpSyntax "}"
+      return $ RevealE ps
   , fmixPrefix levelAPP $ do cpSyntax "return" ; return ReturnE
   , fmixPrefix levelDO $ do
-      cpSyntax "do"
+      cpSyntax "let"
       ψ ← pPat
       concat [cpSyntax "←",cpSyntax "<-"]
       e ← pExp
-      cpSyntax ";"
+      void $ cpOptional $ cpSyntax "in"
       return $ BindE ψ e
   , fmixPostfix levelASCR $ do
       cpSyntax ":"
@@ -684,25 +715,39 @@ pTL = cpWithContextRendered $ concat
 cpTLs ∷ CParser TokenBasic (𝐿 ATL)
 cpTLs = cpMany pTL
 
+testExample ∷ 𝕊 → IO ()
+testExample fn = do
+  s ← read $ "examples/" ⧺ fn ⧺ ".psl"
+  let ts = tokens s
+  ls ← tokenizeIO lexer ts
+  _tls ← parseIO cpTLs ls
+  out $ "DONE: " ⧺ fn
+
 testParser ∷ IO ()
 testParser = do
-  s₁ ← read "examples/lib.psl"
-  let ts₁ = tokens s₁
-  ls₁ ← tokenizeIO lexer ts₁
-  _tls₁ ← parseIO cpTLs ls₁
-  out "lib done"
-  s₂ ← read "examples/simple.psl"
-  let ts₂ = tokens s₂
-  ls₂ ← tokenizeIO lexer ts₂
-  _tls₂ ← parseIO cpTLs ls₂
-  out "simple done"
-  s₃ ← read "examples/isort.psl"
-  let ts₃ = tokens s₃
-  ls₃ ← tokenizeIO lexer ts₃
-  _tls₃ ← parseIO cpTLs ls₃
-  out "isort done"
-  s₄ ← read "examples/msort.psl"
-  let ts₄ = tokens s₄
-  ls₄ ← tokenizeIO lexer ts₄
-  _tls₄ ← parseIO cpTLs ls₄
-  out "msort done"
+  testExample "e1"
+  -- s₁ ← read "examples/lib.psl"
+  -- let ts₁ = tokens s₁
+  -- ls₁ ← tokenizeIO lexer ts₁
+  -- _tls₁ ← parseIO cpTLs ls₁
+  -- out "lib done"
+  -- s₂ ← read "examples/simple.psl"
+  -- let ts₂ = tokens s₂
+  -- ls₂ ← tokenizeIO lexer ts₂
+  -- _tls₂ ← parseIO cpTLs ls₂
+  -- out "simple done"
+  -- s₃ ← read "examples/isort.psl"
+  -- let ts₃ = tokens s₃
+  -- ls₃ ← tokenizeIO lexer ts₃
+  -- _tls₃ ← parseIO cpTLs ls₃
+  -- out "isort done"
+  -- s₄ ← read "examples/msort.psl"
+  -- let ts₄ = tokens s₄
+  -- ls₄ ← tokenizeIO lexer ts₄
+  -- _tls₄ ← parseIO cpTLs ls₄
+  -- out "msort done"
+  -- s₅ ← read "examples/euclid.psl"
+  -- let ts₅ = tokens s₅
+  -- ls₅ ← tokenizeIO lexer ts₅
+  -- _tls₅ ← parseIO cpTLs ls₅
+  -- out "euclid done"

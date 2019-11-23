@@ -1,14 +1,36 @@
+-- isec     = “independent secrets”
+-- ssec     = “shared secrets”
+-- ccir     = “comparison circuit” (contains ≤ operations)
+-- yshare   = “yao secret-shared”
+-- MPC{A,B} = “something is revealed to A and B”
+
 principal A
 principal B
 
-def op : ℤ{sec:A} → ℤ{sec:B} → ℤ{pcir:A,B}
-def op = λ x → λ y → circuit x + y
+def cmp : ℤ64{isec:A,B} → ℤ64{ccir:A,B}
+def cmp = λ xy → 
+  let x : ℤ64{ncir:A}
+  let x = ~xy.A 
+  let y : ℤ64{ncir:B}
+  let y = ~xy.B
+  let r : ℤ64{ccir:B}
+  let r = x ≤ y
+  in r
 
-def main₁ : ℤ{sec:A} → ℤ{sec:B} → MPC{A,B ⪫ A,B} 𝔹{sshare:A,B}
-def main₁ = λ x → λ y → mpc{bgw:A,B} op x y
+def cmp-mpc : MPC{} ℤ64{yshare:A,B}
+def cmp-mpc =
+  let x : ℤ64{ssec:A}
+  let x ← {A} read@ℤ64
+  let y : ℤ64{ssec:B}
+  let y ← {B} read@ℤ64
+  let r : ℤ64{yshare:A,B}
+  let r ← mpc{yao:A,B} cmp ⟨A⇒x;B⇒y⟩
+  in r 
 
-def main₂ : ℤ{sec:A} → ℤ{sec:B} → MPC{A,B ⪫ A,B} 𝔹{ashare:A,B}
-def main₂ = λ x → λ y → mpc{bgw:A,B} op x y
-
-def main₃ : ℤ{sec:A} → ℤ{sec:B} → MPC{A,B ⪫ A,B} 𝔹{yshare:A,B}
-def main₃ = λ x → λ y → mpc{yao:A,B} op x y
+def cmp-mpc-rev : MPC{A,B} ℤ64{ssec:A,B}
+def cmp-mpc-rev =
+  let r : ℤ64{yshare:A,B}
+  let r ← cmp-mpc
+  let p : ℤ64{ssec:A,B}
+  let p ← reveal{A,B} r
+  in p

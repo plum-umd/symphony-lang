@@ -1,0 +1,77 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>~/Projects/psl/examples/euclid.psl.html</title>
+<meta name="Generator" content="Vim/8.1">
+<meta name="plugin-version" content="vim8.1_v1">
+<meta name="syntax" content="pantheon">
+<meta name="settings" content="use_css,pre_wrap,no_foldcolumn,expand_tabs,prevent_copy=">
+<meta name="colorscheme" content="none">
+<style type="text/css">
+<!--
+pre { white-space: pre-wrap; font-family: monospace; color: #000000; background-color: #ffffff; }
+body { font-family: monospace; color: #000000; background-color: #ffffff; }
+* { font-size: 1em; }
+.pantheonKeyword { color: #af5f00; font-weight: bold; }
+.pantheonPrimitive { color: #0000c0; }
+.pantheonPunctuation { color: #6c6c6c; }
+.pantheonOperator { color: #008000; }
+.pantheonLiteral { color: #c00000; }
+.pantheonComment { color: #a8a8a8; font-style: italic; }
+-->
+</style>
+</head>
+<body>
+<pre id='vimCodeElement'>
+<span class="pantheonComment">-- NOTES:</span>
+<span class="pantheonComment">-- - We can totally ditch monadic syntax; I'm by no means attached to it</span>
+<span class="pantheonComment">-- - ℕ{bcir:A,B} is a boolean circuit which when executed in a protocol will</span>
+<span class="pantheonComment">--   return a natural number</span>
+<span class="pantheonComment">-- - ℕ{par:A,B} is a wire bundle with values for A and B</span>
+<span class="pantheonComment">-- - recursive functions are defined with rλ and the first parameter is a</span>
+<span class="pantheonComment">--   binding to &quot;self&quot;</span>
+<span class="pantheonComment">-- - It is still unclear to me when it is necessary or not to explicitly create</span>
+<span class="pantheonComment">--   boundaries around circuit construction and operations; this is currently</span>
+<span class="pantheonComment">--   written with keyword `circuit`</span>
+
+<span class="pantheonKeyword">principal</span> A
+<span class="pantheonKeyword">principal</span> B
+
+<span class="pantheonKeyword">def</span> mod <span class="pantheonPunctuation">:</span> ℕ<span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">bcir</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> <span class="pantheonPunctuation">→</span> ℕ<span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">bcir</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> <span class="pantheonPunctuation">→</span> <span class="pantheonKeyword">MPC</span><span class="pantheonPunctuation">{</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> ℕ<span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">bcir</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span>
+<span class="pantheonKeyword">def</span> mod <span class="pantheonPunctuation">=</span> <span class="pantheonKeyword">rλ</span> rec a <span class="pantheonPunctuation">→</span> <span class="pantheonKeyword">λ</span> b <span class="pantheonPunctuation">→</span>
+  <span class="pantheonKeyword">do</span> stop <span class="pantheonPunctuation">←</span> <span class="pantheonKeyword">mpc</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">gmw</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> <span class="pantheonKeyword">circuit</span> a <span class="pantheonOperator">&lt;</span> b<span class="pantheonPunctuation">;</span>
+  <span class="pantheonKeyword">if</span> stop
+  <span class="pantheonKeyword">then</span> <span class="pantheonKeyword">return</span> a
+  <span class="pantheonKeyword">else</span> rec <span class="pantheonPunctuation">(</span><span class="pantheonKeyword">circuit</span> a <span class="pantheonOperator">-</span> b<span class="pantheonPunctuation">)</span> b
+
+<span class="pantheonComment">-- OR </span>
+<span class="pantheonComment">-- (can we get away with type-directed selection of circuit operations?)</span>
+
+<span class="pantheonKeyword">def</span> mod′ <span class="pantheonPunctuation">:</span> ℕ<span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">bcir</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> <span class="pantheonPunctuation">→</span> ℕ<span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">bcir</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> <span class="pantheonPunctuation">→</span> <span class="pantheonKeyword">MPC</span><span class="pantheonPunctuation">{</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> ℕ<span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">bcir</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span>
+<span class="pantheonKeyword">def</span> mod′ <span class="pantheonPunctuation">=</span> <span class="pantheonKeyword">rλ</span> rec a <span class="pantheonPunctuation">→</span> <span class="pantheonKeyword">λ</span> b <span class="pantheonPunctuation">→</span>
+  <span class="pantheonKeyword">do</span> stop <span class="pantheonPunctuation">←</span> <span class="pantheonKeyword">mpc</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">gmw</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> a <span class="pantheonOperator">&lt;</span> b<span class="pantheonPunctuation">;</span>
+  <span class="pantheonKeyword">if</span> stop
+  <span class="pantheonKeyword">then</span> <span class="pantheonKeyword">return</span> a
+  <span class="pantheonKeyword">else</span> rec <span class="pantheonPunctuation">(</span>a <span class="pantheonOperator">-</span> b<span class="pantheonPunctuation">)</span> b
+
+
+<span class="pantheonKeyword">def</span> gcd <span class="pantheonPunctuation">:</span> ℕ<span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">bcir</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> <span class="pantheonPunctuation">→</span> ℕ<span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">bcir</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> <span class="pantheonPunctuation">→</span> <span class="pantheonKeyword">MPC</span><span class="pantheonPunctuation">{</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> ℕ<span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">bcir</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span>
+<span class="pantheonKeyword">def</span> gcd <span class="pantheonPunctuation">=</span> <span class="pantheonKeyword">rλ</span> rec a <span class="pantheonPunctuation">→</span> <span class="pantheonKeyword">λ</span> b <span class="pantheonPunctuation">→</span>
+  <span class="pantheonKeyword">do</span> stop <span class="pantheonPunctuation">←</span> <span class="pantheonKeyword">mpc</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">gmw</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> <span class="pantheonKeyword">circuit</span> b <span class="pantheonOperator">≡</span> <span class="pantheonLiteral">0</span><span class="pantheonPunctuation">;</span>
+  <span class="pantheonKeyword">if</span> stop
+  <span class="pantheonKeyword">then</span> <span class="pantheonKeyword">return</span> a
+  <span class="pantheonKeyword">else</span> rec b <span class="pantheonPunctuation">(</span>mod a b<span class="pantheonPunctuation">)</span>
+
+gcd-mpc <span class="pantheonPunctuation">:</span> <span class="pantheonPrimitive">ℤ</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">par</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> <span class="pantheonPunctuation">→</span> <span class="pantheonKeyword">MPC</span><span class="pantheonPunctuation">{</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> ℕ<span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">sec</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span>
+gcd-mpc <span class="pantheonPunctuation">=</span> <span class="pantheonKeyword">λ</span> <span class="pantheonPunctuation">⟨</span>a<span class="pantheonPunctuation">@</span>A<span class="pantheonPunctuation">,</span>b<span class="pantheonPunctuation">@</span>B<span class="pantheonPunctuation">⟩</span> <span class="pantheonPunctuation">→</span> <span class="pantheonKeyword">mpc</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">gmw</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> gcd a b
+
+<span class="pantheonComment">-- OR </span>
+<span class="pantheonComment">-- (different notation for pulling A and B values out of a wire bundle)</span>
+
+gcd-mpc′ <span class="pantheonPunctuation">:</span> <span class="pantheonPrimitive">ℤ</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">par</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> <span class="pantheonPunctuation">→</span> <span class="pantheonKeyword">MPC</span><span class="pantheonPunctuation">{</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> ℕ<span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">sec</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span>
+gcd-mpc′ <span class="pantheonPunctuation">=</span> <span class="pantheonKeyword">λ</span> ab <span class="pantheonPunctuation">→</span> <span class="pantheonKeyword">mpc</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">gmw</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> gcd ab<span class="pantheonPunctuation">.</span>A ab<span class="pantheonPunctuation">.</span>B
+</pre>
+</body>
+</html>
+<!-- vim: set foldmethod=manual : -->
