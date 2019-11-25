@@ -20,11 +20,11 @@ def cmp = λ xy →
 def cmp-mpc : MPC{} ℤ64{yshare:A,B}
 def cmp-mpc =
   let x : ℤ64{ssec:A}
-  let x ← {A} read@ℤ64
+  let x ← {A} read[ℤ64] "e1-input.txt"
   let y : ℤ64{ssec:B}
-  let y ← {B} read@ℤ64
+  let y ← {B} read[ℤ64] "e1-input.txt"
   let r : ℤ64{yshare:A,B}
-  let r ← mpc{yao:A,B} cmp ⟨A⇒x;B⇒y⟩
+  let r ← mpc{yao} cmp ⟨A⇒x;B⇒y⟩
   in r 
 
 def cmp-mpc-rev : MPC{A,B} ℤ64{ssec:A,B}
