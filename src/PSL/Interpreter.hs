@@ -101,7 +101,6 @@ asTLM xM = ITLM $ mkRWS $ \ () σ → let () :* () :* x = runRWS (ξ₀ { iEnvEn
 makePrettySum ''Val
 makePrettySum ''ITLState
 makeLenses ''ITLState
--- makePrettySum ''Mode
 makePrettySum ''IEnv
 makeLenses ''IEnv
 
@@ -125,13 +124,6 @@ bindVar xA v =
   in case v of
     ParV pvs → mapEnvL iEnvEnvL ((x ↦ Inr pvs) ⩌)
     _ → mapEnvL iEnvEnvL ((x ↦ Inl v) ⩌)
--- bindVar x v xM = do
---   m ← askL iEnvModeL
---   case m of
---     TLM → mapEnvL iEnvEnvL (\ γ → (x ↦ None ↦ v) ▶ γ) xM
---     SoloM p → mapEnvL iEnvEnvL (\ γ → (x ↦ Some p ↦ v) ▶ γ) xM
---     SSecM ps → mapEnvL iEnvEnvL (\ γ → (foldr γ₀ (▶) $ mapOn (iter ps) $ \ p → x ↦ Some p ↦ v) ▶ γ) xM
---     ISecM ps → mapEnvL iEnvEnvL (\ γ → (foldr γ₀ (▶) $ mapOn (iter ps) $ \ p → x ↦ Some p ↦ v) ▶ γ) xM
 
 bindPat ∷ APat → Val → IM a → IM a
 bindPat ψA v = case extract ψA of
