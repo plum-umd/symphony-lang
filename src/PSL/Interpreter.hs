@@ -61,13 +61,6 @@ runITLM σ xM =
 evalITLM ∷ ITLState → ITLM a → a
 evalITLM σ = snd ∘ runITLM σ
 
--- data Mode =
---     TLM
---   | SoloM Prin
---   | SSecM (𝑃 Prin)
---   | ISecM (𝑃 Prin)
---   deriving (Eq,Ord,Show)
-
 data IEnv = IEnv
   { iEnvEnv ∷ Env
   , iEnvMode ∷ 𝑂 Prin
