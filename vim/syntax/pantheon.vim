@@ -33,6 +33,8 @@ syn match pantheonPrimitive "\v<yao>"
 syn match pantheonPrimitive "\v<gmw>"
 syn match pantheonPrimitive "\v<bgw>"
 syn match pantheonPrimitive "\v<read>"
+syn match pantheonPrimitive "\v<inp>"
+syn match pantheonPrimitive "\v<rev>"
 
 syn match pantheonPrimitive "\v𝔹"
 syn match pantheonPrimitive "\vℕ"

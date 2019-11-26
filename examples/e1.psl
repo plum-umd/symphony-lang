@@ -17,20 +17,23 @@ def cmp = λ xy →
   let r = x ≤ y
   in r
 
-def cmp-mpc : MPC{} ℤ64{yshare:A,B}
-def cmp-mpc =
+def cmp-mpc : 𝟙 →{inp:A,B;rev:} ℤ64{yshare:A,B}
+def cmp-mpc = λ • →
   let x : ℤ64{ssec:A}
-  let x ← {A} read[ℤ64] "e1-input.txt"
+  let x = {A} read[ℤ64] "e1-input.txt"
   let y : ℤ64{ssec:B}
-  let y ← {B} read[ℤ64] "e1-input.txt"
+  let y = {B} read[ℤ64] "e1-input.txt"
   let r : ℤ64{yshare:A,B}
-  let r ← mpc{yao} cmp ⟨A⇒x;B⇒y⟩
+  let r = mpc{yao} cmp ⟨A.x;B.y⟩
   in r 
 
-def cmp-mpc-rev : MPC{A,B} ℤ64{ssec:A,B}
-def cmp-mpc-rev =
+def cmp-mpc-rev : 𝟙 →{inp:A,B;rev:A,B} ℤ64{ssec:A,B}
+def cmp-mpc-rev = λ • →
   let r : ℤ64{yshare:A,B}
-  let r ← cmp-mpc
+  let r = cmp-mpc •
   let p : ℤ64{ssec:A,B}
-  let p ← reveal{A,B} r
+  let p = reveal{A,B} r
   in p
+
+def main : ℤ64{ssec:A,B}
+def main = cmp-mpc-rev •

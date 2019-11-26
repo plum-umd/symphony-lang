@@ -38,3 +38,6 @@ cpOneOrMoreSepByContext f sepM xM = do
     return $ x :* xs
   let x :* xs = extract xxs
   return $ siphon xxs x :& xs
+
+cpNewWithContextRendered ∷ (Ord t) ⇒ 𝕊 → CParser t a → CParser t (Annotated FullContext a)
+cpNewWithContextRendered s = cpNewContext s ∘ cpWithContextRendered

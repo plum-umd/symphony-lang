@@ -6,21 +6,31 @@ import PSL.Parser
 
 import qualified Prelude as HS
 
+data Circ =
+    BoolC 𝔹
+  | IntC ℤ
+  | OpC 𝕊 (𝐿 Circ)
+  deriving (Eq,Ord,Show)
+makePrettySum ''Circ
+
 data Val =
-    IntV ℤ
-  | NatV ℕ
+    BoolV 𝔹
   | StrV 𝕊
+  | IntV ℤ
+  | FltV 𝔻
+  | BulV
+  | LV Val
+  | RV Val
   | PairV Val Val
-  | CloV (𝑂 𝕏) APat AExp IEnv
-  | SoloV Prin Val
-  | SSecV (𝑃 Prin) Val
-  | ISecV (Prin ⇰ Val)
-  | ReadTyV Type
-  | ReadTyFnV Type 𝕊
-  | ReturnV Val
+  | NilV
+  | ConsV Val Val
+  | CloV (𝑂 AVar) APat AExp IEnv
+  | TCloV 𝕏 AExp IEnv
+  | CircV Circ
+  | ParV (Prin ⇰ Val)
   deriving (Eq,Ord,Show)
 
-type Env = 𝕏 ⇰ Val
+type Env = 𝕏 ⇰ (Val ∨ (Prin ⇰ Val))
 
 newtype ITLState = ITLState
   { itlStateEnv ∷ Env 
@@ -51,20 +61,20 @@ runITLM σ xM =
 evalITLM ∷ ITLState → ITLM a → a
 evalITLM σ = snd ∘ runITLM σ
 
-data Mode =
-    TLM
-  | SoloM Prin
-  | SSecM (𝑃 Prin)
-  | ISecM (𝑃 Prin)
-  deriving (Eq,Ord,Show)
+-- data Mode =
+--     TLM
+--   | SoloM Prin
+--   | SSecM (𝑃 Prin)
+--   | ISecM (𝑃 Prin)
+--   deriving (Eq,Ord,Show)
 
 data IEnv = IEnv
   { iEnvEnv ∷ Env
-  , iEnvMode ∷ Mode
+  , iEnvMode ∷ 𝑂 Prin
   } deriving (Eq,Ord,Show)
 
 ξ₀ ∷ IEnv
-ξ₀ = IEnv dø TLM
+ξ₀ = IEnv dø None
 
 newtype IM a = IM { unIM ∷ RWS IEnv () () a }
   deriving
@@ -91,12 +101,30 @@ asTLM xM = ITLM $ mkRWS $ \ () σ → let () :* () :* x = runRWS (ξ₀ { iEnvEn
 makePrettySum ''Val
 makePrettySum ''ITLState
 makeLenses ''ITLState
-makePrettySum ''Mode
+-- makePrettySum ''Mode
 makePrettySum ''IEnv
 makeLenses ''IEnv
 
-bindVar ∷ 𝕏 → Val → IM a → IM a
-bindVar x v = mapEnvL iEnvEnvL ((x ↦ v) ⩌)
+interpCirc ∷ Circ → 𝔹 ∨ ℤ
+interpCirc = \case
+  BoolC b → Inl b
+  IntC i → Inr i 
+  OpC "PLUS" (tohs → [c₁,c₂]) →
+    let Inr i₁ = interpCirc c₁ 
+        Inr i₂ = interpCirc c₂
+    in Inr $ i₁ + i₂
+  OpC "LTE" (tohs → [c₁,c₂]) →
+    let Inr i₁ = interpCirc c₁ 
+        Inr i₂ = interpCirc c₂
+    in Inl $ i₁ ≤ i₂
+  _ → error "interpCir: bad circuit"
+
+bindVar ∷ AVar → Val → IM a → IM a
+bindVar xA v = 
+  let x = extract xA
+  in case v of
+    ParV pvs → mapEnvL iEnvEnvL ((x ↦ Inr pvs) ⩌)
+    _ → mapEnvL iEnvEnvL ((x ↦ Inl v) ⩌)
 -- bindVar x v xM = do
 --   m ← askL iEnvModeL
 --   case m of
@@ -108,90 +136,148 @@ bindVar x v = mapEnvL iEnvEnvL ((x ↦ v) ⩌)
 bindPat ∷ APat → Val → IM a → IM a
 bindPat ψA v = case extract ψA of
   VarP x → bindVar x v
+  BulP → id
   _ → pptrace (annotatedTag ψA) $ error "bindPat: not implemented"
 
-checkReadTy ∷ AType → IM ()
-checkReadTy τA = case extract τA of
-  ℤT (Some (64 :* None)) → skip
-  _ → error "checkReadTy: not implemented"
-
-readTy ∷ Type → 𝕊 → Val
-readTy τ₀ s = case τ₀ of
-  ℤT (Some (64 :* None)) → IntV $ int $ (HS.read $ chars s ∷ ℤ64)
+readTy ∷ AType → 𝕊 → Val
+readTy τA s = case extract τA of
+  ℤT (Some (64 :* None)) → IntV $ int (HS.read $ chars s ∷ ℤ64)
   _ → error "readTy: not implemented"
 
-readTyFile ∷ Type → 𝕊 → IM Val
-readTyFile τ fn = do
+interpVarRaw ∷ AVar → IM (Val ∨ (Prin ⇰ Val))
+interpVarRaw xA = do
+  let x = extract xA
+  γ ← askL iEnvEnvL
+  case γ ⋕? x of
+    Some ṽ → return ṽ
+    None → error "interpVarRaw: not in scope"
+    
+interpVar ∷ AVar → IM Val
+interpVar x = do
+  ṽ ← interpVarRaw x
   m ← askL iEnvModeL
-  return $ case m of
-    TLM → readTy τ $ ioUNSAFE $ read $ "examples-data/" ⧺ fn
-    SoloM p → readTy τ $ ioUNSAFE $ read $ "examples-data/" ⧺ 𝕩name p ⧺ "/" ⧺ fn
-    SSecM _ → error "type error: cannot read in shared secret mode"
-    ISecM ps → ISecV $ dict $ mapOn (iter ps) $ \ p →
-      let v = readTy τ $ ioUNSAFE $ read $ "examples-data/" ⧺ 𝕩name p ⧺ "/" ⧺ fn
-      in p ↦ v
-  
-appVal ∷ Val → Val → IM Val
-appVal v₁ v₂ = case v₁ of
-  ReadTyV τ → case v₂ of
-    StrV s → return $ ReadTyFnV τ s
-    _ → error "interpExp: ReadV: type error"
-  CloV selfO ψ e ξ → do
-    let selfγ = case selfO of
-          None → id
-          Some self → bindVar self v₁
-    compose
-      [ local ξ 
-      , bindPat ψ v₂
-      , selfγ
-      ] $
-      interpExp e
-  _ → error "interpExp: type error"
-
-appMPCVal ∷ Val → IM Val
-appMPCVal v = case v of
-  ReturnV v → return v
-  ReadTyFnV τ s → readTyFile τ s
-  SoloV p vMPC → do
-    v ← localL iEnvModeL (SoloM p) $ appMPCVal vMPC
-    return $ SoloV p v
-  SSecV ps vMPC → do
-    v ← localL iEnvModeL (SSecM ps) $ appMPCVal vMPC
-    return $ SSecV ps v
-  _ → pptrace v $ error "appMPCVal: not implemented"
+  case (m,ṽ) of
+    (_,Inl v) → return v
+    (Some p,Inr pvs) 
+      | p ∈ keys pvs → return $ pvs ⋕! p
+      | otherwise → error "interpExp: VarE: p ∉ dom pvs"
+    (None,Inr _) → pptrace (annotatedTag x) $ error "interpExp: in tl mode cannot access par value"
 
 interpExp ∷ AExp → IM Val
-interpExp sA = case extract sA of
+interpExp eA = case extract eA of
+  VarE x → interpVar x
+  -- BoolE
   StrE s → return $ StrV s
+  -- IntE
+  -- FltE
+  BulE → return $ BulV
+  -- IfE
+  -- LE
+  -- RE
+  -- TupE
+  -- NilE
+  -- ConsE
   LetTyE _ _ e → interpExp e
   LetE ψ e₁ e₂ → do
     v ← interpExp e₁
     bindPat ψ v $ interpExp e₂
+  -- CaseE
   LamE selfO ψ e → do
     ξ ← ask
     return $ CloV selfO ψ e ξ
   AppE e₁ e₂ → do
     v₁ ← interpExp e₁
     v₂ ← interpExp e₂
-    appVal v₁ v₂
-  BindE ψ e₁ e₂ → do
-    vMPC ← interpExp e₁
-    v ← appMPCVal vMPC
-    bindPat ψ v $ interpExp e₂
-  SoloE pA e → do
-    v ← localL iEnvModeL (SoloM $ extract pA) $ interpExp e
-    return $ SoloV (extract pA) v
-  ReadE τA → do
-    checkReadTy τA
-    return $ ReadTyV $ extract τA
-  _ → pptrace (annotatedTag sA) $ error "interpExp: not implemented"
+    case v₁ of
+      CloV selfO ψ e ξ → do
+        let selfγ = case selfO of
+              None → id
+              Some self → bindVar self v₁
+        compose
+          [ local ξ 
+          , bindPat ψ v₂
+          , selfγ
+          ] $
+          interpExp e
+      _ → pptrace (annotatedTag eA) $ error "interpExp: AppE: v₁ ≢ CloV _ _ _ _"
+  -- TLamE
+  -- TAppE
+  ParE psA e → do
+    let ps = pow $ map extract $ iter $ extract psA
+    m ← askL iEnvModeL
+    when (m ≢ None) $ \ _ → error "interpExp: ParE: m ≢ None"
+    pvs ← dict ^$ mapMOn (iter ps) $ \ p → do
+      v ← localL iEnvModeL (Some p) $ interpExp e
+      return $ p ↦ v
+    return $ ParV pvs
+  CirE hA → case extract hA of
+    VarPt x → do
+      ṽ ← interpVarRaw x
+      return $ CircV $ case ṽ of
+        Inl v → case v of
+          BoolV b → BoolC b
+          IntV i → IntC i
+          _ → error "interpExp: CirE: VarPt: Inl: v ∉ {BoolV _,IntV _}"
+        _ → error "interpExp: CirE: VarPt: ṽ ≢ Inl _"
+    AccessPt x pA → do
+      let p = extract pA
+      ṽ ← interpVarRaw x
+      case ṽ of
+        Inr pvs → case pvs ⋕? p of
+          Some v' → return $ CircV $ case v' of
+            BoolV b → BoolC b
+            IntV i → IntC i
+            _ → error "interpExp: AccessPt: ParV: Some: v' ≢ IntV _"
+          _ → error "interpExp: AccessPt: ParV: pvs ⋕? p ≢ Some _"
+        _ → error "interpExp: AccessPt: ṽ ≢ Inr _"
+  BundleE pes → do
+    pvs ← dict ^$ mapMOn (iter pes) $ \ (pA :* e) → do
+      let p = extract pA
+      v ← localL iEnvModeL (Some p) $ interpExp e
+      return $ p ↦ v
+    return $ ParV pvs
+  -- BundleUnionE
+  -- DelegateE
+  MPCE _φ e → do
+    v ← interpExp e
+    return $ CircV $ case v of
+      CircV c → case interpCirc c of
+        Inl b → BoolC b
+        Inr i → IntC i
+      _ → error "interpExp: MPCE: v ≢ CircV _"
+  RevealE _ e → do
+    v ← interpExp e
+    return $ case v of
+      CircV (BoolC b) → BoolV b
+      CircV (IntC i) → IntV i
+      _ → error "interpExp: RevealE: v ∉ {BoolC _,IntC i}"
+  -- AscrE
+  ReadE τA e → do
+    v ← interpExp e
+    case v of
+      StrV fn → do
+        m ← askL iEnvModeL
+        return $ case m of
+          None → readTy τA $ ioUNSAFE $ read $ "examples-data/" ⧺ fn
+          Some p → readTy τA $ ioUNSAFE $ read $ "examples-data/" ⧺ 𝕩name p ⧺ "/" ⧺ fn
+      _ → error "interExp: ReadE: v ≢ StrV _"
+  -- InferE
+  -- HoleE
+  PrimE "LTE" (tohs → [e₁,e₂]) → do
+    v₁ ← interpExp e₁
+    v₂ ← interpExp e₂
+    return $ case (v₁,v₂) of
+      (IntV i₁,IntV i₂) → IntV $ i₁ + i₂
+      (CircV c₁,CircV c₂) → CircV $ OpC "LTE" $ list [c₁,c₂]
+  _ → pptrace (annotatedTag eA) $ error "not implemented: interpExp"
 
 interpTL ∷ ATL → ITLM ()
 interpTL sA = case extract sA of
   DeclTL _ _ → skip
-  DefnTL x e → do
+  DefnTL xA e → do
+    let x = extract xA
     v ← asTLM $ interpExp e
-    modifyL itlStateEnvL ((x ↦ v) ⩌)
+    modifyL itlStateEnvL ((x ↦ Inl v) ⩌)
   PrinTL _ → skip
   _ → pptrace (annotatedTag sA) $ error "interpTL: not implemented"
 
@@ -205,9 +291,8 @@ testInterpreterExample fn = do
   ls ← tokenizeIO lexer ts
   tls ← parseIO cpTLs ls
   out $ "DONE PARSING:" ⧺ fn
-  -- eachOn tls $ \ tl → pprint $ annotatedElem tl
   let σtl = evalITLM σtl₀ $ retState $ interpTLs tls
-  pprint σtl
+  pprint $ itlStateEnv σtl ⋕! var "main"
 
 testInterpreter ∷ IO ()
 testInterpreter = do
