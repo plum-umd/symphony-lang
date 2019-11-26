@@ -89,7 +89,9 @@ runIM γ xM =
   in x
 
 asTLM ∷ IM a → ITLM a
-asTLM xM = ITLM $ mkRWS $ \ () σ → let () :* () :* x = runRWS (ξ₀ { iEnvEnv = itlStateEnv σ }) () $ unIM xM in σ :* () :* x
+asTLM xM = ITLM $ mkRWS $ \ () σ → 
+  let () :* () :* x = runRWS (ξ₀ { iEnvEnv = itlStateEnv σ }) () $ unIM xM 
+  in σ :* () :* x
 
 makePrettySum ''Val
 makePrettySum ''ITLState
@@ -245,7 +247,7 @@ interpExp eA = case extract eA of
         return $ case m of
           None → readTy τA $ ioUNSAFE $ read $ "examples-data/" ⧺ fn
           Some p → readTy τA $ ioUNSAFE $ read $ "examples-data/" ⧺ 𝕩name p ⧺ "/" ⧺ fn
-      _ → error "interExp: ReadE: v ≢ StrV _"
+      _ → error "interpExp: ReadE: v ≢ StrV _"
   -- InferE
   -- HoleE
   PrimE "LTE" (tohs → [e₁,e₂]) → do
@@ -254,6 +256,7 @@ interpExp eA = case extract eA of
     return $ case (v₁,v₂) of
       (IntV i₁,IntV i₂) → IntV $ i₁ + i₂
       (CircV c₁,CircV c₂) → CircV $ OpC "LTE" $ list [c₁,c₂]
+      (_,_) → error "interpExp: PrimE: not implemented, or bad prim application"
   _ → pptrace (annotatedTag eA) $ error "not implemented: interpExp"
 
 interpTL ∷ ATL → ITLM ()
