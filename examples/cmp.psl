@@ -1,0 +1,31 @@
+principal A
+principal B
+
+def cmp : ℤ[64]{isec:A,B} → 𝔹{ccir:A,B}
+def cmp = λ xy → 
+  let x : ℤ[64]{ncir:A}
+  let x = ~xy.A 
+  let y : ℤ[64]{ncir:B}
+  let y = ~xy.B
+  let r : 𝔹{ccir:B}
+  let r = x ≤ y
+  in r
+
+def cmp-mpc : 𝟙 →{inp:A,B;rev:} 𝔹{yshare:A,B}
+def cmp-mpc = λ • →
+  let xy : ℤ[64]{isec:A,B}
+  let xy = {A,B} read[ℤ[64]] "e1-input.txt"
+  let r : 𝔹{yshare:A,B}
+  let r = mpc{yao:A,B} cmp xy
+  in r 
+
+def cmp-mpc-rev : 𝟙 →{inp:A,B;rev:A,B} 𝔹{ssec:A,B}
+def cmp-mpc-rev = λ • →
+  let r : 𝔹{yshare:A,B}
+  let r = cmp-mpc •
+  let p : 𝔹{ssec:A,B}
+  let p = reveal{A,B} r
+  in p
+
+def main : 𝔹{ssec:A,B}
+def main = cmp-mpc-rev •

@@ -5,122 +5,95 @@ import AddToUVMHS
 
 import PSL.Syntax
 
-levelDO,levelIF,levelLAM,levelLET,levelCASE ∷ ℕ64
-levelDO   = 𝕟64 10
+levelIF,levelLAM,levelLET ∷ ℕ64
 levelIF   = 𝕟64 10
 levelLAM  = 𝕟64 10
 levelLET  = 𝕟64 10
-levelCASE = 𝕟64 10
 
-levelCOMMA,levelCONS,levelMPC,levelPAR,levelSHARE,levelASCR ∷ ℕ64
+levelCOMMA,levelCONS,levelMPC,levelPAR,levelASCR ∷ ℕ64
 
 levelCOMMA   = 𝕟64 20
 levelCONS    = 𝕟64 21
 levelMPC     = 𝕟64 24
 levelPAR     = 𝕟64 25
-levelSHARE   = 𝕟64 25
 levelASCR    = 𝕟64 29
 
-levelCOND,levelCOMPARE,levelPLUS,levelTIMES,levelCIRCUIT,levelACCESS ∷ ℕ64
-levelCOND    = 𝕟64 30
-levelCOMPARE = 𝕟64 40
+levelCOND,levelCOMPARE,levelARROW,levelPLUS,levelTIMES ∷ ℕ64
+levelCOND    = 𝕟64 20
+levelCOMPARE = 𝕟64 30
+levelARROW   = 𝕟64 40
 levelPLUS    = 𝕟64 50
 levelTIMES   = 𝕟64 60
-levelCIRCUIT = 𝕟64 70
-levelACCESS  = 𝕟64 80
-
-levelARROW,levelMPCTY,levelTUNION,levelTUPLE ∷ ℕ64
-levelARROW  = 𝕟64 40
-levelMPCTY  = 𝕟64 45
-levelTUNION = 𝕟64 50
-levelTUPLE  = 𝕟64 60
 
 levelAPP ∷ ℕ64
 levelAPP = 𝕟64 100
 
-levelMODE,levelINDEX ∷ ℕ64
+levelMODE ∷ ℕ64
 levelMODE  = 𝕟64 200
-levelINDEX = 𝕟64 200
 
 lexer ∷ Lexer CharClass ℂ TokenClassBasic ℕ64 TokenBasic
 lexer = lexerBasic puns kws prim ops
   where
     puns = list 
-      [ "(",")","{","}","[","]","<",">","⟨","⟩"
+      [ "(",")","{","}","[","]","⟨","⟩","<",">"
       , ".",",",":",";"
       , "→","->"
       , "⇒","=>"
-      , "←","<-"
-      , "↣",">->"
-      , "⪫","->-"
-      , "⫫","_||_"
       , "="
       , "~"
       , "_"
-      , "⌊","|_"
-      , "⌋","_|"
-      , "⌈","|^"
-      , "⌉","^|"
+      , "⁇","??"
+      , "@"
+      , "⊆","c="
       ]
     kws = list
       [ "primitive"
       , "principal"
       , "trust"
       , "security"
-      , "wbfold"
-      , "from"
       , "def"
       , "λ","fun"
-      , "rλ","rfun"
       , "Λ","abs"
       , "∀","forall"
       , "let","in"
       , "if","then","else"
-      , "circuit"
+      , "case"
       , "mpc"
       , "reveal"
-      , "do"
-      , "case"
-      , "share"
       ]
     prim = list
-      [ "yao","bgw","gmw","none"
+      [ "yao","gmw","bgw"
       , "nshare","yshare","gshare","sshare"
+      , "ncir","bcir","acir","ccir","ucir"
       , "ssec","isec"
       , "☆","type"
       , "ℙ","prin"
-      , "ℤ","int"
-      , "ℤ64","int64"
-      , "ℕ","nat"
-      , "ℕ64","nat64"
+      , "𝟘","empty"
+      , "𝟙","unit"
       , "𝔹","bool"
       , "𝕊","string"
-      , "MPC"
-      , "CIR"
+      , "ℕ","nat"
+      , "ℤ","int"
+      , "𝔽","flt"
       , "list"
-      , "true","false"
-      , "𝟙","unit"
-      , "•","()"
-      , "𝟘","empty"
-      , "[]","⟨⟩","<>"
-      , "∷","::"
-      , "ncir","bcir","acir","ccir","ucir"
       , "read"
       , "inp","rev"
       ]
     ops = list 
-      [ "+","-"
+      [ "•","()"
+      , "[]"
+      , "∷","::"
+      , "⟨⟩","<>"
+      , "+","-"
       , "×","*"
       , "/"
       , "≡","=="
       , "≤","<="
-      , "<"
+      , "⋖","<<"
       , "^"
       , "?"
-      , "⁇","??"
       , "◇"
-      , "⊆"
-      , "@"
+      , "true","false"
       ]
 
 testLexer ∷ IO ()
@@ -235,30 +208,37 @@ pType = fmixfixWithContext "type" $ concat
   , fmixTerminal $ do concat [cpSyntax "𝔹",cpSyntax "bool"] ; return 𝔹T
   -- 𝕊
   , fmixTerminal $ do concat [cpSyntax "𝕊",cpSyntax "string"] ; return 𝕊T
-  -- ℕn.n
-  , fmixTerminal $ concat
-      [ do concat [cpSyntax "ℕ",cpSyntax "nat"]
-           return $ ℕT None
-      , do concat [cpSyntax "ℕ64",cpSyntax "nat64"]
-           n ← cpOptional $ do
-             cpSyntax "."
-             cpNatural
-           return $ ℕT $ Some $ 64 :* n
-      ]
-  -- ℤn.n
-  , fmixTerminal $ concat
-      [ do concat [cpSyntax "ℤ",cpSyntax "int"]
-           return $ ℤT None
-      , do concat [cpSyntax "ℤ64",cpSyntax "int64"]
-           n ← cpOptional $ do
-             cpSyntax "."
-             cpNatural
-           return $ ℤT $ Some $ 64 :* n
-      ]
-  -- 𝔽n
+  -- ℕ[n.n]
+  , fmixTerminal $ do
+      concat [cpSyntax "ℕ",cpSyntax "nat"]
+      nsO ← cpOptional $ do
+        cpSyntax "["
+        n₁ ← cpNatural
+        n₂O ← cpOptional $ do
+          cpSyntax "."
+          cpNatural
+        cpSyntax "]"
+        return $ n₁ :* n₂O
+      return $ ℕT nsO
+  -- ℤ[n.n]
+  , fmixTerminal $ do
+      concat [cpSyntax "ℤ",cpSyntax "int"]
+      nsO ← cpOptional $ do
+        cpSyntax "["
+        n₁ ← cpNatural
+        n₂O ← cpOptional $ do
+          cpSyntax "."
+          cpNatural
+        cpSyntax "]"
+        return $ n₁ :* n₂O
+      return $ ℤT nsO
+  -- 𝔽[n]
   , fmixTerminal $ do
       concat [cpSyntax "𝔽64",cpSyntax "float64"]
-      return $ 𝔽T 64
+      cpSyntax "["
+      n ← cpNatural
+      cpSyntax "]"
+      return $ 𝔽T n
   -- τ + τ
   , fmixInfixL levelPLUS $ do concat [cpSyntax "+"] ; return (:+:)
   -- τ × τ
@@ -544,8 +524,10 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntax "mpc"
       cpSyntax "{"
       φ ← pProt
+      cpSyntax ":"
+      ps ← pPrins
       cpSyntax "}"
-      return $ MPCE φ
+      return $ MPCE φ ps
   -- reveal{P} e
   , fmixPrefix levelMPC $ do
       cpSyntax "reveal"
@@ -581,9 +563,9 @@ pExp = fmixfixWithContext "exp" $ concat
   , fmixInfixL levelPLUS $ do concat [cpSyntax "∨",cpSyntax "||"] ; return $ \ e₁ e₂ → PrimE "OR" $ list [e₁,e₂]
   , fmixInfixL levelTIMES $ do concat [cpSyntax "∧",cpSyntax "&&"] ; return $ \ e₁ e₂ → PrimE "AND" $ list [e₁,e₂]
   , fmixInfixL levelPLUS $ do cpSyntax "+" ; return $ \ e₁ e₂ → PrimE "PLUS" $ list [e₁,e₂]
-  , fmixInfixL levelTIMES $ do cpSyntax "×" ; return $ \ e₁ e₂ → PrimE "TIMES" $ list [e₁,e₂]
+  , fmixInfixL levelTIMES $ do concat [cpSyntax "×",cpSyntax "*"] ; return $ \ e₁ e₂ → PrimE "TIMES" $ list [e₁,e₂]
   , fmixInfixL levelTIMES $ do cpSyntax "/" ; return $ \ e₁ e₂ → PrimE "DIVIDE" $ list [e₁,e₂]
-  , fmixInfix levelCOMPARE $ do cpSyntax "<" ; return $ \ e₁ e₂ → PrimE "LT" $ list [e₁,e₂]
+  , fmixInfix levelCOMPARE $ do concat [cpSyntax "⋖",cpSyntax "<<"] ; return $ \ e₁ e₂ → PrimE "LT" $ list [e₁,e₂]
   , fmixInfix levelCOMPARE $ do concat [cpSyntax "≤",cpSyntax "<="] ; return $ \ e₁ e₂ → PrimE "LTE" $ list [e₁,e₂]
   , fmixInfix levelCOMPARE $ do concat [cpSyntax "≡",cpSyntax "=="] ; return $ \ e₁ e₂ → PrimE "EQ" $ list [e₁,e₂]
   , fmixInfixR levelCOND $ do

@@ -202,7 +202,7 @@ data Exp =
   | BundleUnionE AExp AExp         -- e⧺e                   /  e++e
   -- | BundleAccessE AExp APrin       -- e.ρ                   /  e.ρ
   | DelegateE APrins AExp          -- delegate{P} e         /  delegate{P} e
-  | MPCE AProt AExp                -- mpc{φ} e              /  mpc{φ} e
+  | MPCE AProt APrins AExp         -- mpc{φ:P} e            /  mpc{φ:P} e
   | RevealE APrins AExp            -- reveal{P} e           /  reveal{P} e
   | AscrE AExp AType               -- e:τ                   /  e:τ
   | ReadE AType AExp               -- read[τ] e             /  read[τ] e

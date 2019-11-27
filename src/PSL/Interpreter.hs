@@ -148,7 +148,7 @@ interpVar x = do
     (Some p,Inr pvs) 
       | p ∈ keys pvs → return $ pvs ⋕! p
       | otherwise → error "interpExp: VarE: p ∉ dom pvs"
-    (None,Inr _) → pptrace (annotatedTag x) $ error "interpExp: in tl mode cannot access par value"
+    (None,Inr pvs) → return $ ParV pvs
 
 interpExp ∷ AExp → IM Val
 interpExp eA = case extract eA of
@@ -225,7 +225,7 @@ interpExp eA = case extract eA of
     return $ ParV pvs
   -- BundleUnionE
   -- DelegateE
-  MPCE _φ e → do
+  MPCE _φ _ps e → do
     v ← interpExp e
     return $ CircV $ case v of
       CircV c → case interpCirc c of
@@ -274,14 +274,17 @@ interpTLs = eachWith interpTL
 
 testInterpreterExample ∷ 𝕊 → IO ()
 testInterpreterExample fn = do
-  s ← read $ "examples/" ⧺ fn ⧺ ".psl"
+  let path = "examples/" ⧺ fn ⧺ ".psl"
+  out path
+  s ← read path
   let ts = tokens s
   ls ← tokenizeIO lexer ts
   tls ← parseIO cpTLs ls
-  out $ "DONE PARSING:" ⧺ fn
+  -- out $ "DONE PARSING:" ⧺ fn
   let σtl = evalITLM σtl₀ $ retState $ interpTLs tls
   pprint $ itlStateEnv σtl ⋕! var "main"
 
 testInterpreter ∷ IO ()
 testInterpreter = do
-  testInterpreterExample "e1"
+  testInterpreterExample "cmp"
+  testInterpreterExample "cmp-split"

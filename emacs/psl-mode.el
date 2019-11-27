@@ -12,19 +12,52 @@
       (let* (
              ;; define several category of keywords
              (x-keywords '("primitive" "principal" "trust" "security"
-                           "def" "λ" "fun" "Λ" "abs" "let" "in" "if"
-                           "then" "else" "circuit" "mpc" "do" "case"
-                           "rλ" "rfun"))
-             (x-types '("yao" "bgw" "gmw" "none" "☆" "type" "ℙ" "prin"
-                        "ℤ" "int" "𝔹" "bool" "MPC" "CIR" "list" "true"
+                           "def" "λ" "fun" "Λ" "abs" "∀" "forall" 
+                           "in" "if" "then" "else" "case"
+                           "mpc" "reveal"))
+             (x-types '("yao" "gmw" "bgw"
+                        "nshare" "yshare" "gshare" "sshare"
+                        "ncir" "bcir" "acir" "ccir" "ucir"
+                        "ssec" "isec"
+                        "☆" "type" 
+                        "ℙ" "prin"
+                        "𝟘" "empty"
+                        "𝟙" "unit"
+                        "𝔹" "bool"
+                        "𝕊" "string"
+                        "ℕ" "nat"
+                        "ℤ" "int" 
+                        "𝔽" "flt"
+                        "list"
+                        "read"
+                        "inp" "rev"
+                        "true"
                         "false" "𝟙" "unit" "•" "()" "𝟘" "empty" "∷" "::"
                         "bcir" "sec" "par"))
-             (x-events '("(" ")" "{" "}" "[" "]" "<" ">" "⟨" "⟩" " " ":"
-                         ";" "→" "->" "←" "<-" "↣" ">->" "⪫" "->-" "⫫"
-                         "_||_" "=" "~" "_" "⪫"))
-             (x-functions '("+" "-" "×" "*" "/" "≡" "==" "≤" "<=" "<" "^"
-                            "?" "◇" "⊆" "∷" "\@" "≤"))
-             (x-constants '())
+             (x-events '("(" ")" "{" "}" "[" "]" "⟨" "⟩" "<" ">" 
+                         "." "," ":" ";"
+                         "→" "->" 
+                         "⇒" "=>"
+                         "="
+                         "~"
+                         "_"
+                         "⁇" "??"
+                         "@"
+                         "⊆" "c="))
+             (x-functions '("•" "()"
+                            "[]"
+                            "∷" "::"
+                            "⟨⟩" "<>"
+                            "+" "-" 
+                            "×" "*" 
+                            "/" 
+                            "≡" "==" 
+                            "≤" "<=" 
+                            "⋖" "<<"
+                            "^"
+                            "?" 
+                            "◇"))
+             (x-constants '("true" "false"))
 
             ;; generate regex string for each category of keywords
             (x-keywords-regexp (regexp-opt x-keywords 'words))
