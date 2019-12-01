@@ -7,8 +7,8 @@ import PSL.Parser
 import qualified Prelude as HS
 
 data Circ =
-    BoolC 𝔹
-  | IntC ℤ
+    BoolC (𝑂 Prin) 𝔹
+  | IntC (𝑂 Prin) ℤ
   | OpC 𝕊 (𝐿 Circ)
   deriving (Eq,Ord,Show)
 makePrettySum ''Circ
@@ -30,7 +30,13 @@ data Val =
   | ParV (Prin ⇰ Val)
   deriving (Eq,Ord,Show)
 
-type Env = 𝕏 ⇰ (Val ∨ (Prin ⇰ Val))
+data ValP =
+    AllVP Val
+  | SSecVP Val (𝑃 Prin)
+  | ISecVP Val (Prin ⇰ Val)
+  deriving (Eq,Ord,Show)
+
+type Env = 𝕏 ⇰ ValP
 
 newtype ITLState = ITLState
   { itlStateEnv ∷ Env 
@@ -94,6 +100,7 @@ asTLM xM = ITLM $ mkRWS $ \ () σ →
   in σ :* () :* x
 
 makePrettySum ''Val
+makePrettySum ''ValP
 makePrettySum ''ITLState
 makeLenses ''ITLState
 makePrettySum ''IEnv
@@ -101,8 +108,8 @@ makeLenses ''IEnv
 
 interpCirc ∷ Circ → 𝔹 ∨ ℤ
 interpCirc = \case
-  BoolC b → Inl b
-  IntC i → Inr i 
+  BoolC _ b → Inl b
+  IntC _ i → Inr i 
   OpC "PLUS" (tohs → [c₁,c₂]) →
     let Inr i₁ = interpCirc c₁ 
         Inr i₂ = interpCirc c₂
@@ -113,42 +120,37 @@ interpCirc = \case
     in Inl $ i₁ ≤ i₂
   _ → error "interpCir: bad circuit"
 
-bindVar ∷ AVar → Val → IM a → IM a
-bindVar xA v = 
-  let x = extract xA
-  in case v of
-    ParV pvs → mapEnvL iEnvEnvL ((x ↦ Inr pvs) ⩌)
-    _ → mapEnvL iEnvEnvL ((x ↦ Inl v) ⩌)
-
-bindPat ∷ APat → Val → IM a → IM a
+bindPat ∷ APat → ValP → IM a → IM a
 bindPat ψA v = case extract ψA of
-  VarP x → bindVar x v
+  VarP xA → do
+    let x = extract xA
+    mapEnvL iEnvEnvL ((x ↦ v) ⩌)
   BulP → id
   _ → pptrace (annotatedTag ψA) $ error "bindPat: not implemented"
 
-readTy ∷ AType → 𝕊 → Val
-readTy τA s = case extract τA of
+parseTy ∷ AType → 𝕊 → Val
+parseTy τA s = case extract τA of
   ℤT (Some (64 :* None)) → IntV $ int (HS.read $ chars s ∷ ℤ64)
-  _ → error "readTy: not implemented"
+  _ → error "parseTy: not implemented"
 
-interpVarRaw ∷ AVar → IM (Val ∨ (Prin ⇰ Val))
-interpVarRaw xA = do
-  let x = extract xA
-  γ ← askL iEnvEnvL
-  case γ ⋕? x of
-    Some ṽ → return ṽ
-    None → error "interpVarRaw: not in scope"
-    
-interpVar ∷ AVar → IM Val
-interpVar x = do
-  ṽ ← interpVarRaw x
-  m ← askL iEnvModeL
-  case (m,ṽ) of
-    (_,Inl v) → return v
-    (Some p,Inr pvs) 
-      | p ∈ keys pvs → return $ pvs ⋕! p
-      | otherwise → error "interpExp: VarE: p ∉ dom pvs"
-    (None,Inr pvs) → return $ ParV pvs
+-- interpVarRaw ∷ AVar → IM (Val ∨ (Prin ⇰ Val))
+-- interpVarRaw xA = do
+--   let x = extract xA
+--   γ ← askL iEnvEnvL
+--   case γ ⋕? x of
+--     Some ṽ → return ṽ
+--     None → error "interpVarRaw: not in scope"
+--     
+-- interpVar ∷ AVar → IM Val
+-- interpVar x = do
+--   ṽ ← interpVarRaw x
+--   m ← askL iEnvModeL
+--   case (m,ṽ) of
+--     (_,Inl v) → return v
+--     (Some p,Inr pvs) 
+--       | p ∈ keys pvs → return $ pvs ⋕! p
+--       | otherwise → error "interpExp: VarE: p ∉ dom pvs"
+--     (None,Inr pvs) → return $ ParV pvs
 
 interpExp ∷ AExp → IM Val
 interpExp eA = case extract eA of
@@ -288,3 +290,4 @@ testInterpreter ∷ IO ()
 testInterpreter = do
   testInterpreterExample "cmp"
   testInterpreterExample "cmp-split"
+  testInterpreterExample "plus"

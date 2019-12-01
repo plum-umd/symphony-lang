@@ -68,7 +68,7 @@ makePrettySum ''CirOps
 -- C ∈ constraint ⩴  …
 type AConstr = Annotated FullContext Constr
 data Constr =
-    SubsetC APrins APrins --  P ⊆ P  /  P <= P
+    SubsetC APrins APrins --  P ⊆ P  /  P c= P
   deriving (Eq,Ord,Show)
 makePrettySum ''Constr
 
