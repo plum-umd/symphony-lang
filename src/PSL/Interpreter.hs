@@ -395,3 +395,4 @@ testInterpreter ∷ IO ()
 testInterpreter = do
   testInterpreterExample "cmp"
   testInterpreterExample "cmp-split"
+  testInterpreterExample "cmp-tutorial"

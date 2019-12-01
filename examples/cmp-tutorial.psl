@@ -83,7 +83,7 @@ embedded yao encrypted values. Maybe we should just call this `𝔹{ycir:A,B}`,
 because the only protocol it makes sense to run it with is yao.
 
 The first step of `cmp-mpc` enters parallel mode for both `A` and `B` by the
-syntax `{A,B}`. The read operation will see a local file "e1-input.txt" for
+syntax `{par:A,B}`. The read operation will see a local file "e1-input.txt" for
 each party `A` and `B`. In our simulator, these live in `examples-data/A` and
 `examples-data/B`. The result is an `isec:A,B` which again means “independent
 secrets for both A and B”.
@@ -97,7 +97,7 @@ C and D, (2) C and D execute yao protocol, and (3) C and D end up with
 def cmp-mpc : 𝟙 →{inp:A,B;rev:} 𝔹{yshare:A,B}
 def cmp-mpc = λ • →
   let xy : ℤ[64]{isec:A,B}
-  let xy = {A,B} read[ℤ[64]] "e1-input.txt"
+  let xy = {par:A,B} read ℤ[64] "e1-input.txt"
   let r : 𝔹{yshare:A,B}
   let r = mpc{yao:A,B} cmp xy
   in r 
