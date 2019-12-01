@@ -1,24 +1,24 @@
 principal A
 principal B
 
-def cmp : ℤ[64]{isec:A,B} → 𝔹{ccir:A,B}
-def cmp = λ xy → 
+def cmp : ℤ[64]{A} → ℤ[64]{B} → 𝔹{ccir:A,B}
+def cmp = λ xS → λ yS → 
   let x : ℤ[64]{ncir:A}
-  let x = ~xy.A 
+  let x = ~xS
   let y : ℤ[64]{ncir:B}
-  let y = ~xy.B
+  let y = ~yS
   let r : 𝔹{ccir:B}
   let r = x ≤ y
   in r
 
 def cmp-mpc : 𝟙 →{inp:A,B;rev:} 𝔹{yshare:A,B}
 def cmp-mpc = λ • →
-  let x : ℤ[64]{isec:A}
-  let x = {A} read[ℤ[64]] "e1-input.txt"
-  let y : ℤ[64]{isec:B}
-  let y = {B} read[ℤ[64]] "e1-input.txt"
+  let x : ℤ[64]{A}
+  let x = {A} read ℤ[64] "e1-input.txt"
+  let y : ℤ[64]{B}
+  let y = {B} read ℤ[64] "e1-input.txt"
   let r : 𝔹{yshare:A,B}
-  let r = mpc{yao:A,B} cmp ⟨A.x;B.y⟩
+  let r = mpc{yao:A,B} cmp x y
   in r 
 
 def cmp-mpc-rev : 𝟙 →{inp:A,B;rev:A,B} 𝔹{ssec:A,B}
@@ -29,5 +29,11 @@ def cmp-mpc-rev = λ • →
   let p = reveal{A,B} r
   in p
 
-def main : 𝔹{ssec:A,B}
-def main = cmp-mpc-rev •
+def one-liner : 𝟙 →{inp:A,B;rev:A,B} 𝔹{ssec:A,B}
+def one-liner = λ • →
+  let x = {A} read ℤ[64] "e1-input.txt"
+  let y = {B} read ℤ[64] "e1-input.txt"
+  in reveal{A,B} mpc{yao:A,B} ~x ≤ ~y
+
+def main : 𝔹{ssec:A,B} × 𝔹{ssec:A,B}
+def main = cmp-mpc-rev • , one-liner •

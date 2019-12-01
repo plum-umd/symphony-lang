@@ -28,6 +28,10 @@ levelTIMES   = 𝕟64 60
 levelAPP ∷ ℕ64
 levelAPP = 𝕟64 100
 
+levelCIRCUIT,levelACCESS ∷ ℕ64
+levelCIRCUIT = 𝕟64 120
+levelACCESS  = 𝕟64 130
+
 levelMODE ∷ ℕ64
 levelMODE  = 𝕟64 200
 
@@ -78,6 +82,7 @@ lexer = lexerBasic puns kws prim ops
       , "list"
       , "read"
       , "inp","rev"
+      , "par"
       ]
     ops = list 
       [ "•","()"
@@ -178,13 +183,22 @@ pConstr = cpNewWithContextRendered "constr" $ concat
 
 pEffect ∷ CParser TokenBasic AEffect
 pEffect = cpNewWithContextRendered "effect" $ do
-  cpSyntax "inp"
-  cpSyntax ":"
-  ps₁ ← pPrins
-  cpSyntax ";"
-  cpSyntax "rev"
-  cpSyntax ":"
-  ps₂ ← pPrins
+  (ps₁,ps₂) ← concat
+    [ do cpSyntax "inp"
+         cpSyntax ":"
+         ps₁ ← pPrins
+         ps₂O ← cpOptional $ do 
+           cpSyntax ";"
+           cpSyntax "rev"
+           cpSyntax ":"
+           pPrins
+         return (ps₁,ifNone (Annotated null pø) ps₂O)
+    , do cpSyntax "rev"
+         cpSyntax ":"
+         ps₂ ← pPrins
+         return (Annotated null pø,ps₂)
+    , return (Annotated null pø,Annotated null pø)
+    ]
   return $ Effect ps₁ ps₂
 
 ----------
@@ -268,6 +282,12 @@ pType = fmixfixWithContext "type" $ concat
         concat [cpSyntax "⇒",cpSyntax "=>"]
         return cs
       return $ ForallT α κ cs
+  -- τ{P}
+  , fmixPostfix levelMODE $ do 
+      cpSyntax "{"
+      p ← pPrin
+      cpSyntax "}"
+      return $ \ τ → SecT τ p
   -- τ{ssec:P}
   , fmixPostfix levelMODE $ do 
       cpSyntax "{"
@@ -379,6 +399,11 @@ pPat = fmixfixWithContext "pattern" $ concat
       concat [cpSyntax "⟩",cpSyntax ">"]
       concat [cpSyntax "⧺",cpSyntax "++"]
       return $ BundleP ρ ψ
+  -- ψ : τ
+  , fmixPostfix levelASCR $ do
+      cpSyntax ":"
+      τ ← pType
+      return $ \ ψ → AscrP ψ τ
   -- _
   , fmixTerminal $ do cpSyntax "_" ; return WildP
   -- (ψ)
@@ -492,14 +517,24 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntax "@"
       τ ← pType
       return $ \ e → TAppE e τ
-  -- {P} e
+  -- {ρ} e
+  , fmixPrefix levelPAR $ do
+    cpSyntax "{"
+    ρ ← pPrin
+    cpSyntax "}"
+    return $ SoloE ρ
+  -- {par:P} e
   , fmixPrefix levelPAR $ do 
       cpSyntax "{"
+      cpSyntax "par"
+      cpSyntax ":"
       ps ← pPrins
       cpSyntax "}"
       return $ ParE ps
-  -- ~h
-  , fmixTerminal $ do cpSyntax "~" ; h ← pPath ; return $ CirE h
+  -- ~e
+  , fmixPrefix levelCIRCUIT $ do cpSyntax "~" ; return $ CirE
+  -- e.ρ
+  , fmixPostfix levelACCESS $ do cpSyntax "." ; ρ ← pPrin ; return $ \ e → AccessE e ρ
   -- ⟨ρ₁.e₁;…;ρₙ;eₙ⟩
   , fmixTerminal $ do
       concat [cpSyntax "⟨",cpSyntax "<"]
@@ -540,12 +575,10 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntax ":"
       τ ← pType
       return $ \ e → AscrE e τ
-  -- read[τ]
+  -- read τ
   , fmixPrefix levelAPP $ do
       cpSyntax "read"
-      cpSyntax "["
       τ ← pType
-      cpSyntax "]"
       return $ ReadE τ
   -- _
   , fmixTerminal $ do cpSyntax "_" ; return InferE

@@ -41,3 +41,5 @@ cpOneOrMoreSepByContext f sepM xM = do
 
 cpNewWithContextRendered ∷ (Ord t) ⇒ 𝕊 → CParser t a → CParser t (Annotated FullContext a)
 cpNewWithContextRendered s = cpNewContext s ∘ cpWithContextRendered
+
+instance Null FullContext where null = FullContext null null null

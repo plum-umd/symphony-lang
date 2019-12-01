@@ -53,6 +53,7 @@ syn match pantheonPrimitive "\v<list>"
 syn match pantheonPrimitive "\v<read>"
 syn match pantheonPrimitive "\v<inp>"
 syn match pantheonPrimitive "\v<rev>"
+syn match pantheonPrimitive "\v<par>"
 
 syn match pantheonPrimitive "\v☆"
 syn match pantheonPrimitive "\vℙ"

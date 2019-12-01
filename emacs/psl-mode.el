@@ -30,7 +30,7 @@
                         "𝔽" "flt"
                         "list"
                         "read"
-                        "inp" "rev"
+                        "inp" "rev" "par"
                         "true"
                         "false" "𝟙" "unit" "•" "()" "𝟘" "empty" "∷" "::"
                         "bcir" "sec" "par"))

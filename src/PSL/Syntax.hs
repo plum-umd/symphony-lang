@@ -1,7 +1,6 @@
 module PSL.Syntax where
 
 import UVMHS
-import AddToUVMHS
 
 ----------
 -- Kind --
@@ -109,6 +108,7 @@ data Type =
   | ListT AType                            --  list τ              /  list τ
   | AType :→: (AEffect ∧ AType)            --  τ →{η} τ            /  τ ->{η} τ
   | ForallT ATVar AKind (𝐿 AConstr) AType  --  ∀ α:κ. [c,…,c] ⇒ τ  /  forall α:κ. [c,…,c] => τ
+  | SecT AType APrin                       --  τ{P}                /  τ{P}
   | SSecT AType APrins                     --  τ{ssec:P}           /  τ{ssec:P}
   | ISecT AType APrins                     --  τ{isec:P}           /  τ{isec:P}
   | CirT AType ACirOps AScheme APrins      --  τ{ς:σ:P}            /  τ{ς:σ:P}
@@ -162,8 +162,9 @@ data Pat =
   | TupP APat APat          -- ψ,ψ      /  ψ,ψ
   | NilP                    -- []       /  []
   | ConsP APat APat         -- ψ∷ψ      /  ψ::ψ
-  | EmptyP                  -- ⟨⟩        /  <>
+  | EmptyP                  -- ⟨⟩       /  <>
   | BundleP APrin APat APat -- ⟨ρ.ψ⟩⧺ψ  /  <ρ.ψ>++ψ
+  | AscrP APat AType        -- ψ : τ    /  ψ : τ
   | WildP                   -- _        /  _
   -- [ψ₁;…;ψₙ] ≜ ψ₁ ∷ ⋯ ∷ ψₙ ∷ []
   -- ⟨ρ₁.ψ₁;…;ρₙ.ψₙ⟩ ≜ ⟨ρ₁.ψ₁⟩ ⧺ ⋯ ⧺ ⟨ρₙ.ψₙ⟩ ⧺ ⟨⟩
@@ -196,8 +197,10 @@ data Exp =
   | AppE AExp AExp                 -- e e                   /  e e
   | TLamE ATVar AExp               -- Λ α → e               /  abs α → e
   | TAppE AExp AType               -- e@τ                   /  e@τ
-  | ParE APrins AExp               -- {P} e                 /  {ρ} e
-  | CirE APath                     -- ~h                    /  ~h
+  | SoloE APrin AExp               -- {ρ} e                 /  {ρ} e
+  | ParE APrins AExp               -- {par:P} e             /  {par:P} e
+  | CirE AExp                      -- ~e                    /  ~e
+  | AccessE AExp APrin             -- e.ρ                   /  e.ρ
   | BundleE (𝐿 (APrin ∧ AExp))     -- ⟨ρ₁.eₙ;…;ρₙ.eₙ⟩       /  <ρ₁.e₁;…;ρₙ.eₙ>
   | BundleUnionE AExp AExp         -- e⧺e                   /  e++e
   -- | BundleAccessE AExp APrin       -- e.ρ                   /  e.ρ
