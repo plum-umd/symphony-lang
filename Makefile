@@ -4,6 +4,8 @@ E    := PSL.main
 dev: .stack-work
 	ghcid --warnings --test $E
 
+# ghcid --command="stack ghci --ghci-options -fobject-code" --warnings --test $E
+
 .stack-work:
 	stack setup
 

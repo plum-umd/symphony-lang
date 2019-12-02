@@ -353,7 +353,7 @@ interpExp eA = case extract eA of
     bindValP ṽ₁ $ \ v₁ →
       bindValP ṽ₂ $ \ v₂ →
         return $ AllVP $ case (v₁,v₂) of
-          (IntV i₁,IntV i₂) → IntV $ i₁ + i₂
+          (IntV i₁,IntV i₂) → BoolV $ i₁ ≤ i₂
           (CircV c₁,CircV c₂) → CircV $ OpC "LTE" $ list [c₁,c₂]
           (_,_) → error "interpExp: PrimE: not implemented, or bad prim application"
   _ → pptrace (annotatedTag eA) $ error "not implemented: interpExp"
