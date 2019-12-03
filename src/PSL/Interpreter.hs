@@ -347,14 +347,17 @@ interpExp eA = case extract eA of
       _ → error "interpExp: ReadE: v ≢ StrV _"
   -- InferE
   -- HoleE
-  PrimE "LTE" (tohs → [e₁,e₂]) → do
+  PrimE o (tohs → [e₁,e₂]) → do
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
     bindValP ṽ₁ $ \ v₁ →
       bindValP ṽ₂ $ \ v₂ →
         return $ AllVP $ case (v₁,v₂) of
-          (IntV i₁,IntV i₂) → BoolV $ i₁ ≤ i₂
-          (CircV c₁,CircV c₂) → CircV $ OpC "LTE" $ list [c₁,c₂]
+          (IntV i₁,IntV i₂) → case o of
+            "LET" → BoolV $ i₁ ≤ i₂
+            "PLUS" → IntV $ i₁ + i₂
+            _ → error "interpExp: opperation not implemented"
+          (CircV c₁,CircV c₂) → CircV $ OpC o $ list [c₁,c₂]
           (_,_) → error "interpExp: PrimE: not implemented, or bad prim application"
   _ → pptrace (annotatedTag eA) $ error "not implemented: interpExp"
 
@@ -396,3 +399,4 @@ testInterpreter = do
   testInterpreterExample "cmp"
   testInterpreterExample "cmp-split"
   testInterpreterExample "cmp-tutorial"
+  testInterpreterExample "add"
