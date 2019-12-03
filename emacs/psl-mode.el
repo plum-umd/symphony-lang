@@ -14,7 +14,7 @@
              (x-keywords '("primitive" "principal" "trust" "security"
                            "def" "λ" "fun" "Λ" "abs" "∀" "forall" 
                            "in" "if" "then" "else" "case"
-                           "mpc" "reveal"))
+                           "mpc" "reveal" "share"))
              (x-types '("yao" "gmw" "bgw"
                         "nshare" "yshare" "gshare" "sshare"
                         "ncir" "bcir" "acir" "ccir" "ucir"

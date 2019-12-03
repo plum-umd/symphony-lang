@@ -1,0 +1,57 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>~/Projects/psl/examples/cmp2.psl.html</title>
+<meta name="Generator" content="Vim/8.1">
+<meta name="plugin-version" content="vim8.1_v1">
+<meta name="syntax" content="pantheon">
+<meta name="settings" content="use_css,pre_wrap,no_foldcolumn,expand_tabs,prevent_copy=">
+<meta name="colorscheme" content="none">
+<style type="text/css">
+<!--
+pre { white-space: pre-wrap; font-family: monospace; color: #000000; background-color: #ffffff; }
+body { font-family: monospace; color: #000000; background-color: #ffffff; }
+* { font-size: 1em; }
+.pantheonKeyword { color: #af5f00; font-weight: bold; }
+.pantheonPrimitive { color: #0000c0; }
+.pantheonPunctuation { color: #6c6c6c; }
+.pantheonOperator { color: #008000; }
+.pantheonLiteral { color: #c00000; }
+-->
+</style>
+</head>
+<body>
+<pre id='vimCodeElement'>
+<span class="pantheonKeyword">principal</span> A
+<span class="pantheonKeyword">principal</span> B
+
+<span class="pantheonKeyword">def</span> cmp <span class="pantheonPunctuation">:</span> <span class="pantheonPrimitive">ℤ</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">isec</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> <span class="pantheonPunctuation">→</span> <span class="pantheonPrimitive">𝔹</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">yao</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span>
+<span class="pantheonKeyword">def</span> cmp <span class="pantheonPunctuation">=</span> <span class="pantheonKeyword">λ</span> xy <span class="pantheonPunctuation">→</span>
+  <span class="pantheonKeyword">let</span> x <span class="pantheonPunctuation">:</span> <span class="pantheonPrimitive">ℤ</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">yao</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span>
+  <span class="pantheonKeyword">let</span> x <span class="pantheonPunctuation">=</span> <span class="pantheonKeyword">share</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">yao</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> xy<span class="pantheonPunctuation">.</span>A
+  <span class="pantheonKeyword">let</span> y <span class="pantheonPunctuation">:</span> <span class="pantheonPrimitive">ℤ</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">yao</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span>
+  <span class="pantheonKeyword">let</span> y <span class="pantheonPunctuation">=</span> <span class="pantheonKeyword">share</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">yao</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> xy<span class="pantheonPunctuation">.</span>B
+  <span class="pantheonKeyword">let</span> r <span class="pantheonPunctuation">:</span> <span class="pantheonPrimitive">𝔹</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">yao</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span>
+  <span class="pantheonKeyword">let</span> r <span class="pantheonPunctuation">=</span> x <span class="pantheonOperator">≤</span> y
+  <span class="pantheonKeyword">in</span> r
+
+<span class="pantheonKeyword">def</span> cmp-rev <span class="pantheonPunctuation">:</span> <span class="pantheonPrimitive">𝟙</span> <span class="pantheonPunctuation">→{</span><span class="pantheonPrimitive">inp</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">;</span><span class="pantheonPrimitive">rev</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> <span class="pantheonPrimitive">𝔹</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">ssec</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span>
+<span class="pantheonKeyword">def</span> cmp-rev <span class="pantheonPunctuation">=</span> <span class="pantheonKeyword">λ</span> <span class="pantheonOperator">•</span> <span class="pantheonPunctuation">→</span>
+  <span class="pantheonKeyword">let</span> r <span class="pantheonPunctuation">:</span> <span class="pantheonPrimitive">𝔹</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">yao</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span>
+  <span class="pantheonKeyword">let</span> r <span class="pantheonPunctuation">=</span> cmp-mpc <span class="pantheonOperator">•</span>
+  <span class="pantheonKeyword">let</span> p <span class="pantheonPunctuation">:</span> <span class="pantheonPrimitive">𝔹</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">ssec</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span>
+  <span class="pantheonKeyword">let</span> p <span class="pantheonPunctuation">=</span> <span class="pantheonKeyword">reveal</span><span class="pantheonPunctuation">{</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> r
+  <span class="pantheonKeyword">in</span> p
+
+<span class="pantheonKeyword">def</span> one-liner <span class="pantheonPunctuation">:</span> <span class="pantheonPrimitive">𝟙</span> <span class="pantheonPunctuation">→{</span><span class="pantheonPrimitive">inp</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">;</span><span class="pantheonPrimitive">rev</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> <span class="pantheonPrimitive">𝔹</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">ssec</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span>
+<span class="pantheonKeyword">def</span> one-liner <span class="pantheonPunctuation">=</span> <span class="pantheonKeyword">λ</span> <span class="pantheonOperator">•</span> <span class="pantheonPunctuation">→</span>
+  <span class="pantheonKeyword">let</span> xy <span class="pantheonPunctuation">=</span> <span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">par</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> <span class="pantheonPrimitive">read</span> <span class="pantheonPrimitive">ℤ</span> <span class="pantheonLiteral">&quot;e1-input.txt&quot;</span>
+  <span class="pantheonKeyword">in</span> <span class="pantheonKeyword">reveal</span><span class="pantheonPunctuation">{</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> <span class="pantheonPunctuation">(</span><span class="pantheonKeyword">share</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">yao</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> xy<span class="pantheonPunctuation">.</span>A<span class="pantheonPunctuation">)</span> <span class="pantheonOperator">≤</span> <span class="pantheonPunctuation">(</span><span class="pantheonKeyword">share</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">yao</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> xy<span class="pantheonPunctuation">.</span>B<span class="pantheonPunctuation">)</span>
+
+<span class="pantheonKeyword">def</span> main <span class="pantheonPunctuation">:</span> <span class="pantheonPrimitive">𝔹</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">ssec</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> <span class="pantheonOperator">×</span> <span class="pantheonPrimitive">𝔹</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">ssec</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span>
+<span class="pantheonKeyword">def</span> main <span class="pantheonPunctuation">=</span> cmp-mpc-rev <span class="pantheonOperator">•</span> <span class="pantheonPunctuation">,</span> one-liner <span class="pantheonOperator">•</span>
+</pre>
+</body>
+</html>
+<!-- vim: set foldmethod=manual : -->
