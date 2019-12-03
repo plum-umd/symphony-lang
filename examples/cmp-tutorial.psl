@@ -56,7 +56,7 @@ We have moved away from a monadic discipline for tracking effects, and are now
 using a more traditional effect system, e.g., an effectful computation is a
 function of a dummy argument `•` with an effect annotation over the arrow. The
 effect in this function is `{inp:A,B;rev:}` which means “inputs are read from
-parties `A` and `B`, but nothing is revealed to any part”. The thinking for now
+parties `A` and `B`, but nothing is revealed to any party”. The thinking for now
 is that it may be advantageous to track security-critical events in effect
 types, at the very least for auditing. If I am using a library function or some
 old code, what I really want to know from a security point of view is whether
