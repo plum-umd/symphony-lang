@@ -16,7 +16,7 @@
                            "in" "if" "then" "else" "case"
                            "reveal" "share"))
              (x-types '("yao" "gmw" "bgw"
-                        "ssec" "isec" "mpc"
+                        "ssec" "isec"
                         "☆" "type" 
                         "ℙ" "prin"
                         "𝟘" "empty"
