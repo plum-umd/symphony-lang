@@ -66,7 +66,7 @@ lexer = lexerBasic puns kws prim ops
       ]
     prim = list
       [ "yao","gmw","bgw"
-      , "ssec","isec","mpc"
+      , "ssec","isec"
       , "☆","type"
       , "ℙ","prin"
       , "𝟘","empty"
@@ -278,11 +278,9 @@ pType = fmixfixWithContext "type" $ concat
       ps ← pPrins
       cpSyntax "}"
       return $ \ τ → ISecT τ ps
-  -- τ{mpc:φ:P}
+  -- τ{φ:P}
   , fmixPostfix levelMODE $ do 
       cpSyntax "{"
-      cpSyntax "mpc"
-      cpSyntax ":"
       φ ← pProt
       cpSyntax ":"
       ps ← pPrins

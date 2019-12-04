@@ -8,13 +8,13 @@ principal D
 principal E
 principal F
 
-def cmp : ℤ{isec:A,B} →{inp:A,B} 𝔹{mpc:yao:C,D}
+def cmp : ℤ{isec:A,B} →{inp:A,B} 𝔹{yao:C,D}
 def cmp = λ xy → 
-  let x : ℤ{mpc:yao:C,D}
+  let x : ℤ{yao:C,D}
   let x = share{yao:C,D} xy.A 
-  let y : ℤ{mpc:yao:A,B}
+  let y : ℤ{yao:A,B}
   let y = share{yao:C,D} xy.B
-  let r : 𝔹{mpc:yao:C,D}
+  let r : 𝔹{yao:C,D}
   let r = x ≤ y
   in r
 
@@ -22,7 +22,7 @@ def cmp-mpc : 𝟙 →{inp:A,B;rev:E,F} 𝔹{ssec:E,F}
 def cmp-mpc = λ • →
   let xy : ℤ{isec:A,B}
   let xy = {par:A,B} read ℤ "e1-input.txt"
-  let r : 𝔹{mpc:yao:C,D}
+  let r : 𝔹{yao:C,D}
   let r = cmp xy
   let o : 𝔹{ssec:E,F}
   let o = reveal{E,F} r

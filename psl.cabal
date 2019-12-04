@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1ecd1e4e775a0da6870ae0ceb2477bfe7d850337dc838a0d296f268594a3618e
+-- hash: e42e2b36cbb9e52d254769f12b3a84d2ae9076d7eff9a1a07c1ddf984d2a0e5b
 
 name:           psl
 version:        0.0.0.0
@@ -14,9 +14,11 @@ library
   exposed-modules:
       AddToUVMHS
       PSL
+      PSL.Common
       PSL.Interpreter
       PSL.Parser
       PSL.Syntax
+      PSL.TypeChecker
   other-modules:
       Paths_psl
   hs-source-dirs:
