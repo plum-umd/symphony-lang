@@ -1,36 +1,37 @@
+-- input parties
 principal A
 principal B
+-- compute parties
+principal C
+principal D
+-- output parties
+principal E
+principal F
 
-def cmp : ℤ[64]{isec:A,B} → 𝔹{ccir:A,B}
+def cmp : ℤ{isec:A,B} →{inp:A,B} 𝔹{mpc:yao:C,D}
 def cmp = λ xy → 
-  let x : ℤ[64]{ncir:A}
-  let x = ~xy.A 
-  let y : ℤ[64]{ncir:B}
-  let y = ~xy.B
-  let r : 𝔹{ccir:B}
+  let x : ℤ{mpc:yao:C,D}
+  let x = share{yao:C,D} xy.A 
+  let y : ℤ{mpc:yao:A,B}
+  let y = share{yao:C,D} xy.B
+  let r : 𝔹{mpc:yao:C,D}
   let r = x ≤ y
   in r
 
-def cmp-mpc : 𝟙 →{inp:A,B} 𝔹{yshare:A,B}
+def cmp-mpc : 𝟙 →{inp:A,B;rev:E,F} 𝔹{ssec:E,F}
 def cmp-mpc = λ • →
-  let xy : ℤ[64]{isec:A,B}
-  let xy = {par:A,B} read ℤ[64] "e1-input.txt"
-  let r : 𝔹{yshare:A,B}
-  let r = mpc{yao:A,B} cmp xy
-  in r 
+  let xy : ℤ{isec:A,B}
+  let xy = {par:A,B} read ℤ "e1-input.txt"
+  let r : 𝔹{mpc:yao:C,D}
+  let r = cmp xy
+  let o : 𝔹{ssec:E,F}
+  let o = reveal{E,F} r
+  in o 
 
-def cmp-mpc-rev : 𝟙 →{inp:A,B;rev:A,B} 𝔹{ssec:A,B}
-def cmp-mpc-rev = λ • →
-  let r : 𝔹{yshare:A,B}
-  let r = cmp-mpc •
-  let p : 𝔹{ssec:A,B}
-  let p = reveal{A,B} r
-  in p
-
-def one-liner : 𝟙 →{inp:A,B;rev:A,B} 𝔹{ssec:A,B}
+def one-liner : 𝟙 →{inp:A,B;rev:E,F} 𝔹{ssec:E,F}
 def one-liner = λ • →
-  let xy = {par:A,B} read ℤ[64] "e1-input.txt"
-  in reveal{A,B} mpc{yao:A,B} ~xy.A ≤ ~xy.B
+  let xy = {par:A,B} read ℤ "e1-input.txt"
+  in reveal{E,F} (share{yao:C,D} xy.A) ≤ (share{yao:C,D} xy.B)
 
 def main : 𝔹{ssec:A,B} × 𝔹{ssec:A,B}
-def main = cmp-mpc-rev • , one-liner •
+def main = cmp-mpc • , one-liner •

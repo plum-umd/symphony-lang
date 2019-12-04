@@ -44,7 +44,6 @@ lexer = lexerBasic puns kws prim ops
       , "→","->"
       , "⇒","=>"
       , "="
-      , "~"
       , "_"
       , "⁇","??"
       , "@"
@@ -62,14 +61,12 @@ lexer = lexerBasic puns kws prim ops
       , "let","in"
       , "if","then","else"
       , "case"
-      , "mpc"
       , "reveal"
+      , "share"
       ]
     prim = list
       [ "yao","gmw","bgw"
-      , "nshare","yshare","gshare","sshare"
-      , "ncir","bcir","acir","ccir","ucir"
-      , "ssec","isec"
+      , "ssec","isec","mpc"
       , "☆","type"
       , "ℙ","prin"
       , "𝟘","empty"
@@ -135,31 +132,6 @@ pPrin = cpNewWithContextRendered "prin" cpName
 
 pPrins ∷ CParser TokenBasic APrins
 pPrins = cpNewWithContextRendered "prins" $ pow ^$ cpManySepBy (cpSyntax ",") pPrin
-
-------------
--- Scheme --
-------------
-
-pScheme ∷ CParser TokenBasic AScheme
-pScheme = cpNewWithContextRendered "scheme" $ concat
-  [ do cpSyntax "nshare" ; return NoS
-  , do cpSyntax "gshare" ; return GMWS
-  , do cpSyntax "yshare" ; return YaoS
-  , do cpSyntax "sshare" ; return ShamirS
-  ]
-
------------------
--- Circuit Ops --
------------------
-
-pCirOps ∷ CParser TokenBasic ACirOps
-pCirOps = cpNewWithContextRendered "cir-ops" $ concat
-  [ do cpSyntax "ncir" ; return NoCO
-  , do cpSyntax "bcir" ; return BoolCO
-  , do cpSyntax "acir" ; return ArithCO
-  , do cpSyntax "ccir" ; return CompCO
-  , do cpSyntax "ucir" ; return UnivCO
-  ]
 
 ----------------
 -- Constraint --
@@ -233,7 +205,7 @@ pType = fmixfixWithContext "type" $ concat
           cpNatural
         cpSyntax "]"
         return $ n₁ :* n₂O
-      return $ ℕT nsO
+      return $ ℕT $ elim𝑂 (Some (64 :* None)) Some nsO
   -- ℤ[n.n]
   , fmixTerminal $ do
       concat [cpSyntax "ℤ",cpSyntax "int"]
@@ -245,14 +217,16 @@ pType = fmixfixWithContext "type" $ concat
           cpNatural
         cpSyntax "]"
         return $ n₁ :* n₂O
-      return $ ℤT nsO
+      return $ ℤT $ elim𝑂 (Some (64 :* None)) Some nsO
   -- 𝔽[n]
   , fmixTerminal $ do
-      concat [cpSyntax "𝔽64",cpSyntax "float64"]
-      cpSyntax "["
-      n ← cpNatural
-      cpSyntax "]"
-      return $ 𝔽T n
+      concat [cpSyntax "𝔽",cpSyntax "float"]
+      nO ← cpOptional $ do
+        cpSyntax "["
+        n ← cpNatural
+        cpSyntax "]"
+        return n
+      return $ 𝔽T $ ifNone 64 nO
   -- τ + τ
   , fmixInfixL levelPLUS $ do concat [cpSyntax "+"] ; return (:+:)
   -- τ × τ
@@ -304,24 +278,16 @@ pType = fmixfixWithContext "type" $ concat
       ps ← pPrins
       cpSyntax "}"
       return $ \ τ → ISecT τ ps
-  -- τ{ς:σ:P}
+  -- τ{mpc:φ:P}
   , fmixPostfix levelMODE $ do 
       cpSyntax "{"
-      ς :* σ ← tries
-        [ do ς ← pCirOps
-             Annotated cxt () ← cpNewExpressionContext $ cpWithContextRendered $ cpSyntax ":"
-             σ ← ifNone (Annotated cxt NoS) ^$ cpOptional $ do
-                 σ ← pScheme
-                 cpSyntax ":"
-                 return σ
-             return $ ς :* σ
-        , do σ ← pScheme
-             Annotated cxt () ← cpNewExpressionContext $ cpWithContextRendered $ cpSyntax ":"
-             return $ Annotated cxt NoCO :* σ
-        ]
+      cpSyntax "mpc"
+      cpSyntax ":"
+      φ ← pProt
+      cpSyntax ":"
       ps ← pPrins
       cpSyntax "}"
-      return $ \ τ → CirT τ ς σ ps
+      return $ \ τ → MPCT τ φ ps
   -- (τ)
   , fmixTerminal $ do cpSyntax "(" ; τ ← pType ; cpSyntax ")" ; return $ extract τ
   ]
@@ -353,20 +319,6 @@ pProt = cpNewWithContextRendered "prot" $ concat
 
 pVar ∷ CParser TokenBasic AVar
 pVar = cpNewWithContextRendered "var" cpName
-
-----------
--- Path --
-----------
-
-pPath ∷ CParser TokenBasic APath
-pPath = cpNewWithContextRendered "path" $ do
-  x ← pVar
-  pO ← cpOptional $ do
-    cpSyntax "."
-    pPrin
-  return $ case pO of
-    None → VarPt x
-    Some p → AccessPt x p
 
 -------------
 -- Pattern --
@@ -531,8 +483,15 @@ pExp = fmixfixWithContext "exp" $ concat
       ps ← pPrins
       cpSyntax "}"
       return $ ParE ps
-  -- ~e
-  , fmixPrefix levelCIRCUIT $ do cpSyntax "~" ; return $ CirE
+  -- share{φ:P} e
+  , fmixPrefix levelAPP $ do 
+      cpSyntax "share" 
+      cpSyntax "{"
+      φ ← pProt
+      cpSyntax ":"
+      ps ← pPrins
+      cpSyntax "}"
+      return $ ShareE φ ps
   -- e.ρ
   , fmixPostfix levelACCESS $ do cpSyntax "." ; ρ ← pPrin ; return $ \ e → AccessE e ρ
   -- ⟨ρ₁.e₁;…;ρₙ;eₙ⟩
@@ -547,22 +506,6 @@ pExp = fmixfixWithContext "exp" $ concat
       return $ BundleE ρes
   -- e⧺e
   , fmixInfixL levelPLUS $ do concat [cpSyntax "⧺",cpSyntax "++"] ; return BundleUnionE
-  -- delegate{P} e
-  , fmixPrefix levelMPC $ do
-      cpSyntax "delegate"
-      cpSyntax "{"
-      ps ← pPrins
-      cpSyntax "}"
-      return $ DelegateE ps
-  -- mpc{φ} e
-  , fmixPrefix levelMPC $ do
-      cpSyntax "mpc"
-      cpSyntax "{"
-      φ ← pProt
-      cpSyntax ":"
-      ps ← pPrins
-      cpSyntax "}"
-      return $ MPCE φ ps
   -- reveal{P} e
   , fmixPrefix levelMPC $ do
       cpSyntax "reveal"
