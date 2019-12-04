@@ -1,0 +1,92 @@
+{-
+These lines declare what principles that are present. The type checker
+(not yet implemented) will make sure that all principles mentioned in
+types are (at least) well-scoped, and possible also check some
+security relationships as well, e.g., does A trust B, and to what
+extent.
+
+These lines are ignored by the interpreter.
+
+In this example, A and B have secret inputs. C and D will recieve
+shares of A and B's secret inputs in order to compute over them. E and
+F will then recieve output shares from C and D in order to reconstruct
+the answer.
+-}
+-- input parties
+principal A
+principal B
+-- compute parties
+principal C
+principal D
+-- output parties
+principal E
+principal F
+
+{-
+`cmp` takes a secret input from both `A` and `B` and builds a yao
+garbled circuit with a single boolean output that will be evaluated by
+C and D. Specifying yao this early allows for the {___} optimization.
+
+The input variable `xy` has type `ℤ{isec:A,B}`, which reads as "an
+integer as independent (i.e., not necessarily equal) secrets for each
+party `A` and `B`." To access A's value, we write `xy.A`, and
+likewise for B and `xy.B`. `xy.A` is a secret value, and can be
+embedded inside of a circuit to be avaluated by C and D with
+`share{yao:C,D} xy.A`. C and D now hold shares of A's secret which
+will be provided as an input to the circuit (in this case, a yao
+garbled circuit) when executed.
+
+The return type `{inp:A,B} 𝔹{yao:C,D}`, which reads as "A boolean
+value embedded in a yao garbled circuit that is shared among C and D
+and has been derived from secret inputs originally from A and B."
+Which operations are used in in a circuit computation are tracked
+coarsly at the type level. E.g., it may not be possible to execute a
+circuit that uses comparisons using bgw. In this example, we have
+already commited to yao but that may not always be the
+case. Regarding the `{inp:A,B}` part of the return type, specifying
+where input values come from allows us to check security
+relationtionships between principles and flag any violations of the
+trust model. The interpreter ignores this.
+
+The first two steps of the function embed secret inputs from A and B
+into single-node circuits. These are degenerate circuits only
+representing a single wire in the circuit. The last step is a normal
+comparison operator which is overloaded syntactically to operate over
+circuit values. Since we are using yao, we can use the `≤` operator
+unlike in say, bgw, where comparison like this isn't possible.
+
+-}
+def cmp : ℤ{isec:A,B} →{inp:A,B} 𝔹{yao:C,D}
+def cmp = λ xy → 
+  let x : ℤ{yao:C,D}
+  let x = share{yao:C,D} xy.A 
+  let y : ℤ{yao:A,B}
+  let y = share{yao:C,D} xy.B
+  let r : 𝔹{yao:C,D}
+  let r = x ≤ y
+  in r
+{-
+
+The access mode `isec` is distinguished from `ssec`, which reads as
+"shared secret", in that `ssec` values have the added invariant that
+all parties have a local copy of the exact same value. E.g., when a
+result from mpc is revealed to some subset of parties.
+
+-}
+def cmp-mpc : 𝟙 →{inp:A,B;rev:E,F} 𝔹{ssec:E,F}
+def cmp-mpc = λ • →
+  let xy : ℤ{isec:A,B}
+  let xy = {par:A,B} read ℤ "e1-input.txt"
+  let r : 𝔹{yao:C,D}
+  let r = cmp xy
+  let o : 𝔹{ssec:E,F}
+  let o = reveal{E,F} r
+  in o 
+
+def one-liner : 𝟙 →{inp:A,B;rev:E,F} 𝔹{ssec:E,F}
+def one-liner = λ • →
+  let xy = {par:A,B} read ℤ "e1-input.txt"
+  in reveal{E,F} (share{yao:C,D} xy.A) ≤ (share{yao:C,D} xy.B)
+
+def main : 𝔹{ssec:A,B} × 𝔹{ssec:A,B}
+def main = cmp-mpc-rev • , one-liner •
