@@ -31,35 +31,6 @@ type Prin = 𝕏
 type APrins = Annotated FullContext Prins
 type Prins = 𝑃 APrin
 
-------------
--- Scheme --
-------------
-
--- σ ∈ scheme ⩴  …
-type AScheme = Annotated FullContext Scheme
-data Scheme = 
-    NoS      -- nshare
-  | GMWS     -- gshare
-  | YaoS     -- yshare
-  | ShamirS  -- sshare
-  deriving (Eq,Ord,Show)
-makePrettySum ''Scheme
-
------------------
--- Circuit Ops --
------------------
-
--- ς ∈ circuit-ops ⩴  …
-type ACirOps = Annotated FullContext CirOps
-data CirOps = 
-    NoCO     -- ncir
-  | BoolCO   -- bcir
-  | ArithCO  -- acir
-  | CompCO   -- ccir
-  | UnivCO   -- ucir
-  deriving (Eq,Ord,Show)
-makePrettySum ''CirOps
-
 ----------------
 -- Constraint --
 ----------------
@@ -90,32 +61,6 @@ type ATVar = Annotated FullContext TVar
 type TVar = 𝕏
 
 ----------
--- Type --
-----------
-
--- τ ∈ type ⩴  …
-type AType = Annotated FullContext Type
-data Type =
-    VarT ATVar                             --  α                   /  α
-  | UnitT                                  --  𝟙                   /  unit
-  | 𝔹T                                     --  𝔹                   /  bool
-  | 𝕊T                                     --  𝕊                   /  string
-  | ℕT (𝑂 (ℕ ∧ 𝑂 ℕ))                       --  ℕn.n                /  natn.n
-  | ℤT (𝑂 (ℕ ∧ 𝑂 ℕ))                       --  ℤn.n                /  intn.n
-  | 𝔽T ℕ                                   --  𝔽n                  /  floatn
-  | AType :+: AType                        --  τ + τ               /  τ + τ
-  | AType :×: AType                        --  τ × τ               /  τ × τ
-  | ListT AType                            --  list τ              /  list τ
-  | AType :→: (AEffect ∧ AType)            --  τ →{η} τ            /  τ ->{η} τ
-  | ForallT ATVar AKind (𝐿 AConstr) AType  --  ∀ α:κ. [c,…,c] ⇒ τ  /  forall α:κ. [c,…,c] => τ
-  | SecT AType APrin                       --  τ{P}                /  τ{P}
-  | SSecT AType APrins                     --  τ{ssec:P}           /  τ{ssec:P}
-  | ISecT AType APrins                     --  τ{isec:P}           /  τ{isec:P}
-  | CirT AType ACirOps AScheme APrins      --  τ{ς:σ:P}            /  τ{ς:σ:P}
-  deriving (Eq,Ord,Show)
-makePrettySum ''Type
-
-----------
 -- Prot --
 ----------
 
@@ -128,25 +73,38 @@ data Prot =
   deriving (Eq,Ord,Show)
 makePrettySum ''Prot
 
+----------
+-- Type --
+----------
+
+-- τ ∈ type ⩴  …
+type AType = Annotated FullContext Type
+data Type =
+    VarT ATVar                             --  α                   /  α
+  | UnitT                                  --  𝟙                   /  unit
+  | 𝔹T                                     --  𝔹                   /  bool
+  | 𝕊T                                     --  𝕊                   /  string
+  | ℕT (𝑂 (ℕ ∧ 𝑂 ℕ))                       --  ℕ[n.n]              /  natn.n
+  | ℤT (𝑂 (ℕ ∧ 𝑂 ℕ))                       --  ℤ[n.n]              /  intn.n
+  | 𝔽T ℕ                                   --  𝔽[n]                /  floatn
+  | AType :+: AType                        --  τ + τ               /  τ + τ
+  | AType :×: AType                        --  τ × τ               /  τ × τ
+  | ListT AType                            --  list τ              /  list τ
+  | AType :→: (AEffect ∧ AType)            --  τ →{η} τ            /  τ ->{η} τ
+  | ForallT ATVar AKind (𝐿 AConstr) AType  --  ∀ α:κ. [c,…,c] ⇒ τ  /  forall α:κ. [c,…,c] => τ
+  | SecT AType APrin                       --  τ{P}                /  τ{P}
+  | SSecT AType APrins                     --  τ{ssec:P}           /  τ{ssec:P}
+  | ISecT AType APrins                     --  τ{isec:P}           /  τ{isec:P}
+  | MPCT AType AProt APrins                --  τ{mpc:φ:P}          /  τ{mpc:φ:P}
+  deriving (Eq,Ord,Show)
+makePrettySum ''Type
+
 ---------
 -- Var --
 ---------
 
 type AVar = Annotated FullContext Var
 type Var = 𝕏
-
-----------
--- Path --
-----------
-
--- h ∈ path ⩴  …
-type APath = Annotated FullContext Path
-data Path =
-    VarPt AVar          --  x    /  x
-  | AccessPt AVar AVar  --  x.ρ  /  x.ρ
-  deriving (Eq,Ord,Show)
-
-makePrettySum ''Path
 
 -------------
 -- Pattern --
@@ -199,13 +157,14 @@ data Exp =
   | TAppE AExp AType               -- e@τ                   /  e@τ
   | SoloE APrin AExp               -- {ρ} e                 /  {ρ} e
   | ParE APrins AExp               -- {par:P} e             /  {par:P} e
-  | CirE AExp                      -- ~e                    /  ~e
+  -- | CirE AExp                      -- ~e                    /  ~e
+  | ShareE AProt APrins AExp       -- share{φ:P} e          /  share{φ:P} e
   | AccessE AExp APrin             -- e.ρ                   /  e.ρ
   | BundleE (𝐿 (APrin ∧ AExp))     -- ⟨ρ₁.eₙ;…;ρₙ.eₙ⟩       /  <ρ₁.e₁;…;ρₙ.eₙ>
   | BundleUnionE AExp AExp         -- e⧺e                   /  e++e
   -- | BundleAccessE AExp APrin       -- e.ρ                   /  e.ρ
-  | DelegateE APrins AExp          -- delegate{P} e         /  delegate{P} e
-  | MPCE AProt APrins AExp         -- mpc{φ:P} e            /  mpc{φ:P} e
+  -- | DelegateE APrins AExp          -- delegate{P} e         /  delegate{P} e
+  -- | MPCE AProt APrins AExp         -- mpc{φ:P} e            /  mpc{φ:P} e
   | RevealE APrins AExp            -- reveal{P} e           /  reveal{P} e
   | AscrE AExp AType               -- e:τ                   /  e:τ
   | ReadE AType AExp               -- read[τ] e             /  read[τ] e
