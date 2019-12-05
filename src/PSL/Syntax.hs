@@ -31,6 +31,9 @@ type Prin = 𝕏
 type APrins = Annotated FullContext Prins
 type Prins = 𝑃 APrin
 
+extractPrins ∷ APrins → 𝑃 Prin
+extractPrins = pow ∘ map extract ∘ iter ∘ extract
+
 ----------------
 -- Constraint --
 ----------------
@@ -182,7 +185,7 @@ makePrettySum ''Exp
 -- s ∈ top-level ⩴  …
 type ATL = Annotated FullContext TL
 data TL =
-    DeclTL AVar AType         -- def x : τ        /  def x : τ
+    DeclTL AVar AEffect AType -- def x :{η} τ     /  def x :{η} τ
   | DefnTL AVar AExp          -- def x = e        /  def x = e
   | PrinTL APrin              -- principal ρ      /  principal ρ
   | TrustTL APrins            -- trust P          /  trust P
