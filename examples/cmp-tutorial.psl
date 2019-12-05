@@ -13,6 +13,7 @@ through an MPC protocol. E and F will then recieve output shares
 from C and D in order to reconstruct the answer, which is only
 learned by E and F (not A, B, C or D).
 -}
+
 -- input parties
 principal A
 principal B
@@ -41,6 +42,14 @@ secret which will be provided as an input to the next circuit (in
 this case, a yao garbled circuit with a single comparison) when
 executed.
 
+The access mode `isec` is distinguished from `ssec`, which reads as
+"shared secret", in that `ssec` values have the added invariant that
+all parties have a local copy of the exact same value. E.g., when a
+result is revealed to some subset of parties with the `reveal`
+operation. `ssec` values can be used to construct new circuits,
+whereas `isec` values cannot, or else we would have two parties
+evaluating different circuits potentially, which would be bad.
+
 The return type `𝔹{yao:C,D}` reads as “A boolean value embedded in a
 yao secret share that is shared among C and D.” The type checker will
 check for valid operations to be used in a mpc computations. In this
@@ -68,8 +77,8 @@ executes a circuit of size 1, but in practice `𝔹{yao:C,D}` could be a
 circuit constucted by each party, `x ≤ y` builds a larger circuit out
 of smaller ones, and execution of the protocol is delayed until some
 later point.
-
 -}
+
 def cmp : ℤ{isec:A,B} →{inp:A,B} 𝔹{yao:C,D}
 def cmp = λ xy → 
   let x : ℤ{yao:C,D}
@@ -79,14 +88,52 @@ def cmp = λ xy →
   let r : 𝔹{yao:C,D}
   let r = x ≤ y
   in r
+
 {-
+We have moved away from a monadic discipline for tracking effects, and
+are now using a more traditional effect system, e.g., an effectful
+computation is a function of a dummy argument `•` with an effect
+annotation over the arrow. The effect in this function is
+`{inp:A,B;rev:E,F}` which means "inputs are read from parties A and B
+and outputs are revealed to E and F." The thinking for now is that it
+may be advantageous to track security-critical events in effect types,
+at the very least for auditing. If I am using a library functino or
+some old code, what I really want to know from a security point of
+view is whether or not (1) secret inputs are read from disk, (2) any
+mpc protocols are executed, and (3) what parties learned the results
+of mpc. I particular, if a function has no effect, we know none of
+these things happened inside the function, and we may decide it's not
+worth out time to audit (from a security perspective). I realize this
+isn't the whole story, e.g., we may be crucially depending on the
+functinoality of some library function to have the correct ideal
+functionality, but the idea is here, and we can keep it around and
+discuss or drop it.
 
-The access mode `isec` is distinguished from `ssec`, which reads as
-"shared secret", in that `ssec` values have the added invariant that
-all parties have a local copy of the exact same value. E.g., when a
-result from mpc is revealed to some subset of parties.
+The return type is `𝔹{ssec:E,F}` which reads as "an unencrypted
+boolean value known by E and F." Unlike with `isec` values, `ssec`
+values must be the same among all parties involved.
 
+The first step of `cmp-mpc` enters parallel mode for both A and B by
+the syntax `{par:A,B}`. The read operation will see a local file
+"e1-input.txt" for each party A and B. In our simulator, these live in
+`examples-data/A` and `examples-data/B` respectively. The result is an
+`isec:A,B` which again means "independent secrets for both A and B."
+
+The second step of `cmp-mpc` executes the circuit constructed by `cmp
+xy` using `yao` between parties C and D. However, this is a lazy
+"execution" in that, depending on the protocol, the evaluation might
+not actually happen until we need a result or force it to
+happen. Another note: we could have written, e.g., `yao:A,B` to have
+parties A and B be the computation parties as well as the input
+parties.
+
+The final step of `cmp-mpc` reveals the output to parties E and
+F. This will force an evaluation of the circuit we have been building
+thus far and yield an unencrypted result for E and F. This is
+accomplished by having C and D send their shares to E and F to be
+recombined.
 -}
+
 def cmp-mpc : 𝟙 →{inp:A,B;rev:E,F} 𝔹{ssec:E,F}
 def cmp-mpc = λ • →
   let xy : ℤ{isec:A,B}
@@ -97,10 +144,22 @@ def cmp-mpc = λ • →
   let o = reveal{E,F} r
   in o 
 
+{-
+This one-liner shows how you might do the steps in `cmp-mpc` and `cmp`
+in many fewer operations. Notice that the function annotation reads
+{inp:A,B;rev:E,F}` meaning that this function send outputs to E and F
+based on inputs from A and B.
+-}
+
 def one-liner : 𝟙 →{inp:A,B;rev:E,F} 𝔹{ssec:E,F}
 def one-liner = λ • →
   let xy = {par:A,B} read ℤ "e1-input.txt"
   in reveal{E,F} (share{yao:C,D} xy.A) ≤ (share{yao:C,D} xy.B)
+
+{-
+`main` just runs both the verbose `cmp-mpc` and the shortened
+`one-liner` and returns the two results as a pair.
+-}
 
 def main : 𝔹{ssec:A,B} × 𝔹{ssec:A,B}
 def main = cmp-mpc • , one-liner •
