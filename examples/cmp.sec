@@ -1,0 +1,28 @@
+A {
+  - location: <ip-address>  -- needed to communicate
+  - reveals: D,E            -- who is ok learning result of mpc with my inputs
+  - encryption: 256         -- what strength of encryption needs to be used on my data
+}
+B {
+  - location: <ip-address>
+  - reveals: D,E
+  - encryption: 512
+}
+C {
+  - location: <ip-address>
+}
+D {
+  - location: <ip-address>
+}
+E {
+  - location: <ip-address>
+}
+
+trust {
+  - honest-but-curious: A,B,D,E  -- who is honest-but-curious
+  - malicious: C                 -- who is malicious
+}
+
+corruptible {
+  - C,D: 1  -- which parties are corruptible (“at most 1 out of C and D”)
+}
