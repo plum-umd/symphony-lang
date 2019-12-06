@@ -18,10 +18,8 @@ E {
   - location: <ip-address>
 }
 
-trust {
-  - honest-but-curious: A,B,D,E  -- who is honest-but-curious
-  - malicious: C                 -- who is malicious
-}
+trust { semi-honest }
+-- could also be "malicious", "semi-malicious" or "covert" instead of "semi-honest", 
 
 corruptible {
   - C,D: 1  -- which parties are corruptible (“at most 1 out of C and D”)

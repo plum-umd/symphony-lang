@@ -237,10 +237,14 @@ interpPrimRaw s vs = pptrace s $ pptrace vs $ error "interpPrimRaw: not implemen
 mpcFrVal ∷ Val → ValMPC
 mpcFrVal (BoolV b) = BoolMV b
 mpcFrVal (IntV i) = IntMV i
+mpcFrVal _ = error "mpcFrVal"
 
 valFrMPC ∷ ValMPC → Val
 valFrMPC (BoolMV b) = BoolV b
 valFrMPC (IntMV i) = IntV i
+
+rawShareOps ∷ 𝑃 𝕊
+rawShareOps = _
 
 onRawShareVals ∷ Prot → 𝑃 Prin → 𝐼 Val → (𝐿 Val → Val) → 𝐿 Val → Val
 onRawShareVals φ ps vs f = \case
@@ -268,7 +272,14 @@ interpExp eA = case extract eA of
   IntE i → return $ AllVP $ IntV i
   -- FltE
   BulE → return $ AllVP $ BulV
-  -- IfE
+  IfE e₁ e₂ e₃ → do
+    ṽ ← interpExp e₁
+    bindValP ṽ $ \ v → do
+      case v of
+        BoolV b 
+          | b ≡ True → interpExp e₂
+          | b ≡ False → interpExp e₃
+        _ → error "interpExp: IfE: v ≢ BoolV _"
   -- LE
   -- RE
   TupE e₁ e₂ → do
@@ -310,11 +321,15 @@ interpExp eA = case extract eA of
     let ps = extractPrins psA
     ṽ ← interpExp e
     return $ case ṽ of
+      AllVP v → case v of
+        BoolV b → AllVP $ ShareV $ ValS (BoolMV b) φ ps
+        IntV i → AllVP $ ShareV $ ValS (IntMV i) φ ps
+        _ → pptrace (annotatedTag eA) $ error "interpExp: ShareE: AllVP: v ∉ {BoolV _,IntV _}"
       SecVP _p v → case v of
         BoolV b → AllVP $ ShareV $ ValS (BoolMV b) φ ps
         IntV i → AllVP $ ShareV $ ValS (IntMV i) φ ps
-        _ → error "interpExp: ShareE: SecVP: v ∉ {BoolV _,IntV _}"
-      _ → error "interpExp: ShareE: ṽ ≢ SecVP _ _"
+        _ → pptrace (annotatedTag eA) $ error "interpExp: ShareE: SecVP: v ∉ {BoolV _,IntV _}"
+      _ → pptrace (annotatedTag eA) $ error "interpExp: ShareE: ṽ ≢ SecVP _ _"
   AccessE e pA → do
     let p = extract pA
     ṽ ← interpExp e

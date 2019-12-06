@@ -8,11 +8,11 @@ def sub = fun a -> fun b -> a + b * -1
 -- of iterations
 --           ⌄⌄⌄  
 def divmod : nat -> int{yao:A,B} -> int{yao:A,B} -> int{yao:A,B} * int{yao:A,B}
-def divmod = fun n -> fun a -> fun b ->
+def divmod = fun rec n -> fun a -> fun b ->
   if n == 0 
   then (0 , a)
   else 
-  let d , r = divmod (n - 1) (a - b) b
+  let d , r = rec (n - 1) (a - b) b
   in 
   -- atomic coniditional: syntax is: <exp> ? <exp> >< <exp> 
   (a <= b) ? (0 , a) >< (d + 1 , r)
@@ -21,16 +21,18 @@ def divmod = fun n -> fun a -> fun b ->
 -- def rem = fun a -> fun b -> sub a ((a / b) * b)
 
 def rem : nat -> int{yao:A,B} -> int{yao:A,B} -> int{yao:A,B}
-def rem = fun n -> fun a -> fun b -> snd (divmid n a b)
+def rem = fun n -> fun a -> fun b ->
+  let d , r = divmod n a b
+  in r
 
 def euclid : nat -> int{yao:A,B} -> int{yao:A,B} ->{rev:A,B} int{yao:A,B}
-def euclid = fun n -> fun a -> fun b ->
+def euclid = fun rec n -> fun a -> fun b ->
   -- DCD: I think we don't want to reveal this---it gives knowledge of the size
   -- the inputs. I think the protocol should have a fixed number of euclid
   -- recursive calls, based on a known upper bound on input values.
   if reveal{A,B} (b == share{yao:A,B} 0)
   then a
-  else euclid b (rem n a b)
+  else rec b (rem n a b)
 
 def euclid-2pc : unit -> {inp:A,B;rev:A,B} int{ssec:A,B}
 def euclid-2pc =
