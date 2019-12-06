@@ -94,7 +94,7 @@ lexer = lexerBasic puns kws prim ops
       , "⋖","<<"
       , "^"
       , "?"
-      , "◇"
+      , "◇","><"
       , "true","false"
       ]
 
@@ -537,6 +537,7 @@ pExp = fmixfixWithContext "exp" $ concat
   , fmixInfixL levelPLUS $ do concat [cpSyntax "∨",cpSyntax "||"] ; return $ \ e₁ e₂ → PrimE "OR" $ list [e₁,e₂]
   , fmixInfixL levelTIMES $ do concat [cpSyntax "∧",cpSyntax "&&"] ; return $ \ e₁ e₂ → PrimE "AND" $ list [e₁,e₂]
   , fmixInfixL levelPLUS $ do cpSyntax "+" ; return $ \ e₁ e₂ → PrimE "PLUS" $ list [e₁,e₂]
+  , fmixInfixL levelPLUS $ do cpSyntax "-" ; return $ \ e₁ e₂ → PrimE "MINUS" $ list [e₁,e₂]
   , fmixInfixL levelTIMES $ do concat [cpSyntax "×",cpSyntax "*"] ; return $ \ e₁ e₂ → PrimE "TIMES" $ list [e₁,e₂]
   , fmixInfixL levelTIMES $ do cpSyntax "/" ; return $ \ e₁ e₂ → PrimE "DIVIDE" $ list [e₁,e₂]
   , fmixInfix levelCOMPARE $ do concat [cpSyntax "⋖",cpSyntax "<<"] ; return $ \ e₁ e₂ → PrimE "LT" $ list [e₁,e₂]
@@ -545,7 +546,7 @@ pExp = fmixfixWithContext "exp" $ concat
   , fmixInfixR levelCOND $ do
       cpSyntax "?"
       e₂ ← pExp
-      cpSyntax "◇"
+      concat [cpSyntax "◇",cpSyntax "><"]
       return $ \ e₁ e₃ → PrimE "COND" $ list [e₁,e₂,e₃]
   ]
       

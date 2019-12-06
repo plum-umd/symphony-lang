@@ -1,23 +1,42 @@
 principal A
 principal B
 
-def sub : int -> int -> int
-def sub = fun a -> fun b -> a -- undefined
+def sub : int{yao:A,B} -> int {yao:A,B} -> int{yao:A,B}
+def sub = fun a -> fun b -> a + b * -1
 
-def rem : int -> int -> int
-def rem = fun a -> fun b -> sub a ((a / b) * b)
+--  fixed number
+-- of iterations
+--           ⌄⌄⌄  
+def divmod : nat -> int{yao:A,B} -> int{yao:A,B} -> int{yao:A,B} * int{yao:A,B}
+def divmod = fun n -> fun a -> fun b ->
+  if n == 0 
+  then (0 , a)
+  else 
+  let d , r = divmod (n - 1) (a - b) b
+  in 
+  -- atomic coniditional: syntax is: <exp> ? <exp> >< <exp> 
+  (a <= b) ? (0 , a) >< (d + 1 , r)
 
-def euclid : int{mpc:yao:A,B} -> int{mpc:yao:A,B} -> {rev:A,B} int{mpc:yao:A,B}
-def euclid = fun a -> fun b ->
-  if reveal{A,B} (b == 0)
+-- def rem : int -> int -> int
+-- def rem = fun a -> fun b -> sub a ((a / b) * b)
+
+def rem : nat -> int{yao:A,B} -> int{yao:A,B} -> int{yao:A,B}
+def rem = fun n -> fun a -> fun b -> snd (divmid n a b)
+
+def euclid : nat -> int{yao:A,B} -> int{yao:A,B} ->{rev:A,B} int{yao:A,B}
+def euclid = fun n -> fun a -> fun b ->
+  -- DCD: I think we don't want to reveal this---it gives knowledge of the size
+  -- the inputs. I think the protocol should have a fixed number of euclid
+  -- recursive calls, based on a known upper bound on input values.
+  if reveal{A,B} (b == share{yao:A,B} 0)
   then a
-  else euclid b (rem a b)
+  else euclid b (rem n a b)
 
 def euclid-2pc : unit -> {inp:A,B;rev:A,B} int{ssec:A,B}
 def euclid-2pc =
   reveal{A,B}
-    (euclid (share{yao:A,B} ({par:A} read int "euclid.txt"))
-            (share{yao:A,B} ({par:B} read int "euclid.txt")))
+    (euclid 10 (share{yao:A,B} ({par:A} read int "euclid.txt"))
+               (share{yao:A,B} ({par:B} read int "euclid.txt")))
 
-def main : int{ssec:A,B}
+def main :{inp:A,B;rev:A,B} int{ssec:A,B}
 def main = euclid ()

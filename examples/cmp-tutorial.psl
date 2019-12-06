@@ -115,7 +115,7 @@ values must be the same among all parties involved.
 
 The first step of `cmp-mpc` enters parallel mode for both A and B by
 the syntax `{par:A,B}`. The read operation will see a local file
-"e1-input.txt" for each party A and B. In our simulator, these live
+"cmp-input.txt" for each party A and B. In our simulator, these live
 in `examples-data/A` and `examples-data/B` respectively. The result
 is an `isec:A,B` which again means "independent secrets for both A
 and B."
@@ -139,7 +139,7 @@ place as well.
 def cmp-mpc : 𝟙 →{inp:A,B;rev:E,F} 𝔹{ssec:E,F}
 def cmp-mpc = λ • →
   let xy : ℤ{isec:A,B}
-  let xy = {par:A,B} read ℤ "e1-input.txt"
+  let xy = {par:A,B} read ℤ "cmp-input.txt"
   let r : 𝔹{yao:C,D}
   let r = cmp xy
   let o : 𝔹{ssec:E,F}
@@ -157,7 +157,7 @@ sufficiently fancy type inference.
 
 def one-liner : 𝟙 →{inp:A,B;rev:E,F} 𝔹{ssec:E,F}
 def one-liner = λ • →
-  let xy = {par:A,B} read ℤ "e1-input.txt"
+  let xy = {par:A,B} read ℤ "cmp-input.txt"
   in reveal{E,F} (share{yao:C,D} xy.A) ≤ (share{yao:C,D} xy.B)
 
 {-

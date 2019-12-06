@@ -228,12 +228,33 @@ bindValsP = bindValsPR null
 -- Primitive Operations --
 --------------------------
 
+interpPrimRaw ∷ 𝕊 → 𝐿 Val → Val
+interpPrimRaw "LTE" (tohs → [IntV i₁,IntV i₂]) = BoolV $ i₁ ≤ i₂
+interpPrimRaw "PLUS" (tohs → [IntV i₁,IntV i₂]) = IntV $ i₁ + i₂
+interpPrimRaw "EQ" (tohs → [IntV i₁,IntV i₂]) = BoolV $ i₁ ≡ i₂
+interpPrimRaw s vs = pptrace s $ pptrace vs $ error "interpPrimRaw: not implemented"
+
+mpcFrVal ∷ Val → ValMPC
+mpcFrVal (BoolV b) = BoolMV b
+mpcFrVal (IntV i) = IntMV i
+
+valFrMPC ∷ ValMPC → Val
+valFrMPC (BoolMV b) = BoolV b
+valFrMPC (IntMV i) = IntV i
+
+onRawShareVals ∷ Prot → 𝑃 Prin → 𝐼 Val → (𝐿 Val → Val) → 𝐿 Val → Val
+onRawShareVals φ ps vs f = \case
+  Nil → ShareV $ ValS (mpcFrVal $ f $ list vs) φ ps
+  ShareV (ValS v φ' ps') :& vs' | (φ ≡ φ') ⩓ (ps ≡ ps') → onRawShareVals φ ps (vs ⧺ single (valFrMPC v)) f vs'
+  _ → error "error"
+
+onRawVals ∷ (𝐿 Val → Val) → 𝐿 Val → Val
+onRawVals f vs = case vs of
+  ShareV (ValS _ φ ps) :& _ → onRawShareVals φ ps null f vs
+  _ → f vs
+
 interpPrim ∷ 𝕊 → 𝐿 Val → Val
-interpPrim "LTE" (tohs → [IntV i₁,IntV i₂]) = BoolV $ i₁ ≤ i₂
-interpPrim "LTE" (tohs → [ShareV (ValS (IntMV i₁) φ₁ ps₁),ShareV (ValS (IntMV i₂) φ₂ ps₂)]) 
-  | (φ₁ ≡ φ₂) ⩓ (ps₁ ≡ ps₂) = ShareV $ ValS (BoolMV $ i₁ ≤ i₂) φ₁ ps₁
-interpPrim "PLUS" (tohs → [IntV i₁,IntV i₂]) = IntV $ i₁ + i₂
-interpPrim s vs = pptrace s $ pptrace vs $ error "interpPrim: not implemented"
+interpPrim = onRawVals ∘ interpPrimRaw
 
 -----------------
 -- Expressions --
@@ -314,8 +335,8 @@ interpExp eA = case extract eA of
       AllVP v → return $ SSecVP ps $ case v of
         (ShareV (ValS (BoolMV b) _ _)) → BoolV b
         (ShareV (ValS (IntMV i) _ _)) → IntV i
-        _ → error "interpExp: RevealE: v ∉ {ShaveV (ValS (BoolMV _) _ _),ShareV (ValS (IntMV _) _ _)}"
-      _ → error "interpExp: RevealE: ṽ ≢ AllVP _"
+        _ → pptrace (annotatedTag eA) $ error "interpExp: RevealE: v ∉ {ShaveV (ValS (BoolMV _) _ _),ShareV (ValS (IntMV _) _ _)}"
+      _ → pptrace (annotatedTag eA) $ error "interpExp: RevealE: ṽ ≢ AllVP _"
   -- AscrE
   ReadE τA e → do
     ṽ ← interpExp e
@@ -400,6 +421,7 @@ testInterpreter = do
     ]
   testInterpreterExample "cmp"
   testInterpreterExample "cmp-tutorial"
+  testInterpreterExample "euclid"
   -- testInterpreterExample "cmp-split"
   -- testInterpreterExample "cmp-tutorial"
   -- testInterpreterExample "add"

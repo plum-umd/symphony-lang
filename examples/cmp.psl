@@ -21,7 +21,7 @@ def cmp = λ xy →
 def cmp-mpc : 𝟙 →{inp:A,B;rev:E,F} 𝔹{ssec:E,F}
 def cmp-mpc = λ • →
   let xy : ℤ{isec:A,B}
-  let xy = {par:A,B} read ℤ "e1-input.txt"
+  let xy = {par:A,B} read ℤ "cmp-input.txt"
   let r : 𝔹{yao:C,D}
   let r = cmp xy
   let o : 𝔹{ssec:E,F}
@@ -30,7 +30,7 @@ def cmp-mpc = λ • →
 
 def one-liner : 𝟙 →{inp:A,B;rev:E,F} 𝔹{ssec:E,F}
 def one-liner = λ • →
-  let xy = {par:A,B} read ℤ "e1-input.txt"
+  let xy = {par:A,B} read ℤ "cmp-input.txt"
   in reveal{E,F} (share{yao:C,D} xy.A) ≤ (share{yao:C,D} xy.B)
 
 def main : 𝔹{ssec:A,B} × 𝔹{ssec:A,B}
