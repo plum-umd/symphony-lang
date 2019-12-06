@@ -559,8 +559,14 @@ pTL = cpNewWithContextRendered "tl" $ concat
        x ← pVar
        concat
          [ do cpSyntax ":"
+              ηO ← cpOptional $ do
+                cpSyntax "{"
+                η ← pEffect
+                cpSyntax "}"
+                return η
               τ ← pType
-              return $ DeclTL x τ
+              let η = ifNone (Annotated null $ Effect (Annotated null pø) (Annotated null pø)) ηO
+              return $ DeclTL x η τ
          , do cpSyntax "="
               e ← pExp
               return $ DefnTL x e

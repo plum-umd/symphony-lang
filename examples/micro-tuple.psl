@@ -1,0 +1,6 @@
+def main =
+  let x = ()
+  let y = 2
+  let z = 3
+  in y
+

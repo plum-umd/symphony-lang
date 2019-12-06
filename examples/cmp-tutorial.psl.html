@@ -25,20 +25,21 @@ body { font-family: monospace; color: #000000; background-color: #ffffff; }
 <body>
 <pre id='vimCodeElement'>
 <span class="pantheonComment">{-</span>
-<span class="pantheonComment">These lines declare what principles that are present. The type checker</span>
-<span class="pantheonComment">(not yet implemented) will make sure that all principles mentioned in</span>
-<span class="pantheonComment">types are (at least) well-scoped, and possible also check some</span>
-<span class="pantheonComment">security relationships as well, e.g., does A trust B, and to what</span>
-<span class="pantheonComment">extent.</span>
+<span class="pantheonComment">These lines declare what principles that are present. The type</span>
+<span class="pantheonComment">checker (not yet implemented) will make sure that all principles</span>
+<span class="pantheonComment">mentioned in types are (at least) well-scoped, and possible also</span>
+<span class="pantheonComment">check some security relationships as well, e.g., does A trust B, and</span>
+<span class="pantheonComment">to what extent.</span>
 
 <span class="pantheonComment">These lines are ignored by the interpreter.</span>
 
-<span class="pantheonComment">In this example, A and B have secret inputs. C and D will recieve</span>
+<span class="pantheonComment">In this example, A and B have secret inputs. C and D will receive</span>
 <span class="pantheonComment">shares of A and B's secret inputs in order to compute over them</span>
-<span class="pantheonComment">through an MPC protocol. E and F will then recieve output shares</span>
-<span class="pantheonComment">from C and D in order to reconstruct the answer, which is only</span>
-<span class="pantheonComment">learned by E and F (not A, B, C or D).</span>
+<span class="pantheonComment">through an MPC protocol. E and F will then receive output shares from</span>
+<span class="pantheonComment">C and D in order to reconstruct the answer, which is only learned by</span>
+<span class="pantheonComment">E and F (not A, B, C or D).</span>
 <span class="pantheonComment">-}</span>
+
 <span class="pantheonComment">-- input parties</span>
 <span class="pantheonKeyword">principal</span> A
 <span class="pantheonKeyword">principal</span> B
@@ -51,11 +52,11 @@ body { font-family: monospace; color: #000000; background-color: #ffffff; }
 
 <span class="pantheonComment">{-</span>
 <span class="pantheonComment">`cmp` takes a secret input from both `A` and `B` and builds a yao</span>
-<span class="pantheonComment">boolean</span>
-<span class="pantheonComment">“secret share” which is (conceptually) immediately sent to (and</span>
-<span class="pantheonComment">shared by) C and D. Specifying yao at this point in the program (as</span>
-<span class="pantheonComment">opposed to when the final results is “revealed”) allows for (e.g.)</span>
-<span class="pantheonComment">EMP-style on-they-fly evaluation of a protocol as an optimization.</span>
+<span class="pantheonComment">boolean “secret share” which is (conceptually) immediately sent to</span>
+<span class="pantheonComment">(and shared by) C and D. Specifying yao at this point in the program</span>
+<span class="pantheonComment">(as opposed to when the final results is “revealed”) allows for</span>
+<span class="pantheonComment">(e.g.) EMP-style on-they-fly evaluation of a protocol as an</span>
+<span class="pantheonComment">optimization.</span>
 
 <span class="pantheonComment">The input variable `xy` has type `ℤ{isec:A,B}`, which reads as “two</span>
 <span class="pantheonComment">integers, one for each party `A` and `B`, as independent (i.e., not</span>
@@ -67,19 +68,27 @@ body { font-family: monospace; color: #000000; background-color: #ffffff; }
 <span class="pantheonComment">this case, a yao garbled circuit with a single comparison) when</span>
 <span class="pantheonComment">executed.</span>
 
+<span class="pantheonComment">The access mode `isec` is distinguished from `ssec`, which reads as</span>
+<span class="pantheonComment">&quot;shared secret&quot;, in that `ssec` values have the added invariant that</span>
+<span class="pantheonComment">all parties have a local copy of the exact same value. E.g., when a</span>
+<span class="pantheonComment">result is revealed to some subset of parties with the `reveal`</span>
+<span class="pantheonComment">operation. `ssec` values can be used to construct new circuits,</span>
+<span class="pantheonComment">whereas `isec` values cannot, or else we would have two parties</span>
+<span class="pantheonComment">evaluating different circuits potentially, which would be bad.</span>
+
 <span class="pantheonComment">The return type `𝔹{yao:C,D}` reads as “A boolean value embedded in a</span>
 <span class="pantheonComment">yao secret share that is shared among C and D.” The type checker will</span>
 <span class="pantheonComment">check for valid operations to be used in a mpc computations. In this</span>
 <span class="pantheonComment">example, comparison (≤) is valid because it is supported by the yao</span>
-<span class="pantheonComment">prtocol. E.g., it may not be possible to execute a circuit that uses</span>
+<span class="pantheonComment">protocol. E.g., it may not be possible to execute a circuit that uses</span>
 <span class="pantheonComment">comparisons using bgw, so the type checker would reject a program</span>
-<span class="pantheonComment">that tried to do so. In this example, we have already commited to yao</span>
-<span class="pantheonComment">but that may not always be the case. Regarding the `{inp:A,B}` part</span>
-<span class="pantheonComment">of the function type, this annotation specifies from which parties</span>
-<span class="pantheonComment">were secret inputs secret-shared and computed on in some protocol.</span>
-<span class="pantheonComment">This enables checking security relationtionships between principles</span>
-<span class="pantheonComment">and flagging violations of the trust model. The interpreter ignores</span>
-<span class="pantheonComment">input effect annotations such as this.</span>
+<span class="pantheonComment">that tried to do so. In this example, we have already committed to</span>
+<span class="pantheonComment">yao but that may not always be the case. Regarding the `{inp:A,B}`</span>
+<span class="pantheonComment">part of the function type, this annotation specifies from which</span>
+<span class="pantheonComment">parties were secret inputs secret-shared and computed on in some</span>
+<span class="pantheonComment">protocol. This enables checking security relationships between</span>
+<span class="pantheonComment">principles and flagging violations of the trust model. The</span>
+<span class="pantheonComment">interpreter ignores input effect annotations such as this.</span>
 
 <span class="pantheonComment">The first two steps of `cmp` embed secret inputs from A and B into</span>
 <span class="pantheonComment">yao “secret-shares”. The last step is a normal comparison operator</span>
@@ -87,15 +96,15 @@ body { font-family: monospace; color: #000000; background-color: #ffffff; }
 <span class="pantheonComment">by executing the protocol over the secret-share. Since we are using</span>
 <span class="pantheonComment">yao, we can use the `≤` operator unlike in say, bgw, where comparison</span>
 <span class="pantheonComment">like this isn't possible. In the future it will be possible to pick</span>
-<span class="pantheonComment">whether or not protocol execution operaties on-the-fly with small</span>
+<span class="pantheonComment">whether or not protocol execution operates on-the-fly with small</span>
 <span class="pantheonComment">circuits (e.g., in EMP), or as one large circuit in a single</span>
 <span class="pantheonComment">protocol. So conceptually `𝔹{yao:C,D}` is a secret share, and `x ≤ y`</span>
 <span class="pantheonComment">executes a circuit of size 1, but in practice `𝔹{yao:C,D}` could be a</span>
-<span class="pantheonComment">circuit constucted by each party, `x ≤ y` builds a larger circuit out</span>
-<span class="pantheonComment">of smaller ones, and execution of the protocol is delayed until some</span>
-<span class="pantheonComment">later point.</span>
-
+<span class="pantheonComment">circuit constructed by each party, `x ≤ y` builds a larger circuit</span>
+<span class="pantheonComment">out of smaller ones, and execution of the protocol is delayed until</span>
+<span class="pantheonComment">some later point.</span>
 <span class="pantheonComment">-}</span>
+
 <span class="pantheonKeyword">def</span> cmp <span class="pantheonPunctuation">:</span> <span class="pantheonPrimitive">ℤ</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">isec</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> <span class="pantheonPunctuation">→{</span><span class="pantheonPrimitive">inp</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> <span class="pantheonPrimitive">𝔹</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">yao</span><span class="pantheonPunctuation">:</span>C<span class="pantheonPunctuation">,</span>D<span class="pantheonPunctuation">}</span>
 <span class="pantheonKeyword">def</span> cmp <span class="pantheonPunctuation">=</span> <span class="pantheonKeyword">λ</span> xy <span class="pantheonPunctuation">→</span>
   <span class="pantheonKeyword">let</span> x <span class="pantheonPunctuation">:</span> <span class="pantheonPrimitive">ℤ</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">yao</span><span class="pantheonPunctuation">:</span>C<span class="pantheonPunctuation">,</span>D<span class="pantheonPunctuation">}</span>
@@ -105,14 +114,54 @@ body { font-family: monospace; color: #000000; background-color: #ffffff; }
   <span class="pantheonKeyword">let</span> r <span class="pantheonPunctuation">:</span> <span class="pantheonPrimitive">𝔹</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">yao</span><span class="pantheonPunctuation">:</span>C<span class="pantheonPunctuation">,</span>D<span class="pantheonPunctuation">}</span>
   <span class="pantheonKeyword">let</span> r <span class="pantheonPunctuation">=</span> x <span class="pantheonOperator">≤</span> y
   <span class="pantheonKeyword">in</span> r
+
 <span class="pantheonComment">{-</span>
+<span class="pantheonComment">We have moved away from a monadic discipline for tracking effects,</span>
+<span class="pantheonComment">and are now using a more traditional effect system, e.g., an</span>
+<span class="pantheonComment">effectful computation is a function of a dummy argument `•` with an</span>
+<span class="pantheonComment">effect annotation over the arrow. The effect in this function is</span>
+<span class="pantheonComment">`{inp:A,B;rev:E,F}` which means &quot;inputs are read from parties A and B</span>
+<span class="pantheonComment">and outputs are revealed to E and F.&quot; The thinking for now is that it</span>
+<span class="pantheonComment">may be advantageous to track security-critical events in effect</span>
+<span class="pantheonComment">types, at the very least for auditing. If I am using a library</span>
+<span class="pantheonComment">function or some old code, what I really want to know from a security</span>
+<span class="pantheonComment">point of view is whether or not (1) secret inputs are read from disk,</span>
+<span class="pantheonComment">(2) any mpc protocols are executed, and (3) what parties learned the</span>
+<span class="pantheonComment">results of mpc. In particular, if a function has no effect, we know</span>
+<span class="pantheonComment">none of these things happened inside the function, and we may decide</span>
+<span class="pantheonComment">it's not worth out time to audit (from a security perspective). I</span>
+<span class="pantheonComment">realize this isn't the whole story, e.g., we may be crucially</span>
+<span class="pantheonComment">depending on the functionality of some library function to have the</span>
+<span class="pantheonComment">correct ideal functionality, but the idea is here, and we can keep it</span>
+<span class="pantheonComment">around and discuss or drop it.</span>
 
-<span class="pantheonComment">The access mode `isec` is distinguished from `ssec`, which reads as</span>
-<span class="pantheonComment">&quot;shared secret&quot;, in that `ssec` values have the added invariant that</span>
-<span class="pantheonComment">all parties have a local copy of the exact same value. E.g., when a</span>
-<span class="pantheonComment">result from mpc is revealed to some subset of parties.</span>
+<span class="pantheonComment">The return type is `𝔹{ssec:E,F}` which reads as &quot;an unencrypted</span>
+<span class="pantheonComment">boolean value known by E and F.&quot; Unlike with `isec` values, `ssec`</span>
+<span class="pantheonComment">values must be the same among all parties involved.</span>
 
+<span class="pantheonComment">The first step of `cmp-mpc` enters parallel mode for both A and B by</span>
+<span class="pantheonComment">the syntax `{par:A,B}`. The read operation will see a local file</span>
+<span class="pantheonComment">&quot;e1-input.txt&quot; for each party A and B. In our simulator, these live</span>
+<span class="pantheonComment">in `examples-data/A` and `examples-data/B` respectively. The result</span>
+<span class="pantheonComment">is an `isec:A,B` which again means &quot;independent secrets for both A</span>
+<span class="pantheonComment">and B.&quot;</span>
+
+<span class="pantheonComment">The second step of `cmp-mpc` executes the circuit constructed by `cmp</span>
+<span class="pantheonComment">xy` using `yao` between parties C and D. However, this may be a</span>
+<span class="pantheonComment">strict or lazy &quot;execution&quot; in that, depending on the protocol, the</span>
+<span class="pantheonComment">evaluation might not actually happen until we need a result or force</span>
+<span class="pantheonComment">it to happen. Another note: we could have written, e.g., `yao:A,B` to</span>
+<span class="pantheonComment">have parties A and B be the computation parties as well as the input</span>
+<span class="pantheonComment">parties.</span>
+
+<span class="pantheonComment">The final step of `cmp-mpc` reveals the output to parties E and F.</span>
+<span class="pantheonComment">This conceptually consists of C and D sending their “shares” of the</span>
+<span class="pantheonComment">result value to both E and F, which each combine them to learn the</span>
+<span class="pantheonComment">unencrypted value of the result. In the case that the multiparty</span>
+<span class="pantheonComment">computation is delayed as a circuit, the execution of protocol takes</span>
+<span class="pantheonComment">place as well.</span>
 <span class="pantheonComment">-}</span>
+
 <span class="pantheonKeyword">def</span> cmp-mpc <span class="pantheonPunctuation">:</span> <span class="pantheonPrimitive">𝟙</span> <span class="pantheonPunctuation">→{</span><span class="pantheonPrimitive">inp</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">;</span><span class="pantheonPrimitive">rev</span><span class="pantheonPunctuation">:</span>E<span class="pantheonPunctuation">,</span>F<span class="pantheonPunctuation">}</span> <span class="pantheonPrimitive">𝔹</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">ssec</span><span class="pantheonPunctuation">:</span>E<span class="pantheonPunctuation">,</span>F<span class="pantheonPunctuation">}</span>
 <span class="pantheonKeyword">def</span> cmp-mpc <span class="pantheonPunctuation">=</span> <span class="pantheonKeyword">λ</span> <span class="pantheonOperator">•</span> <span class="pantheonPunctuation">→</span>
   <span class="pantheonKeyword">let</span> xy <span class="pantheonPunctuation">:</span> <span class="pantheonPrimitive">ℤ</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">isec</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span>
@@ -123,12 +172,29 @@ body { font-family: monospace; color: #000000; background-color: #ffffff; }
   <span class="pantheonKeyword">let</span> o <span class="pantheonPunctuation">=</span> <span class="pantheonKeyword">reveal</span><span class="pantheonPunctuation">{</span>E<span class="pantheonPunctuation">,</span>F<span class="pantheonPunctuation">}</span> r
   <span class="pantheonKeyword">in</span> o
 
+<span class="pantheonComment">{-</span>
+<span class="pantheonComment">This one-liner shows how you might do the steps in `cmp-mpc` and</span>
+<span class="pantheonComment">`cmp` in many fewer operations. Notice that the function annotation</span>
+<span class="pantheonComment">reads {inp:A,B;rev:E,F}` meaning that this function send outputs to E</span>
+<span class="pantheonComment">and F based on inputs from A and B. We anticipate that the</span>
+<span class="pantheonComment">annotations `share{yao:C,D}` will not be necessary as we develop</span>
+<span class="pantheonComment">sufficiently fancy type inference. </span>
+<span class="pantheonComment">-}</span>
+
 <span class="pantheonKeyword">def</span> one-liner <span class="pantheonPunctuation">:</span> <span class="pantheonPrimitive">𝟙</span> <span class="pantheonPunctuation">→{</span><span class="pantheonPrimitive">inp</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">;</span><span class="pantheonPrimitive">rev</span><span class="pantheonPunctuation">:</span>E<span class="pantheonPunctuation">,</span>F<span class="pantheonPunctuation">}</span> <span class="pantheonPrimitive">𝔹</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">ssec</span><span class="pantheonPunctuation">:</span>E<span class="pantheonPunctuation">,</span>F<span class="pantheonPunctuation">}</span>
 <span class="pantheonKeyword">def</span> one-liner <span class="pantheonPunctuation">=</span> <span class="pantheonKeyword">λ</span> <span class="pantheonOperator">•</span> <span class="pantheonPunctuation">→</span>
   <span class="pantheonKeyword">let</span> xy <span class="pantheonPunctuation">=</span> <span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">par</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> <span class="pantheonPrimitive">read</span> <span class="pantheonPrimitive">ℤ</span> <span class="pantheonLiteral">&quot;e1-input.txt&quot;</span>
   <span class="pantheonKeyword">in</span> <span class="pantheonKeyword">reveal</span><span class="pantheonPunctuation">{</span>E<span class="pantheonPunctuation">,</span>F<span class="pantheonPunctuation">}</span> <span class="pantheonPunctuation">(</span><span class="pantheonKeyword">share</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">yao</span><span class="pantheonPunctuation">:</span>C<span class="pantheonPunctuation">,</span>D<span class="pantheonPunctuation">}</span> xy<span class="pantheonPunctuation">.</span>A<span class="pantheonPunctuation">)</span> <span class="pantheonOperator">≤</span> <span class="pantheonPunctuation">(</span><span class="pantheonKeyword">share</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">yao</span><span class="pantheonPunctuation">:</span>C<span class="pantheonPunctuation">,</span>D<span class="pantheonPunctuation">}</span> xy<span class="pantheonPunctuation">.</span>B<span class="pantheonPunctuation">)</span>
 
-<span class="pantheonKeyword">def</span> main <span class="pantheonPunctuation">:</span> <span class="pantheonPrimitive">𝔹</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">ssec</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> <span class="pantheonOperator">×</span> <span class="pantheonPrimitive">𝔹</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">ssec</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span>
+<span class="pantheonComment">{-</span>
+<span class="pantheonComment">`main` just runs both the verbose `cmp-mpc` and the shortened</span>
+<span class="pantheonComment">`one-liner` and returns the two results as a pair. Note the effect</span>
+<span class="pantheonComment">annotation in the top-level type, which indicates that execution of</span>
+<span class="pantheonComment">main has input and reveal effects, in addition to returning a pair of</span>
+<span class="pantheonComment">results.</span>
+<span class="pantheonComment">-}</span>
+
+<span class="pantheonKeyword">def</span> main <span class="pantheonPunctuation">:{</span><span class="pantheonPrimitive">inp</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">;</span><span class="pantheonPrimitive">rev</span><span class="pantheonPunctuation">:</span>E<span class="pantheonPunctuation">,</span>F<span class="pantheonPunctuation">}</span> <span class="pantheonPrimitive">𝔹</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">ssec</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> <span class="pantheonOperator">×</span> <span class="pantheonPrimitive">𝔹</span><span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">ssec</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span>
 <span class="pantheonKeyword">def</span> main <span class="pantheonPunctuation">=</span> cmp-mpc <span class="pantheonOperator">•</span> <span class="pantheonPunctuation">,</span> one-liner <span class="pantheonOperator">•</span>
 </pre>
 </body>

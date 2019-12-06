@@ -60,8 +60,8 @@ instance Join ValP where
   SecVP p₁ v₁ ⊔ SecVP p₂ v₂ | p₁ ≢ p₂ = ISecVP $ dict $ [p₁ ↦ v₁,p₂ ↦ v₂]
   -- SecVP p₁ v₁ ⊔ SSecVP ps₂ v₂ | p₁ ∉ ps₂ = ISecVP $ (p₁ ↦ v₁) ⩌ isecSSec ps₂ v₂
   -- SSecVP ps₁ v₁ ⊔ SecVP p₂ v₂ | p₂ ∉ ps₁ = ISecVP $ (p₂ ↦ v₂) ⩌ isecSSec ps₁ v₁
-  -- SecVP p₁ v₁ ⊔ ISecVP pvs₂ | p₁ ∉ keys pvs₂ = ISecVP $ (p₁ ↦ v₁) ⩌ pvs₂
-  -- ISecVP pvs₁ ⊔ SecVP p₂ v₂ | p₂ ∉ keys pvs₁ = ISecVP $ (p₂ ↦ v₂) ⩌ pvs₁
+  SecVP p₁ v₁ ⊔ ISecVP pvs₂ | p₁ ∉ keys pvs₂ = ISecVP $ (p₁ ↦ v₁) ⩌ pvs₂
+  ISecVP pvs₁ ⊔ SecVP p₂ v₂ | p₂ ∉ keys pvs₁ = ISecVP $ (p₂ ↦ v₂) ⩌ pvs₁
   -- SSecVP ps₁ v₁ ⊔ SSecVP ps₂ v₂ | ps₁ ∩ ps₂ ≡ pø = ISecVP $ isecSSec ps₁ v₁ ⩌ isecSSec ps₂ v₂
   -- SSecVP ps₁ v₁ ⊔ ISecVP pvs₂ | ps₁ ∩ keys pvs₂ ≡ pø = ISecVP $ pvs₂ ⩌ isecSSec ps₁ v₁
   -- ISecVP pvs₁ ⊔ SSecVP ps₂ v₂ | keys pvs₁ ∩ ps₂ ≡ pø = ISecVP $ pvs₁ ⩌ isecSSec ps₂ v₂
@@ -244,7 +244,7 @@ interpExp eA = case extract eA of
   VarE x → interpVar x
   -- BoolE
   StrE s → return $ AllVP $ StrV s
-  -- IntE
+  IntE i → return $ AllVP $ IntV i
   -- FltE
   BulE → return $ AllVP $ BulV
   -- IfE
@@ -282,12 +282,11 @@ interpExp eA = case extract eA of
     let p = extract pA
     restrictMode (SecM p) $ interpExp e
   ParE psA e → do
-    let ps = pow $ map extract $ iter $ extract psA
-    joins ^$ mapMOn (iter ps) $ \ p → do
-      restrictMode (SecM p) $ interpExp e
+    let ps = extractPrins psA
+    joins ^$ mapMOn (iter ps) $ \ p → do restrictMode (SecM p) $ interpExp e
   ShareE φA psA e → do
     let φ = extract φA
-    let ps = pow $ map extract $ iter $ extract psA
+    let ps = extractPrins psA
     ṽ ← interpExp e
     return $ case ṽ of
       SecVP _p v → case v of
@@ -295,14 +294,6 @@ interpExp eA = case extract eA of
         IntV i → AllVP $ ShareV $ ValS (IntMV i) φ ps
         _ → error "interpExp: ShareE: SecVP: v ∉ {BoolV _,IntV _}"
       _ → error "interpExp: ShareE: ṽ ≢ SecVP _ _"
-  -- CirE e → do
-  --   ṽ ← interpExp e
-  --   return $ AllVP $ CircV $ case ṽ of
-  --     SecVP p v → case v of
-  --       BoolV b → BoolC (Some $ Inl p) b
-  --       IntV i → IntC (Some $ Inl p) i
-  --       _ → pptrace (annotatedTag eA) $ error "interpExp: CirE: SecVP: v ∉ {BoolV _,IntV _}"
-  --     _ → pptrace (annotatedTag eA) $ pptrace ṽ $ error "interpExp: CirE: ṽ ≢ SecVP _ _"
   AccessE e pA → do
     let p = extract pA
     ṽ ← interpExp e
@@ -316,24 +307,8 @@ interpExp eA = case extract eA of
       let p = extract pA
       restrictMode (SecM p) $ interpExp e
   -- BundleUnionE
-  -- DelegateE
-  -- MPCE φA psA e → do
-  --   let φ = extract φA
-  --   let ps = pow $ map extract $ iter $ extract psA
-  --   ṽ ← interpExp e
-  --   let v = case ṽ of
-  --         AllVP v' → v'
-  --         SSecVP ps' v'
-  --           | ps ⊆ ps' → v'
-  --           | otherwise → error "interpExp: MPCE: SSec: ps ⊈ ps'"
-  --         _ → error "interpExp: MPCE: ṽ ∉ {AllVP _,SSec _ _}"
-  --   return $ AllVP $ CircV $ case v of
-  --     CircV c → case interpCirc c of
-  --       Inl b → BoolC (Some $ Inr $ schemeProt φ) b
-  --       Inr i → IntC (Some $ Inr $ schemeProt φ) i
-  --     _ → error "interpExp: MPCE: v ≢ CircV _"
   RevealE psA e → do
-    let ps = pow $ map extract $ iter $ extract psA
+    let ps = extractPrins psA
     ṽ ← interpExp e
     case ṽ of
       AllVP v → return $ SSecVP ps $ case v of
@@ -358,15 +333,6 @@ interpExp eA = case extract eA of
   PrimE o es → do
     ṽs ← mapM interpExp es
     bindValsP ṽs $ \ vs → return $ AllVP $ interpPrim o vs
-    -- bindValP ṽ₁ $ \ v₁ →
-    --   bindValP ṽ₂ $ \ v₂ →
-    --     return $ AllVP $ case (v₁,v₂) of
-    --       (IntV i₁,IntV i₂) → case o of
-    --         "LET" → BoolV $ i₁ ≤ i₂
-    --         "PLUS" → IntV $ i₁ + i₂
-    --         _ → error "interpExp: opperation not implemented"
-    --       (CircV c₁,CircV c₂) → CircV $ OpC o $ list [c₁,c₂]
-    --       (_,_) → error "interpExp: PrimE: not implemented, or bad prim application"
   _ → pptrace (annotatedTag eA) $ error "not implemented: interpExp"
 
 --------------------------
@@ -375,7 +341,7 @@ interpExp eA = case extract eA of
 
 interpTL ∷ ATL → ITLM ()
 interpTL sA = case extract sA of
-  DeclTL _ _ → skip
+  DeclTL _ _ _ → skip
   DefnTL xA e → do
     let x = extract xA
     v ← asTLM $ interpExp e
@@ -390,8 +356,8 @@ interpTLs = eachWith interpTL
 -- Testing --
 -------------
 
-testInterpreterExample ∷ 𝕊 → IO ()
-testInterpreterExample fn = do
+interpretExample ∷ 𝕊 → IO ValP
+interpretExample fn = do
   let path = "examples/" ⧺ fn ⧺ ".psl"
   out path
   s ← read path
@@ -400,10 +366,38 @@ testInterpreterExample fn = do
   tls ← parseIO cpTLs ls
   -- out $ "DONE PARSING:" ⧺ fn
   let σtl = evalITLM σtl₀ $ retState $ interpTLs tls
-  pprint $ itlStateEnv σtl ⋕! var "main"
+  return $ itlStateEnv σtl ⋕! var "main"
+
+testInterpreterExample ∷ 𝕊 → IO ()
+testInterpreterExample fn = pprint *$ interpretExample fn
+
+tests ∷ 𝐿 (𝕊 ∧ ValP)
+tests = frhs
+ [ ("micro-let",AllVP (IntV $ int 2))
+ ]
 
 testInterpreter ∷ IO ()
 testInterpreter = do
+  pprint $ ppVertical
+    [ ppHeader "TESTS"
+    , concat
+      [ ppSpace $ 𝕟64 2
+      , ppAlign $ concat $ mapOn tests $ \ (fn :* v) → 
+          let rV = ioUNSAFE $ interpretExample fn
+          in
+          ppVertical
+           [ ppHorizontal [ppHeader "FILE:",pretty fn]
+           , concat
+               [ ppSpace $ 𝕟64 2
+               , ppAlign $ ppVertical
+                   [ ppHorizontal [ppHeader "RETURNED:",pretty rV]
+                   , ppHorizontal [ppHeader "EXPECTED:",pretty v]
+                   , ppHorizontal [ppHeader "PASSED:",pretty $ rV ≡ v]
+                   ]
+               ]
+           ]
+      ]
+    ]
   testInterpreterExample "cmp"
   testInterpreterExample "cmp-tutorial"
   -- testInterpreterExample "cmp-split"
