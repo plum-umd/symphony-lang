@@ -1,0 +1,23 @@
+principal A
+principal B
+
+def sub : int -> int -> int
+def sub = fun a -> fun b -> a -- undefined
+
+def rem : int -> int -> int
+def rem = fun a -> fun b -> sub a ((a / b) * b)
+
+def euclid : int{mpc:yao:A,B} -> int{mpc:yao:A,B} -> {rev:A,B} int{mpc:yao:A,B}
+def euclid = fun a -> fun b ->
+  if reveal{A,B} (b == 0)
+  then a
+  else euclid b (rem a b)
+
+def euclid-2pc : unit -> {inp:A,B;rev:A,B} int{ssec:A,B}
+def euclid-2pc =
+  reveal{A,B}
+    (euclid (share{yao:A,B} ({par:A} read int "euclid.txt"))
+            (share{yao:A,B} ({par:B} read int "euclid.txt")))
+
+def main : int{ssec:A,B}
+def main = euclid ()
