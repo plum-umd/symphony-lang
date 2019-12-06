@@ -24,37 +24,39 @@ nToWord (N xs) = loop xs
     loop [] = 0
     loop (x:xs) = (if x then 1 else 0) + (2 * loop xs)
 
+msb :: N -> Bool
+msb (N xs) = last xs
+
 instance Show N where
   show = show . nToWord
 
--- Correctness: nToWord . wordToN = id
 translationCorrect :: Word32 -> Bool
 translationCorrect x = nToWord (wordToN x) == x
 
 binEq :: N -> N -> Bool
 binEq (N xs) (N ys) = xs == ys
 
--- Correctness: forall x, y :: Word32. (wordToN x `binEq` wordToN y) = x == y
 eqCorrect :: Word32 -> Word32 -> Bool
 eqCorrect x y = (wordToN x `binEq` wordToN y) == (x == y)
 
 instance Eq N where
   (==) = binEq
 
-binLt :: N -> N -> Bool
-binLt (N as) (N bs) = loop as bs
+binGt :: N -> N -> Bool
+binGt (N as) (N bs) = loop (reverse as) (reverse bs)
   where
     loop [] [] = False
-    loop (a:as) (b:bs) = loop as bs || (as == bs && (not a && b))
+    loop (a:as) (b:bs) =
+      let acc = loop as bs
+       in ((a `xor` acc) && (b `xor` acc)) `xor` a
 
--- Correctness: forall x, y :: Word32. (wordToN x `binLt` wordToN y) = x < y
-ltCorrect :: Word32 -> Word32 -> Bool
-ltCorrect x y = (wordToN x `binLt` wordToN y) == (x < y)
+gtCorrect :: Word32 -> Word32 -> Bool
+gtCorrect x y = (wordToN x `binGt` wordToN y) == (x > y)
 
 instance Ord N where
-  (<) = binLt
-  a <= b = a < b || a == b
-  a >= b = not (a < b)
+  (>) = binGt
+  a <= b = not (a `binGt` b)
+
 
 binAdd :: N -> N -> N
 binAdd (N as) (N bs) = N (loop False as bs)
@@ -66,7 +68,6 @@ binAdd (N as) (N bs) = N (loop False as bs)
           cs = loop carry' as bs
       in c : cs
 
--- Correctness: forall x, y :: Word32. nToWord (wordToN x `binAdd` wordToN y) = x + y
 addCorrect :: Word32 -> Word32 -> Bool
 addCorrect x y = nToWord (wordToN x `binAdd` wordToN y) == x + y
 
@@ -80,7 +81,6 @@ binSub (N as) (N bs) = N (loop False as bs)
           cs = loop carry' as bs
       in c : cs
 
--- Correctness: forall x, y :: Word32. nToWord (wordToN x `binSub` wordToN y) = x - y
 subCorrect :: Word32 -> Word32 -> Bool
 subCorrect x y = nToWord (wordToN x `binSub` wordToN y) == x - y
 
@@ -92,7 +92,6 @@ binMul (N as) (N bs) = loop as bs
       let part = if b then N as else 0
        in part + loop (False : take 31 as) bs
 
--- Correctness: forall x, y :: Word32. nToWord (wordToN x `binMul` wordToN y) = x * y
 mulCorrect :: Word32 -> Word32 -> Bool
 mulCorrect x y = nToWord (wordToN x `binMul` wordToN y) == x * y
 
