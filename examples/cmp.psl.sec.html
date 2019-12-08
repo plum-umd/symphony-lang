@@ -1,0 +1,111 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>~/Projects/psl/examples/cmp.psl.sec.html</title>
+<meta name="Generator" content="Vim/8.1">
+<meta name="plugin-version" content="vim8.1_v1">
+<meta name="syntax" content="pantheonSecurity">
+<meta name="settings" content="use_css,pre_wrap,no_foldcolumn,expand_tabs,prevent_copy=">
+<meta name="colorscheme" content="none">
+<style type="text/css">
+<!--
+pre { white-space: pre-wrap; font-family: monospace; color: #000000; background-color: #ffffff; }
+body { font-family: monospace; color: #000000; background-color: #ffffff; }
+* { font-size: 1em; }
+.pantheonPunctuation { color: #6c6c6c; }
+.pantheonComment { color: #a8a8a8; font-style: italic; }
+.pantheonLiteral { color: #c00000; }
+.pantheonKeyword { color: #af5f00; font-weight: bold; }
+.pantheonPrimitive { color: #0000c0; }
+.pantheonOperator { color: #008000; }
+-->
+</style>
+</head>
+<body>
+<pre id='vimCodeElement'>
+<span class="pantheonComment">-- global security parameters</span>
+<span class="pantheonKeyword">security</span> <span class="pantheonPunctuation">{</span>
+  <span class="pantheonComment">-- adversary model for setup</span>
+  <span class="pantheonComment">-- options: trusted-setup, no-trusted-setup</span>
+  <span class="pantheonPrimitive">trusted-setup</span>
+  <span class="pantheonComment">-- adversary model for public key infrastructure</span>
+  <span class="pantheonComment">-- options: pki, no-pki</span>
+  <span class="pantheonPrimitive">pki</span>
+  <span class="pantheonComment">-- adversary model for behavior of corruptible parties</span>
+  <span class="pantheonComment">-- This example says “at most 1 out of C and D are corruptible as semi-honest”</span>
+  <span class="pantheonComment">-- options: semi-honest, semi-malicious, covert, malicious</span>
+  <span class="pantheonPrimitive">semi-honest</span>
+  <span class="pantheonPrimitive">corruptible</span><span class="pantheonPunctuation">:</span> C<span class="pantheonPunctuation">,</span>D <span class="pantheonOperator">&lt;=</span> <span class="pantheonLiteral">1</span>
+<span class="pantheonPunctuation">}</span>
+
+<span class="pantheonKeyword">connected</span> <span class="pantheonPunctuation">{</span>
+  <span class="pantheonComment">-- broadcast capabilities</span>
+  <span class="pantheonComment">-- options: broadcast, no-broadcast</span>
+  <span class="pantheonPrimitive">broadcast</span>
+  <span class="pantheonComment">-- fully conntected parties</span>
+  <span class="pantheonPrimitive">full</span><span class="pantheonPunctuation">:</span> A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">,</span>C<span class="pantheonPunctuation">,</span>D
+  <span class="pantheonComment">-- parties with communication links</span>
+  <span class="pantheonPrimitive">link</span><span class="pantheonPunctuation">:</span> C-E<span class="pantheonPunctuation">,</span>D-E
+<span class="pantheonPunctuation">}</span>
+
+<span class="pantheonComment">{-</span>
+<span class="pantheonComment">below is secrurity-relevant information for each party</span>
+
+<span class="pantheonComment">`ok-reveals` and `no-reveals` are coarse-grained approximations of the ideal</span>
+<span class="pantheonComment">functionality</span>
+
+<span class="pantheonComment">ok-reveals: a list of parties who can learn mpc results which compute over</span>
+<span class="pantheonComment">            my data (a whitelist)</span>
+
+<span class="pantheonComment">no-reveals: a list of parties who shouldn't learn mpc results which compute</span>
+<span class="pantheonComment">            over my data (a blacklist)</span>
+
+<span class="pantheonComment">If some party learns an mpc result and it is not listed in `ok-reveals` or</span>
+<span class="pantheonComment">`no-reveals` then the possible flow is logged and reported, but the program is</span>
+<span class="pantheonComment">not rejected. Programs are rejected if it is possible for an mpc result to be</span>
+<span class="pantheonComment">revealed to a party on the `no-reveals` list.</span>
+<span class="pantheonComment">-}</span>
+
+<span class="pantheonComment">-- an input party, e.g., US NIST Agency</span>
+A <span class="pantheonPunctuation">{</span>
+  <span class="pantheonPrimitive">location</span><span class="pantheonPunctuation">:</span> &lt;US-NIST&gt;     <span class="pantheonComment">-- identify and digitcal location, for trust relationships and communication</span>
+  <span class="pantheonPrimitive">ok-reveals</span><span class="pantheonPunctuation">:</span> E           <span class="pantheonComment">-- who am I ok with learning result of mpc which involved my inputs</span>
+  <span class="pantheonPrimitive">no-reveals</span><span class="pantheonPunctuation">:</span> B           <span class="pantheonComment">-- who am I not ok with learning result of mpc which involved my inputs</span>
+  <span class="pantheonPrimitive">encryption</span><span class="pantheonPunctuation">:</span> <span class="pantheonLiteral">256</span>         <span class="pantheonComment">-- what strength of encryption needs to be used on my data</span>
+<span class="pantheonPunctuation">}</span>
+<span class="pantheonComment">-- an input party, e.g., US DOE Agency</span>
+B <span class="pantheonPunctuation">{</span>
+  <span class="pantheonPrimitive">location</span><span class="pantheonPunctuation">:</span> &lt;US-DOE&gt;
+  <span class="pantheonPrimitive">ok-reveals</span><span class="pantheonPunctuation">:</span> E
+  <span class="pantheonPrimitive">no-reveals</span><span class="pantheonPunctuation">:</span> A
+  <span class="pantheonPrimitive">encryption</span><span class="pantheonPunctuation">:</span> <span class="pantheonLiteral">512</span>
+<span class="pantheonPunctuation">}</span>
+<span class="pantheonComment">-- a compute party: e.g., Amazon</span>
+C <span class="pantheonPunctuation">{</span>
+  <span class="pantheonPrimitive">location</span><span class="pantheonPunctuation">:</span> &lt;Amazon&gt;
+  <span class="pantheonPrimitive">no-reveals</span><span class="pantheonPunctuation">:</span> <span class="pantheonLiteral">all</span>
+<span class="pantheonPunctuation">}</span>
+<span class="pantheonComment">-- a compute party: e.g., Microsoft</span>
+D <span class="pantheonPunctuation">{</span>
+  <span class="pantheonPrimitive">location</span><span class="pantheonPunctuation">:</span> &lt;Microsoft&gt;
+  <span class="pantheonPrimitive">no-reveals</span><span class="pantheonPunctuation">:</span> <span class="pantheonLiteral">all</span>
+<span class="pantheonPunctuation">}</span>
+<span class="pantheonComment">-- an output party: e.g., US NSA</span>
+E <span class="pantheonPunctuation">{</span>
+  <span class="pantheonPrimitive">location</span><span class="pantheonPunctuation">:</span> &lt;US-NSA&gt;
+  <span class="pantheonPrimitive">no-reveals</span><span class="pantheonPunctuation">:</span> <span class="pantheonLiteral">all</span>
+<span class="pantheonPunctuation">}</span>
+
+<span class="pantheonComment">{-</span>
+<span class="pantheonComment">Any program that tries to read secret data from Amazon, Microsoft or US-NSA</span>
+<span class="pantheonComment">will be rejected during compilation and never run, and security auditor of this</span>
+<span class="pantheonComment">file can know this will always be the case, no matter what the program (or</span>
+<span class="pantheonComment">ideal functionality) is. Also, a security auditor at US-NIST can know that</span>
+<span class="pantheonComment">Amazon and Microsoft won't see any results from any MPC computation---only NSA</span>
+<span class="pantheonComment">will---no matter what the program (or ideal functionality) is.</span>
+<span class="pantheonComment">-}</span>
+</pre>
+</body>
+</html>
+<!-- vim: set foldmethod=manual : -->

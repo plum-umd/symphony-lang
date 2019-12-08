@@ -244,7 +244,11 @@ valFrMPC (BoolMV b) = BoolV b
 valFrMPC (IntMV i) = IntV i
 
 rawShareOps ∷ 𝑃 𝕊
-rawShareOps = _
+rawShareOps = pow
+  [ "LTE"
+  , "PLUS"
+  , "EQ"
+  ]
 
 onRawShareVals ∷ Prot → 𝑃 Prin → 𝐼 Val → (𝐿 Val → Val) → 𝐿 Val → Val
 onRawShareVals φ ps vs f = \case

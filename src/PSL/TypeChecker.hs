@@ -38,7 +38,7 @@ elabExpInfer eA = case extract eA of
   _ → undefined
 
 elabExpCheck ∷ AExp → Type → TM AExp 
-elabExpCheck eA τ = case extract eA of
+elabExpCheck eA _τ = case extract eA of
   _ → undefined
 
 testTypeChecker ∷ IO ()
