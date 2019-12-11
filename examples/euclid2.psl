@@ -1,0 +1,36 @@
+principal A B C D E
+
+-- assumptions: 
+-- ‣ a > b
+def euclid-rec : ℕ → ℤ{yao:C,D} → ℤ{yao:C,D} → ℤ{yao:C,D}
+def euclid-rec n a b =
+  if n ≡ 0
+  then b
+  else
+    b ≡ share{yao:C,D} 0
+    ? a
+    ◇ euclid-rec (n - 1) b (a % b)
+
+-- assumptions:
+-- ‣ a > 0
+-- ‣ b > 0
+def euclid : ℤ{yao:C,D} → ℤ{yao:C,D} → ℤ{yao:C,D}
+def euclid a b =
+  -- worst case is neighboring fibbinocci sequence numbers, with one iteration
+  -- per sequence position, and 64 bit max bound is less than the 93rd fib
+  -- number; n = 94 for good measure.
+  let n = 94   
+  in
+  a ⋗ b
+  ? euclid-rec n a b
+  ◇ euclid-rec n b a
+
+def euclid-mpc : 𝟙 → {inp:A,B;rev:E} ℤ{ssec:E}
+def euclid-mpc • =
+  let ab = {par:A,B} read ℤ "euclid.txt"
+  in
+  reveal{E}
+  euclid (share{yao:C,D} ab.A) (share{yao:C,D} ab.B)
+
+def main :{inp:A,B;rev:E} ℤ{ssec:E}
+def main = euclid-mpc •

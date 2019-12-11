@@ -1,0 +1,26 @@
+
+principal A B C D E
+
+def main : unit ->{inp:A,B;rev:E} bool{E}
+def main() =
+
+  let ab-raw : int{isec:A,B}
+  let ab-raw = {par:A,B} read[int]("input.txt")
+
+  let ab-bnd : int{isec:A,B}
+  let ab-bnd = {par:A,B} min(ab-raw,1_000_000_000)
+
+  let a : int{yao:C,D}
+  let a = share{yao:C,D}(ab-bnd.A)
+
+  let b : int{yao:C,D}
+  let b = share{yao:C,D}(ab-bnd.B)
+
+  let c : bool{yao:C,D}
+  let c = a > b
+
+  let r : bool{E}
+  let r = reveal{E} c
+
+  in r
+

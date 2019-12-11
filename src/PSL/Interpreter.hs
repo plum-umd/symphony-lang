@@ -1,6 +1,7 @@
 module PSL.Interpreter where
 
 import UVMHS
+import AddToUVMHS
 import PSL.Syntax
 import PSL.Parser
 import PSL.Common
@@ -229,9 +230,19 @@ bindValsP = bindValsPR null
 --------------------------
 
 interpPrimRaw ∷ 𝕊 → 𝐿 Val → Val
-interpPrimRaw "LTE" (tohs → [IntV i₁,IntV i₂]) = BoolV $ i₁ ≤ i₂
+interpPrimRaw "OR" (tohs → [BoolV b₁,BoolV b₂]) = BoolV $ b₁ ⩔ b₂
+interpPrimRaw "AND" (tohs → [BoolV b₁,BoolV b₂]) = BoolV $ b₁ ⩓ b₂
 interpPrimRaw "PLUS" (tohs → [IntV i₁,IntV i₂]) = IntV $ i₁ + i₂
+interpPrimRaw "MINUS" (tohs → [IntV i₁,IntV i₂]) = IntV $ i₁ - i₂
+interpPrimRaw "TIMES" (tohs → [IntV i₁,IntV i₂]) = IntV $ i₁ × i₂
+interpPrimRaw "DIV" (tohs → [IntV i₁,IntV i₂]) = IntV $ if i₂ ≡ int 0 then i₁ else i₁ ⌿ i₂
+interpPrimRaw "MOD" (tohs → [IntV i₁,IntV i₂]) = IntV $ if i₂ ≡ int 0 then i₁ else i₁ ÷ i₂
 interpPrimRaw "EQ" (tohs → [IntV i₁,IntV i₂]) = BoolV $ i₁ ≡ i₂
+interpPrimRaw "LT" (tohs → [IntV i₁,IntV i₂]) = BoolV $ i₁ < i₂
+interpPrimRaw "GT" (tohs → [IntV i₁,IntV i₂]) = BoolV $ i₁ > i₂
+interpPrimRaw "LTE" (tohs → [IntV i₁,IntV i₂]) = BoolV $ i₁ ≤ i₂
+interpPrimRaw "GTE" (tohs → [IntV i₁,IntV i₂]) = BoolV $ i₁ ≥ i₂
+interpPrimRaw "COND" (tohs → [BoolV b,v₁,v₂]) = if b then v₁ else v₂
 interpPrimRaw s vs = pptrace s $ pptrace vs $ error "interpPrimRaw: not implemented"
 
 mpcFrVal ∷ Val → ValMPC
@@ -245,8 +256,15 @@ valFrMPC (IntMV i) = IntV i
 
 rawShareOps ∷ 𝑃 𝕊
 rawShareOps = pow
-  [ "LTE"
+  [ "LT"
+  , "GT"
+  , "LTE"
+  , "GTE"
   , "PLUS"
+  , "MINUS"
+  , "TIMES"
+  , "DIV"
+  , "MOD"
   , "EQ"
   ]
 
@@ -373,6 +391,9 @@ interpExp eA = case extract eA of
   PrimE o es → do
     ṽs ← mapM interpExp es
     bindValsP ṽs $ \ vs → return $ AllVP $ interpPrim o vs
+  TraceE e₁ e₂ → do
+    v ← interpExp e₁
+    pptrace v $ interpExp e₂
   _ → pptrace (annotatedTag eA) $ error "not implemented: interpExp"
 
 --------------------------
@@ -382,9 +403,14 @@ interpExp eA = case extract eA of
 interpTL ∷ ATL → ITLM ()
 interpTL sA = case extract sA of
   DeclTL _ _ _ → skip
-  DefnTL xA e → do
+  DefnTL xA ψs e →  do
+    let e₀ = case ψs of
+          Nil → e
+          ψ :& ψs' →
+            let e'' = foldrOnFrom ψs' e $ \ ψ' e' → nulla $ LamE None ψ' e'
+            in nulla $ LamE (Some xA) ψ e''
     let x = extract xA
-    v ← asTLM $ interpExp e
+    v ← asTLM $ interpExp e₀
     modifyL itlStateEnvL ((x ↦ v) ⩌)
   PrinTL _ → skip
   _ → pptrace (annotatedTag sA) $ error "interpTL: not implemented"
@@ -440,7 +466,7 @@ testInterpreter = do
     ]
   testInterpreterExample "cmp"
   testInterpreterExample "cmp-tutorial"
-  testInterpreterExample "euclid"
+  testInterpreterExample "euclid2"
   -- testInterpreterExample "cmp-split"
   -- testInterpreterExample "cmp-tutorial"
   -- testInterpreterExample "add"

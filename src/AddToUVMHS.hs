@@ -43,3 +43,6 @@ cpNewWithContextRendered ∷ (Ord t) ⇒ 𝕊 → CParser t a → CParser t (Ann
 cpNewWithContextRendered s = cpNewContext s ∘ cpWithContextRendered
 
 instance Null FullContext where null = FullContext null null null
+
+nulla  ∷ (Null t) ⇒ a → Annotated t a
+nulla = Annotated null

@@ -160,20 +160,17 @@ data Exp =
   | TAppE AExp AType               -- e@τ                   /  e@τ
   | SoloE APrin AExp               -- {ρ} e                 /  {ρ} e
   | ParE APrins AExp               -- {par:P} e             /  {par:P} e
-  -- | CirE AExp                      -- ~e                    /  ~e
   | ShareE AProt APrins AExp       -- share{φ:P} e          /  share{φ:P} e
   | AccessE AExp APrin             -- e.ρ                   /  e.ρ
   | BundleE (𝐿 (APrin ∧ AExp))     -- ⟨ρ₁.eₙ;…;ρₙ.eₙ⟩       /  <ρ₁.e₁;…;ρₙ.eₙ>
   | BundleUnionE AExp AExp         -- e⧺e                   /  e++e
-  -- | BundleAccessE AExp APrin       -- e.ρ                   /  e.ρ
-  -- | DelegateE APrins AExp          -- delegate{P} e         /  delegate{P} e
-  -- | MPCE AProt APrins AExp         -- mpc{φ:P} e            /  mpc{φ:P} e
   | RevealE APrins AExp            -- reveal{P} e           /  reveal{P} e
   | AscrE AExp AType               -- e:τ                   /  e:τ
   | ReadE AType AExp               -- read[τ] e             /  read[τ] e
   | InferE                         -- _                     /  _
   | HoleE                          -- ⁇                     /  ??
   | PrimE 𝕊 (𝐿 AExp)               -- prim[⊙](e,…,e)        /  𝑁/𝐴
+  | TraceE AExp AExp               -- trace e in e          / trace e in e
   deriving (Eq,Ord,Show)
   -- [e₁;…;eₙ] ≜ e₁ ∷ ⋯ ∷ eₙ ∷ []
 makePrettySum ''Exp
@@ -185,12 +182,12 @@ makePrettySum ''Exp
 -- s ∈ top-level ⩴  …
 type ATL = Annotated FullContext TL
 data TL =
-    DeclTL AVar AEffect AType -- def x :{η} τ     /  def x :{η} τ
-  | DefnTL AVar AExp          -- def x = e        /  def x = e
-  | PrinTL APrin              -- principal ρ      /  principal ρ
-  | TrustTL APrins            -- trust P          /  trust P
-  | SecurityTL APrins APrins  -- security P ⫫ P   /  security P _||_ P
-  | PrimTL AVar AType         -- primitive x : τ  /  primitive x : τ
+    DeclTL AVar AEffect AType  -- def x :{η} τ     /  def x :{η} τ
+  | DefnTL AVar (𝐿 APat) AExp  -- def x ψ₁ … = e   /  def x  ψ₁ … = e
+  | PrinTL (𝐿 APrin)           -- principal ρ …    /  principal ρ …
+  | TrustTL APrins             -- trust P          /  trust P
+  | SecurityTL APrins APrins   -- security P ⫫ P   /  security P _||_ P
+  | PrimTL AVar AType          -- primitive x : τ  /  primitive x : τ
   deriving (Eq,Ord)
 makePrettySum ''TL
 

@@ -1,0 +1,14 @@
+
+security { trusted-setup pki semi-honest corruptible: C,D <= 1 }
+
+connected { broadcast full: A,B,C,D link: C-E,D-E }
+
+A { location: <UVM> encryption: 256 reveals: E }
+
+B { location: <UMD> encryption: 512 reveals: E }
+
+C { location: <Amazon> reveals: none }
+
+D { location: <Microsoft> reveals: none }
+
+E { location: <US-NSF> reveals: none }

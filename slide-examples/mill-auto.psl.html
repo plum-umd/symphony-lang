@@ -1,0 +1,41 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>~/Projects/psl/slide-examples/mill-auto.psl.html</title>
+<meta name="Generator" content="Vim/8.1">
+<meta name="plugin-version" content="vim8.1_v1">
+<meta name="syntax" content="pantheon">
+<meta name="settings" content="use_css,pre_wrap,no_foldcolumn,expand_tabs,prevent_copy=">
+<meta name="colorscheme" content="none">
+<style type="text/css">
+<!--
+pre { white-space: pre-wrap; font-family: monospace; color: #000000; background-color: #ffffff; }
+body { font-family: monospace; color: #000000; background-color: #ffffff; }
+* { font-size: 1em; }
+.pantheonPunctuation { color: #6c6c6c; }
+.pantheonOperator { color: #008000; }
+.pantheonLiteral { color: #c00000; }
+.pantheonKeyword { color: #af5f00; font-weight: bold; }
+.pantheonPrimitive { color: #0000c0; }
+-->
+</style>
+</head>
+<body>
+<pre id='vimCodeElement'>
+
+<span class="pantheonKeyword">principal</span> A B C D E
+
+<span class="pantheonKeyword">def</span> main<span class="pantheonOperator">()</span> <span class="pantheonPunctuation">=</span>
+
+  <span class="pantheonKeyword">let</span> ab-raw <span class="pantheonPunctuation">=</span> <span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">par</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> <span class="pantheonPrimitive">read</span><span class="pantheonPunctuation">[</span><span class="pantheonPrimitive">int</span><span class="pantheonPunctuation">](</span><span class="pantheonLiteral">&quot;input.txt&quot;</span><span class="pantheonPunctuation">)</span>
+
+  <span class="pantheonKeyword">let</span> ab-bnd <span class="pantheonPunctuation">=</span> <span class="pantheonPunctuation">{</span><span class="pantheonPrimitive">par</span><span class="pantheonPunctuation">:</span>A<span class="pantheonPunctuation">,</span>B<span class="pantheonPunctuation">}</span> min<span class="pantheonPunctuation">(</span>ab-raw<span class="pantheonPunctuation">,</span><span class="pantheonLiteral">1_000_000_000</span><span class="pantheonPunctuation">)</span>
+
+  <span class="pantheonKeyword">reveal</span><span class="pantheonPunctuation">{</span>E<span class="pantheonPunctuation">}</span> <span class="pantheonKeyword">share</span><span class="pantheonPunctuation">(</span>ab-bnd<span class="pantheonPunctuation">.</span>A<span class="pantheonPunctuation">)</span> <span class="pantheonPunctuation">&gt;</span> <span class="pantheonKeyword">share</span><span class="pantheonPunctuation">(</span>ab-bnd<span class="pantheonPunctuation">.</span>B<span class="pantheonPunctuation">)</span>
+
+
+</pre>
+</body>
+</html>
+<!-- vim: set foldmethod=manual : -->

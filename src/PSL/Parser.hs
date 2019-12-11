@@ -63,6 +63,7 @@ lexer = lexerBasic puns kws prim ops
       , "case"
       , "reveal"
       , "share"
+      , "trace"
       ]
     prim = list
       [ "yao","gmw","bgw"
@@ -88,10 +89,12 @@ lexer = lexerBasic puns kws prim ops
       , "⟨⟩","<>"
       , "+","-"
       , "×","*"
-      , "/"
+      , "/","%"
       , "≡","=="
       , "≤","<="
+      , "≥",">="
       , "⋖","<<"
+      , "⋗",">>"
       , "^"
       , "?"
       , "◇","><"
@@ -540,14 +543,22 @@ pExp = fmixfixWithContext "exp" $ concat
   , fmixInfixL levelPLUS $ do cpSyntax "-" ; return $ \ e₁ e₂ → PrimE "MINUS" $ list [e₁,e₂]
   , fmixInfixL levelTIMES $ do concat [cpSyntax "×",cpSyntax "*"] ; return $ \ e₁ e₂ → PrimE "TIMES" $ list [e₁,e₂]
   , fmixInfixL levelTIMES $ do cpSyntax "/" ; return $ \ e₁ e₂ → PrimE "DIVIDE" $ list [e₁,e₂]
-  , fmixInfix levelCOMPARE $ do concat [cpSyntax "⋖",cpSyntax "<<"] ; return $ \ e₁ e₂ → PrimE "LT" $ list [e₁,e₂]
-  , fmixInfix levelCOMPARE $ do concat [cpSyntax "≤",cpSyntax "<="] ; return $ \ e₁ e₂ → PrimE "LTE" $ list [e₁,e₂]
+  , fmixInfixL levelTIMES $ do cpSyntax "%" ; return $ \ e₁ e₂ → PrimE "MOD" $ list [e₁,e₂]
   , fmixInfix levelCOMPARE $ do concat [cpSyntax "≡",cpSyntax "=="] ; return $ \ e₁ e₂ → PrimE "EQ" $ list [e₁,e₂]
+  , fmixInfix levelCOMPARE $ do concat [cpSyntax "⋖",cpSyntax "<<"] ; return $ \ e₁ e₂ → PrimE "LT" $ list [e₁,e₂]
+  , fmixInfix levelCOMPARE $ do concat [cpSyntax "⋗",cpSyntax ">>"] ; return $ \ e₁ e₂ → PrimE "GT" $ list [e₁,e₂]
+  , fmixInfix levelCOMPARE $ do concat [cpSyntax "≤",cpSyntax "<="] ; return $ \ e₁ e₂ → PrimE "LTE" $ list [e₁,e₂]
+  , fmixInfix levelCOMPARE $ do concat [cpSyntax "≥",cpSyntax ">="] ; return $ \ e₁ e₂ → PrimE "GTE" $ list [e₁,e₂]
   , fmixInfixR levelCOND $ do
       cpSyntax "?"
       e₂ ← pExp
       concat [cpSyntax "◇",cpSyntax "><"]
       return $ \ e₁ e₃ → PrimE "COND" $ list [e₁,e₂,e₃]
+  , fmixPrefix levelLET $ do
+      cpSyntax "trace"
+      e₁ ← pExp
+      void $ cpOptional $ cpSyntax "in"
+      return $ TraceE e₁
   ]
       
 ---------------
@@ -558,6 +569,7 @@ pTL ∷ CParser TokenBasic ATL
 pTL = cpNewWithContextRendered "tl" $ concat
   [ do cpSyntax "def"
        x ← pVar
+       ψs ← cpMany pPat
        concat
          [ do cpSyntax ":"
               ηO ← cpOptional $ do
@@ -570,11 +582,11 @@ pTL = cpNewWithContextRendered "tl" $ concat
               return $ DeclTL x η τ
          , do cpSyntax "="
               e ← pExp
-              return $ DefnTL x e
+              return $ DefnTL x ψs e
          ]
   , do cpSyntax "principal"
-       ρ ← pPrin
-       return $ PrinTL ρ
+       ρs ← cpOneOrMore pPrin
+       return $ PrinTL ρs
   , do cpSyntax "trust"
        ps ← pPrins
        return $ TrustTL ps

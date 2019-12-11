@@ -1,0 +1,26 @@
+
+principal A B C D E
+
+def main : unit ->{inp:A,B;rev:E} bool{E}
+
+
+  let ab-raw : int{isec:A,B}
+
+
+  let ab-bnd : int{isec:A,B}
+
+
+  let a : int{yao:C,D}
+
+
+  let b : int{yao:C,D}
+
+
+  let c : bool{yao:C,D}
+
+
+  let r : bool{E}
+
+
+  in r
+
