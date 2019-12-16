@@ -1,0 +1,10 @@
+
+  -- Execution for A
+  principal A B C D E
+  
+  def main : () →{inp:A,B,rev:E} int{E}
+  def main() =
+    let a = read{int}("euclid.txt")
+    in yao_send_secret_share(semi_honest,principals({C,D}),a)
+
+

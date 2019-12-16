@@ -70,8 +70,6 @@ syn match pantheonLiteral "\v\"([^\"\\]|([\\][\"]))*\""
 
 syn match pantheonKeyword "\v<primitive>"
 syn match pantheonKeyword "\v<principal>"
-syn match pantheonKeyword "\v<trust>"
-syn match pantheonKeyword "\v<security>"
 syn match pantheonKeyword "\v<def>"
 syn match pantheonKeyword "\v<tdef>"
 syn match pantheonKeyword "\v<λ>"

@@ -1,0 +1,31 @@
+
+  -- Execution for C
+  principal A B C D E
+  
+  def euclid-rec(m, P, n, a, b) =
+    let c = n ≡{int} 0
+    if c
+    then b
+    else 
+      let z = yao_int(m, P, 0)
+      let c = yao_eq(m, P, b, z)
+      let d = yao_mod(m, P, a, b)
+      let rc = euclid-rec(m, P, n -{nat} 1, b, d)
+      let r = yao_cond(m, P, a, rc)
+      in r
+  
+  def euclid(m, P, a, b) =
+    let n = 93{int}
+    let c = yao_gt(m, P, a, b)
+    let r1 = euclid-rec(m, P, n, a, b)
+    let r2 = euclid-rec(m, P, n, b, a)
+    let r = yao_cond(m, P, c, r1, r2)
+    in r
+  
+  def main() =
+    let a = yao_recv_secret_share(semi_honest, principals({A}))
+    let b = yao_recv_secret_share(semi_honest, principals({B}))
+    let r = euclid(semi_honest, principals({D}), a, b)
+    in yao_reveal_send(semi_honest, principals({E}), r)
+
+

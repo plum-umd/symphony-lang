@@ -3,6 +3,8 @@ module PSL.Parser where
 import UVMHS
 import AddToUVMHS
 
+import PSL.Data.Fix
+
 import PSL.Syntax
 
 levelIF,levelLAM,levelLET ∷ ℕ64
@@ -52,8 +54,6 @@ lexer = lexerBasic puns kws prim ops
     kws = list
       [ "primitive"
       , "principal"
-      , "trust"
-      , "security"
       , "def"
       , "λ","fun"
       , "Λ","abs"
@@ -115,8 +115,8 @@ testLexer = rtimeIO "" $ do
 -- Kind --
 ----------
 
-pKind ∷ CParser TokenBasic AKind
-pKind = cpNewWithContextRendered "kind" $ concat
+pKind ∷ CParser TokenBasic Kind
+pKind = cpNewContext "kind" $ concat
   [ do concat [cpSyntax "☆",cpSyntax "type"] ; return TypeK
   , do concat [cpSyntax "ℙ",cpSyntax "prin"] ; return PrinK
   , do concat [cpSyntax "ℙs",cpSyntax "prins"] ; return PrinsK
@@ -126,79 +126,79 @@ pKind = cpNewWithContextRendered "kind" $ concat
 -- Prin --
 ----------
 
-pPrin ∷ CParser TokenBasic APrin
-pPrin = cpNewWithContextRendered "prin" cpName
+pPrin ∷ CParser TokenBasic Prin
+pPrin = cpNewContext "prin" cpName
 
 --------------
 -- Prin-set --
 --------------
 
-pPrins ∷ CParser TokenBasic APrins
-pPrins = cpNewWithContextRendered "prins" $ pow ^$ cpManySepBy (cpSyntax ",") pPrin
+pPrins ∷ CParser TokenBasic (𝐿 Prin)
+pPrins = cpManySepBy (cpSyntax ",") pPrin
 
 ----------------
 -- Constraint --
 ----------------
 
-pConstr ∷ CParser TokenBasic AConstr
-pConstr = cpNewWithContextRendered "constr" $ concat
+pConstr ∷ CParser TokenBasic Constr
+pConstr = cpNewContext "constr" $ concat
   [ do cpSyntax "{"
-       ps₁ ← pPrins
+       ρs₁ ← pPrins
        cpSyntax "}"
        concat [cpSyntax "⊆",cpSyntax "<="]
        cpSyntax "{"
-       ps₂ ← pPrins
+       ρs₂ ← pPrins
        cpSyntax "}"
-       return $ SubsetC ps₁ ps₂
+       return $ SubsetC ρs₁ ρs₂
   ]
 
 ------------
 -- Effect --
 ------------
 
-pEffect ∷ CParser TokenBasic AEffect
-pEffect = cpNewWithContextRendered "effect" $ do
-  (ps₁,ps₂) ← concat
+pEffect ∷ CParser TokenBasic Effect
+pEffect = cpNewContext "effect" $ do
+  (ρs₁,ρs₂) ← concat
     [ do cpSyntax "inp"
          cpSyntax ":"
-         ps₁ ← pPrins
-         ps₂O ← cpOptional $ do 
+         ρs₁ ← pow ^$ pPrins
+         ρs₂O ← cpOptional $ do 
            cpSyntax ";"
            cpSyntax "rev"
            cpSyntax ":"
-           pPrins
-         return (ps₁,ifNone (Annotated null pø) ps₂O)
+           pow ^$ pPrins
+         return (ρs₁,ifNone null ρs₂O)
     , do cpSyntax "rev"
          cpSyntax ":"
-         ps₂ ← pPrins
-         return (Annotated null pø,ps₂)
-    , return (Annotated null pø,Annotated null pø)
+         ρs₂ ← pow ^$ pPrins
+         return (null,ρs₂)
+    , do return (null,null)
     ]
-  return $ Effect ps₁ ps₂
+  return $ Effect ρs₁ ρs₂
 
 ----------
 -- TVar --
 ----------
 
-pTVar ∷ CParser TokenBasic ATVar
-pTVar = cpNewWithContextRendered "tvar" cpName
+pTVar ∷ CParser TokenBasic TVar
+pTVar = cpNewContext "tvar" cpName
 
 ----------
 -- Type --
 ----------
 
-pType ∷ CParser TokenBasic AType
-pType = fmixfixWithContext "type" $ concat
+pType ∷ CParser TokenBasic Type
+pType = cpNewContext "type" $ mixfix $ concat
   -- α
-  [ fmixTerminal $ do x ← pTVar ; return $ VarT x
+  [ mixTerminal $ do x ← pTVar ; return $ VarT x
   -- 𝟙
-  , fmixTerminal $ do concat [cpSyntax "𝟙",cpSyntax "unit"] ; return UnitT
+  , mixTerminal $ do concat [cpSyntax "𝟙",cpSyntax "unit"] ; return UnitT
   -- 𝔹
-  , fmixTerminal $ do concat [cpSyntax "𝔹",cpSyntax "bool"] ; return 𝔹T
+  , mixTerminal $ do concat [cpSyntax "𝔹",cpSyntax "bool"] ; return 𝔹T
   -- 𝕊
-  , fmixTerminal $ do concat [cpSyntax "𝕊",cpSyntax "string"] ; return 𝕊T
+  , mixTerminal $ do concat [cpSyntax "𝕊",cpSyntax "string"] ; return 𝕊T
   -- ℕ[n.n]
-  , fmixTerminal $ do
+  , mixTerminal $ do
       concat [cpSyntax "ℕ",cpSyntax "nat"]
       nsO ← cpOptional $ do
         cpSyntax "["
@@ -210,7 +210,7 @@ pType = fmixfixWithContext "type" $ concat
         return $ n₁ :* n₂O
       return $ ℕT $ elim𝑂 (Some (64 :* None)) Some nsO
   -- ℤ[n.n]
-  , fmixTerminal $ do
+  , mixTerminal $ do
       concat [cpSyntax "ℤ",cpSyntax "int"]
       nsO ← cpOptional $ do
         cpSyntax "["
@@ -222,7 +222,7 @@ pType = fmixfixWithContext "type" $ concat
         return $ n₁ :* n₂O
       return $ ℤT $ elim𝑂 (Some (64 :* None)) Some nsO
   -- 𝔽[n]
-  , fmixTerminal $ do
+  , mixTerminal $ do
       concat [cpSyntax "𝔽",cpSyntax "float"]
       nO ← cpOptional $ do
         cpSyntax "["
@@ -231,24 +231,24 @@ pType = fmixfixWithContext "type" $ concat
         return n
       return $ 𝔽T $ ifNone 64 nO
   -- τ + τ
-  , fmixInfixL levelPLUS $ do concat [cpSyntax "+"] ; return (:+:)
+  , mixInfixL levelPLUS $ do concat [cpSyntax "+"] ; return (:+:)
   -- τ × τ
-  , fmixInfixL levelTIMES $ do concat [cpSyntax "×",cpSyntax "*"] ; return (:×:)
+  , mixInfixL levelTIMES $ do concat [cpSyntax "×",cpSyntax "*"] ; return (:×:)
   -- list τ
-  , fmixPrefix levelAPP $ do cpSyntax "list" ; return ListT
+  , mixPrefix levelAPP $ do cpSyntax "list" ; return ListT
   -- τ →{η} τ
-  , fmixInfixR levelARROW $ do 
-      Annotated cxt () ← cpNewExpressionContext $ cpWithContextRendered $ concat [cpSyntax "→",cpSyntax "->"] 
+  , mixInfixR levelARROW $ do 
+      concat [cpSyntax "→",cpSyntax "->"] 
+      a ← cpNewGetContextRendered
       ηO ← cpOptional $ do
         cpSyntax "{"
         η ← pEffect
         cpSyntax "}"
         return η
-      let ps₀ = Annotated cxt pø
-          η₀ = Annotated cxt $ Effect ps₀ ps₀
+      let η₀ = Effect null null
       return $ \ τ₁ τ₂ → τ₁ :→: (ifNone η₀ ηO :* τ₂)
   -- ∀ α:κ. [c,…,c] ⇒ τ
-  , fmixPrefix levelLAM $ do
+  , mixPrefix levelLAM $ do
       concat [cpSyntax "∀", cpSyntax "forall"]
       α ← pTVar
       cpSyntax ":"
@@ -259,38 +259,38 @@ pType = fmixfixWithContext "type" $ concat
         concat [cpSyntax "⇒",cpSyntax "=>"]
         return cs
       return $ ForallT α κ cs
-  -- τ{P}
-  , fmixPostfix levelMODE $ do 
+  -- τ{ρ}
+  , mixPostfix levelMODE $ do 
       cpSyntax "{"
-      p ← pPrin
+      ρ ← pPrin
       cpSyntax "}"
-      return $ \ τ → SecT τ p
+      return $ SecT ρ
   -- τ{ssec:P}
-  , fmixPostfix levelMODE $ do 
+  , mixPostfix levelMODE $ do 
       cpSyntax "{"
       cpSyntax "ssec"
       cpSyntax ":"
-      ps ← pPrins
+      ρs ← pow ^$ pPrins
       cpSyntax "}"
-      return $ \ τ → SSecT τ ps
+      return $ SSecT ρs
   -- τ{isec:P}
-  , fmixPostfix levelMODE $ do 
+  , mixPostfix levelMODE $ do 
       cpSyntax "{"
       cpSyntax "isec"
       cpSyntax ":"
-      ps ← pPrins
+      ρs ← pow ^$ pPrins
       cpSyntax "}"
-      return $ \ τ → ISecT τ ps
+      return $ ISecT ρs
   -- τ{φ:P}
-  , fmixPostfix levelMODE $ do 
+  , mixPostfix levelMODE $ do 
       cpSyntax "{"
       φ ← pProt
       cpSyntax ":"
-      ps ← pPrins
+      ρs ← pow ^$ pPrins
       cpSyntax "}"
-      return $ \ τ → MPCT τ φ ps
+      return $ ShareT φ ρs
   -- (τ)
-  , fmixTerminal $ do cpSyntax "(" ; τ ← pType ; cpSyntax ")" ; return $ extract τ
+  , mixTerminal $ do cpSyntax "(" ; τ ← pType ; cpSyntax ")" ; return τ
   ]
 
 --------------
@@ -307,8 +307,8 @@ pBool = concat
 -- Prot --
 ----------
 
-pProt ∷ CParser TokenBasic AProt
-pProt = cpNewWithContextRendered "prot" $ concat
+pProt ∷ CParser TokenBasic Prot
+pProt = cpNewContext "prot" $ concat
   [ do cpSyntax "yao" ; return YaoP
   , do cpSyntax "bgw" ; return BGWP
   , do cpSyntax "gmw" ; return GMWP
@@ -318,33 +318,33 @@ pProt = cpNewWithContextRendered "prot" $ concat
 -- Var --
 ---------
 
-pVar ∷ CParser TokenBasic AVar
-pVar = cpNewWithContextRendered "var" cpName
+pVar ∷ CParser TokenBasic Var
+pVar = cpNewContext "var" cpName
 
 -------------
 -- Pattern --
 -------------
 
-pPat ∷ CParser TokenBasic APat
-pPat = fmixfixWithContext "pattern" $ concat
+pPat ∷ CParser TokenBasic Pat
+pPat = mixfix $ concat
   -- x
-  [ fmixTerminal $ do x ← pVar ; return $ VarP x
+  [ mixTerminal $ do x ← pVar ; return $ VarP x
   -- •
-  , fmixTerminal $ do concat [cpSyntax "•",cpSyntax "()"] ; return BulP
+  , mixTerminal $ do concat [cpSyntax "•",cpSyntax "()"] ; return BulP
   -- L ψ
-  , fmixPrefix levelAPP $ do cpSyntax "L" ; return LP
+  , mixPrefix levelAPP $ do cpSyntax "L" ; return LP
   -- R ψ
-  , fmixPrefix levelAPP $ do cpSyntax "R" ; return RP
+  , mixPrefix levelAPP $ do cpSyntax "R" ; return RP
   -- ψ,ψ
-  , fmixInfixL levelCOMMA $ do cpSyntax "," ; return TupP
+  , mixInfixL levelCOMMA $ do cpSyntax "," ; return TupP
   -- []
-  , fmixTerminal $ do cpSyntax "[]" ; return NilP
+  , mixTerminal $ do cpSyntax "[]" ; return NilP
   -- ψ∷ψ
-  , fmixInfixR levelCONS $ do concat [cpSyntax "∷",cpSyntax "::"] ; return ConsP
+  , mixInfixR levelCONS $ do concat [cpSyntax "∷",cpSyntax "::"] ; return ConsP
   -- ⟨⟩
-  , fmixTerminal $ do concat [cpSyntax "⟨⟩",cpSyntax "<>"] ; return EmptyP
+  , mixTerminal $ do concat [cpSyntax "⟨⟩",cpSyntax "<>"] ; return EmptyP
   -- ⟨ρ.ψ⟩⧺ψ
-  , fmixPrefix levelPLUS $ do
+  , mixPrefix levelPLUS $ do
       concat [cpSyntax "⟨",cpSyntax "<"]
       ρ ← pPrin
       cpSyntax "."
@@ -353,37 +353,38 @@ pPat = fmixfixWithContext "pattern" $ concat
       concat [cpSyntax "⧺",cpSyntax "++"]
       return $ BundleP ρ ψ
   -- ψ : τ
-  , fmixPostfix levelASCR $ do
+  , mixPostfix levelASCR $ do
       cpSyntax ":"
       τ ← pType
       return $ \ ψ → AscrP ψ τ
   -- _
-  , fmixTerminal $ do cpSyntax "_" ; return WildP
+  , mixTerminal $ do cpSyntax "_" ; return WildP
   -- (ψ)
-  , fmixTerminal $ do cpSyntax "(" ; ψ ← pPat ; cpSyntax ")" ; return $ extract ψ
+  , mixTerminal $ do cpSyntax "(" ; ψ ← pPat ; cpSyntax ")" ; return ψ
   -- [ψ₁;…;ψₙ]
-  , fmixTerminal $ do
+  , mixTerminal $ do
       cpSyntax "["
-      ψs ← cpManySepByContext cpWithContextRendered (cpSyntax ";") pPat
-      a ← annotatedTag ^$ cpWithContextRendered $ cpSyntax "]"
-      return $ extract $ foldrOnFrom ψs (Annotated a NilP) $ \ (Annotated a₁ ψ₁) ψ₂ → Annotated a₁ $ ConsP ψ₁ ψ₂
+      -- ψs ← cpManySepByContext cpWithContextRendered (cpSyntax ";") pPat
+      ψs ← cpManySepBy (cpSyntax ";") pPat
+      cpSyntax "]"
+      return $ foldrOnFrom ψs NilP $ \ ψ₁ ψ₂ → ConsP ψ₁ ψ₂
   -- ⟨ρ₁.ψ₁;…ρₙ.ψₙ⟩
-  , fmixTerminal $ do
+  , mixTerminal $ do
       do concat [cpSyntax "⟨",cpSyntax "<"]
-         ψρs ← cpManySepByContext cpWithContextRendered (cpSyntax ";") $ do
+         ψρs ← cpManySepBy (cpSyntax ";") $ do
            ρ ← pPrin
            cpSyntax "."
            ψ ← pPat
            return $ ρ :* ψ
-         a ← annotatedTag ^$ cpWithContextRendered $ concat [cpSyntax "⟩",cpSyntax ">"]
-         return $ extract $ foldOnFrom ψρs (Annotated a EmptyP) $ \ (Annotated a₁ (ρ₁ :* ψ₁)) ψ₂ → Annotated a₁ $ BundleP ρ₁ ψ₁ ψ₂
+         concat [cpSyntax "⟩",cpSyntax ">"]
+         return $ foldOnFrom ψρs EmptyP $ \ (ρ₁ :* ψ₁) ψ₂ → BundleP ρ₁ ψ₁ ψ₂
   ]
 
 -------------------
 -- Program Terms --
 -------------------
 
-pExp ∷ CParser TokenBasic AExp
+pExp ∷ CParser TokenBasic Exp
 pExp = fmixfixWithContext "exp" $ concat
   -- x
   [ fmixTerminal $ do x ← pVar ; return $ VarE x
@@ -450,7 +451,7 @@ pExp = fmixfixWithContext "exp" $ concat
         [ do x ← pVar
              ψO ← cpOptional pPat
              return $ case ψO of
-               None → None :* siphon x (VarP x)
+               None → None :* VarP x
                Some ψ → Some x :* ψ
         , do ψ ← pPat
              return $ None :* ψ
@@ -481,18 +482,18 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntax "{"
       cpSyntax "par"
       cpSyntax ":"
-      ps ← pPrins
+      ρs ← pPrins
       cpSyntax "}"
-      return $ ParE ps
+      return $ ParE ρs
   -- share{φ:P} e
   , fmixPrefix levelAPP $ do 
       cpSyntax "share" 
       cpSyntax "{"
       φ ← pProt
       cpSyntax ":"
-      ps ← pPrins
+      ρs ← pPrins
       cpSyntax "}"
-      return $ ShareE φ ps
+      return $ ShareE φ ρs
   -- e.ρ
   , fmixPostfix levelACCESS $ do cpSyntax "." ; ρ ← pPrin ; return $ \ e → AccessE e ρ
   -- ⟨ρ₁.e₁;…;ρₙ;eₙ⟩
@@ -508,12 +509,12 @@ pExp = fmixfixWithContext "exp" $ concat
   -- e⧺e
   , fmixInfixL levelPLUS $ do concat [cpSyntax "⧺",cpSyntax "++"] ; return BundleUnionE
   -- reveal{P} e
-  , fmixPrefix levelMPC $ do
+  , fmixPrefix levelLET $ do
       cpSyntax "reveal"
       cpSyntax "{"
-      ps ← pPrins
+      ρs ← pPrins
       cpSyntax "}"
-      return $ RevealE ps
+      return $ RevealE ρs
   -- e:τ
   , fmixPostfix levelASCR $ do
       cpSyntax ":"
@@ -565,21 +566,15 @@ pExp = fmixfixWithContext "exp" $ concat
 -- Top-level --
 ---------------
 
-pTL ∷ CParser TokenBasic ATL
+pTL ∷ CParser TokenBasic TL
 pTL = cpNewWithContextRendered "tl" $ concat
   [ do cpSyntax "def"
        x ← pVar
        ψs ← cpMany pPat
        concat
          [ do cpSyntax ":"
-              ηO ← cpOptional $ do
-                cpSyntax "{"
-                η ← pEffect
-                cpSyntax "}"
-                return η
               τ ← pType
-              let η = ifNone (Annotated null $ Effect (Annotated null pø) (Annotated null pø)) ηO
-              return $ DeclTL x η τ
+              return $ DeclTL x τ
          , do cpSyntax "="
               e ← pExp
               return $ DefnTL x ψs e
@@ -587,14 +582,6 @@ pTL = cpNewWithContextRendered "tl" $ concat
   , do cpSyntax "principal"
        ρs ← cpOneOrMore pPrin
        return $ PrinTL ρs
-  , do cpSyntax "trust"
-       ps ← pPrins
-       return $ TrustTL ps
-  , do cpSyntax "security"
-       ps₁ ← pPrins
-       concat [cpSyntax "⫫",cpSyntax "_||_"]
-       ps₂ ← pPrins
-       return $ SecurityTL ps₁ ps₂
   , do cpSyntax "primitive"
        x ← pVar
        cpSyntax ":"
@@ -602,7 +589,7 @@ pTL = cpNewWithContextRendered "tl" $ concat
        return $ PrimTL x τ
   ]
 
-cpTLs ∷ CParser TokenBasic (𝐿 ATL)
+cpTLs ∷ CParser TokenBasic (𝐿 TL)
 cpTLs = cpMany pTL
 
 testParserExample ∷ 𝕊 → IO ()

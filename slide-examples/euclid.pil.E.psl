@@ -1,0 +1,10 @@
+
+  -- Execution for E
+  principal A B C D E
+  
+  def main() =
+    let r = yao_reveal_recv(semi_honest, principals({C,D})
+    in r
+
+
+

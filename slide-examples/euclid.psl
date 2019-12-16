@@ -1,0 +1,15 @@
+principal A B C D E
+
+def euclid-rec(n, a, b) =
+  if n ≡ 0
+  then b
+  else (b ≡ 0) ? a ◇ euclid-rec(n - 1, b, a % b)
+
+def euclid(a, b) =
+  let n = 93
+  in (a ⋗ b) ? euclid-rec(n, a, b) ◇ euclid-rec(n, b, a)
+
+def main() =
+  protocol yao:C,D
+  let ab = {par:A,B} read("euclid.txt")
+  in reveal{E} euclid(share(ab.A), share(ab.B))

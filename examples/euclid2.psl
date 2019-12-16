@@ -25,12 +25,7 @@ def euclid a b =
   ? euclid-rec n a b
   ◇ euclid-rec n b a
 
-def euclid-mpc : 𝟙 → {inp:A,B;rev:E} ℤ{ssec:E}
-def euclid-mpc • =
+def main : 𝟙 → {inp:A,B;rev:E} ℤ{ssec:E}
+def main • =
   let ab = {par:A,B} read ℤ "euclid.txt"
-  in
-  reveal{E}
-  euclid (share{yao:C,D} ab.A) (share{yao:C,D} ab.B)
-
-def main :{inp:A,B;rev:E} ℤ{ssec:E}
-def main = euclid-mpc •
+  reveal{E} euclid (share{yao:C,D} ab.A) (share{yao:C,D} ab.B)

@@ -9,17 +9,17 @@ principal E
 principal F
 
 def cmp : ℤ{isec:A,B} →{inp:A,B} 𝔹{yao:C,D}
-def cmp = λ xy → 
+def cmp xy =
   let x : ℤ{yao:C,D}
   let x = share{yao:C,D} xy.A 
-  let y : ℤ{yao:A,B}
+  let y : ℤ{yao:C,D}
   let y = share{yao:C,D} xy.B
   let r : 𝔹{yao:C,D}
   let r = x ≤ y
   in r
 
 def cmp-mpc : 𝟙 →{inp:A,B;rev:E,F} 𝔹{ssec:E,F}
-def cmp-mpc = λ • →
+def cmp-mpc • =
   let xy : ℤ{isec:A,B}
   let xy = {par:A,B} read ℤ "cmp-input.txt"
   let r : 𝔹{yao:C,D}
@@ -29,9 +29,9 @@ def cmp-mpc = λ • →
   in o 
 
 def one-liner : 𝟙 →{inp:A,B;rev:E,F} 𝔹{ssec:E,F}
-def one-liner = λ • →
+def one-liner • =
   let xy = {par:A,B} read ℤ "cmp-input.txt"
   in reveal{E,F} (share{yao:C,D} xy.A) ≤ (share{yao:C,D} xy.B)
 
-def main : 𝔹{ssec:A,B} × 𝔹{ssec:A,B}
-def main = cmp-mpc • , one-liner •
+def main : 𝟙 →{inp:A,B;rev:E,F} 𝔹{ssec:E,F} × 𝔹{ssec:E,F}
+def main • = cmp-mpc • , one-liner •

@@ -1,12 +1,16 @@
 module PSL.Interpreter where
 
 import UVMHS
-import AddToUVMHS
-import PSL.Syntax
 import PSL.Parser
-import PSL.Common
+import PSL.Syntax
+
+import PSL.Data.Mode
+
+import qualified PSL.SyntaxUF as UF
 
 import qualified Prelude as HS
+
+{-
 
 -- mv ∈ mpc-val
 data ValMPC =
@@ -35,8 +39,8 @@ data Val =
   | PairV Val Val
   | NilV
   | ConsV Val Val
-  | CloV (𝑂 AVar) APat AExp ICxt
-  | TCloV 𝕏 AExp ICxt
+  | CloV (𝑂 UF.Var) UF.Pat UF.Exp ICxt
+  | TCloV UF.TVar UF.Exp ICxt
   | ShareV ValS
   | ParV (Prin ⇰ Val)
   deriving (Eq,Ord,Show)
@@ -70,10 +74,10 @@ instance Join ValP where
   _ ⊔ _ = TopVP
 instance JoinLattice ValP
 
--- γ ∈ env
+-- γ ∈ ienv
 type Env = 𝕏 ⇰ ValP
 
--- σ ∈ state
+-- σ ∈ itlstate
 newtype ITLState = ITLState
   { itlStateEnv ∷ Env 
   } deriving (Eq,Ord,Show)
@@ -148,32 +152,29 @@ makeLenses ''ICxt
 -- Variables and Patterns --
 ----------------------------
 
-interpVar ∷ AVar → IM ValP
-interpVar xA = do
-  let x = extract xA
+interpVar ∷ Var → IM ValP
+interpVar x = do
   γ ← askL iCxtEnvL
   case γ ⋕? x of
     Some ṽ → return ṽ
     None → pptrace (annotatedTag xA) $ error "interpVar: not in scope"
 
-bindVar ∷ AVar → ValP → IM a → IM a
-bindVar xA v = 
-  let x = extract xA 
-  in mapEnvL iCxtEnvL ((x ↦ v) ⩌)
+bindVar ∷ Var → ValP → IM a → IM a
+bindVar x v = mapEnvL iCxtEnvL ((x ↦ v) ⩌)
 
-bindPat ∷ APat → ValP → IM a → IM a
-bindPat ψA v = case extract ψA of
-  VarP x → bindVar x v
-  BulP → id
-  _ → pptrace (annotatedTag ψA) $ error "bindPat: not implemented"
+bindPat ∷ UF.Pat → ValP → IM a → IM a
+bindPat ψˢ v = case extract ψˢ of
+  UF.VarP x → bindVar x v
+  UF.BulP → id
+  _ → pptrace (annotatedTag ψˢ) $ error "bindPat: not implemented"
 
 --------------------
 -- Parsing Inputs --
 --------------------
 
-parseTy ∷ AType → 𝕊 → Val
+parseTy ∷ UF.Type → 𝕊 → Val
 parseTy τA s = case extract τA of
-  ℤT (Some (64 :* None)) → IntV $ int (HS.read $ chars s ∷ ℤ64)
+  UF.ℤT (Some (64 :* None)) → IntV $ int (HS.read $ chars s ∷ ℤ64)
   _ → error "parseTy: not implemented"
 
 -----------
@@ -286,15 +287,15 @@ interpPrim = onRawVals ∘ interpPrimRaw
 -- Expressions --
 -----------------
 
-interpExp ∷ AExp → IM ValP
+interpExp ∷ UF.Exp → IM ValP
 interpExp eA = case extract eA of
-  VarE x → interpVar x
+  UF.VarE x → interpVar x
   -- BoolE
-  StrE s → return $ AllVP $ StrV s
-  IntE i → return $ AllVP $ IntV i
+  UF.StrE s → return $ AllVP $ StrV s
+  UF.IntE i → return $ AllVP $ IntV i
   -- FltE
-  BulE → return $ AllVP $ BulV
-  IfE e₁ e₂ e₃ → do
+  UF.BulE → return $ AllVP $ BulV
+  UF.IfE e₁ e₂ e₃ → do
     ṽ ← interpExp e₁
     bindValP ṽ $ \ v → do
       case v of
@@ -304,7 +305,7 @@ interpExp eA = case extract eA of
         _ → error "interpExp: IfE: v ≢ BoolV _"
   -- LE
   -- RE
-  TupE e₁ e₂ → do
+  UF.TupE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
     bindValP ṽ₁ $ \ v₁ →
@@ -312,15 +313,15 @@ interpExp eA = case extract eA of
         return $ AllVP $ PairV v₁ v₂
   -- NilE
   -- ConsE
-  LetTyE _ _ e → interpExp e
-  LetE ψ e₁ e₂ → do
+  UF.LetTyE _ _ e → interpExp e
+  UF.LetE ψ e₁ e₂ → do
     v ← interpExp e₁
     bindPat ψ v $ interpExp e₂
   -- CaseE
-  LamE selfO ψ e → do
+  UF.LamE selfO ψ e → do
     ξ ← ask
     return $ AllVP $ CloV selfO ψ e ξ
-  AppE e₁ e₂ → do
+  UF.AppE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
     bindValP ṽ₁ $ \ v₁ → case v₁ of
@@ -332,15 +333,15 @@ interpExp eA = case extract eA of
       _ → pptrace (annotatedTag eA) $ error "interpExp: AppE: v₁ ≢ CloV _ _ _ _"
   -- TLamE
   -- TAppE
-  SoloE pA e → do
+  UF.SoloE pA e → do
     let p = extract pA
     restrictMode (SecM p) $ interpExp e
-  ParE psA e → do
-    let ps = extractPrins psA
+  UF.ParE psA e → do
+    let ps = map strip psA
     joins ^$ mapMOn (iter ps) $ \ p → do restrictMode (SecM p) $ interpExp e
-  ShareE φA psA e → do
-    let φ = extract φA
-    let ps = extractPrins psA
+  UF.ShareE φA psA e → do
+    let φ = strip φA
+    let ps = pow $ map strip psA
     ṽ ← interpExp e
     return $ case ṽ of
       AllVP v → case v of
@@ -352,7 +353,7 @@ interpExp eA = case extract eA of
         IntV i → AllVP $ ShareV $ ValS (IntMV i) φ ps
         _ → pptrace (annotatedTag eA) $ error "interpExp: ShareE: SecVP: v ∉ {BoolV _,IntV _}"
       _ → pptrace (annotatedTag eA) $ error "interpExp: ShareE: ṽ ≢ SecVP _ _"
-  AccessE e pA → do
+  UF.AccessE e pA → do
     let p = extract pA
     ṽ ← interpExp e
     return $ case ṽ of
@@ -360,13 +361,13 @@ interpExp eA = case extract eA of
         Some v → SecVP p v
         _ → error "interpExp: AccessE: ISecVP: pvs ⋕? p ≢ Some v"
       _ → error "interpExp: AccessE: ṽ ≢ ISecVP _"
-  BundleE pes → do
+  UF.BundleE pes → do
     joins ^$ mapMOn (iter pes) $ \ (pA :* e) → do
       let p = extract pA
       restrictMode (SecM p) $ interpExp e
   -- BundleUnionE
-  RevealE psA e → do
-    let ps = extractPrins psA
+  UF.RevealE psA e → do
+    let ps = pow $ map strip psA
     ṽ ← interpExp e
     case ṽ of
       AllVP v → return $ SSecVP ps $ case v of
@@ -375,7 +376,7 @@ interpExp eA = case extract eA of
         _ → pptrace (annotatedTag eA) $ error "interpExp: RevealE: v ∉ {ShaveV (ValS (BoolMV _) _ _),ShareV (ValS (IntMV _) _ _)}"
       _ → pptrace (annotatedTag eA) $ error "interpExp: RevealE: ṽ ≢ AllVP _"
   -- AscrE
-  ReadE τA e → do
+  UF.ReadE τA e → do
     ṽ ← interpExp e
     bindValP ṽ $ \ v → case v of
       StrV fn → do
@@ -388,34 +389,28 @@ interpExp eA = case extract eA of
       _ → error "interpExp: ReadE: v ≢ StrV _"
   -- InferE
   -- HoleE
-  PrimE o es → do
+  UF.PrimE o es → do
     ṽs ← mapM interpExp es
     bindValsP ṽs $ \ vs → return $ AllVP $ interpPrim o vs
-  TraceE e₁ e₂ → do
+  UF.TraceE e₁ e₂ → do
     v ← interpExp e₁
     pptrace v $ interpExp e₂
-  _ → pptrace (annotatedTag eA) $ error "not implemented: interpExp"
+  _ → pptrace (annotatedTag eA) $ error "interpExp: not implemented"
 
 --------------------------
 -- Top-level Statements --
 --------------------------
 
-interpTL ∷ ATL → ITLM ()
-interpTL sA = case extract sA of
-  DeclTL _ _ _ → skip
-  DefnTL xA ψs e →  do
-    let e₀ = case ψs of
-          Nil → e
-          ψ :& ψs' →
-            let e'' = foldrOnFrom ψs' e $ \ ψ' e' → nulla $ LamE None ψ' e'
-            in nulla $ LamE (Some xA) ψ e''
+interpTL ∷ UF.TL → ITLM ()
+interpTL tlA = case extract tlA of
+  UF.DefnTL xA ψs e →  do
     let x = extract xA
-    v ← asTLM $ interpExp e₀
+    let e' = UF.buildLambda (annotatedTag tlA) xA ψs e
+    v ← asTLM $ interpExp e'
     modifyL itlStateEnvL ((x ↦ v) ⩌)
-  PrinTL _ → skip
-  _ → pptrace (annotatedTag sA) $ error "interpTL: not implemented"
+  _ → pptrace (annotatedTag tlA) $ error "interpTL: not implemented"
 
-interpTLs ∷ 𝐿 ATL → ITLM ()
+interpTLs ∷ 𝐿 UF.TL → ITLM ()
 interpTLs = eachWith interpTL
 
 -------------
@@ -430,7 +425,6 @@ interpretExample fn = do
   let ts = tokens s
   ls ← tokenizeIO lexer ts
   tls ← parseIO cpTLs ls
-  -- out $ "DONE PARSING:" ⧺ fn
   let σtl = evalITLM σtl₀ $ retState $ interpTLs tls
   return $ itlStateEnv σtl ⋕! var "main"
 
@@ -470,3 +464,5 @@ testInterpreter = do
   -- testInterpreterExample "cmp-split"
   -- testInterpreterExample "cmp-tutorial"
   -- testInterpreterExample "add"
+
+-}

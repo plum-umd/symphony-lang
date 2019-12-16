@@ -1,10 +1,9 @@
-module PSL.Common where
+module PSL.Data.Mode where
 
 import UVMHS
 
-import PSL.Syntax
+import PSL.SyntaxIR
 
--- m ∈ mode
 data Mode =
     TopM
   | SecM Prin
@@ -31,4 +30,5 @@ instance MeetLattice Mode
 instance Lattice Mode
 
 instance POrd Mode where m₁ ⊑ m₂ = (m₁ ⊔ m₂) ≡ m₂
+
 

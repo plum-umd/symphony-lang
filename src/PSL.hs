@@ -7,5 +7,5 @@ import PSL.TypeChecker
 
 main ∷ IO ()
 main = do
-  testTypeChecker
-  testInterpreter
+  testTypechecker
+  -- testInterpreter

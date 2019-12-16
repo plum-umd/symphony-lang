@@ -42,7 +42,13 @@ cpOneOrMoreSepByContext f sepM xM = do
 cpNewWithContextRendered ∷ (Ord t) ⇒ 𝕊 → CParser t a → CParser t (Annotated FullContext a)
 cpNewWithContextRendered s = cpNewContext s ∘ cpWithContextRendered
 
-instance Null FullContext where null = FullContext null null null
+cpGetContextRendered ∷ CParser t FullContext
+cpGetContextRendered = toCParser pGetContextRendered
 
-nulla  ∷ (Null t) ⇒ a → Annotated t a
-nulla = Annotated null
+cpNewGetContextRendered ∷ (Ord t) ⇒ CParser t FullContext
+cpNewGetContextRendered = cpNewExpressionContext cpGetContextRendered
+
+-- instance Null FullContext where null = FullContext null null null
+-- 
+-- noa  ∷ (Null t) ⇒ a → Annotated t a
+-- noa = Annotated null
