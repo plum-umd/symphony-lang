@@ -239,7 +239,6 @@ pType = cpNewContext "type" $ mixfix $ concat
   -- τ →{η} τ
   , mixInfixR levelARROW $ do 
       concat [cpSyntax "→",cpSyntax "->"] 
-      a ← cpNewGetContextRendered
       ηO ← cpOptional $ do
         cpSyntax "{"
         η ← pEffect
@@ -392,6 +391,8 @@ pExp = fmixfixWithContext "exp" $ concat
   , fmixTerminal $ do b ← pBool ; return $ BoolE b
   -- s
   , fmixTerminal $ do s ← cpString ; return $ StrE s
+  -- n
+  , fmixTerminal $ do n ← cpNatural ; return $ NatE n
   -- i
   , fmixTerminal $ do i ← cpInteger ; return $ IntE i
   -- d

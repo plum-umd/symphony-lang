@@ -1,37 +1,11 @@
 -- input parties
-principal A
-principal B
+principal A B
 -- compute parties
-principal C
-principal D
--- output parties
+principal C D
+-- output party
 principal E
-principal F
 
-def cmp : ℤ{isec:A,B} →{inp:A,B} 𝔹{yao:C,D}
-def cmp xy =
-  let x : ℤ{yao:C,D}
-  let x = share{yao:C,D} xy.A 
-  let y : ℤ{yao:C,D}
-  let y = share{yao:C,D} xy.B
-  let r : 𝔹{yao:C,D}
-  let r = x ≤ y
-  in r
-
-def cmp-mpc : 𝟙 →{inp:A,B;rev:E,F} 𝔹{ssec:E,F}
-def cmp-mpc • =
-  let xy : ℤ{isec:A,B}
+def main : 𝟙 →{inp:A,B;rev:E} 𝔹{ssec:E}
+def main • =
   let xy = {par:A,B} read ℤ "cmp-input.txt"
-  let r : 𝔹{yao:C,D}
-  let r = cmp xy
-  let o : 𝔹{ssec:E,F}
-  let o = reveal{E,F} r
-  in o 
-
-def one-liner : 𝟙 →{inp:A,B;rev:E,F} 𝔹{ssec:E,F}
-def one-liner • =
-  let xy = {par:A,B} read ℤ "cmp-input.txt"
-  in reveal{E,F} (share{yao:C,D} xy.A) ≤ (share{yao:C,D} xy.B)
-
-def main : 𝟙 →{inp:A,B;rev:E,F} 𝔹{ssec:E,F} × 𝔹{ssec:E,F}
-def main • = cmp-mpc • , one-liner •
+  reveal{E} (share{yao:C,D} xy.A) ≤ (share{yao:C,D} xy.B)

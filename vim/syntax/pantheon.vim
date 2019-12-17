@@ -66,6 +66,7 @@ syn match pantheonLiteral "\v<true>"
 syn match pantheonLiteral "\v<false>"
 
 syn match pantheonLiteral "\v-?(\d|_)+(\.(\d|_)+)?(e(\d|_)+)?"
+syn match pantheonLiteral "\v\d(\d|_)*n"
 syn match pantheonLiteral "\v\"([^\"\\]|([\\][\"]))*\""
 
 syn match pantheonKeyword "\v<primitive>"

@@ -1,44 +1,36 @@
-principal A
-principal B
+-- input parties
+principal A B 
+-- compute parties
+principal C D 
+-- output party
+principal E
 
-def sub : int{yao:A,B} -> int {yao:A,B} -> int{yao:A,B}
-def sub = fun a -> fun b -> a + b * -1
+-- assumptions: 
+-- ‣ a > b
+def euclid-rec : ℕ → ℤ{yao:C,D} → ℤ{yao:C,D} → ℤ{yao:C,D}
+def euclid-rec n a b =
+  if n ≡ 0n
+  then b
+  else
+    b ≡ share{yao:C,D} 0
+    ? a
+    ◇ euclid-rec (n - 1n) b (a % b)
 
---  fixed number
--- of iterations
---           ⌄⌄⌄  
-def divmod : nat -> int{yao:A,B} -> int{yao:A,B} -> int{yao:A,B} * int{yao:A,B}
-def divmod = fun rec n -> fun a -> fun b ->
-  if n == 0 
-  then (0 , a)
-  else 
-  let d , r = rec (n - 1) (a - b) b
-  in 
-  -- atomic coniditional: syntax is: <exp> ? <exp> >< <exp> 
-  (a <= b) ? (0 , a) >< (d + 1 , r)
+-- assumptions:
+-- ‣ a > 0
+-- ‣ b > 0
+def euclid : ℤ{yao:C,D} → ℤ{yao:C,D} → ℤ{yao:C,D}
+def euclid a b =
+  -- worst case is neighboring fibbinocci sequence numbers, with one iteration
+  -- per sequence position, and 64 bit max bound is less than the 93rd fib
+  -- number
+  let n = 93n
+  in
+  a ⋗ b
+  ? euclid-rec n a b
+  ◇ euclid-rec n b a
 
--- def rem : int -> int -> int
--- def rem = fun a -> fun b -> sub a ((a / b) * b)
-
-def rem : nat -> int{yao:A,B} -> int{yao:A,B} -> int{yao:A,B}
-def rem = fun n -> fun a -> fun b ->
-  let d , r = divmod n a b
-  in r
-
-def euclid : nat -> int{yao:A,B} -> int{yao:A,B} ->{rev:A,B} int{yao:A,B}
-def euclid = fun rec n -> fun a -> fun b ->
-  -- DCD: I think we don't want to reveal this---it gives knowledge of the size
-  -- the inputs. I think the protocol should have a fixed number of euclid
-  -- recursive calls, based on a known upper bound on input values.
-  if reveal{A,B} (b == share{yao:A,B} 0)
-  then a
-  else rec b (rem n a b)
-
-def euclid-2pc : unit -> {inp:A,B;rev:A,B} int{ssec:A,B}
-def euclid-2pc =
-  reveal{A,B}
-    (euclid 10 (share{yao:A,B} ({par:A} read int "euclid.txt"))
-               (share{yao:A,B} ({par:B} read int "euclid.txt")))
-
-def main :{inp:A,B;rev:A,B} int{ssec:A,B}
-def main = euclid ()
+def main : 𝟙 → {inp:A,B;rev:E} ℤ{ssec:E}
+def main • =
+  let ab = {par:A,B} read ℤ "euclid.txt"
+  reveal{E} euclid (share{yao:C,D} ab.A) (share{yao:C,D} ab.B)

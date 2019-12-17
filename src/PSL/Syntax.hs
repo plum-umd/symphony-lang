@@ -138,6 +138,7 @@ data ExpR =
     VarE Var                      -- x                     /  x
   | BoolE 𝔹                       -- b                     /  b
   | StrE 𝕊                        -- s                     /  s
+  | NatE ℕ                        -- n                     /  n
   | IntE ℤ                        -- i                     /  i
   | FltE 𝔻                        -- d                     /  d
   | BulE                          -- •                     /  ()

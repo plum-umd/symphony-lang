@@ -186,9 +186,25 @@ asCTLM xM = mkCTLM $ \ σ →
 
 primInferRaw ∷ 𝕊 → 𝐿 Type → CM Type
 primInferRaw o τs = case (o,tohs τs) of
+  ("LT",[ℤT n₁,ℤT n₂]) | n₁ ≡ n₂ → return 𝔹T
+  ("LT",[ℕT n₁,ℕT n₂]) | n₁ ≡ n₂ → return 𝔹T
+  ("GT",[ℤT n₁,ℤT n₂]) | n₁ ≡ n₂ → return 𝔹T
+  ("GT",[ℕT n₁,ℕT n₂]) | n₁ ≡ n₂ → return 𝔹T
   ("LTE",[ℤT n₁,ℤT n₂]) | n₁ ≡ n₂ → return 𝔹T
   ("LTE",[ℕT n₁,ℕT n₂]) | n₁ ≡ n₂ → return 𝔹T
-  _ → throwCErrorCxt NotImplementedError "primInferRaw" null
+  ("GTE",[ℤT n₁,ℤT n₂]) | n₁ ≡ n₂ → return 𝔹T
+  ("GTE",[ℕT n₁,ℕT n₂]) | n₁ ≡ n₂ → return 𝔹T
+  ("EQ",[ℤT n₁,ℤT n₂]) | n₁ ≡ n₂ → return 𝔹T
+  ("EQ",[ℕT n₁,ℕT n₂]) | n₁ ≡ n₂ → return 𝔹T
+  ("MINUS",[ℕT n₁,ℕT n₂]) | n₁ ≡ n₂ → return $ ℕT n₁
+  ("MINUS",[ℤT n₁,ℤT n₂]) | n₁ ≡ n₂ → return $ ℤT n₁
+  ("MOD",[ℕT n₁,ℕT n₂]) | n₁ ≡ n₂ → return $ ℕT n₁
+  ("MOD",[ℤT n₁,ℤT n₂]) | n₁ ≡ n₂ → return $ ℤT n₁
+  ("COND",[𝔹T,τ₁,τ₂]) | τ₁ ≡ τ₂ → return $ τ₁
+  _ → throwCErrorCxt NotImplementedError "primInferRaw" $ frhs
+    [ ("o",pretty o)
+    , ("τs",pretty τs)
+    ]
 
 primInferShare ∷ 𝕊 → 𝐿 Type → Prot → 𝑃 Prin → 𝐼 Type → CM Type
 primInferShare o τs φ ρs τsA = case τs of
@@ -215,83 +231,119 @@ bindPat ψ τ = case ψ of
   _ → const $ throwCErrorCxt NotImplementedError "bindPat" null
 
 elabExpInfer ∷ Exp → CM (Exp ∧ Type)
-elabExpInfer e = 
-  mapFst (siphon e) 
-  ^$ localL cCxtSourceL (Some $ annotatedTag e) 
-   $ case extract e of
-       StrE s → return $ StrE s :* 𝕊T
-       BulE → return $ BulE :* UnitT
-       VarE x → do
-         γ ← askL cCxtTmEnvL
-         case γ ⋕? x of
-           Some τ → return $ VarE x :* τ
-           None → throwCErrorCxt SyntaxError "elabExpInfer: VarE: x ∉ γ" $ frhs
-             [ ("x",pretty x)
-             , ("γ",pretty γ)
-             ]
-       ShareE φ ρs e' → do
-         eᴱ' :* τ' ← elabExpInfer e'
-         τ'' ← case τ' of
-               SecT _ τ'³ → return τ'³
-               𝔹T → return 𝔹T
-               ℕT n → return $ ℕT n
-               ℤT n → return $ ℤT n
-               _ → throwCErrorCxt TypeError "elabExpInfer: ShareE: τ' ∉ {SecT _ _,𝔹T,ℕT _,ℤT _}" $ frhs 
-                 [ ("τ'",pretty τ')
-                 ]
-         return $ ShareE φ ρs eᴱ' :* ShareT φ (pow ρs) τ''
-       AccessE e' ρ → do
-         eᴱ' :* τ' ← elabExpInfer e'
-         τ'' ← case τ' of
-           ISecT ρs τ'³ →
-             if ρ ∈ ρs 
-             then return $ SecT ρ τ'³
-             else throwCErrorCxt TypeError "elabExpInfer: AccessE: ISecT: ρ ∉ ρs" $ frhs
-               [ ("ρ",pretty ρ)
-               , ("ρs",pretty ρs)
-               ]
-           _ → throwCErrorCxt TypeError "elabExpInfer: AccessE: τ' ≠ ISecT _ _" $ frhs
-             [ ("τ'",pretty τ')
-             ]
-         return $ AccessE eᴱ' ρ :* τ''
-       PrimE o es' → do
-         eτsᴱ' ← mapM elabExpInfer es'
-         τ' ← primInfer o $ map snd eτsᴱ'
-         return $ PrimE o (map fst eτsᴱ') :* τ'
-       ParE ρs e' → do
-         eᴱ' :* τ' ← elabExpInfer e'
-         return $ ParE ρs eᴱ' :* ISecT (pow ρs) τ'
-       ReadE τ e' → do
-         case τ of
-           ℕT _ → skip
-           ℤT _ → skip
-           _ → throwCErrorCxt TypeError "elabExpInfer: ReadE: τ ∉ {ℕT _,ℤT _}" $ frhs
-             [ ("τ",pretty τ)
-             ]
-         eᴱ' ← elabExpCheck 𝕊T e'
-         return $ ReadE τ eᴱ' :* τ
-       AppE e₁ e₂ → do
-         eᴱ₁ :* τ₁ ← elabExpInfer e₁
-         case τ₁ of
-           τ₁₁ :→: (η :* τ₁₂) → do
-             eᴱ₂ ← elabExpCheck τ₁₁ e₂
-             tellL cOutEffL η
-             return $ AppE eᴱ₁ eᴱ₂ :* τ₁₂
-           _ → throwCErrorCxt TypeError "elabExpInfer: AppE: τ₁ ≠ (_ :→: (_ :* _))" $ frhs
-             [ ("τ₁",pretty τ₁)
-             ]
-       RevealE ρs e' → do
-         eᴱ' :* τ' ← elabExpInfer e'
-         case τ' of
-           ShareT _ _ τ'' → return $ RevealE ρs eᴱ' :* SSecT (pow ρs) τ''
-           _ → throwCErrorCxt TypeError "elabExpIner: RevealE: τ' ≠ ShareT _ _ _" $ frhs
-             [ ("τ'",pretty τ')
-             ]
-       TupE e₁ e₂ → do
-         eᴱ₁ :* τ₁ ← elabExpInfer e₁
-         eᴱ₂ :* τ₂ ← elabExpInfer e₂
-         return $ TupE eᴱ₁ eᴱ₂ :* (τ₁ :×: τ₂)
-       _ → throwCErrorCxt NotImplementedError "elabExpInfer" null
+elabExpInfer e = mapFst (siphon e) ^$ localL cCxtSourceL (Some $ annotatedTag e) $ case extract e of
+  VarE x → do
+    γ ← askL cCxtTmEnvL
+    case γ ⋕? x of
+      Some τ → return $ VarE x :* τ
+      None → throwCErrorCxt SyntaxError "elabExpInfer: VarE: x ∉ γ" $ frhs
+        [ ("x",pretty x)
+        , ("γ",pretty γ)
+        ]
+  BoolE b → return $ BoolE b :* 𝔹T
+  StrE s → return $ StrE s :* 𝕊T
+  NatE n → return $ NatE n :* ℕT (Some $ 64 :* None)
+  IntE i → return $ IntE i :* ℤT (Some $ 64 :* None)
+  FltE d → return $ FltE d :* 𝔽T 64
+  BulE → return $ BulE :* UnitT
+  IfE e₁ e₂ e₃ → do
+    eᴱ₁ ← elabExpCheck 𝔹T e₁
+    eᴱ₂ :* τ₂ ← elabExpInfer e₂
+    eᴱ₃ :* τ₃ ← elabExpInfer e₃
+    when (not $ τ₂ ≡ τ₃) $ \ _ →
+      throwCErrorCxt TypeError "elabExpInfer: IfE: τ₂ ≠ τ₂" $ frhs
+        [ ("τ₂",pretty τ₂)
+        , ("τ₃",pretty τ₃)
+        ]
+    return $ IfE eᴱ₁ eᴱ₂ eᴱ₃ :* τ₂
+  -- LE Exp
+  -- RE Exp
+  -- TupE Exp Exp
+  -- NilE
+  -- ConsE Exp Exp
+  -- LetTyE Var Type Exp
+  -- LetE Pat Exp Exp
+  -- CaseE Exp (𝐿 (Pat ∧ Exp))
+  -- LamE (𝑂 Var) Pat Exp
+  -- AppE Exp Exp
+  -- TLamE TVar Exp
+  -- TAppE Exp Type
+  -- SoloE Prin Exp
+  -- ParE (𝐿 Prin) Exp
+  -- ShareE Prot (𝐿 Prin) Exp
+  -- AccessE Exp Prin
+  -- BundleE (𝐿 (Prin ∧ Exp))
+  -- BundleUnionE Exp Exp
+  -- RevealE (𝐿 Prin) Exp
+  -- AscrE Exp Type
+  -- ReadE Type Exp
+  -- InferE
+  -- HoleE
+  -- PrimE 𝕊 (𝐿 Exp)
+  -- TraceE Exp Exp
+  ShareE φ ρs e' → do
+    eᴱ' :* τ' ← elabExpInfer e'
+    τ'' ← case τ' of
+          SecT _ τ'³ → return τ'³
+          𝔹T → return 𝔹T
+          ℕT n → return $ ℕT n
+          ℤT n → return $ ℤT n
+          _ → throwCErrorCxt TypeError "elabExpInfer: ShareE: τ' ∉ {SecT _ _,𝔹T,ℕT _,ℤT _}" $ frhs 
+            [ ("τ'",pretty τ')
+            ]
+    return $ ShareE φ ρs eᴱ' :* ShareT φ (pow ρs) τ''
+  AccessE e' ρ → do
+    eᴱ' :* τ' ← elabExpInfer e'
+    τ'' ← case τ' of
+      ISecT ρs τ'³ →
+        if ρ ∈ ρs 
+        then return $ SecT ρ τ'³
+        else throwCErrorCxt TypeError "elabExpInfer: AccessE: ISecT: ρ ∉ ρs" $ frhs
+          [ ("ρ",pretty ρ)
+          , ("ρs",pretty ρs)
+          ]
+      _ → throwCErrorCxt TypeError "elabExpInfer: AccessE: τ' ≠ ISecT _ _" $ frhs
+        [ ("τ'",pretty τ')
+        ]
+    return $ AccessE eᴱ' ρ :* τ''
+  PrimE o es' → do
+    eτsᴱ' ← mapM elabExpInfer es'
+    τ' ← primInfer o $ map snd eτsᴱ'
+    return $ PrimE o (map fst eτsᴱ') :* τ'
+  ParE ρs e' → do
+    eᴱ' :* τ' ← elabExpInfer e'
+    return $ ParE ρs eᴱ' :* ISecT (pow ρs) τ'
+  ReadE τ e' → do
+    case τ of
+      ℕT _ → skip
+      ℤT _ → skip
+      _ → throwCErrorCxt TypeError "elabExpInfer: ReadE: τ ∉ {ℕT _,ℤT _}" $ frhs
+        [ ("τ",pretty τ)
+        ]
+    eᴱ' ← elabExpCheck 𝕊T e'
+    return $ ReadE τ eᴱ' :* τ
+  AppE e₁ e₂ → do
+    eᴱ₁ :* τ₁ ← elabExpInfer e₁
+    case τ₁ of
+      τ₁₁ :→: (η :* τ₁₂) → do
+        eᴱ₂ ← elabExpCheck τ₁₁ e₂
+        tellL cOutEffL η
+        return $ AppE eᴱ₁ eᴱ₂ :* τ₁₂
+      _ → throwCErrorCxt TypeError "elabExpInfer: AppE: τ₁ ≠ (_ :→: (_ :* _))" $ frhs
+        [ ("τ₁",pretty τ₁)
+        ]
+  RevealE ρs e' → do
+    eᴱ' :* τ' ← elabExpInfer e'
+    case τ' of
+      ShareT _ _ τ'' → return $ RevealE ρs eᴱ' :* SSecT (pow ρs) τ''
+      _ → throwCErrorCxt TypeError "elabExpIner: RevealE: τ' ≠ ShareT _ _ _" $ frhs
+        [ ("τ'",pretty τ')
+        ]
+  TupE e₁ e₂ → do
+    eᴱ₁ :* τ₁ ← elabExpInfer e₁
+    eᴱ₂ :* τ₂ ← elabExpInfer e₂
+    return $ TupE eᴱ₁ eᴱ₂ :* (τ₁ :×: τ₂)
+  _ → throwCErrorCxt NotImplementedError "elabExpInfer" null
 
 elabExpCheck ∷ Type → Exp → CM Exp 
 elabExpCheck τ e = siphon e ^$ localL cCxtSourceL (Some $ annotatedTag e) $ case extract e of
@@ -391,5 +443,5 @@ testTypecheckerExample fn = pprint *$ snd ^$ typecheckExample fn
 testTypechecker ∷ IO ()
 testTypechecker = do
   testTypecheckerExample "cmp"
-  -- testTypecheckerExample "euclid2"
+  testTypecheckerExample "euclid"
 
