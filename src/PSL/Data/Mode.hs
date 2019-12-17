@@ -2,7 +2,7 @@ module PSL.Data.Mode where
 
 import UVMHS
 
-import PSL.SyntaxIR
+import PSL.Syntax
 
 data Mode =
     TopM
@@ -10,6 +10,7 @@ data Mode =
   | SSecM (𝑃 Prin)
   | BotM
   deriving (Eq,Ord,Show)
+makePrettySum ''Mode
 
 instance Top Mode where top = TopM
 instance Bot Mode where bot = BotM

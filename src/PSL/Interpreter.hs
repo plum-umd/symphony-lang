@@ -6,11 +6,11 @@ import PSL.Syntax
 
 import PSL.Data.Mode
 
-import qualified PSL.SyntaxUF as UF
-
 import qualified Prelude as HS
 
-{-
+-----------------
+-- ENVIRONMENT --
+-----------------
 
 -- mv ∈ mpc-val
 data ValMPC =
@@ -31,6 +31,7 @@ makePrettySum ''ValS
 data Val =
     BoolV 𝔹
   | StrV 𝕊
+  | NatV ℕ
   | IntV ℤ
   | FltV 𝔻
   | BulV
@@ -39,8 +40,8 @@ data Val =
   | PairV Val Val
   | NilV
   | ConsV Val Val
-  | CloV (𝑂 UF.Var) UF.Pat UF.Exp ICxt
-  | TCloV UF.TVar UF.Exp ICxt
+  | CloV (𝑂 Var) Pat Exp ICloCxt
+  | TCloV TVar Exp ICloCxt
   | ShareV ValS
   | ParV (Prin ⇰ Val)
   deriving (Eq,Ord,Show)
@@ -56,26 +57,25 @@ data ValP =
   deriving (Eq,Ord,Show)
 
 isecFrSSec ∷ 𝑃 Prin → Val → Prin ⇰ Val
-isecFrSSec ps v = dict $ mapOn (iter ps) $ \ p → p ↦ v
+isecFrSSec ρs v = dict $ mapOn (iter ρs) $ \ ρ → ρ ↦ v
 
 instance Bot ValP where bot = BotVP
 instance Join ValP where
   BotVP ⊔ ṽ = ṽ
   ṽ ⊔ BotVP = ṽ
-  SecVP p₁ v₁ ⊔ SecVP p₂ v₂ | p₁ ≢ p₂ = ISecVP $ dict $ [p₁ ↦ v₁,p₂ ↦ v₂]
-  -- SecVP p₁ v₁ ⊔ SSecVP ps₂ v₂ | p₁ ∉ ps₂ = ISecVP $ (p₁ ↦ v₁) ⩌ isecSSec ps₂ v₂
-  -- SSecVP ps₁ v₁ ⊔ SecVP p₂ v₂ | p₂ ∉ ps₁ = ISecVP $ (p₂ ↦ v₂) ⩌ isecSSec ps₁ v₁
-  SecVP p₁ v₁ ⊔ ISecVP pvs₂ | p₁ ∉ keys pvs₂ = ISecVP $ (p₁ ↦ v₁) ⩌ pvs₂
-  ISecVP pvs₁ ⊔ SecVP p₂ v₂ | p₂ ∉ keys pvs₁ = ISecVP $ (p₂ ↦ v₂) ⩌ pvs₁
-  -- SSecVP ps₁ v₁ ⊔ SSecVP ps₂ v₂ | ps₁ ∩ ps₂ ≡ pø = ISecVP $ isecSSec ps₁ v₁ ⩌ isecSSec ps₂ v₂
-  -- SSecVP ps₁ v₁ ⊔ ISecVP pvs₂ | ps₁ ∩ keys pvs₂ ≡ pø = ISecVP $ pvs₂ ⩌ isecSSec ps₁ v₁
-  -- ISecVP pvs₁ ⊔ SSecVP ps₂ v₂ | keys pvs₁ ∩ ps₂ ≡ pø = ISecVP $ pvs₁ ⩌ isecSSec ps₂ v₂
+  SecVP ρ₁ v₁ ⊔ SecVP ρ₂ v₂ | ρ₁ ≢ ρ₂ = ISecVP $ dict $ [ρ₁ ↦ v₁,ρ₂ ↦ v₂]
+  SecVP ρ₁ v₁ ⊔ ISecVP pvs₂ | ρ₁ ∉ keys pvs₂ = ISecVP $ (ρ₁ ↦ v₁) ⩌ pvs₂
+  ISecVP pvs₁ ⊔ SecVP ρ₂ v₂ | ρ₂ ∉ keys pvs₁ = ISecVP $ (ρ₂ ↦ v₂) ⩌ pvs₁
   ISecVP pvs₁ ⊔ ISecVP pvs₂ | keys pvs₁ ∩ keys pvs₂ ≡ pø = ISecVP $ pvs₁ ⩌ pvs₂
   _ ⊔ _ = TopVP
 instance JoinLattice ValP
 
 -- γ ∈ ienv
 type Env = 𝕏 ⇰ ValP
+
+-----------
+-- STATE --
+-----------
 
 -- σ ∈ itlstate
 newtype ITLState = ITLState
@@ -85,163 +85,167 @@ newtype ITLState = ITLState
 σtl₀ ∷ ITLState
 σtl₀ = ITLState dø
 
-newtype ITLM a = ITLM { unITLM ∷ RWS () () ITLState a }
-  deriving
-  (Functor
-  ,Return,Bind,Monad
-  ,MonadReader ()
-  ,MonadWriter ()
-  ,MonadState ITLState
-  )
+-------------
+-- CONTEXT --
+-------------
 
-mkITLM ∷ (ITLState → ITLState ∧ a) → ITLM a
-mkITLM f = ITLM $ mkRWS $ \ () σ →
-  let σ' :* x = f σ
-  in σ' :* () :* x
-
-runITLM ∷ ITLState → ITLM a → ITLState ∧ a
-runITLM σ xM =
-  let σ' :* () :* x = runRWS () σ $ unITLM xM
-  in σ' :* x
-
-evalITLM ∷ ITLState → ITLM a → a
-evalITLM σ = snd ∘ runITLM σ
-
--- ξ ∈ cxt
-data ICxt = ICxt
-  { iCxtEnv ∷ Env
-  , iCxtMode ∷ Mode
+-- ξ ∈ clo-cxt
+data ICloCxt = ICloCxt
+  { iCloCxtEnv ∷ Env
+  , iCloCxtMode ∷ Mode
   } deriving (Eq,Ord,Show)
-
-ξ₀ ∷ ICxt
-ξ₀ = ICxt dø TopM
-
-newtype IM a = IM { unIM ∷ RWS ICxt () () a }
-  deriving
-  (Functor
-  ,Return,Bind,Monad
-  ,MonadReader ICxt
-  ,MonadWriter ()
-  ,MonadState ()
-  )
-
-mkIM ∷ (ICxt → a) → IM a
-mkIM f = IM $ mkRWS $ \ γ () →
-  let x = f γ
-  in () :* () :* x
-
-runIM ∷ ICxt → IM a → a
-runIM γ xM =
-  let () :* () :* x = runRWS γ () $ unIM xM
-  in x
-
-asTLM ∷ IM a → ITLM a
-asTLM xM = ITLM $ mkRWS $ \ () σ → 
-  let () :* () :* x = runRWS (ξ₀ { iCxtEnv = itlStateEnv σ }) () $ unIM xM 
-  in σ :* () :* x
 
 makePrettySum ''Val
 makePrettySum ''ValP
 makePrettySum ''ITLState
 makeLenses ''ITLState
-makePrettySum ''Mode
-makePrettySum ''ICxt
+makePrettySum ''ICloCxt
+makeLenses ''ICloCxt
+
+-- ξ̇ ∈ cxt
+data ICxt = ICxt
+  { iCxtSource ∷ 𝑂 FullContext
+  , iCxtClo ∷ ICloCxt
+  }
 makeLenses ''ICxt
 
-----------------------------
--- Variables and Patterns --
-----------------------------
+iCxtEnvL ∷ ICxt ⟢ Env
+iCxtEnvL = iCloCxtEnvL ⊚ iCxtCloL
 
-interpVar ∷ Var → IM ValP
-interpVar x = do
-  γ ← askL iCxtEnvL
-  case γ ⋕? x of
-    Some ṽ → return ṽ
-    None → pptrace (annotatedTag xA) $ error "interpVar: not in scope"
+iCxtModeL ∷ ICxt ⟢ Mode
+iCxtModeL = iCloCxtModeL ⊚ iCxtCloL
 
-bindVar ∷ Var → ValP → IM a → IM a
-bindVar x v = mapEnvL iCxtEnvL ((x ↦ v) ⩌)
-
-bindPat ∷ UF.Pat → ValP → IM a → IM a
-bindPat ψˢ v = case extract ψˢ of
-  UF.VarP x → bindVar x v
-  UF.BulP → id
-  _ → pptrace (annotatedTag ψˢ) $ error "bindPat: not implemented"
-
---------------------
--- Parsing Inputs --
---------------------
-
-parseTy ∷ UF.Type → 𝕊 → Val
-parseTy τA s = case extract τA of
-  UF.ℤT (Some (64 :* None)) → IntV $ int (HS.read $ chars s ∷ ℤ64)
-  _ → error "parseTy: not implemented"
+ξ₀ ∷ ICxt
+ξ₀ = ICxt None $ ICloCxt dø TopM
 
 -----------
--- Modes --
+-- ERROR --
 -----------
 
-restrictValP ∷ Mode → ValP → ValP
-restrictValP m x̃ = case (m,x̃) of
-  (TopM,_) → x̃
-  (_,TopVP) → TopVP
-  (BotM,_) → BotVP
-  (_,BotVP) → BotVP
-  (SecM p,AllVP v) → SecVP p v
-  (SecM p,SecVP p' v) | p ≡ p' → SecVP p' v
-  (SecM p,SSecVP ps v) | p ∈ ps → SecVP p v
-  (SecM p,ISecVP pvs) | p ∈ keys pvs → SecVP p $ pvs ⋕! p
-  (SSecM ps,AllVP v) → SSecVP ps v
-  (SSecM ps,SecVP p' v) | p' ∈ ps → SecVP p' v
-  (SSecM ps,SSecVP ps' v) → SSecVP (ps ∩ ps') v
-  (SSecM ps,ISecVP pvs) → ISecVP $ restrict ps pvs
-  (_,_) → BotVP
+data IErrorClass = 
+    SyntaxIError 
+  | TypeIError 
+  | NotImplementedIError 
+  | InternalIError
+  deriving (Eq,Ord,Show)
+makePrettySum ''IErrorClass
 
-restrictMode ∷ Mode → IM ValP → IM ValP
-restrictMode m xM = do
-  m' ← askL iCxtModeL
-  ṽ ← localL iCxtModeL (m ⊓ m') xM
-  return $ restrictValP m ṽ
+-- r ∈ cerr
+data IError = IError
+  { iErrorSource ∷ 𝑂 FullContext
+  , iErrorClass ∷ IErrorClass
+  , iErrorMsg ∷ Doc
+  }
 
----------------------
--- Parallel Values --
----------------------
+throwIErrorCxt ∷ (Monad m,MonadReader ICxt m,MonadError IError m) ⇒ IErrorClass → 𝕊 → 𝐿 (𝕊 ∧ Doc) → m a
+throwIErrorCxt ec em vals = do
+  es ← askL iCxtSourceL
+  throwIError es ec em vals
+  
+throwIError ∷ (Monad m,MonadError IError m) ⇒ 𝑂 FullContext → IErrorClass → 𝕊 → 𝐿 (𝕊 ∧ Doc) → m a
+throwIError es ec em vals =
+  throw $ IError es ec $ ppVertical
+    [ ppString em
+    , ppVertical $ mapOn vals $ \ (n :* v) → ppHorizontal [ppString n,ppString "=",v]
+    ]
 
-bindValP ∷ ValP → (Val → IM ValP) → IM ValP
-bindValP ṽ f = case ṽ of
-  BotVP → return BotVP
-  AllVP v → f v
-  SecVP p v → restrictMode (SecM p) $ f v
-  SSecVP ps v → restrictMode (SSecM ps) $ f v
-  ISecVP pvs → 
-    joins ^$ mapMOn (iter pvs) $ \ (p :* v) →
-      restrictMode (SecM p) $ f v
-  TopVP → error "bindValP: ṽ = TopVP"
+--------------
+-- TL MONAD --
+--------------
 
-bindValsPR ∷ 𝐼 Val → 𝐿 ValP → (𝐿 Val → IM ValP) → IM ValP
-bindValsPR vs ṽs f = case ṽs of
-  Nil → f $ list vs
-  ṽ :& ṽs' → bindValP ṽ $ \ v → bindValsPR (vs ⧺ single v) ṽs' f
+newtype ITLM a = ITLM { unITLM ∷ RWST () () ITLState (ErrorT IError ID) a }
+  deriving
+  ( Functor
+  , Return,Bind,Monad
+  , MonadReader ()
+  , MonadWriter ()
+  , MonadState ITLState
+  , MonadError IError
+  )
 
-bindValsP ∷ 𝐿 ValP → (𝐿 Val → IM ValP) → IM ValP
-bindValsP = bindValsPR null
+mkITLM ∷ (ITLState → IError ∨ (ITLState ∧ a)) → ITLM a
+mkITLM f = ITLM $ mkRWST $ \ () σ → ErrorT $ ID $ case f σ of
+  Inl r → Inl r
+  Inr (σ' :* x) → Inr (σ' :* () :* x)
 
---------------------------
--- Primitive Operations --
---------------------------
+runITLM ∷ ITLState → ITLM a → IError ∨ (ITLState ∧ a)
+runITLM σ xM = case unID $ unErrorT $ runRWST () σ $ unITLM xM of
+  Inl r → Inl r
+  Inr (σ' :* () :* x) → Inr (σ' :* x)
+
+evalITLM ∷ ITLState → ITLM a → IError ∨ a
+evalITLM σ = map snd ∘ runITLM σ
+
+evalITLMIO ∷ ITLState → ITLM a → IO a
+evalITLMIO σ xM = case evalITLM σ xM of
+  Inl (IError rsO rc rm) → do
+    pprint $ ppVertical
+      [ ppHeader $ show𝕊 rc
+      , elim𝑂 null pretty rsO
+      , rm
+      ]
+    abortIO
+  Inr x → return x
+
+-----------
+-- MONAD --
+-----------
+
+newtype IM a = IM { unIM ∷ RWST ICxt () () (ErrorT IError ID) a }
+  deriving
+  ( Functor
+  , Return,Bind,Monad
+  , MonadReader ICxt
+  , MonadWriter ()
+  , MonadState ()
+  , MonadError IError
+  )
+
+mkIM ∷ (ICxt → IError ∨ a) → IM a
+mkIM f = IM $ mkRWST $ \ γ () → ErrorT $ ID $ case f γ of
+  Inl r → Inl r
+  Inr x → Inr $ () :* () :* x
+
+runIM ∷ ICxt → IM a → IError ∨ a
+runIM γ xM = case unID $ unErrorT $ runRWST γ () $ unIM xM of
+  Inl r → Inl r
+  Inr (() :* () :* x) → Inr x
+
+asTLM ∷ IM a → ITLM a
+asTLM xM = mkITLM $ \ σ → case runIM (update iCxtEnvL (itlStateEnv σ) ξ₀) xM of
+  Inl r → Inl r
+  Inr x → Inr $ σ :* x
+
+-- =========== --
+-- INTERPRETER --
+-- =========== --
+
+----------------
+-- PRIMITIVES --
+----------------
 
 interpPrimRaw ∷ 𝕊 → 𝐿 Val → Val
 interpPrimRaw "OR" (tohs → [BoolV b₁,BoolV b₂]) = BoolV $ b₁ ⩔ b₂
 interpPrimRaw "AND" (tohs → [BoolV b₁,BoolV b₂]) = BoolV $ b₁ ⩓ b₂
+interpPrimRaw "PLUS" (tohs → [NatV n₁,NatV n₂]) = NatV $ n₁ + n₂
 interpPrimRaw "PLUS" (tohs → [IntV i₁,IntV i₂]) = IntV $ i₁ + i₂
+interpPrimRaw "MINUS" (tohs → [NatV n₁,NatV n₂]) = NatV $ n₁ - n₂
 interpPrimRaw "MINUS" (tohs → [IntV i₁,IntV i₂]) = IntV $ i₁ - i₂
+interpPrimRaw "TIMES" (tohs → [NatV n₁,NatV n₂]) = NatV $ n₁ × n₂
 interpPrimRaw "TIMES" (tohs → [IntV i₁,IntV i₂]) = IntV $ i₁ × i₂
+interpPrimRaw "DIV" (tohs → [NatV n₁,NatV n₂]) = NatV $ if n₂ ≡ 0 then n₁ else n₁ ⌿ n₂
 interpPrimRaw "DIV" (tohs → [IntV i₁,IntV i₂]) = IntV $ if i₂ ≡ int 0 then i₁ else i₁ ⌿ i₂
+interpPrimRaw "MOD" (tohs → [NatV n₁,NatV n₂]) = NatV $ if n₂ ≡ 0 then n₁ else n₁ ÷ n₂
 interpPrimRaw "MOD" (tohs → [IntV i₁,IntV i₂]) = IntV $ if i₂ ≡ int 0 then i₁ else i₁ ÷ i₂
+interpPrimRaw "EQ" (tohs → [NatV n₁,NatV n₂]) = BoolV $ n₁ ≡ n₂
 interpPrimRaw "EQ" (tohs → [IntV i₁,IntV i₂]) = BoolV $ i₁ ≡ i₂
+interpPrimRaw "LT" (tohs → [NatV n₁,NatV n₂]) = BoolV $ n₁ < n₂
 interpPrimRaw "LT" (tohs → [IntV i₁,IntV i₂]) = BoolV $ i₁ < i₂
+interpPrimRaw "GT" (tohs → [NatV n₁,NatV n₂]) = BoolV $ n₁ > n₂
 interpPrimRaw "GT" (tohs → [IntV i₁,IntV i₂]) = BoolV $ i₁ > i₂
+interpPrimRaw "LTE" (tohs → [NatV n₁,NatV n₂]) = BoolV $ n₁ ≤ n₂
 interpPrimRaw "LTE" (tohs → [IntV i₁,IntV i₂]) = BoolV $ i₁ ≤ i₂
+interpPrimRaw "GTE" (tohs → [NatV n₁,NatV n₂]) = BoolV $ n₁ ≥ n₂
 interpPrimRaw "GTE" (tohs → [IntV i₁,IntV i₂]) = BoolV $ i₁ ≥ i₂
 interpPrimRaw "COND" (tohs → [BoolV b,v₁,v₂]) = if b then v₁ else v₂
 interpPrimRaw s vs = pptrace s $ pptrace vs $ error "interpPrimRaw: not implemented"
@@ -270,32 +274,135 @@ rawShareOps = pow
   ]
 
 onRawShareVals ∷ Prot → 𝑃 Prin → 𝐼 Val → (𝐿 Val → Val) → 𝐿 Val → Val
-onRawShareVals φ ps vs f = \case
-  Nil → ShareV $ ValS (mpcFrVal $ f $ list vs) φ ps
-  ShareV (ValS v φ' ps') :& vs' | (φ ≡ φ') ⩓ (ps ≡ ps') → onRawShareVals φ ps (vs ⧺ single (valFrMPC v)) f vs'
+onRawShareVals φ ρs vs f = \case
+  Nil → ShareV $ ValS (mpcFrVal $ f $ list vs) φ ρs
+  ShareV (ValS v φ' ρs') :& vs' | (φ ≡ φ') ⩓ (ρs ≡ ρs') → onRawShareVals φ ρs (vs ⧺ single (valFrMPC v)) f vs'
   _ → error "error"
 
 onRawVals ∷ (𝐿 Val → Val) → 𝐿 Val → Val
 onRawVals f vs = case vs of
-  ShareV (ValS _ φ ps) :& _ → onRawShareVals φ ps null f vs
+  ShareV (ValS _ φ ρs) :& _ → onRawShareVals φ ρs null f vs
   _ → f vs
 
 interpPrim ∷ 𝕊 → 𝐿 Val → Val
 interpPrim = onRawVals ∘ interpPrimRaw
 
+---------------
+-- VARIABLES --
+---------------
+
+interpVar ∷ Var → IM ValP
+interpVar x = do
+  γ ← askL iCxtEnvL
+  case γ ⋕? x of
+    Some ṽ → return ṽ
+    None → throwIErrorCxt SyntaxIError "interpVar: x ∉ γ" $ frhs
+      [ ("x",pretty x)
+      , ("γ",pretty γ)
+      ]
+
+bindVar ∷ Var → ValP → IM a → IM a
+bindVar x v = mapEnvL iCxtEnvL ((x ↦ v) ⩌)
+
+--------------
+-- PATTERNS --
+--------------
+
+bindPat ∷ Pat → ValP → IM a → IM a
+bindPat ψ v = case ψ of
+  VarP x → bindVar x v
+  BulP → id
+  _ → const $ throwIErrorCxt NotImplementedIError "bindPat" $ frhs
+    [ ("ψ",pretty ψ)
+    , ("v",pretty v)
+    ]
+
+--------------------
+-- PARSING INPUTS --
+--------------------
+
+parseTy ∷ Type → 𝕊 → Val
+parseTy τ s = case τ of
+  ℤT (Some (64 :* None)) → IntV $ int (HS.read $ chars s ∷ ℤ64)
+  _ → error "parseTy: not implemented"
+
+-----------
+-- MODES --
+-----------
+
+restrictValP ∷ Mode → ValP → ValP
+restrictValP m x̃ = case (m,x̃) of
+  (TopM,_) → x̃
+  (_,TopVP) → TopVP
+  (BotM,_) → BotVP
+  (_,BotVP) → BotVP
+  (SecM ρ,AllVP v) → SecVP ρ v
+  (SecM ρ,SecVP ρ' v) | ρ ≡ ρ' → SecVP ρ' v
+  (SecM ρ,SSecVP ρs v) | ρ ∈ ρs → SecVP ρ v
+  (SecM ρ,ISecVP pvs) | ρ ∈ keys pvs → SecVP ρ $ pvs ⋕! ρ
+  (SSecM ρs,AllVP v) → SSecVP ρs v
+  (SSecM ρs,SecVP ρ' v) | ρ' ∈ ρs → SecVP ρ' v
+  (SSecM ρs,SSecVP ρs' v) → SSecVP (ρs ∩ ρs') v
+  (SSecM ρs,ISecVP pvs) → ISecVP $ restrict ρs pvs
+  (_,_) → BotVP
+
+restrictMode ∷ Mode → IM ValP → IM ValP
+restrictMode m xM = do
+  m' ← askL iCxtModeL
+  ṽ ← localL iCxtModeL (m ⊓ m') xM
+  return $ restrictValP m ṽ
+
+---------------------
+-- PARALLEL VALUES --
+---------------------
+
+bindValP ∷ ValP → (Val → IM ValP) → IM ValP
+bindValP ṽ f = case ṽ of
+  BotVP → return BotVP
+  AllVP v → f v
+  SecVP ρ v → restrictMode (SecM ρ) $ f v
+  SSecVP ρs v → restrictMode (SSecM ρs) $ f v
+  ISecVP pvs → 
+    joins ^$ mapMOn (iter pvs) $ \ (ρ :* v) →
+      restrictMode (SecM ρ) $ f v
+  TopVP → error "bindValP: ṽ = TopVP"
+
+bindValsPR ∷ 𝐼 Val → 𝐿 ValP → (𝐿 Val → IM ValP) → IM ValP
+bindValsPR vs ṽs f = case ṽs of
+  Nil → f $ list vs
+  ṽ :& ṽs' → bindValP ṽ $ \ v → bindValsPR (vs ⧺ single v) ṽs' f
+
+bindValsP ∷ 𝐿 ValP → (𝐿 Val → IM ValP) → IM ValP
+bindValsP = bindValsPR null
+
 -----------------
--- Expressions --
+-- APPLICATION --
 -----------------
 
-interpExp ∷ UF.Exp → IM ValP
+interpApp ∷ ValP → ValP → IM ValP
+interpApp ṽ₁ ṽ₂ =
+  bindValP ṽ₁ $ \ v₁ → case v₁ of
+    CloV selfO ψ e ξ → do
+      let selfγ = case selfO of
+            None → id
+            Some self → bindVar self ṽ₁
+      compose [localL iCxtCloL ξ,bindPat ψ ṽ₂,selfγ ] $ interpExp e
+    _ → error "interpExp: AppE: v₁ ≢ CloV _ _ _ _"
+
+-----------------
+-- EXPRESSIONS --
+-----------------
+
+interpExp ∷ Exp → IM ValP
 interpExp eA = case extract eA of
-  UF.VarE x → interpVar x
+  VarE x → interpVar x
   -- BoolE
-  UF.StrE s → return $ AllVP $ StrV s
-  UF.IntE i → return $ AllVP $ IntV i
+  StrE s → return $ AllVP $ StrV s
+  NatE n → return $ AllVP $ NatV n
+  IntE i → return $ AllVP $ IntV i
   -- FltE
-  UF.BulE → return $ AllVP $ BulV
-  UF.IfE e₁ e₂ e₃ → do
+  BulE → return $ AllVP $ BulV
+  IfE e₁ e₂ e₃ → do
     ṽ ← interpExp e₁
     bindValP ṽ $ \ v → do
       case v of
@@ -305,7 +412,7 @@ interpExp eA = case extract eA of
         _ → error "interpExp: IfE: v ≢ BoolV _"
   -- LE
   -- RE
-  UF.TupE e₁ e₂ → do
+  TupE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
     bindValP ṽ₁ $ \ v₁ →
@@ -313,108 +420,98 @@ interpExp eA = case extract eA of
         return $ AllVP $ PairV v₁ v₂
   -- NilE
   -- ConsE
-  UF.LetTyE _ _ e → interpExp e
-  UF.LetE ψ e₁ e₂ → do
+  LetTyE _ _ e → interpExp e
+  LetE ψ e₁ e₂ → do
     v ← interpExp e₁
     bindPat ψ v $ interpExp e₂
   -- CaseE
-  UF.LamE selfO ψ e → do
-    ξ ← ask
+  LamE selfO ψ e → do
+    ξ ← askL iCxtCloL
     return $ AllVP $ CloV selfO ψ e ξ
-  UF.AppE e₁ e₂ → do
+  AppE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
-    bindValP ṽ₁ $ \ v₁ → case v₁ of
-      CloV selfO ψ e ξ → do
-        let selfγ = case selfO of
-              None → id
-              Some self → bindVar self ṽ₁
-        compose [local ξ,bindPat ψ ṽ₂,selfγ ] $ interpExp e
-      _ → pptrace (annotatedTag eA) $ error "interpExp: AppE: v₁ ≢ CloV _ _ _ _"
+    interpApp ṽ₁ ṽ₂
   -- TLamE
   -- TAppE
-  UF.SoloE pA e → do
-    let p = extract pA
-    restrictMode (SecM p) $ interpExp e
-  UF.ParE psA e → do
-    let ps = map strip psA
-    joins ^$ mapMOn (iter ps) $ \ p → do restrictMode (SecM p) $ interpExp e
-  UF.ShareE φA psA e → do
-    let φ = strip φA
-    let ps = pow $ map strip psA
+  SoloE ρ e → do
+    restrictMode (SecM ρ) $ interpExp e
+  ParE ρs e → do
+    joins ^$ mapMOn (iter ρs) $ \ ρ → do restrictMode (SecM ρ) $ interpExp e
+  ShareE φ ρs e → do
+    let pρs = pow ρs
     ṽ ← interpExp e
     return $ case ṽ of
       AllVP v → case v of
-        BoolV b → AllVP $ ShareV $ ValS (BoolMV b) φ ps
-        IntV i → AllVP $ ShareV $ ValS (IntMV i) φ ps
+        BoolV b → AllVP $ ShareV $ ValS (BoolMV b) φ pρs
+        IntV i → AllVP $ ShareV $ ValS (IntMV i) φ pρs
         _ → pptrace (annotatedTag eA) $ error "interpExp: ShareE: AllVP: v ∉ {BoolV _,IntV _}"
       SecVP _p v → case v of
-        BoolV b → AllVP $ ShareV $ ValS (BoolMV b) φ ps
-        IntV i → AllVP $ ShareV $ ValS (IntMV i) φ ps
+        BoolV b → AllVP $ ShareV $ ValS (BoolMV b) φ pρs
+        IntV i → AllVP $ ShareV $ ValS (IntMV i) φ pρs
         _ → pptrace (annotatedTag eA) $ error "interpExp: ShareE: SecVP: v ∉ {BoolV _,IntV _}"
       _ → pptrace (annotatedTag eA) $ error "interpExp: ShareE: ṽ ≢ SecVP _ _"
-  UF.AccessE e pA → do
-    let p = extract pA
+  AccessE e ρ → do
     ṽ ← interpExp e
     return $ case ṽ of
-      ISecVP pvs → case pvs ⋕? p of
-        Some v → SecVP p v
-        _ → error "interpExp: AccessE: ISecVP: pvs ⋕? p ≢ Some v"
+      ISecVP pvs → case pvs ⋕? ρ of
+        Some v → SecVP ρ v
+        _ → error "interpExp: AccessE: ISecVP: pvs ⋕? ρ ≢ Some v"
       _ → error "interpExp: AccessE: ṽ ≢ ISecVP _"
-  UF.BundleE pes → do
-    joins ^$ mapMOn (iter pes) $ \ (pA :* e) → do
-      let p = extract pA
-      restrictMode (SecM p) $ interpExp e
+  BundleE ρes → do
+    joins ^$ mapMOn (iter ρes) $ \ (ρ :* e) → do
+      restrictMode (SecM ρ) $ interpExp e
   -- BundleUnionE
-  UF.RevealE psA e → do
-    let ps = pow $ map strip psA
+  RevealE ρs e → do
+    let pρs = pow ρs
     ṽ ← interpExp e
     case ṽ of
-      AllVP v → return $ SSecVP ps $ case v of
+      AllVP v → return $ SSecVP pρs $ case v of
         (ShareV (ValS (BoolMV b) _ _)) → BoolV b
         (ShareV (ValS (IntMV i) _ _)) → IntV i
         _ → pptrace (annotatedTag eA) $ error "interpExp: RevealE: v ∉ {ShaveV (ValS (BoolMV _) _ _),ShareV (ValS (IntMV _) _ _)}"
       _ → pptrace (annotatedTag eA) $ error "interpExp: RevealE: ṽ ≢ AllVP _"
   -- AscrE
-  UF.ReadE τA e → do
+  ReadE τA e → do
     ṽ ← interpExp e
     bindValP ṽ $ \ v → case v of
       StrV fn → do
         m ← askL iCxtModeL
         return $ case m of
           TopM → error "cannot read at top level, must be in solo or par mode"
-          SecM p → AllVP $ parseTy τA $ ioUNSAFE $ read $ "examples-data/" ⧺ 𝕩name p ⧺ "/" ⧺ fn
+          SecM ρ → AllVP $ parseTy τA $ ioUNSAFE $ read $ "examples-data/" ⧺ 𝕩name ρ ⧺ "/" ⧺ fn
           SSecM _ → error "cannot read in shared secret mode"
           BotM → error "cannot read in bot mode"
       _ → error "interpExp: ReadE: v ≢ StrV _"
   -- InferE
   -- HoleE
-  UF.PrimE o es → do
+  PrimE o es → do
     ṽs ← mapM interpExp es
     bindValsP ṽs $ \ vs → return $ AllVP $ interpPrim o vs
-  UF.TraceE e₁ e₂ → do
+  TraceE e₁ e₂ → do
     v ← interpExp e₁
     pptrace v $ interpExp e₂
   _ → pptrace (annotatedTag eA) $ error "interpExp: not implemented"
 
---------------------------
--- Top-level Statements --
---------------------------
+---------------
+-- TOP LEVEL --
+---------------
 
-interpTL ∷ UF.TL → ITLM ()
-interpTL tlA = case extract tlA of
-  UF.DefnTL xA ψs e →  do
-    let x = extract xA
-    let e' = UF.buildLambda (annotatedTag tlA) xA ψs e
+interpTL ∷ TL → ITLM ()
+interpTL tl = case extract tl of
+  DeclTL _ _ → skip
+  DefnTL x ψs e →  do
+    let e' = buildLambda (annotatedTag tl) x ψs e
     v ← asTLM $ interpExp e'
     modifyL itlStateEnvL ((x ↦ v) ⩌)
-  _ → pptrace (annotatedTag tlA) $ error "interpTL: not implemented"
+  PrinTL _ → skip
+  _ → pptrace (annotatedTag tl) $ error "interpTL: not implemented"
 
-interpTLs ∷ 𝐿 UF.TL → ITLM ()
+interpTLs ∷ 𝐿 TL → ITLM ()
 interpTLs = eachWith interpTL
 
 -------------
--- Testing --
+-- TESTING --
 -------------
 
 interpretExample ∷ 𝕊 → IO ValP
@@ -425,8 +522,9 @@ interpretExample fn = do
   let ts = tokens s
   ls ← tokenizeIO lexer ts
   tls ← parseIO cpTLs ls
-  let σtl = evalITLM σtl₀ $ retState $ interpTLs tls
-  return $ itlStateEnv σtl ⋕! var "main"
+  σtl ← evalITLMIO σtl₀ $ retState $ interpTLs tls
+  let v = itlStateEnv σtl ⋕! var "main"
+  evalITLMIO σtl $ asTLM $ interpApp v $ AllVP BulV
 
 testInterpreterExample ∷ 𝕊 → IO ()
 testInterpreterExample fn = pprint *$ interpretExample fn
@@ -460,9 +558,7 @@ testInterpreter = do
     ]
   testInterpreterExample "cmp"
   testInterpreterExample "cmp-tutorial"
-  testInterpreterExample "euclid2"
+  testInterpreterExample "euclid"
   -- testInterpreterExample "cmp-split"
   -- testInterpreterExample "cmp-tutorial"
   -- testInterpreterExample "add"
-
--}

@@ -8,4 +8,4 @@ import PSL.TypeChecker
 main ∷ IO ()
 main = do
   testTypechecker
-  -- testInterpreter
+  testInterpreter

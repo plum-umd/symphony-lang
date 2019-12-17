@@ -168,5 +168,5 @@ main has input and reveal effects, in addition to returning a pair of
 results.
 -}
 
-def main :{inp:A,B;rev:E,F} 𝔹{ssec:A,B} × 𝔹{ssec:A,B}
-def main = cmp-mpc • , one-liner •
+def main : 𝟙 →{inp:A,B;rev:E,F} 𝔹{ssec:A,B} × 𝔹{ssec:A,B}
+def main • = cmp-mpc • , one-liner •
