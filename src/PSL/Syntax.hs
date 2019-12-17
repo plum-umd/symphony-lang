@@ -1,11 +1,7 @@
 module PSL.Syntax where
 
 import UVMHS
-import AddToUVMHS
-
-import PSL.Data.Fix
-
-type S = Annotated FullContext
+-- import AddToUVMHS
 
 ----------
 -- Kind --

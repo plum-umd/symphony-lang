@@ -1,9 +1,7 @@
 module PSL.Parser where
 
 import UVMHS
-import AddToUVMHS
-
-import PSL.Data.Fix
+-- import AddToUVMHS
 
 import PSL.Syntax
 
