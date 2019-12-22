@@ -8,8 +8,12 @@ set iskeyword+=-
 
 syn match pantheonPunctuation "\v\{"
 syn match pantheonPunctuation "\v\}"
+syn match pantheonPunctuation "\v\["
+syn match pantheonPunctuation "\v\]"
 syn match pantheonPunctuation "\v\-"
+syn match pantheonPunctuation "\v\-\>"
 syn match pantheonPunctuation "\v:"
+syn match pantheonPunctuation "\v;"
 syn match pantheonPunctuation "\v,"
 
 syn match pantheonOperator "\v\<\="
@@ -19,7 +23,6 @@ syn match pantheonNoMatch "\v(\-|\w|_)*(\w|_)+"
 
 syn match pantheonLiteral "\v<true>"
 syn match pantheonLiteral "\v<false>"
-syn match pantheonLiteral "\v<all>"
 syn match pantheonLiteral "\v<none>"
 
 syn match pantheonLiteral "\v-?\d+(\.\d+)?(e\d+)?"
@@ -28,6 +31,9 @@ syn match pantheonLiteral "\v\"([^\"\\]|([\\][\"]))*\""
 syn match pantheonKeyword "\v<security>"
 syn match pantheonKeyword "\v<connected>"
 
+syn match pantheonPrimitive "\v<all>"
+syn match pantheonPrimitive "\v<nodes>"
+syn match pantheonPrimitive "\v<edges>"
 syn match pantheonPrimitive "\v<semi-honest>"
 syn match pantheonPrimitive "\v<semi-malicious>"
 syn match pantheonPrimitive "\v<covert>"
@@ -45,6 +51,9 @@ syn match pantheonPrimitive "\v<trusted-setup>"
 syn match pantheonPrimitive "\v<no-trusted-setup>"
 syn match pantheonPrimitive "\v<pki>"
 syn match pantheonPrimitive "\v<no-pki>"
+syn match pantheonPrimitive "\v<crand>"
+
+syn match pantheonOperator "\v\/"
 
 syn match pantheonComment "\v--.*$"
 syn region pantheonCommentML start="\v\{-" end="\v-\}" contains=pantheonCommentML
