@@ -1,0 +1,2 @@
+RESOURCE ESTIMATION
+ResEv {resEvProt = YaoP, resEvPrins = {𝕏 {𝕩name = "C", 𝕩Gen = None},𝕏 {𝕩name = "D", 𝕩Gen = None}}, resEvType = ℤT (FixedIPr 64 0), resEvOp = "LTE", resEvArgs = [ShareV (ValS {sharedValProt = YaoP, sharedValPrins = {𝕏 {𝕩name = "C", 𝕩Gen = None},𝕏 {𝕩name = "D", 𝕩Gen = None}}, sharedValRaw = IntMV (FixedIPr 64 0) 100}),ShareV (ValS {sharedValProt = YaoP, sharedValPrins = {𝕏 {𝕩name = "C", 𝕩Gen = None},𝕏 {𝕩name = "D", 𝕩Gen = None}}, sharedValRaw = IntMV (FixedIPr 64 0) 4})]}

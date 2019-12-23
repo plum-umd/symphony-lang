@@ -19,6 +19,7 @@ data ValMPC =
     BoolMV 𝔹
   | NatMV IPrecision ℕ
   | IntMV IPrecision ℤ
+  | FltMV FPrecision 𝔻
   deriving (Eq,Ord,Show)
 makePrettySum ''ValMPC
 
@@ -125,6 +126,26 @@ iCxtModeL = iCloCxtModeL ⊚ iCxtCloL
 -- OUTPUT --
 ------------
 
+data ResEv = ResEv
+  { resEvProt ∷ Prot
+  , resEvPrins ∷ 𝑃 Prin
+  , resEvType ∷ Type
+  , resEvOp ∷ 𝕊
+  , resEvArgs ∷ 𝐿 Val
+  } deriving (Eq,Ord,Show)
+makePrettySum ''ResEv
+makeLenses ''ResEv
+
+data IOut = IOut
+  { iOutResEvs ∷ 𝐼 ResEv
+  } deriving (Show)
+makePrettySum ''IOut
+makeLenses ''IOut
+
+instance Null IOut where null = IOut null
+instance Append IOut where IOut res₁ ⧺ IOut res₂ = IOut $ res₁ ⧺ res₂
+instance Monoid IOut
+
 -----------
 -- ERROR --
 -----------
@@ -161,25 +182,21 @@ throwIError es ec em vals =
 -- TL MONAD --
 --------------
 
-newtype ITLM a = ITLM { unITLM ∷ RWST () () ITLState (ErrorT IError ID) a }
+newtype ITLM a = ITLM { unITLM ∷ RWST () IOut ITLState (ErrorT IError ID) a }
   deriving
   ( Functor
   , Return,Bind,Monad
   , MonadReader ()
-  , MonadWriter ()
+  , MonadWriter IOut
   , MonadState ITLState
   , MonadError IError
   )
 
-mkITLM ∷ (ITLState → IError ∨ (ITLState ∧ a)) → ITLM a
-mkITLM f = ITLM $ mkRWST $ \ () σ → ErrorT $ ID $ case f σ of
-  Inl r → Inl r
-  Inr (σ' :* x) → Inr (σ' :* () :* x)
+mkITLM ∷ (ITLState → IError ∨ (ITLState ∧ IOut ∧ a)) → ITLM a
+mkITLM f = ITLM $ mkRWST $ \ () σ → ErrorT $ ID $ f σ
 
-runITLM ∷ ITLState → ITLM a → IError ∨ (ITLState ∧ a)
-runITLM σ xM = case unID $ unErrorT $ runRWST () σ $ unITLM xM of
-  Inl r → Inl r
-  Inr (σ' :* () :* x) → Inr (σ' :* x)
+runITLM ∷ ITLState → ITLM a → IError ∨ (ITLState ∧ IOut ∧ a)
+runITLM σ xM = unID $ unErrorT $ runRWST () σ $ unITLM xM
 
 evalITLM ∷ ITLState → ITLM a → IError ∨ a
 evalITLM σ = map snd ∘ runITLM σ
@@ -200,30 +217,30 @@ evalITLMIO σ xM = case evalITLM σ xM of
 -- MONAD --
 -----------
 
-newtype IM a = IM { unIM ∷ RWST ICxt () () (ErrorT IError ID) a }
+newtype IM a = IM { unIM ∷ RWST ICxt IOut () (ErrorT IError ID) a }
   deriving
   ( Functor
   , Return,Bind,Monad
   , MonadReader ICxt
-  , MonadWriter ()
+  , MonadWriter IOut
   , MonadState ()
   , MonadError IError
   )
 
-mkIM ∷ (ICxt → IError ∨ a) → IM a
+mkIM ∷ (ICxt → IError ∨ (IOut ∧ a)) → IM a
 mkIM f = IM $ mkRWST $ \ γ () → ErrorT $ ID $ case f γ of
   Inl r → Inl r
-  Inr x → Inr $ () :* () :* x
+  Inr (o :* x) → Inr $ () :* o :* x
 
-runIM ∷ ICxt → IM a → IError ∨ a
+runIM ∷ ICxt → IM a → IError ∨ (IOut ∧ a)
 runIM γ xM = case unID $ unErrorT $ runRWST γ () $ unIM xM of
   Inl r → Inl r
-  Inr (() :* () :* x) → Inr x
+  Inr (() :* o :* x) → Inr (o :* x)
 
 asTLM ∷ IM a → ITLM a
 asTLM xM = mkITLM $ \ σ → case runIM (update iCxtEnvL (itlStateEnv σ) ξ₀) xM of
   Inl r → Inl r
-  Inr x → Inr $ σ :* x
+  Inr (o :* x) → Inr $ σ :* o :* x
 
 -- =========== --
 -- INTERPRETER --
@@ -298,12 +315,14 @@ mpcFrVal ∷ Val → ValMPC
 mpcFrVal (BoolV b) = BoolMV b
 mpcFrVal (NatV pr n) = NatMV pr n
 mpcFrVal (IntV pr i) = IntMV pr i
+mpcFrVal (FltV pr i) = FltMV pr i
 mpcFrVal _ = error "mpcFrVal"
 
 valFrMPC ∷ ValMPC → Val
 valFrMPC (BoolMV b) = BoolV b
 valFrMPC (NatMV pr n) = NatV pr n
 valFrMPC (IntMV pr i) = IntV pr i
+valFrMPC (FltMV pr d) = FltV pr d
 
 rawShareOps ∷ 𝑃 𝕊
 rawShareOps = pow
@@ -322,20 +341,29 @@ rawShareOps = pow
 onRawShareVals ∷ Prot → 𝑃 Prin → 𝐼 Val → (𝐿 Val → IM Val) → 𝐿 Val → IM Val
 onRawShareVals φ ρs vs f vs' = case vs' of
   Nil → ShareV ∘ ValS φ ρs ∘ mpcFrVal ^$ f $ list vs
-  ShareV (ValS φ' ρs' v) :& vs'' | (φ ≡ φ') ⩓ (ρs ≡ ρs') → onRawShareVals φ ρs (vs ⧺ single (valFrMPC v)) f vs''
+  ShareV (ValS φ' ρs' v) :& vs'' | (φ ≡ φ') ⩓ (ρs ≡ ρs') → 
+    onRawShareVals φ ρs (vs ⧺ single (valFrMPC v)) f vs''
   _ → throwIErrorCxt TypeIError "onRawShareVals: vs' ∉ {Nil,ShareV …}" $ frhs
     [ ("vs'",pretty vs')
     , ("φ",pretty φ)
     , ("ρs",pretty ρs)
     ]
 
-onRawVals ∷ (𝐿 Val → IM Val) → 𝐿 Val → IM Val
-onRawVals f vs = case vs of
-  ShareV (ValS φ ρs _) :& _ → onRawShareVals φ ρs null f vs
+onRawVals ∷ 𝕊 → (𝐿 Val → IM Val) → 𝐿 Val → IM Val
+onRawVals op f vs = case vs of
+  ShareV (ValS φ ρs v) :& _ → do
+    v' ← onRawShareVals φ ρs null f vs
+    let τ = case v of
+          BoolMV _ → 𝔹T
+          NatMV pr _ → ℕT pr
+          IntMV pr _ → ℤT pr
+          FltMV pr _ → 𝔽T pr
+    tellL iOutResEvsL $ single $ ResEv φ ρs τ op vs
+    return v'
   _ → f vs
 
 interpPrim ∷ 𝕊 → 𝐿 Val → IM Val
-interpPrim = onRawVals ∘ interpPrimRaw
+interpPrim op = onRawVals op $ interpPrimRaw op
 
 ---------------
 -- VARIABLES --
@@ -656,25 +684,30 @@ interpTLs = eachWith interpTL
 -- TESTING --
 -------------
 
-interpretFile ∷ 𝕊 → IO ITLState
+interpretFile ∷ 𝕊 → IO (IOut ∧ ITLState )
 interpretFile fn = do
   s ← read fn
   let ts = tokens s
   ls ← tokenizeIO lexer ts
   tls ← parseIO cpTLs ls
-  evalITLMIO σtl₀ $ retState $ interpTLs tls
+  evalITLMIO σtl₀ $ do
+    o ← retOut $ interpTLs tls
+    σ ← get
+    return $ o :* σ
 
 interpretExample ∷ 𝕊 → IO ValP
 interpretExample fn = do
   let path = "examples/" ⧺ fn ⧺ ".psl"
   out path
-  σtl ← interpretFile path
+  o₁ :* σtl ← interpretFile path
   let v = itlStateEnv σtl ⋕! var "main"
-  evalITLMIO σtl $ asTLM $ interpApp v $ AllVP BulV
+  o₂ :* v' ← evalITLMIO σtl $ hijack $ asTLM $ interpApp v $ AllVP BulV
+  write ("resources/" ⧺ fn ⧺ ".res") $ "RESOURCE ESTIMATION\n" ⧺ concat (inbetween "\n" $ map show𝕊 $ iOutResEvs $ o₁ ⧺ o₂)
+  return v'
 
 interpretTest ∷ 𝕊 → IO (ValP ∧ ValP)
 interpretTest fn = do
-  σtl ← interpretFile fn
+  _ :* σtl ← interpretFile fn
   let v = itlStateEnv σtl ⋕! var "main"
       ev = itlStateEnv σtl ⋕! var "expected"
   v' ← evalITLMIO σtl $ asTLM $ interpApp v $ AllVP BulV
