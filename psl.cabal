@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a5bc5d1a7cb1f251b1cfa8d53edd98858290246a6d9026e63a5fc128802e9f3c
+-- hash: 6634719672491d9addd7961c219e5e9370ebdee8aa821bd35bbe54a925e04c54
 
 name:           psl
 version:        0.0.0.0
@@ -27,6 +27,7 @@ library
   ghc-options: -Wall -Wno-orphans -Wno-partial-type-signatures -j
   build-depends:
       base
+    , directory
     , uvmhs
   default-language: Haskell2010
 
@@ -40,6 +41,7 @@ executable psl
   ghc-options: -Wall -Wno-orphans -Wno-partial-type-signatures -j
   build-depends:
       base
+    , directory
     , psl
     , uvmhs
   default-language: Haskell2010

@@ -2,16 +2,17 @@ E    := PSL.main
 
 .PHONY: dev
 dev: .stack-work
-	ghcid --warnings --test $E
+	# ghcid --warnings --test $E
+	ghcid --command="stack ghci --trace --ghci-options '-fexternal-interpreter -prof'" --warnings --test $E
 
 # ghcid --command="stack ghci --ghci-options -fobject-code" --warnings --test $E
 
 .stack-work:
 	stack setup
 
-.PHONY: run
+.PHONY: eval
 eval:
-	stack ghci --ghci-options -e --ghci-options $E
+	stack ghci --trace --ghci-options '-fexternal-interpreter -prof -e $E'
 
 .PHONY: build
 build:
@@ -20,7 +21,8 @@ build:
 .PHONY: run
 run:
 	# stack run
-	stack ghci --ghci-options -e --ghci-options $E
+	# stack ghci --ghci-options -e --ghci-options $E
+	stack run
 
 .PHONY: profile
 profile:
@@ -28,7 +30,7 @@ profile:
 
 .PHONY: trace
 trace:
-	stack run --profile -- +RTS -xc
+	stack run --trace
 
 .PHONY: ghci
 ghci:

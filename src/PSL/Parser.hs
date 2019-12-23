@@ -19,8 +19,8 @@ levelPAR     = 𝕟64 25
 levelASCR    = 𝕟64 29
 
 levelCOND,levelCOMPARE,levelARROW,levelPLUS,levelTIMES ∷ ℕ64
-levelCOND    = 𝕟64 20
-levelCOMPARE = 𝕟64 30
+levelCOND    = 𝕟64 30
+levelCOMPARE = 𝕟64 35
 levelARROW   = 𝕟64 40
 levelPLUS    = 𝕟64 50
 levelTIMES   = 𝕟64 60
@@ -39,7 +39,9 @@ lexer ∷ Lexer CharClass ℂ TokenClassBasic ℕ64 TokenBasic
 lexer = lexerBasic puns kws prim ops
   where
     puns = list 
-      [ "(",")","{","}","[","]","⟨","⟩","<",">"
+      [ "(",")","{","}","[","]"
+      , "⟪","<<"
+      , "⟫",">>"
       , ".",",",":",";"
       , "→","->"
       , "⇒","=>"
@@ -48,6 +50,7 @@ lexer = lexerBasic puns kws prim ops
       , "⁇","??"
       , "@"
       , "⊆","c="
+      , "#"
       ]
     kws = list
       [ "primitive"
@@ -79,20 +82,20 @@ lexer = lexerBasic puns kws prim ops
       , "read"
       , "inp","rev"
       , "par"
+      , "∞","inf"
       ]
     ops = list 
       [ "•","()"
       , "[]"
       , "∷","::"
-      , "⟨⟩","<>"
+      , "⟪⟫","<<>>"
       , "+","-"
       , "×","*"
       , "/","%"
       , "≡","=="
+      , "<",">"
       , "≤","<="
       , "≥",">="
-      , "⋖","<<"
-      , "⋗",">>"
       , "^"
       , "?"
       , "◇","><"
@@ -181,6 +184,29 @@ pEffect = cpNewContext "effect" $ do
 pTVar ∷ CParser TokenBasic TVar
 pTVar = cpNewContext "tvar" cpName
 
+---------------
+-- Precision --
+---------------
+
+pIPrecision ∷ CParser TokenBasic IPrecision
+pIPrecision = ifNone iprDefault ^$ cpOptional $ do
+  cpSyntax "#"
+  concat
+    [ do n₁ ← natΩ ^$ cpInteger
+         n₂ ← ifNone 0 ^$ cpOptional $ do
+           cpSyntax "."
+           natΩ ^$ cpInteger
+         return $ FixedIPr n₁ n₂
+    , do concat [cpSyntax "∞",cpSyntax "inf"]
+         return InfIPr
+    ]
+
+pFPrecision ∷ CParser TokenBasic FPrecision
+pFPrecision = ifNone fprDefault ^$ cpOptional $ do
+  cpSyntax "#"
+  n ← natΩ ^$ cpInteger
+  return $ FixedFPr n
+
 ----------
 -- Type --
 ----------
@@ -198,36 +224,18 @@ pType = cpNewContext "type" $ mixfix $ concat
   -- ℕ[n.n]
   , mixTerminal $ do
       concat [cpSyntax "ℕ",cpSyntax "nat"]
-      nsO ← cpOptional $ do
-        cpSyntax "["
-        n₁ ← cpNatural
-        n₂O ← cpOptional $ do
-          cpSyntax "."
-          cpNatural
-        cpSyntax "]"
-        return $ n₁ :* n₂O
-      return $ ℕT $ elim𝑂 (Some (64 :* None)) Some nsO
+      pr ← pIPrecision
+      return $ ℕT pr
   -- ℤ[n.n]
   , mixTerminal $ do
       concat [cpSyntax "ℤ",cpSyntax "int"]
-      nsO ← cpOptional $ do
-        cpSyntax "["
-        n₁ ← cpNatural
-        n₂O ← cpOptional $ do
-          cpSyntax "."
-          cpNatural
-        cpSyntax "]"
-        return $ n₁ :* n₂O
-      return $ ℤT $ elim𝑂 (Some (64 :* None)) Some nsO
+      pr ← pIPrecision
+      return $ ℤT pr
   -- 𝔽[n]
   , mixTerminal $ do
       concat [cpSyntax "𝔽",cpSyntax "float"]
-      nO ← cpOptional $ do
-        cpSyntax "["
-        n ← cpNatural
-        cpSyntax "]"
-        return n
-      return $ 𝔽T $ ifNone 64 nO
+      pr ← pFPrecision
+      return $ 𝔽T pr
   -- τ + τ
   , mixInfixL levelPLUS $ do concat [cpSyntax "+"] ; return (:+:)
   -- τ × τ
@@ -338,15 +346,15 @@ pPat = mixfix $ concat
   , mixTerminal $ do cpSyntax "[]" ; return NilP
   -- ψ∷ψ
   , mixInfixR levelCONS $ do concat [cpSyntax "∷",cpSyntax "::"] ; return ConsP
-  -- ⟨⟩
-  , mixTerminal $ do concat [cpSyntax "⟨⟩",cpSyntax "<>"] ; return EmptyP
-  -- ⟨ρ.ψ⟩⧺ψ
+  -- ⟪⟫
+  , mixTerminal $ do concat [cpSyntax "⟪⟫",cpSyntax "<<>>"] ; return EmptyP
+  -- ⟪ρ.ψ⟫⧺ψ
   , mixPrefix levelPLUS $ do
-      concat [cpSyntax "⟨",cpSyntax "<"]
+      concat [cpSyntax "⟪",cpSyntax "<<"]
       ρ ← pPrin
       cpSyntax "."
       ψ ← pPat
-      concat [cpSyntax "⟩",cpSyntax ">"]
+      concat [cpSyntax "⟫",cpSyntax ">>"]
       concat [cpSyntax "⧺",cpSyntax "++"]
       return $ BundleP ρ ψ
   -- ψ : τ
@@ -365,15 +373,15 @@ pPat = mixfix $ concat
       ψs ← cpManySepBy (cpSyntax ";") pPat
       cpSyntax "]"
       return $ foldrOnFrom ψs NilP $ \ ψ₁ ψ₂ → ConsP ψ₁ ψ₂
-  -- ⟨ρ₁.ψ₁;…ρₙ.ψₙ⟩
+  -- ⟪ρ₁.ψ₁;…ρₙ.ψₙ⟫
   , mixTerminal $ do
-      do concat [cpSyntax "⟨",cpSyntax "<"]
+      do concat [cpSyntax "⟪",cpSyntax "<<"]
          ψρs ← cpManySepBy (cpSyntax ";") $ do
            ρ ← pPrin
            cpSyntax "."
            ψ ← pPat
            return $ ρ :* ψ
-         concat [cpSyntax "⟩",cpSyntax ">"]
+         concat [cpSyntax "⟫",cpSyntax ">>"]
          return $ foldOnFrom ψρs EmptyP $ \ (ρ₁ :* ψ₁) ψ₂ → BundleP ρ₁ ψ₁ ψ₂
   ]
 
@@ -390,11 +398,20 @@ pExp = fmixfixWithContext "exp" $ concat
   -- s
   , fmixTerminal $ do s ← cpString ; return $ StrE s
   -- n
-  , fmixTerminal $ do n ← cpNatural ; return $ NatE n
+  , fmixTerminal $ do 
+      n ← cpNatural 
+      pr ← pIPrecision
+      return $ NatE pr n
   -- i
-  , fmixTerminal $ do i ← cpInteger ; return $ IntE i
+  , fmixTerminal $ do 
+      i ← cpInteger 
+      pr ← pIPrecision
+      return $ IntE pr i
   -- d
-  , fmixTerminal $ do d ← cpDouble ; return $ FltE d
+  , fmixTerminal $ do 
+      d ← cpDouble 
+      pr ← pFPrecision
+      return $ FltE pr d
   -- •
   , fmixTerminal $ do concat [cpSyntax "•",cpSyntax "()"] ; return BulE
   -- if e then e else e
@@ -495,15 +512,15 @@ pExp = fmixfixWithContext "exp" $ concat
       return $ ShareE φ ρs
   -- e.ρ
   , fmixPostfix levelACCESS $ do cpSyntax "." ; ρ ← pPrin ; return $ \ e → AccessE e ρ
-  -- ⟨ρ₁.e₁;…;ρₙ;eₙ⟩
+  -- ⟪ρ₁.e₁;…;ρₙ;eₙ⟫
   , fmixTerminal $ do
-      concat [cpSyntax "⟨",cpSyntax "<"]
+      concat [cpSyntax "⟪",cpSyntax "<<"]
       ρes ← cpManySepBy (cpSyntax ";") $ do
         ρ ← pPrin
         cpSyntax "."
         e ← pExp
         return $ ρ :* e
-      concat [cpSyntax "⟩",cpSyntax ">"]
+      concat [cpSyntax "⟫",cpSyntax ">>"]
       return $ BundleE ρes
   -- e⧺e
   , fmixInfixL levelPLUS $ do concat [cpSyntax "⧺",cpSyntax "++"] ; return BundleUnionE
@@ -545,8 +562,8 @@ pExp = fmixfixWithContext "exp" $ concat
   , fmixInfixL levelTIMES $ do cpSyntax "/" ; return $ \ e₁ e₂ → PrimE "DIVIDE" $ list [e₁,e₂]
   , fmixInfixL levelTIMES $ do cpSyntax "%" ; return $ \ e₁ e₂ → PrimE "MOD" $ list [e₁,e₂]
   , fmixInfix levelCOMPARE $ do concat [cpSyntax "≡",cpSyntax "=="] ; return $ \ e₁ e₂ → PrimE "EQ" $ list [e₁,e₂]
-  , fmixInfix levelCOMPARE $ do concat [cpSyntax "⋖",cpSyntax "<<"] ; return $ \ e₁ e₂ → PrimE "LT" $ list [e₁,e₂]
-  , fmixInfix levelCOMPARE $ do concat [cpSyntax "⋗",cpSyntax ">>"] ; return $ \ e₁ e₂ → PrimE "GT" $ list [e₁,e₂]
+  , fmixInfix levelCOMPARE $ do cpSyntax "<" ; return $ \ e₁ e₂ → PrimE "LT" $ list [e₁,e₂]
+  , fmixInfix levelCOMPARE $ do cpSyntax ">" ; return $ \ e₁ e₂ → PrimE "GT" $ list [e₁,e₂]
   , fmixInfix levelCOMPARE $ do concat [cpSyntax "≤",cpSyntax "<="] ; return $ \ e₁ e₂ → PrimE "LTE" $ list [e₁,e₂]
   , fmixInfix levelCOMPARE $ do concat [cpSyntax "≥",cpSyntax ">="] ; return $ \ e₁ e₂ → PrimE "GTE" $ list [e₁,e₂]
   , fmixInfixR levelCOND $ do
@@ -579,8 +596,15 @@ pTL = cpNewWithContextRendered "tl" $ concat
               return $ DefnTL x ψs e
          ]
   , do cpSyntax "principal"
-       ρs ← cpOneOrMore pPrin
-       return $ PrinTL ρs
+       ρnOs ← cpOneOrMore $ do
+         ρ ← pPrin
+         nO ← cpOptional $ do
+           cpSyntax "["
+           n ← natΩ ^$ cpInteger
+           cpSyntax "]"
+           return n
+         return $ ρ :* nO
+       return $ PrinTL ρnOs
   , do cpSyntax "primitive"
        x ← pVar
        cpSyntax ":"

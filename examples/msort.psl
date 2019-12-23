@@ -1,0 +1,68 @@
+principal A
+principal B
+principal C[2]
+principal E
+
+def list-cond : 
+    𝔹{yao:C} 
+  → list ℤ{yao:C}
+  → list ℤ{yao:C} 
+  → list ℤ{yao:C}
+def list-cond b xs ys = case xs,ys
+  { [],_ → ys
+  ; _,[] → xs
+  ; x∷xs′,y∷ys′ → b ? x ◇ y ∷ list-cond b xs′ ys′
+  }
+
+def split : list ℤ{isec:A,B} → list ℤ{isec:A,B} × list ℤ{isec:A,B}
+def split xs = case xs
+  { [] → [] , []
+  ; [x] → [] , [x]
+  ; x₁∷x₂∷xs →
+      let xs₁,xs₂ = split xs 
+      in x₁∷xs₁,x₂∷xs₂
+  }
+
+def merge : 
+    list ℤ{yao:C}
+  → list ℤ{yao:C}
+  → list ℤ{yao:C}
+def merge xs ys = case xs,ys
+  { [],_ → ys
+  ; _,[] → xs
+  ; x∷xs′,y∷ys′ →
+      list-cond (x ≤ y)
+                (x ∷ merge xs′ ys)
+                (y ∷ merge xs ys′)
+  }
+
+def msort : list ℤ{isec:A,B} → list ℤ{yao:C}
+def msort xs = case xs 
+  { [] → []
+  ; [xy] →
+      let x = share{yao:C} xy.A
+      let y = share{yao:C} xy.B
+      let b = x ≤ y
+      in [ b ? x ◇ y ; b ? y ◇ x ]
+  ; x₁∷x₂∷xs′ →
+      let xs₁,xs₂ = split xs
+
+      let ys₁ : list ℤ{yao:C}
+      let ys₁ = msort xs₁
+
+      let ys₁ : list ℤ{yao:C}
+      let ys₂ = msort xs₂
+
+      in merge ys₁ ys₂
+  }
+
+def map f xs = case xs
+  { [] → []
+  ; x∷xs′ → f x∷map f xs′
+  }
+
+def main : 𝟙 →{inp:A,B;rev:E} list ℤ{ssec:E}
+def main • = 
+  let xsys : list ℤ{isec:A,B}
+  let xsys = {par:A,B} read (list ℤ) "msort-input.txt"
+  in map (λ x → reveal{E} x) (msort xsys)

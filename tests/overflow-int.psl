@@ -1,0 +1,7 @@
+def main • =
+  -- 4-bit ints {-8..7}
+  let x = 7#4
+  let y = 2#4
+  in x + y 
+
+def expected = -7#4

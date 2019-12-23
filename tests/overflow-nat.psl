@@ -1,0 +1,7 @@
+def main • =
+  -- 4-bit naturals {0..15}
+  let x = 15n#4
+  let y = 2n#4
+  in x + y 
+
+def expected = 1n#4

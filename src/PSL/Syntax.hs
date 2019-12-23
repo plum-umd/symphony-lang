@@ -71,6 +71,28 @@ data Prot =
   deriving (Eq,Ord,Show)
 makePrettySum ''Prot
 
+
+---------------
+-- Precision --
+---------------
+
+data IPrecision =
+    InfIPr
+  | FixedIPr ℕ ℕ
+  deriving (Eq,Ord,Show)
+makePrettySum ''IPrecision
+
+iprDefault ∷ IPrecision
+iprDefault = FixedIPr 64 0
+
+data FPrecision = 
+    FixedFPr ℕ
+  deriving (Eq,Ord,Show)
+makePrettySum ''FPrecision
+
+fprDefault ∷ FPrecision
+fprDefault = FixedFPr 64
+
 ----------
 -- Type --
 ----------
@@ -81,9 +103,9 @@ data Type =
   | UnitT                              --  𝟙                   /  unit
   | 𝔹T                                 --  𝔹                   /  bool
   | 𝕊T                                 --  𝕊                   /  string
-  | ℕT (𝑂 (ℕ ∧ 𝑂 ℕ))                   --  ℕ[n.n]              /  natn.n
-  | ℤT (𝑂 (ℕ ∧ 𝑂 ℕ))                   --  ℤ[n.n]              /  intn.n
-  | 𝔽T ℕ                               --  𝔽[n]                /  floatn
+  | ℕT IPrecision                      --  ℕ[n.n]              /  natn.n
+  | ℤT IPrecision                      --  ℤ[n.n]              /  intn.n
+  | 𝔽T FPrecision                      --  𝔽[n]                /  floatn
   | Type :+: Type                      --  τ + τ               /  τ + τ
   | Type :×: Type                      --  τ × τ               /  τ × τ
   | ListT Type                         --  list τ              /  list τ
@@ -134,9 +156,9 @@ data ExpR =
     VarE Var                      -- x                     /  x
   | BoolE 𝔹                       -- b                     /  b
   | StrE 𝕊                        -- s                     /  s
-  | NatE ℕ                        -- n                     /  n
-  | IntE ℤ                        -- i                     /  i
-  | FltE 𝔻                        -- d                     /  d
+  | NatE IPrecision ℕ             -- n                     /  n
+  | IntE IPrecision ℤ             -- i                     /  i
+  | FltE FPrecision 𝔻             -- d                     /  d
   | BulE                          -- •                     /  ()
   | IfE Exp Exp Exp               -- if e then e else e    /  if e then e else e
   | LE Exp                        -- L e                   /  L e
@@ -184,7 +206,7 @@ type TL = Annotated FullContext TLR
 data TLR =
     DeclTL Var Type          -- def x : τ        /  def x : τ
   | DefnTL Var (𝐿 Pat) Exp   -- def x ψ₁ … = e   /  def x  ψ₁ … = e
-  | PrinTL (𝐿 Prin)          -- principal ρ …    /  principal ρ …
+  | PrinTL (𝐿 (Prin ∧ 𝑂 ℕ))  -- principal ρ …    /  principal ρ …
   | PrimTL Var Type          -- primitive x : τ  /  primitive x : τ
   deriving (Eq,Ord)
 makePrettySum ''TLR

@@ -1,6 +1,8 @@
 module PSL.Interpreter where
 
 import UVMHS
+import AddToUVMHS
+
 import PSL.Parser
 import PSL.Syntax
 
@@ -15,7 +17,8 @@ import qualified Prelude as HS
 -- mv ∈ mpc-val
 data ValMPC =
     BoolMV 𝔹
-  | IntMV ℤ
+  | NatMV IPrecision ℕ
+  | IntMV IPrecision ℤ
   deriving (Eq,Ord,Show)
 makePrettySum ''ValMPC
 
@@ -31,9 +34,9 @@ makePrettySum ''ValS
 data Val =
     BoolV 𝔹
   | StrV 𝕊
-  | NatV ℕ
-  | IntV ℤ
-  | FltV 𝔻
+  | NatV IPrecision ℕ
+  | IntV IPrecision ℤ
+  | FltV FPrecision 𝔻
   | BulV
   | LV Val
   | RV Val
@@ -118,6 +121,10 @@ iCxtModeL = iCloCxtModeL ⊚ iCxtCloL
 ξ₀ ∷ ICxt
 ξ₀ = ICxt None $ ICloCxt dø TopM
 
+------------
+-- OUTPUT --
+------------
+
 -----------
 -- ERROR --
 -----------
@@ -133,18 +140,19 @@ makePrettySum ''IErrorClass
 -- r ∈ cerr
 data IError = IError
   { iErrorSource ∷ 𝑂 FullContext
+  , iErrorCallStack ∷ CallStack
   , iErrorClass ∷ IErrorClass
   , iErrorMsg ∷ Doc
   }
 
-throwIErrorCxt ∷ (Monad m,MonadReader ICxt m,MonadError IError m) ⇒ IErrorClass → 𝕊 → 𝐿 (𝕊 ∧ Doc) → m a
-throwIErrorCxt ec em vals = do
+throwIErrorCxt ∷ (Monad m,MonadReader ICxt m,MonadError IError m,STACK) ⇒ IErrorClass → 𝕊 → 𝐿 (𝕊 ∧ Doc) → m a
+throwIErrorCxt ec em vals = withFrozenCallStack $ do
   es ← askL iCxtSourceL
   throwIError es ec em vals
   
-throwIError ∷ (Monad m,MonadError IError m) ⇒ 𝑂 FullContext → IErrorClass → 𝕊 → 𝐿 (𝕊 ∧ Doc) → m a
+throwIError ∷ (Monad m,MonadError IError m,STACK) ⇒ 𝑂 FullContext → IErrorClass → 𝕊 → 𝐿 (𝕊 ∧ Doc) → m a
 throwIError es ec em vals =
-  throw $ IError es ec $ ppVertical
+  throw $ IError es callStack ec $ ppVertical
     [ ppString em
     , ppVertical $ mapOn vals $ \ (n :* v) → ppHorizontal [ppString n,ppString "=",v]
     ]
@@ -178,11 +186,12 @@ evalITLM σ = map snd ∘ runITLM σ
 
 evalITLMIO ∷ ITLState → ITLM a → IO a
 evalITLMIO σ xM = case evalITLM σ xM of
-  Inl (IError rsO rc rm) → do
-    pprint $ ppVertical
-      [ ppHeader $ show𝕊 rc
-      , elim𝑂 null pretty rsO
-      , rm
+  Inl (IError rsO cs rc rm) → do
+    pprint $ ppVertical $ concat
+      [ single𝐼 $ ppHeader $ show𝕊 rc
+      , elim𝑂 empty𝐼 (single𝐼 ∘ pretty) rsO
+      , single𝐼 rm
+      , single𝐼 $ pretty cs
       ]
     abortIO
   Inr x → return x
@@ -221,6 +230,37 @@ asTLM xM = mkITLM $ \ σ → case runIM (update iCxtEnvL (itlStateEnv σ) ξ₀)
 -- =========== --
 
 ----------------
+-- TRUNCATING --
+----------------
+
+trNat ∷ ℕ → ℕ → ℕ
+trNat m n = n ÷ (2 ^^ m)
+
+trPrNat ∷ IPrecision → ℕ → ℕ
+trPrNat pr = case pr of
+  InfIPr → id
+  FixedIPr m n → trNat $ m + n
+
+buNat ∷ ℕ → ℕ → ℕ
+buNat m n = n + (2 ^^ m)
+
+buPrNat ∷ IPrecision → ℕ → ℕ
+buPrNat = \case
+  InfIPr → id
+  FixedIPr m n → buNat $ m + n
+
+trInt ∷ ℕ → ℤ → ℤ
+trInt m i
+  | i < neg (int (2 ^^ (m - 1))) = trInt m (i + int (2 ^^ m))
+  | i > int (2 ^^ (m - 1) - 1) = trInt m (i - int (2 ^^ m))
+  | otherwise = i
+
+trPrInt ∷ IPrecision → ℤ → ℤ
+trPrInt = \case
+  InfIPr → id
+  FixedIPr m n → trInt $ m + n
+
+----------------
 -- PRIMITIVES --
 ----------------
 
@@ -228,26 +268,26 @@ interpPrimRaw ∷ 𝕊 → 𝐿 Val → IM Val
 interpPrimRaw o vs = case (o,vs) of
   ("OR",tohs → [BoolV b₁,BoolV b₂]) → return $ BoolV $ b₁ ⩔ b₂
   ("AND",tohs → [BoolV b₁,BoolV b₂]) → return $ BoolV $ b₁ ⩓ b₂
-  ("PLUS",tohs → [NatV n₁,NatV n₂]) → return $ NatV $ n₁ + n₂
-  ("PLUS",tohs → [IntV i₁,IntV i₂]) → return $ IntV $ i₁ + i₂
-  ("MINUS",tohs → [NatV n₁,NatV n₂]) → return $ NatV $ n₁ - n₂
-  ("MINUS",tohs → [IntV i₁,IntV i₂]) → return $ IntV $ i₁ - i₂
-  ("TIMES",tohs → [NatV n₁,NatV n₂]) → return $ NatV $ n₁ × n₂
-  ("TIMES",tohs → [IntV i₁,IntV i₂]) → return $ IntV $ i₁ × i₂
-  ("DIV",tohs → [NatV n₁,NatV n₂]) → return $ NatV $ if n₂ ≡ 0 then n₁ else n₁ ⌿ n₂
-  ("DIV",tohs → [IntV i₁,IntV i₂]) → return $ IntV $ if i₂ ≡ int 0 then i₁ else i₁ ⌿ i₂
-  ("MOD",tohs → [NatV n₁,NatV n₂]) → return $ NatV $ if n₂ ≡ 0 then n₁ else n₁ ÷ n₂
-  ("MOD",tohs → [IntV i₁,IntV i₂]) → return $ IntV $ if i₂ ≡ int 0 then i₁ else i₁ ÷ i₂
-  ("EQ",tohs → [NatV n₁,NatV n₂]) → return $ BoolV $ n₁ ≡ n₂
-  ("EQ",tohs → [IntV i₁,IntV i₂]) → return $ BoolV $ i₁ ≡ i₂
-  ("LT",tohs → [NatV n₁,NatV n₂]) → return $ BoolV $ n₁ < n₂
-  ("LT",tohs → [IntV i₁,IntV i₂]) → return $ BoolV $ i₁ < i₂
-  ("GT",tohs → [NatV n₁,NatV n₂]) → return $ BoolV $ n₁ > n₂
-  ("GT",tohs → [IntV i₁,IntV i₂]) → return $ BoolV $ i₁ > i₂
-  ("LTE",tohs → [NatV n₁,NatV n₂]) → return $ BoolV $ n₁ ≤ n₂
-  ("LTE",tohs → [IntV i₁,IntV i₂]) → return $ BoolV $ i₁ ≤ i₂
-  ("GTE",tohs → [NatV n₁,NatV n₂]) → return $ BoolV $ n₁ ≥ n₂
-  ("GTE",tohs → [IntV i₁,IntV i₂]) → return $ BoolV $ i₁ ≥ i₂
+  ("PLUS",tohs → [NatV p₁ n₁,NatV p₂ n₂]) | p₁ ≡ p₂ → return $ NatV p₁ $ trPrNat p₁ $ n₁ + n₂
+  ("PLUS",tohs → [IntV p₁ i₁,IntV p₂ i₂]) | p₁ ≡ p₂ → return $ IntV p₁ $ trPrInt p₁ $ i₁ + i₂
+  ("MINUS",tohs → [NatV p₁ n₁,NatV p₂ n₂]) | p₁ ≡ p₂ → return $ NatV p₁ $ trPrNat p₁ $ buPrNat p₁ n₁ - n₂
+  ("MINUS",tohs → [IntV p₁ i₁,IntV p₂ i₂]) | p₁ ≡ p₂ → return $ IntV p₁ $ trPrInt p₁ $ i₁ - i₂
+  ("TIMES",tohs → [NatV p₁ n₁,NatV p₂ n₂]) | p₁ ≡ p₂ → return $ NatV p₁ $ trPrNat p₁ $ n₁ × n₂
+  ("TIMES",tohs → [IntV p₁ i₁,IntV p₂ i₂]) | p₁ ≡ p₂ → return $ IntV p₁ $ trPrInt p₁ $ i₁ × i₂
+  ("DIV",tohs → [NatV p₁ n₁,NatV p₂ n₂]) | p₁ ≡ p₂ → return $ NatV p₁ $ trPrNat p₁ $ if n₂ ≡ 0 then n₁ else n₁ ⌿ n₂
+  ("DIV",tohs → [IntV p₁ i₁,IntV p₂ i₂]) | p₁ ≡ p₂ → return $ IntV p₁ $ trPrInt p₁ $ if i₂ ≡ int 0 then i₁ else i₁ ⌿ i₂
+  ("MOD",tohs → [NatV p₁ n₁,NatV p₂ n₂]) | p₁ ≡ p₂ → return $ NatV p₁ $ trPrNat p₁ $ if n₂ ≡ 0 then n₁ else n₁ ÷ n₂
+  ("MOD",tohs → [IntV p₁ i₁,IntV p₂ i₂]) | p₁ ≡ p₂ → return $ IntV p₁ $ trPrInt p₁ $ if i₂ ≡ int 0 then i₁ else i₁ ÷ i₂
+  ("EQ",tohs → [NatV p₁ n₁,NatV p₂ n₂]) | p₁ ≡ p₂ → return $ BoolV $ n₁ ≡ n₂
+  ("EQ",tohs → [IntV p₁ i₁,IntV p₂ i₂]) | p₁ ≡ p₂ → return $ BoolV $ i₁ ≡ i₂
+  ("LT",tohs → [NatV p₁ n₁,NatV p₂ n₂]) | p₁ ≡ p₂ → return $ BoolV $ n₁ < n₂
+  ("LT",tohs → [IntV p₁ i₁,IntV p₂ i₂]) | p₁ ≡ p₂ → return $ BoolV $ i₁ < i₂
+  ("GT",tohs → [NatV p₁ n₁,NatV p₂ n₂]) | p₁ ≡ p₂ → return $ BoolV $ n₁ > n₂
+  ("GT",tohs → [IntV p₁ i₁,IntV p₂ i₂]) | p₁ ≡ p₂ → return $ BoolV $ i₁ > i₂
+  ("LTE",tohs → [NatV p₁ n₁,NatV p₂ n₂]) | p₁ ≡ p₂ → return $ BoolV $ n₁ ≤ n₂
+  ("LTE",tohs → [IntV p₁ i₁,IntV p₂ i₂]) | p₁ ≡ p₂ → return $ BoolV $ i₁ ≤ i₂
+  ("GTE",tohs → [NatV p₁ n₁,NatV p₂ n₂]) | p₁ ≡ p₂ → return $ BoolV $ n₁ ≥ n₂
+  ("GTE",tohs → [IntV p₁ i₁,IntV p₂ i₂]) | p₁ ≡ p₂ → return $ BoolV $ i₁ ≥ i₂
   ("COND",tohs → [BoolV b,v₁,v₂]) → return $ if b then v₁ else v₂
   _ → throwIErrorCxt NotImplementedIError "interpPrimRaw" $ frhs
     [ ("o",pretty o)
@@ -256,12 +296,14 @@ interpPrimRaw o vs = case (o,vs) of
 
 mpcFrVal ∷ Val → ValMPC
 mpcFrVal (BoolV b) = BoolMV b
-mpcFrVal (IntV i) = IntMV i
+mpcFrVal (NatV pr n) = NatMV pr n
+mpcFrVal (IntV pr i) = IntMV pr i
 mpcFrVal _ = error "mpcFrVal"
 
 valFrMPC ∷ ValMPC → Val
 valFrMPC (BoolMV b) = BoolV b
-valFrMPC (IntMV i) = IntV i
+valFrMPC (NatMV pr n) = NatV pr n
+valFrMPC (IntMV pr i) = IntV pr i
 
 rawShareOps ∷ 𝑃 𝕊
 rawShareOps = pow
@@ -316,14 +358,69 @@ bindVar x v = mapEnvL iCxtEnvL ((x ↦ v) ⩌)
 -- PATTERNS --
 --------------
 
-bindPat ∷ Pat → ValP → IM a → IM a
-bindPat ψ v = case ψ of
-  VarP x → bindVar x v
-  BulP → id
-  _ → const $ throwIErrorCxt NotImplementedIError "bindPat" $ frhs
+bindPat ∷ Pat → ValP → IM ValP → IM ValP
+bindPat ψ ṽ vM = do
+  fO ← bindPatO ψ ṽ
+  case fO of
+    Some f → f vM
+    None → throwIErrorCxt TypeIError "bindPat: no matching cases" $ frhs
+      [ ("ψ",pretty ψ)
+      , ("ṽ",pretty ṽ)
+      ]
+
+bindPatO ∷ Pat → ValP → IM (𝑂 (IM a → IM a))
+bindPatO ψ ṽ = case ψ of
+  VarP x → return $ Some $ bindVar x ṽ
+  BulP → return $ Some id
+  NilP → do
+    ṽ' ← bindValP ṽ $ \ v → case v of
+          NilV → return $ AllVP $ NilV
+          _ → return TopVP
+    return $ case ṽ' of
+      TopVP → None
+      _ → Some id
+  ConsP ψ₁ ψ₂ → do
+    ṽ₁ ← bindValP ṽ $ \ v → case v of
+      ConsV v₁ _v₂ → return $ AllVP $ v₁
+      _ → return TopVP
+    ṽ₂ ← bindValP ṽ $ \ v → case v of
+      ConsV _v₁ v₂ → return $ AllVP $ v₂
+      _ → return TopVP
+    fO₁ ← bindPatO ψ₁ ṽ₁
+    fO₂ ← bindPatO ψ₂ ṽ₂
+    return $ do
+      f₁ ← fO₁
+      f₂ ← fO₂
+      return $ f₂ ∘ f₁
+  TupP ψ₁ ψ₂ → do
+    ṽ₁ ← bindValP ṽ $ \ v → case v of
+      PairV v₁ _v₂ → return $ AllVP $ v₁
+      _ → return TopVP
+    ṽ₂ ← bindValP ṽ $ \ v → case v of
+      PairV _v₁ v₂ → return $ AllVP $ v₂
+      _ → return TopVP
+    fO₁ ← bindPatO ψ₁ ṽ₁
+    fO₂ ← bindPatO ψ₂ ṽ₂
+    return $ do
+      f₁ ← fO₁
+      f₂ ← fO₂
+      return $ f₂ ∘ f₁
+  WildP → return $ Some id
+  _ → return $ Some $ const $ throwIErrorCxt NotImplementedIError "bindPatO" $ frhs
     [ ("ψ",pretty ψ)
-    , ("v",pretty v)
+    , ("ṽ",pretty ṽ)
     ]
+
+interpCase ∷ ValP → 𝐿 (Pat ∧ Exp) → IM ValP
+interpCase v ψes = case ψes of
+  Nil → throwIErrorCxt TypeIError "interpCase: ψes = []" $ frhs
+    [ ("ψes",pretty ψes)
+    ]
+  (ψ :* e) :& ψes' → do
+    fO ← bindPatO ψ v 
+    case fO of
+      None → interpCase v ψes'
+      Some f → f $ interpExp e
 
 --------------------
 -- PARSING INPUTS --
@@ -331,7 +428,12 @@ bindPat ψ v = case ψ of
 
 parseTy ∷ Type → 𝕊 → IM Val
 parseTy τ s = case τ of
-  ℤT (Some (64 :* None)) → return $ IntV $ int (HS.read $ chars s ∷ ℤ64)
+  ℤT pr → do
+    let i = HS.read $ chars s ∷ ℤ
+    return $ IntV pr $ trPrInt pr i
+  ListT τ' → do
+    vs ← mapM (parseTy τ') $ list $ filter (≢ "") $ splitOn𝕊 "\n" s
+    return $ foldr NilV ConsV vs
   _ → throwIErrorCxt NotImplementedIError "parseTy" $ frhs
     [ ("τ",pretty τ)
     ]
@@ -412,8 +514,8 @@ interpExp e = localL iCxtSourceL (Some $ annotatedTag e) $ case extract e of
   VarE x → interpVar x
   -- BoolE
   StrE s → return $ AllVP $ StrV s
-  NatE n → return $ AllVP $ NatV n
-  IntE i → return $ AllVP $ IntV i
+  NatE pr n → return $ AllVP $ NatV pr $ trPrNat pr n
+  IntE pr i → return $ AllVP $ IntV pr $ trPrInt pr i
   -- FltE
   BulE → return $ AllVP $ BulV
   IfE e₁ e₂ e₃ → do
@@ -434,13 +536,20 @@ interpExp e = localL iCxtSourceL (Some $ annotatedTag e) $ case extract e of
     bindValP ṽ₁ $ \ v₁ →
       bindValP ṽ₂ $ \ v₂ →
         return $ AllVP $ PairV v₁ v₂
-  -- NilE
-  -- ConsE
+  NilE → return $ AllVP NilV
+  ConsE e₁ e₂ → do
+    ṽ₁ ← interpExp e₁
+    ṽ₂ ← interpExp e₂
+    bindValP ṽ₁ $ \ v₁ →
+      bindValP ṽ₂ $ \ v₂ →
+        return $ AllVP $ ConsV v₁ v₂
   LetTyE _ _ e' → interpExp e'
   LetE ψ e₁ e₂ → do
     v ← interpExp e₁
     bindPat ψ v $ interpExp e₂
-  -- CaseE
+  CaseE e' ψes → do
+    ṽ ← interpExp e'
+    interpCase ṽ ψes
   LamE selfO ψ e' → do
     ξ ← askL iCxtCloL
     return $ AllVP $ CloV selfO ψ e' ξ
@@ -460,13 +569,13 @@ interpExp e = localL iCxtSourceL (Some $ annotatedTag e) $ case extract e of
     case ṽ of
       AllVP v → case v of
         BoolV b → return $ AllVP $ ShareV $ ValS φ pρs $ BoolMV b
-        IntV i → return $ AllVP $ ShareV $ ValS φ pρs $ IntMV i
+        IntV pr i → return $ AllVP $ ShareV $ ValS φ pρs $ IntMV pr i
         _ → throwIErrorCxt TypeIError "interpExp: ShareE: AllVP: v ∉ {BoolV _,IntV _}" $ frhs
           [ ("v",pretty v)
           ]
       SecVP _p v → case v of
         BoolV b → return $ AllVP $ ShareV $ ValS φ pρs $ BoolMV b
-        IntV i → return $ AllVP $ ShareV $ ValS φ pρs $ IntMV i
+        IntV pr i → return $ AllVP $ ShareV $ ValS φ pρs $ IntMV pr i
         _ → throwIErrorCxt TypeIError "interpExp: ShareE: SecVP: v ∉ {BoolV _,IntV _}" $ frhs
           [ ("v",pretty v)
           ]
@@ -495,7 +604,7 @@ interpExp e = localL iCxtSourceL (Some $ annotatedTag e) $ case extract e of
     case ṽ of
       AllVP v → SSecVP pρs ^$ case v of
         ShareV (ValS _ _ (BoolMV b)) → return $ BoolV b
-        ShareV (ValS _ _ (IntMV i)) → return $ IntV i
+        ShareV (ValS _ _ (IntMV pr i)) → return $ IntV pr i
         _ → throwIErrorCxt TypeIError "interpExp: RevealE: v ∉ {ShaveV (ValS (BoolMV _) _ _),ShareV (ValS (IntMV _) _ _)}" $ frhs
           [ ("v",pretty v)
           ]
@@ -547,51 +656,62 @@ interpTLs = eachWith interpTL
 -- TESTING --
 -------------
 
+interpretFile ∷ 𝕊 → IO ITLState
+interpretFile fn = do
+  s ← read fn
+  let ts = tokens s
+  ls ← tokenizeIO lexer ts
+  tls ← parseIO cpTLs ls
+  evalITLMIO σtl₀ $ retState $ interpTLs tls
+
 interpretExample ∷ 𝕊 → IO ValP
 interpretExample fn = do
   let path = "examples/" ⧺ fn ⧺ ".psl"
   out path
-  s ← read path
-  let ts = tokens s
-  ls ← tokenizeIO lexer ts
-  tls ← parseIO cpTLs ls
-  σtl ← evalITLMIO σtl₀ $ retState $ interpTLs tls
+  σtl ← interpretFile path
   let v = itlStateEnv σtl ⋕! var "main"
   evalITLMIO σtl $ asTLM $ interpApp v $ AllVP BulV
+
+interpretTest ∷ 𝕊 → IO (ValP ∧ ValP)
+interpretTest fn = do
+  σtl ← interpretFile fn
+  let v = itlStateEnv σtl ⋕! var "main"
+      ev = itlStateEnv σtl ⋕! var "expected"
+  v' ← evalITLMIO σtl $ asTLM $ interpApp v $ AllVP BulV
+  return $ v' :* ev
 
 testInterpreterExample ∷ 𝕊 → IO ()
 testInterpreterExample fn = pprint *$ interpretExample fn
 
-tests ∷ 𝐿 (𝕊 ∧ ValP)
-tests = frhs
- [ ("micro-let",AllVP (IntV $ int 2))
- ]
-
 testInterpreter ∷ IO ()
 testInterpreter = do
-  pprint $ ppVertical
-    [ ppHeader "TESTS"
-    , concat
-      [ ppSpace $ 𝕟64 2
-      , ppAlign $ concat $ mapOn tests $ \ (fn :* v) → 
-          let rV = ioUNSAFE $ interpretExample fn
-          in
-          ppVertical
-           [ ppHorizontal [ppHeader "FILE:",pretty fn]
-           , concat
-               [ ppSpace $ 𝕟64 2
-               , ppAlign $ ppVertical
-                   [ ppHorizontal [ppHeader "RETURNED:",pretty rV]
-                   , ppHorizontal [ppHeader "EXPECTED:",pretty v]
-                   , ppHorizontal [ppHeader "PASSED:",pretty $ rV ≡ v]
-                   ]
-               ]
-           ]
+  pprint $ ppHeader "TESTING INTERPRETER"
+  indir "tests" $ do
+    fs ← files
+    pprint $ ppVertical
+      [ ppHeader "TESTS"
+      , concat
+        [ ppSpace $ 𝕟64 2
+        , ppAlign $ ppVertical $ mapOn fs $ \ fn →
+            let v :* ev = ioUNSAFE $ interpretTest fn
+            in case v ≡ ev of
+              True → ppHorizontal [ppFormat (formats [FG darkGreen]) $ ppString "PASSED",ppString fn]
+              False → ppVertical
+                [ ppHorizontal [ppFormat (formats [FG darkRed]) $ ppString "FAILED",ppString fn]
+                , concat
+                    [ ppSpace $ 𝕟64 2
+                    , ppAlign $ ppVertical
+                        [ ppHorizontal [ppHeader "RETURNED:",pretty v]
+                        , ppHorizontal [ppHeader "EXPECTED:",pretty ev]
+                        ]
+                    ]
+                ]
+        ]
       ]
-    ]
   testInterpreterExample "cmp"
   testInterpreterExample "cmp-tutorial"
   testInterpreterExample "euclid"
+  testInterpreterExample "msort"
   -- testInterpreterExample "cmp-split"
   -- testInterpreterExample "cmp-tutorial"
   -- testInterpreterExample "add"

@@ -48,6 +48,7 @@ library:
   source-dirs: src
   dependencies:
     - base
+    - directory
     - uvmhs
 
 executable:
@@ -55,5 +56,6 @@ executable:
   main: Main.hs
   dependencies:
     - base
-    - uvmhs
+    - directory
     - psl
+    - uvmhs

@@ -1,6 +1,7 @@
 module PSL.TypeChecker where
 
 import UVMHS
+import AddToUVMHS
 
 import PSL.Syntax
 import PSL.Parser
@@ -24,7 +25,7 @@ type CTLDefns = Var ⇰ Exp
 
 -- Σ ∈ ctlstate
 data CTLState = CTLState
-  { ctlStatePrins ∷ 𝑃 𝕏
+  { ctlStatePrins ∷ 𝑃 (𝕏 ∧ 𝑂 ℕ)
   , ctlStateTyDec ∷ CTyEnv
   , ctlStateTyEnv ∷ CTyEnv
   , ctlStateTmDec ∷ CTmDec
@@ -44,7 +45,7 @@ makeLenses ''CTLState
 -- Ξ ∈ ccxt
 data CCxt = CCxt
   { cCxtSource ∷ 𝑂 FullContext
-  , cCxtPrins ∷ 𝑃 𝕏
+  , cCxtPrins ∷ 𝑃 (𝕏 ∧ 𝑂 ℕ)
   , cCxtTyDec ∷ CTyEnv
   , cCxtTyEnv ∷ CTyEnv
   , cCxtTmDec ∷ CTmDec
@@ -87,18 +88,19 @@ makePrettySum ''CErrorClass
 -- r ∈ cerr
 data CError = CError
   { cErrorSource ∷ 𝑂 FullContext
+  , cErrorCallStack ∷ CallStack
   , cErrorClass ∷ CErrorClass
   , cErrorMsg ∷ Doc
   }
 
-throwCErrorCxt ∷ (Monad m,MonadReader CCxt m,MonadError CError m) ⇒ CErrorClass → 𝕊 → 𝐿 (𝕊 ∧ Doc) → m a
-throwCErrorCxt ec em vals = do
+throwCErrorCxt ∷ (Monad m,MonadReader CCxt m,MonadError CError m,STACK) ⇒ CErrorClass → 𝕊 → 𝐿 (𝕊 ∧ Doc) → m a
+throwCErrorCxt ec em vals = withFrozenCallStack $ do
   es ← askL cCxtSourceL
   throwCError es ec em vals
   
-throwCError ∷ (Monad m,MonadError CError m) ⇒ 𝑂 FullContext → CErrorClass → 𝕊 → 𝐿 (𝕊 ∧ Doc) → m a
+throwCError ∷ (Monad m,MonadError CError m,STACK) ⇒ 𝑂 FullContext → CErrorClass → 𝕊 → 𝐿 (𝕊 ∧ Doc) → m a
 throwCError es ec em vals =
-  throw $ CError es ec $ ppVertical
+  throw $ CError es callStack ec $ ppVertical
     [ ppString em
     , ppVertical $ mapOn vals $ \ (n :* v) → ppHorizontal [ppString n,ppString "=",v]
     ]
@@ -133,11 +135,12 @@ evalCTLM σ = map snd ∘ runCTLM σ
 
 evalCTLMIO ∷ CTLState → CTLM a → IO a
 evalCTLMIO σ xM = case evalCTLM σ xM of
-  Inl (CError rsO rc rm) → do
-    pprint $ ppVertical
-      [ ppHeader $ show𝕊 rc
-      , elim𝑂 null pretty rsO
-      , rm
+  Inl (CError rsO cs rc rm) → do
+    pprint $ ppVertical $ concat
+      [ single𝐼 $ ppHeader $ show𝕊 rc
+      , elim𝑂 empty𝐼 (single𝐼 ∘ pretty) rsO
+      , single𝐼 rm
+      , single𝐼 $ pretty cs
       ]
     abortIO
   Inr x → return x
@@ -260,9 +263,9 @@ elabExpInfer e = mapFst (siphon e) ^$ localL cCxtSourceL (Some $ annotatedTag e)
         ]
   BoolE b → return $ BoolE b :* 𝔹T
   StrE s → return $ StrE s :* 𝕊T
-  NatE n → return $ NatE n :* ℕT (Some $ 64 :* None)
-  IntE i → return $ IntE i :* ℤT (Some $ 64 :* None)
-  FltE d → return $ FltE d :* 𝔽T 64
+  NatE pr n → return $ NatE pr n :* ℕT pr
+  IntE pr i → return $ IntE pr i :* ℤT pr
+  FltE pr d → return $ FltE pr d :* 𝔽T pr
   BulE → return $ BulE :* UnitT
   IfE e₁ e₂ e₃ → do
     eᴱ₁ ← elabExpCheck 𝔹T e₁
@@ -417,10 +420,10 @@ elabExpCheck τ e = siphon e ^$ localL cCxtSourceL (Some $ annotatedTag e) $ cas
 
 elabTL ∷ TL → CTLM ()
 elabTL tl = case extract tl of
-  PrinTL ρs → do
-    let pρs = pow ρs
+  PrinTL ρnOs → do
+    let pρs = pow ρnOs
     ρs' ← getL ctlStatePrinsL
-    when (pρs ∩ ρs' ≢ pø) $ \ _ → 
+    when (pmap fst pρs ∩ pmap fst ρs' ≢ pø) $ \ _ → 
       throwCError (Some $ annotatedTag tl) TypeCError "elabTL: PrinTL: pρs ∩ ρs' ≢ ∅" $ frhs
         [ ("pρs",pretty pρs)
         , ("ρs'",pretty ρs')
@@ -468,6 +471,7 @@ testTypecheckerExample fn = pprint *$ snd ^$ typecheckExample fn
 
 testTypechecker ∷ IO ()
 testTypechecker = do
+  pprint $ ppHeader "TESTING TYPE CHECKER"
   testTypecheckerExample "cmp"
   testTypecheckerExample "euclid"
 
