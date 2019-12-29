@@ -1,0 +1,111 @@
+principal A[n] -- Just integers
+principal B[m] -- Both integers and queries
+
+
+-- basic functions
+
+def length :
+    list ℤ{bgw:all}
+  → ℤ{bgw:all}
+def length xs = case xs
+  { [] → 0 --share literals?
+  ; x::xs → 1 + length xs
+  }
+
+def elem :
+    ℤ{bgw:all}
+  → list ℤ{bgw:all}
+  → 𝔹{bgw:all}
+def elem y xs : case xs
+  { [] → false
+  ; x::xs →
+    let a = x == y
+    let b = elem y xs
+    in a || b
+  }
+
+def elem-at :
+    ℤ{bgw:all}
+  → list ℤ{bgw:all}
+  → ℤ{bgw:all}
+
+-- query functions
+
+def min :
+    list ℤ{bgw:all}
+  → ℤ{bgw:all}
+def min xs = case xs
+  { [x] → x
+  ; x::xs →
+    let y = min xs
+    let b = x < y
+    in b ? x ◇ y
+  }
+
+def max :
+    list ℤ{bgw:all}
+  → ℤ{bgw:all}
+def max xs = case xs
+  { [x] → x
+  ; x::xs →
+    let y = max xs
+    let b = x > y
+    in b ? x ◇ y
+  }
+
+def median :
+    list ℤ{bgw:all}
+  → ℤ{bgw:all}
+def median xs = -- not implemented
+
+def num-unique :
+    list ℤ{bgw:all}
+  → ℤ{bgw:all}
+def num-unique xs = num-unique-rec xs []
+
+def num-unique-rec :
+    list ℤ{bgw:all}
+  → list ℤ{bgw:all}
+  → ℤ{bgw:all}
+def num-unique-rec xs seen = case xs
+  { [] → length seen
+  ; x::xs →
+    let b = elem x seen
+    in b ? num-unique-rec xs seen ◇ num-unique-rec xs (x::seen)
+  }
+
+
+-- atq
+
+def run-queries :
+    list ℤ{isec:A,B}
+  → list ℤ{bgw:all}
+def run-queries xs =
+  let xs′ = share{bgw:all} xs.A ⧺ share{bgw:all} xs.B
+  in (min xs′) :: (max xs′) :: (median xs′) :: (num-unique xs′)
+
+def send-result :
+    list ℤ{bgw:all}
+  → ℤ{bgw:all}
+  → principal C
+  → ℤ{ssec:C}
+def send-result results index =
+  reveal{C} (elem-at index results)
+
+def send-results :
+    list ℤ{bgw:all}
+  → list (ℤ, list 𝕊){isec:B}
+  → list ℤ{ssec:hmm}
+def send-results results qs = case qs
+  { [] → []
+  ; q:qs → (send-result results (fst q) (parse-prin (snd q))) :: send-results results qs
+  }
+
+def main : 𝟙 →{inp:A,B;rev:hmmm} list ℤ{ssec:hmm}
+def main ∙ =
+  let xs = list ℤ{isec:A,B}
+  let xs = -- parse input
+  let qs = list (ℤ, list 𝕊){isec:B}
+  let qs = -- parse input
+  let results = run-queries xs
+  in send-results results qs
