@@ -1,0 +1,224 @@
+-- party that provides the constraint:
+principal Ctr
+
+-- party that provides the cost vector:
+principal Cost
+
+-- ctr: the type of constraints
+-- TODO: what is the denotation of the nat on which float types are
+-- indexed in the documentation?
+def ctr : type = list (float{ sec : Ctr })
+
+-- costs: the type of cost vectors:
+def costs : type = list (float{ sec : Cost })
+
+-- point: the type of points:
+-- TODO: why do none of the other examples mention sharing schemes?
+def point : type = list (float{ ashare : Ctr, Cost })
+
+-- shrFloatMat: a matrix of shares of floats
+def shrFloatMat : type = list (list (float{ ashare : Ctr, Cost }))
+
+-- party that gets the output:
+principal Out
+
+-- abs x: absolute value of x
+def abs : float -> float
+-- BILL: define
+
+-- ceil x: the ceiling of x
+def ceil : float -> int
+-- BILL: define
+
+-- exp a b: a^b
+def exp : float -> float -> float
+-- BILL: define
+
+-- log b x: the log of x, base b
+def log : float -> float -> float
+-- BILL: define
+
+-- nat_to_float n: conversion of n into a real:
+def nat_to_float : nat -> float
+-- TODO: introduce cast as a language primitive?
+
+-- const_vector t a n: a vector of constant a of size n
+def const_vector : nat -> float -> list float
+-- BILL: define
+
+-- map: map a function over a list
+def map : (t -> u) -> list t -> list u
+-- BILL: define (in a standard lib?)
+
+def point_div : point -> float{ ashare : Ctr, Cost } -> point
+def point_div pt f = map (\a -> mpc{yao: Ctr, Cost} (a / f)) pt
+
+-- vec_div: divide a vector by a constant
+def vec_div : list float -> float -> list float
+-- TODO: can we turn binops into functions like this?
+def vec_div l a = map (\f -> f / a) l
+
+-- vec_diff: subtract one vector from another
+def vec_diff : list float{ ashare : P } -> list float{ ashare : P } ->
+  list float{ ashare : P }
+-- BILL: define
+
+-- nzProd a: the product of all non-zero entries in a vector:
+def nzProd : list (float{ sec : p }) -> float{ sec : p }
+-- BILL: define
+
+-- shr_dot_prod: take the dot product of two points
+def shr_dot_prod : point -> point -> float{ ashare : Ctr, Cost }
+-- BILL: define
+
+-- pt_cost : evaluate the cost of a point
+def pt_cost : costs -> point -> float{ ashare : Ctr, Cost }
+def pt_cost c = shr_dot_prod (map (\f -> share{ ashare : Ctr, Cost } f) c)
+
+-- l2norm v: the L2 norm of real vector v
+def l2norm : point -> float{ ashare : Ctr, Cost }
+-- BILL: define
+
+-- zeros_vec: a vector of zeroes
+def zeros_vec : nat -> list float
+def zeros_vec = const_vector n 0
+
+-- TODO: is there a way to program safely with vectors and row vectors
+-- by abstracting representations?
+
+-- onesVec: a vector of real ones
+def onesVec : nat -> list float
+def onesVec n = const_vector n 1
+
+-- onesRowVec: a row vector of real ones
+def onesRowVec : nat -> list float
+def onesRowVec = onesVec
+
+-- diagonal_matrix p: the diagonal matrix of a point
+def diagonal_matrix : point -> shrFloatMat
+-- BILL: define
+
+-- prod_mat: product of matrices of shares
+def prod_mat : shrFloatMat -> shrFloatMat -> shrFloatMat
+
+-- prod_mat_pt : multiply a matrix of shares and a point
+def prod_mat_pt : shrFloatMat -> point -> point
+-- BILL: define
+
+-- n : parameter: dimension of constraint system
+def n : nat
+-- BILL: define
+
+-- m : number of constraint parties
+def m : nat
+def m = 1
+
+-- karmarkar_iter: an iteration of Karmarkar's algorithm for exactly
+-- one constraint
+
+def karmarkar_iter : point -> ctr -> cost -> point
+def karmarkar_iter init_pt a cost =
+  -- d: the diagonal matrix of the initial point. For n = 1, just the
+  -- initial point.
+  let d : shrFloatMat = diagonal_matrix init_pt in
+
+  -- vectors of constants:
+  let nOnesVec : list float = onesVec n in
+  let nOnesRow : list float = onesRowVec n in
+
+  let unit_cp : point =
+    let c' : point = prod_mat_pt d c in
+    -- construct the B matrix
+    -- TODO: translate defns of b and cp to PSL
+    let b = append_row (prod_mat a d) nOnesRow in
+    -- project c onto b's nullspace
+    let cp : point = vec_diff c'
+             (b *m
+              (inverse (b *m a)) *m
+              prod_mat_pt b c') in
+    -- test if the projection is the 0 vector:
+    -- TODO: which types get equality operations for free?
+    if cp == (zeros_vec n) then 0
+    else point_div cp (l2norm cp) in
+
+  -- take a step of 1/3 n in the direction of cp
+  -- TODO: does 3 have to be cast to a float explicitly?
+  let b' : point = point_diff
+    (map (\f -> share{ ashare : Ctr, Cost})
+      (vec_div nOnesVec (nat_to_float n)))
+    (point_div unit_cp (share{ ashare : Ctr, Cost } 3)) in
+
+  point_div
+    (prod_mat_pt d b')
+    (shr_dot_prod
+      (map (\f -> share{ ashare : Ctr, Cost} f) nOnesRow)
+      (prod_mat_pt d b'))
+
+-- Karmarkar's algorithm:
+
+-- TODO: this gets messier as we add more constraint parties. Can we
+-- keep the code generic by having a matrix be a list of list of
+-- floats that are secret to distinct parties?
+def karmarkar_loop : ctr -> costs -> point
+def karmarkar_loop a cost =
+  -- eps: defines the stopping condition for the loop. Constant
+  -- comes from the GFI:
+  let eps = exp 10 (~8) in
+
+  -- init_pt: the initial point:
+  let init_pt : list float = vec_div (onesRowVec n) (nat_to_float n) in
+
+  -- if the initial point is optimal, then return it:
+  -- TODO: decide if this conditional check should actually be
+  -- included
+  if (pt_cost cost init_pt) == 0 then init_pt
+  else
+    -- karmarkar_rec: recurse on the number of iterations:
+    let karmarkar_rec (x : point) (i : nat) = case i 
+      -- TODO: can we pattern match on nats? If so, what are the
+      -- patterns?
+      { 0 -> x ;
+        S i' ->
+          -- x': the updated point
+          let x' : point = karmarkar_iter x a cost in
+          -- score: score at the previous point:
+          let stop : bool{ ashare : Ctr, Cost } =
+            let score : real{ ashare : Ctr, Cost } = pt_cost cost x in
+            mpc{ yao : Cost, Ctr }
+              (score - (pt_cost cost x')) / (max 1 score) < eps in
+          -- TODO: decide if this conditional check should be included
+          if stop then x'
+          else karmarkar_rec x' i'
+      }
+
+    karmarkar_rec
+      (share{ ashare : Ctr, Cost } init_pt)
+      (-- p: product of non-zero entries in cost and A:
+       let p : { sec : Ctr, Cost } =
+         reveal{ Ctr, Cost } (mpc{ yao : Cost, Ctr }
+          (par{ Cost }(nzProd cost)).Cost *
+          (par{ Ctr }(nzProd ctr))).Ctr in
+
+       -- TODO: how do we use reveal to make a value public? Is no
+       -- qualifier just a shorthand for all principals?
+       reveal{ Ctr, Cost, Out } (mpc{ yao : Cost, Ctr }
+         (12 * n *
+          ((m + 1) * n +
+           (ceil (log 2 (abs p))) +
+           n * (ceil (log 2 n))))
+       )
+      )
+
+-- main:
+def main : unit ->{ inp: Ctr, Cost; rev : Out } (list real{ ssec: Out })
+def main () =
+  -- constraint and cost parties read in their input vectors:
+  -- BILL: replace this with something that iterates on dimension
+  let vec = { par: Ctr, Cost } read (list float) in
+
+  -- TODO: is the dot access construct in the docs?
+  karmarkar_loop vec.Ctr vec.Cost
+
+  -- TODO: is the reveal construct in the docs?
+  map (\(r : float{ ashare : Ctr, Cost } ) -> reveal{ Out } r)
+    (karmarkar_loop n vec.Ctr vec.Cost)
