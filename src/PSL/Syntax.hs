@@ -78,7 +78,7 @@ makePrettySum ''Prot
 
 data IPrecision =
     InfIPr
-  | FixedIPr ℕ ℕ
+  | FixedIPr ℕ ℕ -- whole number precision, and decimal precision
   deriving (Eq,Ord,Show)
 makePrettySum ''IPrecision
 
