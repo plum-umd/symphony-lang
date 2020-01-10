@@ -221,6 +221,8 @@ pType = cpNewContext "type" $ mixfix $ concat
   , mixTerminal $ do concat [cpSyntax "𝔹",cpSyntax "bool"] ; return 𝔹T
   -- 𝕊
   , mixTerminal $ do concat [cpSyntax "𝕊",cpSyntax "string"] ; return 𝕊T
+  -- ℙ
+  , mixTerminal $ do concat [cpSyntax "ℙ",cpSyntax "prin"] ; return ℙT
   -- ℕ[n.n]
   , mixTerminal $ do
       concat [cpSyntax "ℕ",cpSyntax "nat"]

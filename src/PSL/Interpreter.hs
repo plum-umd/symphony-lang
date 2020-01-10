@@ -47,6 +47,7 @@ data Val =
   | CloV (𝑂 Var) Pat Exp ICloCxt
   | TCloV TVar Exp ICloCxt
   | ShareV ValS
+  | PrinV Prin
   deriving (Eq,Ord,Show)
 
 -- ṽ ∈ par-val
@@ -478,6 +479,8 @@ parseTy τ s = case τ of
   ListT τ' → do
     vs ← mapM (parseTy τ') $ list $ filter (≢ "") $ splitOn𝕊 "\n" s
     return $ foldr NilV ConsV vs
+  ℙT → do
+    return $ PrinV $ var s
   _ → throwIErrorCxt NotImplementedIError "parseTy" $ frhs
     [ ("τ",pretty τ)
     ]
@@ -556,7 +559,7 @@ interpApp ṽ₁ ṽ₂ =
 interpExp ∷ Exp → IM ValP
 interpExp e = localL iCxtSourceL (Some $ annotatedTag e) $ case extract e of
   VarE x → interpVar x
-  -- BoolE
+  BoolE b → return $ AllVP $ BoolV b
   StrE s → return $ AllVP $ StrV s
   NatE pr n → return $ AllVP $ NatV pr $ trPrNat pr n
   IntE pr i → return $ AllVP $ IntV pr $ trPrInt pr i
@@ -761,6 +764,7 @@ testInterpreter = do
   testInterpreterExample "cmp-tutorial"
   testInterpreterExample "euclid"
   testInterpreterExample "msort"
+  -- testInterpreterExample "atqtest"
   -- testInterpreterExample "cmp-split"
   -- testInterpreterExample "cmp-tutorial"
   -- testInterpreterExample "add"

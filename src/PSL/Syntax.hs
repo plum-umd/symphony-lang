@@ -103,6 +103,7 @@ data Type =
   | UnitT                              --  𝟙                   /  unit
   | 𝔹T                                 --  𝔹                   /  bool
   | 𝕊T                                 --  𝕊                   /  string
+  | ℙT                                 --  ℙ                   /  prin
   | ℕT IPrecision                      --  ℕ[n.n]              /  natn.n
   | ℤT IPrecision                      --  ℤ[n.n]              /  intn.n
   | 𝔽T FPrecision                      --  𝔽[n]                /  floatn
