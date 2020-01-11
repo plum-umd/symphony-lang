@@ -3,6 +3,6 @@ principal B
 
 def main : 𝟙 →{inp:A,B;rev:A,B} ℙ{isec:A,B}
 def main • =
-  let a = ℙ{isec:A,B}
-  let a = {par:A,B} read (Prin) "prins.txt"
+  let a : ℙ{isec:A,B}
+  let a = {par:A,B} read ℙ "prins.txt"
   in a
