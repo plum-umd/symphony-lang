@@ -111,6 +111,7 @@ data Type =
   | Type :×: Type                      --  τ × τ               /  τ × τ
   | ListT Type                         --  list τ              /  list τ
   | Type :→: (Effect ∧ Type)           --  τ →{η} τ            /  τ ->{η} τ
+  | (𝕏 ∧ Type) :→†: (Effect ∧ Type)    --  (x : τ) →{η} τ      /  (x : τ) ->{η} τ
   | ForallT TVar Kind (𝐿 Constr) Type  --  ∀ α:κ. [c,…,c] ⇒ τ  /  forall α:κ. [c,…,c] => τ
   | SecT Prin Type                     --  τ{P}                /  τ{P}
   | SSecT (𝑃 Prin) Type                --  τ{ssec:P}           /  τ{ssec:P}
