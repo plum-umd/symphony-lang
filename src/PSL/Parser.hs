@@ -223,17 +223,17 @@ pType = cpNewContext "type" $ mixfix $ concat
   , mixTerminal $ do concat [cpSyntax "𝕊",cpSyntax "string"] ; return 𝕊T
   -- ℙ
   , mixTerminal $ do concat [cpSyntax "ℙ",cpSyntax "prin"] ; return ℙT
-  -- ℕ[n.n]
+  -- ℕ#n.n
   , mixTerminal $ do
       concat [cpSyntax "ℕ",cpSyntax "nat"]
       pr ← pIPrecision
       return $ ℕT pr
-  -- ℤ[n.n]
+  -- ℤ#n.n
   , mixTerminal $ do
       concat [cpSyntax "ℤ",cpSyntax "int"]
       pr ← pIPrecision
       return $ ℤT pr
-  -- 𝔽[n]
+  -- 𝔽#n
   , mixTerminal $ do
       concat [cpSyntax "𝔽",cpSyntax "float"]
       pr ← pFPrecision
@@ -414,17 +414,17 @@ pExp = fmixfixWithContext "exp" $ concat
   , fmixTerminal $ do b ← pBool ; return $ BoolE b
   -- s
   , fmixTerminal $ do s ← cpString ; return $ StrE s
-  -- n
+  -- n#n.n
   , fmixTerminal $ do 
       n ← cpNatural 
       pr ← pIPrecision
       return $ NatE pr n
-  -- i
+  -- i#n.n
   , fmixTerminal $ do 
       i ← cpInteger 
       pr ← pIPrecision
       return $ IntE pr i
-  -- d
+  -- d#n
   , fmixTerminal $ do 
       d ← cpDouble 
       pr ← pFPrecision
