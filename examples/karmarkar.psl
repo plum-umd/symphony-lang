@@ -1,5 +1,5 @@
 -- party that provides the constraint:
-principal Ctr
+principal Ctr[8]
 
 -- party that provides the cost vector:
 principal Cost
@@ -23,11 +23,13 @@ def log : real -> real -> real
 -- nat_to_real n: conversion of n into a real:
 def nat_to_real : nat -> real
 
+def bgw_sqrt : real{ ashare : Ctr, Cost } -> real{ ashare : Ctr, Cost }
+
 -- PSL: END ops that need to be supported
 
--- ctr: the type of constraints
+-- ctr: the type of constraints. An independent secret vector.
 def ctr : type
-def ctr = list (real{ sec : Ctr })
+def ctr = list (real{ isec : Ctr })
 
 -- costs: the type of cost vectors:
 def costs : type
@@ -36,6 +38,10 @@ def costs = list (real{ sec : Cost })
 -- all_sec: an additive secret share between all parties
 def all_sec : type
 def all_sec = real{ ashare : Ctr, Cost }
+
+-- out_sec: a secret known only to the output party
+def out_sec: type
+def out_sec = real{ ssec : Out }
 
 -- mk_all_sec: lift a plain real value into a secret share
 def mk_all_sec : real -> all_sec
@@ -84,7 +90,13 @@ def len l = case l
 
 -- point_div x pt: divide each entry in pt by x
 def point_div : real{ ashare : Ctr, Cost } -> point -> point
-def point_div x = map (\f a -> mpc{yao: Ctr, Cost} (a / x)) pt
+def point_div x = map (\f a -> mpc{bgw: Ctr, Cost} (a / x)) pt
+
+-- PSL: are mpc annotations actually needed now? They don't occur in
+-- the current version of ATQ.
+
+-- PSL: bgw is just a standin for SPDZ, which is the protocol
+-- specified in the GFI
 
 -- vec_div: divide a vector by a constant
 def vec_div : real -> list real -> list real
@@ -123,13 +135,13 @@ def pt_cost c = pt_dot_prod (map mk_all_sec c)
 
 -- sqrt: square root
 def sqrt : all_sec -> all_sec
-def sqrt x = exp x 0.5
+def sqrt x = bgw_sqrt x 
 
--- square: the square of a number
+-- square x: the square of a secret real
 def square : all_sec -> all_sec
 def square x = x * x
 
--- sum: sum of a list of secrets
+-- sum: sum of a list of secret reals
 def sum : point -> all_sec
 def sum pt = fold pt (mk_all_sec 0.0) (\f x acc -> x + acc)
 
@@ -149,7 +161,7 @@ def onesVec = const_vec 1.0
 def onesRowVec : nat -> list real
 def onesRowVec = onesVec
 
--- shift_major: shift between row major and column major order
+-- shift_major: shift matrix between row major and column major order
 def shift_major : nat -> secretMat -> secretMat
 def shift_major c m = case m
 { [ ] -> const_vec [ ] c
@@ -202,12 +214,16 @@ def prod_mat m0 m1 = row_major
 
 -- shr_cost: share a (secret) cost among all non-output parties
 def shr_cost : real{ ssec : Cost } -> all_sec
-def shr_cost x = share{ yao : Ctr, Cost } x
+def shr_cost x = share{ bgw : Ctr, Cost } x
+
+-- combine: all of the Ctr parties share their constraints as a matrix
+def combine : ctr -> secretMat
+-- BILL: implement 
 
 -- karmarkar_iter: an iteration of Karmarkar's algorithm for exactly
 -- one constraint
 def karmarkar_iter : point -> ctr -> cost -> point
-def karmarkar_iter init_pt a cost =
+def karmarkar_iter init_pt cs cost =
   -- d: the diagonal matrix of the initial point
   let d = diagonal_matrix init_pt in
 
@@ -215,6 +231,7 @@ def karmarkar_iter init_pt a cost =
     let c' = prod_mat_pt d (map shr_cost cost) in
     -- construct the B matrix
     -- BILL: translate defns of b and cp to PSL
+    let a = combine cs in
     let b = append_row (prod_mat a d) nOnes in
     -- project c onto b's nullspace
     let cp = pt_diff c'
@@ -222,7 +239,7 @@ def karmarkar_iter init_pt a cost =
               (inverse (b *m a)) *m
               prod_mat_pt b c') in
     -- test if the projection is the 0 vector:
-    -- TODO: which types get equality operations for free?
+    -- TODO: which types get equality tests for free?
     if cp == (zeros_vec n) then 0
     else point_div (l2norm cp) cp in
 
@@ -238,11 +255,8 @@ def karmarkar_iter init_pt a cost =
       (prod_mat_pt d b'))
     (prod_mat_pt d b')
 
--- Karmarkar's algorithm:
+-- Karmarkar's algorithm, main loop:
 
--- TODO: this gets messier as we add more constraint parties. Can we
--- keep the code generic by having a matrix be a list of list of
--- reals that are secret to distinct parties?
 def karmarkar_loop : ctr -> costs -> point
 def karmarkar_loop a cost =
   -- eps: defines the stopping condition for the loop. Constant
@@ -250,51 +264,51 @@ def karmarkar_loop a cost =
   let eps = exp 10.0 (~8.0) in
 
   -- init_pt: the initial point:
-  let init_pt = vec_div (nat_to_real n) (nOnes n) in
+  let init_pt = vec_div (nat_to_real n) nOnes in
 
   -- if the initial point is optimal, then return it:
   -- TODO: decide if this conditional check should actually be
   -- included
   if (pt_cost cost init_pt) == 0 then init_pt
   else
-    -- karmarkar_rec: recurse on the number of iterations:
-    let karmarkar_rec (x : point) (i : nat) =
+    -- karmarkar_rec: recurse on the number of iterations, which is
+    -- pre-computed from the constraints and costs:
+    let karmarkar_rec = \kr x i ->
       if i == 0 then x
       else 
           -- x': the updated point
-          let x' : point = karmarkar_iter x a cost in
-          -- score: score at the previous point:
-          let stop : bool{ ashare : Ctr, Cost } =
-            let score : real{ ashare : Ctr, Cost } = pt_cost cost x in
-            mpc{ yao : Cost, Ctr }
+          let x' = karmarkar_iter x a cost in
+          let stop =
+            let score = pt_cost cost x in
+            mpc{ bgw : Cost, Ctr }
               (score - (pt_cost cost x')) / (max 1 score) < eps in
-          -- TODO: decide if this conditional check should be included
+          -- TODO: this conditional check could be safely ommitted
           if stop then x'
-          else karmarkar_rec x' (i - 1)
+          else kr x' (i - 1)
 
     karmarkar_rec
       (map mk_all_sec init_pt)
-      (let p = -- p: product of non-zero entries in cost and A:
-         reveal{ Ctr, Cost } (mpc{ yao : Cost, Ctr }
+      (let p = -- p: product of non-zero entries in cost and constraints:
+         reveal{ Ctr, Cost } (mpc{ bgw : Cost, Ctr }
           (par{ Cost }(nzProd cost)).Cost *
           (par{ Ctr }(nzProd ctr))).Ctr in
 
-       -- TODO: how do we use reveal to make a value public? Is no
-       -- qualifier just a shorthand for all principals?
-       reveal{ Ctr, Cost, Out } (mpc{ yao : Cost, Ctr }
+       -- TODO: is there a designated party list called all?
+       reveal{ Ctr, Cost, Out } (mpc{ bgw : Cost, Ctr }
          (12 * n *
           ((m + 1) * n +
-           (ceil (log 2 (abs p))) +
-           n * (ceil (log 2 (nat_to_real n)))))
+           (ceil (log 2.0 (abs p))) +
+           n * (ceil (log 2.0 (nat_to_real n)))))
        )
       )
 
 -- main:
-def main : unit ->{ inp: Ctr, Cost; rev : Out } (list real{ ssec: Out })
+def main : unit ->{ inp: Ctr, Cost; rev : Out } (list out_sec)
 def main () =
   -- constraint and cost parties read in their input vectors:
-  -- BILL: replace this with something that iterates on dimension
   let vec = { par: Ctr, Cost } read (list real) in
 
+  -- BILL: strengthen to check that length of each read constraint is
+  -- n
   map (\f x -> reveal{ Out } x)
     (karmarkar_loop n vec.Ctr vec.Cost)
