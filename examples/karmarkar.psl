@@ -26,16 +26,28 @@ def nat_to_real : nat -> real
 -- PSL: END ops that need to be supported
 
 -- ctr: the type of constraints
-def ctr : type = list (real{ sec : Ctr })
+def ctr : type
+def ctr = list (real{ sec : Ctr })
 
 -- costs: the type of cost vectors:
-def costs : type = list (real{ sec : Cost })
+def costs : type
+def costs = list (real{ sec : Cost })
 
--- point: the type of points:
-def point : type = list (real{ ashare : Ctr, Cost })
+-- dim: an additive secret share of a dimension in a point
+def dim : type
+def dim = real{ ashare : Ctr, Cost }
 
--- shrRealMat: a matrix of shares of reals
-def shrRealMat : type = list (list (real{ ashare : Ctr, Cost }))
+-- mk_dim: lift a plain real value into a secret share
+def mk_dim : real -> dim
+def mk_dim x = share{ ashare : Ctr, Cost } x
+
+-- point: a point the dimensional space of a constraint
+def point : type 
+def point = list dim
+
+-- shrRealMat: a matrix of additive shares of reals
+def shrRealMat : type
+def shrRealMat = list point
 
 -- party that gets the output:
 principal Out
@@ -47,52 +59,75 @@ def abs x =
   else x
 
 -- const_vector t a n: a vector of constant a of size n
-def const_vector : nat -> real -> list real
--- BILL: define
+def const_vector : real -> nat -> list real
+def const_vector x n =
+  let const_vec_rec m =
+    if m == 0 then [ ]
+    else x :: (const_vec_rec (m - 1)) in
+  const_vec_rec n
 
--- map: map a function over a list
+-- foldr: right fold
+def foldr : list t -> acc -> (t -> acc -> acc) -> acc
+def foldr l acc f = case l
+{ [ ] -> acc
+; x :: l' -> f x (foldr l' acc f)
+}
+
+-- map: map for the list functor
 def map : (t -> u) -> list t -> list u
--- BILL: define (in a standard lib?)
+def map f l = foldr l [ ] (\c x l' -> (f x) :: l')
 
-def point_div : point -> real{ ashare : Ctr, Cost } -> point
-def point_div pt f = map (\a -> mpc{yao: Ctr, Cost} (a / f)) pt
+-- point_div x pt: divide each entry in pt by x
+def point_div : real{ ashare : Ctr, Cost } -> point -> point
+def point_div x = map (\f a -> mpc{yao: Ctr, Cost} (a / x)) pt
 
 -- vec_div: divide a vector by a constant
-def vec_div : list real -> real -> list real
--- TODO: can we turn binops into functions like this?
-def vec_div l a = map (\f -> f / a) l
-
--- vec_diff: subtract one vector from another
-def vec_diff : list real{ ashare : P } -> list real{ ashare : P } ->
-  list real{ ashare : P }
--- BILL: define
+def vec_div : real -> list real -> list real
+def vec_div a = map (\f x -> x / a)
 
 -- nzProd a: the product of all non-zero entries in a vector:
 def nzProd : list (real{ sec : p }) -> real{ sec : p }
--- BILL: define
+def nzProd l = foldr l
+  (mk_dim 1.0)
+  (\f x acc -> if x == 0 then acc else x * acc)
+
+-- zip pt0 pt1: the zip of points p0 and p1
+def zip_points : point -> point -> list (dim * dim)
+def zip_points l0 l1 = case (l0, l1)
+{ [ ], _ -> [ ]
+; _, [ ] -> [ ]
+; d0 :: l0', d1 :: l1' -> (d0, d1) :: (zip_points l0' l1')
+}
+
+-- pt_diff: subtract one point from another
+def pt_diff : point -> point -> point
+def pt_diff pt0 pt1 = map
+  (\f (p0, p1) -> p0 - p1)
+  (zip_points pt0 pt1)
 
 -- shr_dot_prod: take the dot product of two points
-def shr_dot_prod : point -> point -> real{ ashare : Ctr, Cost }
--- BILL: define
+def shr_dot_prod : point -> point -> dim
+def shr_dot_prod p0 p1 = foldr
+  (map (\f (p0, p1) -> p0 * p1) (zip_points p0 p1))
+  (mk_dim (nat_to_float 0))
+  (\f d acc -> d * acc)
 
 -- pt_cost : evaluate the cost of a point
-def pt_cost : costs -> point -> real{ ashare : Ctr, Cost }
-def pt_cost c = shr_dot_prod (map (\f -> share{ ashare : Ctr, Cost } f) c)
+def pt_cost : costs -> point -> dim
+def pt_cost c = shr_dot_prod
+  (map (\f x -> share{ ashare : Ctr, Cost } x) c)
 
 -- l2norm v: the L2 norm of real vector v
-def l2norm : point -> real{ ashare : Ctr, Cost }
+def l2norm : point -> dim
 -- BILL: define
 
 -- zeros_vec: a vector of zeroes
 def zeros_vec : nat -> list real
-def zeros_vec = const_vector n 0
-
--- TODO: is there a way to program safely with vectors and row vectors
--- by abstracting representations?
+def zeros_vec = const_vector (nat_to_real 0) 
 
 -- onesVec: a vector of real ones
 def onesVec : nat -> list real
-def onesVec n = const_vector n 1
+def onesVec = const_vector (nat_to_real 1) 
 
 -- onesRowVec: a row vector of real ones
 def onesRowVec : nat -> list real
@@ -104,6 +139,7 @@ def diagonal_matrix : point -> shrRealMat
 
 -- prod_mat: product of matrices of shares
 def prod_mat : shrRealMat -> shrRealMat -> shrRealMat
+-- BILL: define
 
 -- prod_mat_pt : multiply a matrix of shares and a point
 def prod_mat_pt : shrRealMat -> point -> point
@@ -136,27 +172,27 @@ def karmarkar_iter init_pt a cost =
     -- TODO: translate defns of b and cp to PSL
     let b = append_row (prod_mat a d) nOnesRow in
     -- project c onto b's nullspace
-    let cp : point = vec_diff c'
+    let cp : point = pt_diff c'
              (b *m
               (inverse (b *m a)) *m
               prod_mat_pt b c') in
     -- test if the projection is the 0 vector:
     -- TODO: which types get equality operations for free?
     if cp == (zeros_vec n) then 0
-    else point_div cp (l2norm cp) in
+    else point_div (l2norm cp) cp in
 
   -- take a step of 1/3 n in the direction of cp
   -- TODO: does 3 have to be cast to a real explicitly?
   let b' : point = point_diff
     (map (\f -> share{ ashare : Ctr, Cost})
-      (vec_div nOnesVec (nat_to_real n)))
-    (point_div unit_cp (share{ ashare : Ctr, Cost } 3)) in
+      (vec_div (nat_to_real n) nOnesVec))
+    (point_div (share{ ashare : Ctr, Cost } 3)) unit_cp in
 
   point_div
-    (prod_mat_pt d b')
     (shr_dot_prod
       (map (\f -> share{ ashare : Ctr, Cost} f) nOnesRow)
       (prod_mat_pt d b'))
+    (prod_mat_pt d b')
 
 -- Karmarkar's algorithm:
 
@@ -170,7 +206,7 @@ def karmarkar_loop a cost =
   let eps = exp 10 (~8) in
 
   -- init_pt: the initial point:
-  let init_pt : list real = vec_div (onesRowVec n) (nat_to_real n) in
+  let init_pt = vec_div (nat_to_real n) (onesRowVec n) in
 
   -- if the initial point is optimal, then return it:
   -- TODO: decide if this conditional check should actually be
