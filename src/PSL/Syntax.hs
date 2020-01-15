@@ -104,9 +104,9 @@ data Type =
   | 𝔹T                                 --  𝔹                   /  bool
   | 𝕊T                                 --  𝕊                   /  string
   | ℙT                                 --  ℙ                   /  prin
-  | ℕT IPrecision                      --  ℕ[n.n]              /  natn.n
-  | ℤT IPrecision                      --  ℤ[n.n]              /  intn.n
-  | 𝔽T FPrecision                      --  𝔽[n]                /  floatn
+  | ℕT IPrecision                      --  ℕ#n.n               /  nat#n.n
+  | ℤT IPrecision                      --  ℤ#n.n               /  int#n.n
+  | 𝔽T FPrecision                      --  𝔽#n                 /  float#n
   | Type :+: Type                      --  τ + τ               /  τ + τ
   | Type :×: Type                      --  τ × τ               /  τ × τ
   | ListT Type                         --  list τ              /  list τ
@@ -158,9 +158,9 @@ data ExpR =
     VarE Var                      -- x                     /  x
   | BoolE 𝔹                       -- b                     /  b
   | StrE 𝕊                        -- s                     /  s
-  | NatE IPrecision ℕ             -- n                     /  n
-  | IntE IPrecision ℤ             -- i                     /  i
-  | FltE FPrecision 𝔻             -- d                     /  d
+  | NatE IPrecision ℕ             -- n#n.n                 /  n#n.n
+  | IntE IPrecision ℤ             -- i#n.n                 /  i#n.n
+  | FltE FPrecision 𝔻             -- d#n                   /  d#n
   | BulE                          -- •                     /  ()
   | IfE Exp Exp Exp               -- if e then e else e    /  if e then e else e
   | LE Exp                        -- L e                   /  L e
