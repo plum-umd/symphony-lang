@@ -158,40 +158,50 @@ def shift_major c m = case m
 
 -- n : parameter: dimension of constraint system
 def n : nat
--- BILL: define
+def n = 1
 
 -- m : number of constraint parties
 def m : nat
 def m = 1
 
+-- row_major: put given matrix in row-major order
 def row_major : secretMat -> secretMat
 def row_major = shift_major m
 
+-- col_major: put given matrix in column-major order
 def col_major : secretMat -> secretMat
 def col_major = shift_major n
 
 -- diagonal_matrix p: the diagonal matrix of a point
 def diagonal_matrix : point -> secretMat
-def diagonal_matrix pt = foldr pt [ ]
+def diagonal_matrix pt = foldr pt
+  [ ]
   (\f d m' ->
     let n' = len pt' in
     (d :: (zeros_vec n')) :: (row_major
       ((zeros_vec n')) :: (col_major (diagonal_matrix pt')))
   )
 
--- prod_mat: product of matrices of secrets
-def prod_mat : secretMat -> secretMat -> secretMat
-def prod_mat m0 m1 = foldr m0
+-- prod_mat_pt : multiply a matrix of secrets and a point
+def prod_mat_pt : secretMat -> point -> point
+def prod_mat_pt m pt = foldr pt
   [ ]
   (\f v p -> (map (\g -> pt_dot_prod v) m1) :: p)
 
--- prod_mat_pt : multiply a matrix of secrets and a point
-def prod_mat_pt : secretMat -> point -> point
--- BILL: define
+-- prod_mat: product of matrices of secrets
+def prod_mat : secretMat -> secretMat -> secretMat
+def prod_mat m0 m1 = row_major
+  (foldr (col_major m1)
+     [ ]
+     (\f c m' -> (prod_mat_pt m0 c) :: m')
+  )
+
+-- shr_cost: share a (secret) cost among all non-output parties
+def shr_cost : real{ ssec : Cost } -> all_sec
+def shr_cost x = share{ yao : Ctr, Cost } x
 
 -- karmarkar_iter: an iteration of Karmarkar's algorithm for exactly
 -- one constraint
-
 def karmarkar_iter : point -> ctr -> cost -> point
 def karmarkar_iter init_pt a cost =
   -- d: the diagonal matrix of the initial point. For n = 1, just the
@@ -202,13 +212,13 @@ def karmarkar_iter init_pt a cost =
   let nOnesVec = onesVec n in
   let nOnesRow = onesRowVec n in
 
-  let unit_cp : point =
-    let c' : point = prod_mat_pt d c in
+  let unit_cp =
+    let c' = prod_mat_pt d (map shr_cost cost) in
     -- construct the B matrix
     -- TODO: translate defns of b and cp to PSL
     let b = append_row (prod_mat a d) nOnesRow in
     -- project c onto b's nullspace
-    let cp : point = pt_diff c'
+    let cp = pt_diff c'
              (b *m
               (inverse (b *m a)) *m
               prod_mat_pt b c') in
@@ -267,7 +277,7 @@ def karmarkar_loop a cost =
     karmarkar_rec
       (share{ ashare : Ctr, Cost } init_pt)
       (-- p: product of non-zero entries in cost and A:
-       let p : real{ sec : Ctr, Cost } =
+       let p =
          reveal{ Ctr, Cost } (mpc{ yao : Cost, Ctr }
           (par{ Cost }(nzProd cost)).Cost *
           (par{ Ctr }(nzProd ctr))).Ctr in
@@ -289,9 +299,5 @@ def main () =
   -- BILL: replace this with something that iterates on dimension
   let vec = { par: Ctr, Cost } read (list real) in
 
-  -- TODO: is the dot access construct in the docs?
-  karmarkar_loop vec.Ctr vec.Cost
-
-  -- TODO: is the reveal construct in the docs?
-  map (\(r : real{ ashare : Ctr, Cost } ) -> reveal{ Out } r)
+  map (\f x -> reveal{ Out } x)
     (karmarkar_loop n vec.Ctr vec.Cost)
