@@ -160,6 +160,10 @@ def shift_major c m = case m
 def n : nat
 def n = 1
 
+  -- vectors of constants:
+def nOnes : list real
+def nOnes = const_vec 1.0 n
+
 -- m : number of constraint parties
 def m : nat
 def m = 1
@@ -204,19 +208,14 @@ def shr_cost x = share{ yao : Ctr, Cost } x
 -- one constraint
 def karmarkar_iter : point -> ctr -> cost -> point
 def karmarkar_iter init_pt a cost =
-  -- d: the diagonal matrix of the initial point. For n = 1, just the
-  -- initial point.
+  -- d: the diagonal matrix of the initial point
   let d = diagonal_matrix init_pt in
-
-  -- vectors of constants:
-  let nOnesVec = onesVec n in
-  let nOnesRow = onesRowVec n in
 
   let unit_cp =
     let c' = prod_mat_pt d (map shr_cost cost) in
     -- construct the B matrix
-    -- TODO: translate defns of b and cp to PSL
-    let b = append_row (prod_mat a d) nOnesRow in
+    -- BILL: translate defns of b and cp to PSL
+    let b = append_row (prod_mat a d) nOnes in
     -- project c onto b's nullspace
     let cp = pt_diff c'
              (b *m
@@ -228,15 +227,14 @@ def karmarkar_iter init_pt a cost =
     else point_div (l2norm cp) cp in
 
   -- take a step of 1/3 n in the direction of cp
-  -- TODO: does 3 have to be cast to a real explicitly?
   let b' : point = point_diff
     (map (\f -> share{ ashare : Ctr, Cost})
-      (vec_div (nat_to_real n) nOnesVec))
-    (point_div (share{ ashare : Ctr, Cost } 3)) unit_cp in
+      (vec_div (nat_to_real n) nOnes))
+    (point_div (share{ ashare : Ctr, Cost } 3.0)) unit_cp in
 
   point_div
     (pt_dot_prod
-      (map (\f -> share{ ashare : Ctr, Cost} f) nOnesRow)
+      (map (\f -> share{ ashare : Ctr, Cost} f) nOnes)
       (prod_mat_pt d b'))
     (prod_mat_pt d b')
 
@@ -252,7 +250,7 @@ def karmarkar_loop a cost =
   let eps = exp 10.0 (~8.0) in
 
   -- init_pt: the initial point:
-  let init_pt = vec_div (nat_to_real n) (onesRowVec n) in
+  let init_pt = vec_div (nat_to_real n) (nOnes n) in
 
   -- if the initial point is optimal, then return it:
   -- TODO: decide if this conditional check should actually be
@@ -275,9 +273,8 @@ def karmarkar_loop a cost =
           else karmarkar_rec x' (i - 1)
 
     karmarkar_rec
-      (share{ ashare : Ctr, Cost } init_pt)
-      (-- p: product of non-zero entries in cost and A:
-       let p =
+      (map mk_all_sec init_pt)
+      (let p = -- p: product of non-zero entries in cost and A:
          reveal{ Ctr, Cost } (mpc{ yao : Cost, Ctr }
           (par{ Cost }(nzProd cost)).Cost *
           (par{ Ctr }(nzProd ctr))).Ctr in
