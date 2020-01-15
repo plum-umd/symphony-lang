@@ -609,6 +609,8 @@ interpExp e = localL iCxtSourceL (Some $ annotatedTag e) $ case extract e of
   SoloE ρ e' → do
     restrictMode (SecM ρ) $ interpExp e'
   ParE ρs e' → do
+    -- env ← askL iCxtEnvL
+    -- pptraceM (keys env)
     joins ^$ mapMOn (iter ρs) $ \ ρ → do restrictMode (SecM ρ) $ interpExp e'
   ShareE φ ρs e' → do
     let pρs = pow ρs
@@ -693,7 +695,12 @@ interpTL tl = case extract tl of
     let e' = buildLambda (annotatedTag tl) x ψs e
     v ← asTLM $ interpExp e'
     modifyL itlStateEnvL ((x ↦ v) ⩌)
-  PrinTL _ → skip
+  PrinTL ps → skip --do
+    --joins ^$ mapMOn (iter ps) $ \ (p ∧ o) → case o of
+    --  (Some n) → do
+    --    joins ^S mapMOn (repeatI n (\ n′ → Prin $ (𝕩name p) ⧺ "_" ⧺ (show n))) $ \ p′ → modifyL itlStateEnvL ((p ↦ PrinV) ⩌)
+    --  None → do
+    --    modifyL itlStateEnvL ((p ↦ PrinV p) ⩌)
   _ → pptrace (annotatedTag tl) $ error "interpTL: not implemented"
 
 interpTLs ∷ 𝐿 TL → ITLM ()
@@ -764,7 +771,7 @@ testInterpreter = do
   testInterpreterExample "cmp-tutorial"
   testInterpreterExample "euclid"
   testInterpreterExample "msort"
-  testInterpreterExample "atqtest"
+  -- testInterpreterExample "atq"
   -- testInterpreterExample "cmp-split"
   -- testInterpreterExample "cmp-tutorial"
   -- testInterpreterExample "add"
