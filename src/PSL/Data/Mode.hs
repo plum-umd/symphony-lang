@@ -6,8 +6,8 @@ import PSL.Syntax
 
 data Mode =
     TopM
-  | SecM Prin
-  | SSecM (𝑃 Prin)
+  | SecM PrinExp
+  | SSecM (𝑃 PrinExp)
   | BotM
   deriving (Eq,Ord,Show)
 makePrettySum ''Mode

@@ -22,6 +22,24 @@ makePrettySum ''Kind
 -- ρ ∈ prin ≈ 𝕏
 type Prin = 𝕏
 
+data PrinExp =
+    VarPE Prin
+  | AccessPE Prin ℕ
+  deriving (Eq,Ord,Show)
+makePrettySum ''PrinExp
+
+data PrinDecl =
+    SinglePD Prin
+  | ArrayPD Prin ℕ
+  deriving (Eq,Ord,Show)
+makePrettySum ''PrinDecl
+
+data PrinKind =
+    SinglePK
+  | SetPK ℕ
+  deriving (Eq,Ord,Show)
+makePrettySum ''PrinKind
+
 ----------------
 -- Constraint --
 ----------------
@@ -113,10 +131,10 @@ data Type =
   | Type :→: (Effect ∧ Type)           --  τ →{η} τ            /  τ ->{η} τ
   | (𝕏 ∧ Type) :→†: (Effect ∧ Type)    --  (x : τ) →{η} τ      /  (x : τ) ->{η} τ
   | ForallT TVar Kind (𝐿 Constr) Type  --  ∀ α:κ. [c,…,c] ⇒ τ  /  forall α:κ. [c,…,c] => τ
-  | SecT Prin Type                     --  τ{P}                /  τ{P}
-  | SSecT (𝑃 Prin) Type                --  τ{ssec:P}           /  τ{ssec:P}
-  | ISecT (𝑃 Prin) Type                --  τ{isec:P}           /  τ{isec:P}
-  | ShareT Prot (𝑃 Prin) Type          --  τ{φ:P}              /  τ{φ:P}
+  | SecT PrinExp Type                  --  τ{P}                /  τ{P}
+  | SSecT (𝑃 PrinExp) Type             --  τ{ssec:P}           /  τ{ssec:P}
+  | ISecT (𝑃 PrinExp) Type             --  τ{isec:P}           /  τ{isec:P}
+  | ShareT Prot (𝑃 PrinExp) Type       --  τ{φ:P}              /  τ{φ:P}
   deriving (Eq,Ord,Show)
 makePrettySum ''Type
 
@@ -175,13 +193,13 @@ data ExpR =
   | AppE Exp Exp                  -- e e                   /  e e
   | TLamE TVar Exp                -- Λ α → e               /  abs α → e
   | TAppE Exp Type                -- e@τ                   /  e@τ
-  | SoloE Prin Exp                -- {ρ} e                 /  {ρ} e
-  | ParE (𝐿 Prin) Exp             -- {par:P} e             /  {par:P} e
-  | ShareE Prot (𝐿 Prin) Exp      -- share{φ:P} e          /  share{φ:P} e
-  | AccessE Exp Prin              -- e.ρ                   /  e.ρ
-  | BundleE (𝐿 (Prin ∧ Exp))      -- ⟨ρ₁.eₙ;…;ρₙ.eₙ⟩       /  <ρ₁.e₁;…;ρₙ.eₙ>
+  | SoloE PrinExp Exp             -- {ρ} e                 /  {ρ} e
+  | ParE (𝐿 PrinExp) Exp          -- {par:P} e             /  {par:P} e
+  | ShareE Prot (𝐿 PrinExp) Exp   -- share{φ:P} e          /  share{φ:P} e
+  | AccessE Exp PrinExp           -- e.ρ                   /  e.ρ
+  | BundleE (𝐿 (PrinExp ∧ Exp))   -- ⟨ρ₁.eₙ;…;ρₙ.eₙ⟩       /  <ρ₁.e₁;…;ρₙ.eₙ>
   | BundleUnionE Exp Exp          -- e⧺e                   /  e++e
-  | RevealE (𝐿 Prin) Exp          -- reveal{P} e           /  reveal{P} e
+  | RevealE (𝐿 PrinExp) Exp       -- reveal{P} e           /  reveal{P} e
   | AscrE Exp Type                -- e:τ                   /  e:τ
   | ReadE Type Exp                -- read[τ] e             /  read[τ] e
   | InferE                        -- _                     /  _
@@ -208,7 +226,7 @@ type TL = Annotated FullContext TLR
 data TLR =
     DeclTL Var Type          -- def x : τ        /  def x : τ
   | DefnTL Var (𝐿 Pat) Exp   -- def x ψ₁ … = e   /  def x  ψ₁ … = e
-  | PrinTL (𝐿 (Prin ∧ 𝑂 ℕ))  -- principal ρ …    /  principal ρ …
+  | PrinTL (𝐿 PrinDecl)      -- principal ρ …    /  principal ρ …
   | PrimTL Var Type          -- primitive x : τ  /  primitive x : τ
   deriving (Eq,Ord)
 makePrettySum ''TLR

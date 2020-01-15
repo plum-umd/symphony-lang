@@ -131,12 +131,25 @@ pKind = cpNewContext "kind" $ concat
 pPrin ∷ CParser TokenBasic Prin
 pPrin = cpNewContext "prin" cpName
 
+pPrinExp ∷ CParser TokenBasic PrinExp
+pPrinExp = cpNewContext "prin-exp" $ do
+  ρ ← pPrin
+  nO ← cpOptional $ do
+    cpSyntax "."
+    natΩ ^$ cpInteger
+  return $ case nO of
+    None → VarPE ρ
+    Some n → AccessPE ρ n
+
 --------------
 -- Prin-set --
 --------------
 
 pPrins ∷ CParser TokenBasic (𝐿 Prin)
 pPrins = cpManySepBy (cpSyntax ",") pPrin
+
+pPrinExps ∷ CParser TokenBasic (𝐿 PrinExp)
+pPrinExps = cpManySepBy (cpSyntax ",") pPrinExp
 
 ----------------
 -- Constraint --
@@ -285,33 +298,33 @@ pType = cpNewContext "type" $ mixfix $ concat
   -- τ{ρ}
   , mixPostfix levelMODE $ do 
       cpSyntax "{"
-      ρ ← pPrin
+      ρe ← pPrinExp
       cpSyntax "}"
-      return $ SecT ρ
+      return $ SecT ρe
   -- τ{ssec:P}
   , mixPostfix levelMODE $ do 
       cpSyntax "{"
       cpSyntax "ssec"
       cpSyntax ":"
-      ρs ← pow ^$ pPrins
+      ρes ← pow ^$ pPrinExps
       cpSyntax "}"
-      return $ SSecT ρs
+      return $ SSecT ρes
   -- τ{isec:P}
   , mixPostfix levelMODE $ do 
       cpSyntax "{"
       cpSyntax "isec"
       cpSyntax ":"
-      ρs ← pow ^$ pPrins
+      ρes ← pow ^$ pPrinExps
       cpSyntax "}"
-      return $ ISecT ρs
+      return $ ISecT ρes
   -- τ{φ:P}
   , mixPostfix levelMODE $ do 
       cpSyntax "{"
       φ ← pProt
       cpSyntax ":"
-      ρs ← pow ^$ pPrins
+      ρes ← pow ^$ pPrinExps
       cpSyntax "}"
-      return $ ShareT φ ρs
+      return $ ShareT φ ρes
   -- (τ)
   , mixTerminal $ do cpSyntax "(" ; τ ← pType ; cpSyntax ")" ; return τ
   ]
@@ -508,36 +521,36 @@ pExp = fmixfixWithContext "exp" $ concat
   -- {ρ} e
   , fmixPrefix levelPAR $ do
     cpSyntax "{"
-    ρ ← pPrin
+    ρe ← pPrinExp
     cpSyntax "}"
-    return $ SoloE ρ
+    return $ SoloE ρe
   -- {par:P} e
   , fmixPrefix levelPAR $ do 
       cpSyntax "{"
       cpSyntax "par"
       cpSyntax ":"
-      ρs ← pPrins
+      ρes ← pPrinExps
       cpSyntax "}"
-      return $ ParE ρs
+      return $ ParE ρes
   -- share{φ:P} e
   , fmixPrefix levelAPP $ do 
       cpSyntax "share" 
       cpSyntax "{"
       φ ← pProt
       cpSyntax ":"
-      ρs ← pPrins
+      ρes ← pPrinExps
       cpSyntax "}"
-      return $ ShareE φ ρs
+      return $ ShareE φ ρes
   -- e.ρ
-  , fmixPostfix levelACCESS $ do cpSyntax "." ; ρ ← pPrin ; return $ \ e → AccessE e ρ
+  , fmixPostfix levelACCESS $ do cpSyntax "." ; ρe ← pPrinExp ; return $ \ e → AccessE e ρe
   -- ⟪ρ₁.e₁;…;ρₙ;eₙ⟫
   , fmixTerminal $ do
       concat [cpSyntax "⟪",cpSyntax "<<"]
       ρes ← cpManySepBy (cpSyntax ";") $ do
-        ρ ← pPrin
+        ρe ← pPrinExp
         cpSyntax "."
         e ← pExp
-        return $ ρ :* e
+        return $ ρe :* e
       concat [cpSyntax "⟫",cpSyntax ">>"]
       return $ BundleE ρes
   -- e⧺e
@@ -546,9 +559,9 @@ pExp = fmixfixWithContext "exp" $ concat
   , fmixPrefix levelLET $ do
       cpSyntax "reveal"
       cpSyntax "{"
-      ρs ← pPrins
+      ρes ← pPrinExps
       cpSyntax "}"
-      return $ RevealE ρs
+      return $ RevealE ρes
   -- e:τ
   , fmixPostfix levelASCR $ do
       cpSyntax ":"
@@ -614,15 +627,17 @@ pTL = cpNewWithContextRendered "tl" $ concat
               return $ DefnTL x ψs e
          ]
   , do cpSyntax "principal"
-       ρnOs ← cpOneOrMore $ do
+       ρds ← cpOneOrMore $ do
          ρ ← pPrin
          nO ← cpOptional $ do
            cpSyntax "["
            n ← natΩ ^$ cpInteger
            cpSyntax "]"
            return n
-         return $ ρ :* nO
-       return $ PrinTL ρnOs
+         return $ case nO of
+           None → SinglePD ρ
+           Some n → ArrayPD ρ n
+       return $ PrinTL ρds
   , do cpSyntax "primitive"
        x ← pVar
        cpSyntax ":"

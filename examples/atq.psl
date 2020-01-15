@@ -54,7 +54,7 @@ def combine-lists :
     list ℤ{isec:A,B}
   → list ℤ{bgw:all}
 def combine-lists xs =
-  append (share-list xs.A_1) (append (share-list xs.A_2) (append (share-list xs.B_1) (share-list xs.B_2)))
+  append (share-list xs.A.1) (append (share-list xs.A.2) (append (share-list xs.B.1) (share-list xs.B.2)))
   
 
 -- query functions

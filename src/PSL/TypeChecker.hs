@@ -25,7 +25,7 @@ type CTLDefns = Var ⇰ Exp
 
 -- Σ ∈ ctlstate
 data CTLState = CTLState
-  { ctlStatePrins ∷ 𝑃 (𝕏 ∧ 𝑂 ℕ)
+  { ctlStatePrins ∷ PrinExp ⇰ PrinKind
   , ctlStateTyDec ∷ CTyEnv
   , ctlStateTyEnv ∷ CTyEnv
   , ctlStateTmDec ∷ CTmDec
@@ -36,7 +36,7 @@ makePrettySum ''CTLState
 makeLenses ''CTLState
 
 σtl₀ ∷ CTLState
-σtl₀ = CTLState pø dø dø dø dø dø
+σtl₀ = CTLState dø dø dø dø dø dø
 
 -------------
 -- CONTEXT --
@@ -45,7 +45,7 @@ makeLenses ''CTLState
 -- Ξ ∈ ccxt
 data CCxt = CCxt
   { cCxtSource ∷ 𝑂 FullContext
-  , cCxtPrins ∷ 𝑃 (𝕏 ∧ 𝑂 ℕ)
+  , cCxtPrins ∷ PrinExp ⇰ PrinKind
   , cCxtTyDec ∷ CTyEnv
   , cCxtTyEnv ∷ CTyEnv
   , cCxtTmDec ∷ CTmDec
@@ -55,7 +55,7 @@ data CCxt = CCxt
 makeLenses ''CCxt
 
 ξ₀ ∷ CCxt
-ξ₀ = CCxt None pø dø dø dø dø TopM
+ξ₀ = CCxt None dø dø dø dø dø TopM
 
 ------------
 -- OUTPUT --
@@ -212,7 +212,7 @@ primInferRaw o τs = case (o,tohs τs) of
     , ("τs",pretty τs)
     ]
 
-primInferShare ∷ 𝕊 → 𝐿 Type → Prot → 𝑃 Prin → 𝐼 Type → CM Type
+primInferShare ∷ 𝕊 → 𝐿 Type → Prot → 𝑃 PrinExp → 𝐼 Type → CM Type
 primInferShare o τs φ ρs τsA = case τs of
   Nil → do
     τ ← primInferRaw o $ list τsA
@@ -289,13 +289,13 @@ elabExpInfer e = mapFst (siphon e) ^$ localL cCxtSourceL (Some $ annotatedTag e)
   -- AppE Exp Exp
   -- TLamE TVar Exp
   -- TAppE Exp Type
-  -- SoloE Prin Exp
-  -- ParE (𝐿 Prin) Exp
-  -- ShareE Prot (𝐿 Prin) Exp
-  -- AccessE Exp Prin
-  -- BundleE (𝐿 (Prin ∧ Exp))
+  -- SoloE PrinExp Exp
+  -- ParE (𝐿 PrinExp) Exp
+  -- ShareE Prot (𝐿 PrinExp) Exp
+  -- AccessE Exp PrinExp
+  -- BundleE (𝐿 (PrinExp ∧ Exp))
   -- BundleUnionE Exp Exp
-  -- RevealE (𝐿 Prin) Exp
+  -- RevealE (𝐿 PrinExp) Exp
   -- AscrE Exp Type
   -- ReadE Type Exp
   -- InferE
@@ -420,15 +420,17 @@ elabExpCheck τ e = siphon e ^$ localL cCxtSourceL (Some $ annotatedTag e) $ cas
 
 elabTL ∷ TL → CTLM ()
 elabTL tl = case extract tl of
-  PrinTL ρnOs → do
-    let pρs = pow ρnOs
-    ρs' ← getL ctlStatePrinsL
-    when (pmap fst pρs ∩ pmap fst ρs' ≢ pø) $ \ _ → 
-      throwCError (Some $ annotatedTag tl) TypeCError "elabTL: PrinTL: pρs ∩ ρs' ≢ ∅" $ frhs
-        [ ("pρs",pretty pρs)
-        , ("ρs'",pretty ρs')
-        ]
-    putL ctlStatePrinsL $ pρs ∪ ρs'
+  PrinTL _ρnOs → do
+    undefined
+    -- old code
+    -- let pρs = pow ρnOs
+    -- ρs' ← getL ctlStatePrinsL
+    -- when (pmap fst pρs ∩ pmap fst ρs' ≢ pø) $ \ _ → 
+    --   throwCError (Some $ annotatedTag tl) TypeCError "elabTL: PrinTL: pρs ∩ ρs' ≢ ∅" $ frhs
+    --     [ ("pρs",pretty pρs)
+    --     , ("ρs'",pretty ρs')
+    --     ]
+    -- putL ctlStatePrinsL $ pρs ∪ ρs'
   DeclTL x τ → do
     modifyL ctlStateTmDecL ((x ↦ τ) ⩌)
   DefnTL x ψs e → do

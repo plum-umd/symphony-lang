@@ -3,9 +3,9 @@ module PSL where
 import UVMHS
 
 import PSL.Interpreter
-import PSL.TypeChecker
+-- import PSL.TypeChecker
 
 main ∷ IO ()
 main = do
-  testTypechecker
+  -- testTypechecker
   testInterpreter

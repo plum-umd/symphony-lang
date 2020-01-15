@@ -26,7 +26,7 @@ makePrettySum ''ValMPC
 -- sv ∈ shared-val
 data ValS = ValS
   { sharedValProt ∷ Prot
-  , sharedValPrins ∷ 𝑃 Prin
+  , sharedValPrins ∷ 𝑃 PrinExp
   , sharedValRaw ∷ ValMPC
   } deriving (Eq,Ord,Show)
 makePrettySum ''ValS
@@ -47,20 +47,20 @@ data Val =
   | CloV (𝑂 Var) Pat Exp ICloCxt
   | TCloV TVar Exp ICloCxt
   | ShareV ValS
-  | PrinV Prin
+  | PrinV PrinExp
   deriving (Eq,Ord,Show)
 
 -- ṽ ∈ par-val
 data ValP =
     BotVP
   | AllVP Val
-  | SecVP Prin Val
-  | SSecVP (𝑃 Prin) Val
-  | ISecVP (Prin ⇰ Val)
+  | SecVP PrinExp Val
+  | SSecVP (𝑃 PrinExp) Val
+  | ISecVP (PrinExp ⇰ Val)
   | TopVP
   deriving (Eq,Ord,Show)
 
-isecFrSSec ∷ 𝑃 Prin → Val → Prin ⇰ Val
+isecFrSSec ∷ 𝑃 PrinExp → Val → PrinExp ⇰ Val
 isecFrSSec ρs v = dict $ mapOn (iter ρs) $ \ ρ → ρ ↦ v
 
 instance Bot ValP where bot = BotVP
@@ -86,12 +86,13 @@ type Env = 𝕏 ⇰ ValP
 -----------
 
 -- σ ∈ itlstate
-newtype ITLState = ITLState
-  { itlStateEnv ∷ Env 
+data ITLState = ITLState
+  { itlStateEnv ∷ Env
+  , itlStateDeclPrins ∷ Prin ⇰ PrinKind
   } deriving (Eq,Ord,Show)
 
 σtl₀ ∷ ITLState
-σtl₀ = ITLState dø
+σtl₀ = ITLState dø dø
 
 -------------
 -- CONTEXT --
@@ -112,8 +113,9 @@ makeLenses ''ICloCxt
 
 -- ξ̇ ∈ cxt
 data ICxt = ICxt
-  { iCxtSource ∷ 𝑂 FullContext -- the source location for the current expression being interpreted
-  , iCxtClo ∷ ICloCxt          -- runtime context that should be captured by closures
+  { iCxtSource ∷ 𝑂 FullContext      -- the source location for the current expression being interpreted
+  , iCxtClo ∷ ICloCxt               -- runtime context that should be captured by closures
+  , iCxtDeclPrins ∷ Prin ⇰ PrinKind -- declared principles and their kinds
   }
 makeLenses ''ICxt 
 -- this generates:
@@ -128,7 +130,7 @@ iCxtModeL ∷ ICxt ⟢ Mode
 iCxtModeL = iCloCxtModeL ⊚ iCxtCloL
 
 ξ₀ ∷ ICxt
-ξ₀ = ICxt None $ ICloCxt dø TopM
+ξ₀ = ICxt None (ICloCxt dø TopM) dø
 
 ------------
 -- OUTPUT --
@@ -136,7 +138,7 @@ iCxtModeL = iCloCxtModeL ⊚ iCxtCloL
 
 data ResEv = ResEv
   { resEvProt ∷ Prot
-  , resEvPrins ∷ 𝑃 Prin
+  , resEvPrins ∷ 𝑃 PrinExp
   , resEvType ∷ Type
   , resEvOp ∷ 𝕊
   , resEvArgs ∷ 𝐿 Val
@@ -248,9 +250,13 @@ runIM γ xM = case unID $ unErrorT $ runRWST γ () $ unIM xM of
   Inr (() :* o :* x) → Inr (o :* x)
 
 asTLM ∷ IM a → ITLM a
-asTLM xM = mkITLM $ \ σ → case runIM (update iCxtEnvL (itlStateEnv σ) ξ₀) xM of
-  Inl r → Inl r
-  Inr (o :* x) → Inr $ σ :* o :* x
+asTLM xM = mkITLM $ \ σ → 
+  let ξ = update iCxtEnvL (itlStateEnv σ) $
+          update iCxtDeclPrinsL (itlStateDeclPrins σ) $
+          ξ₀
+  in case runIM ξ xM of
+    Inl r → Inl r
+    Inr (o :* x) → Inr $ σ :* o :* x
 
 -- =========== --
 -- INTERPRETER --
@@ -348,7 +354,7 @@ rawShareOps = pow
   , "EQ"
   ]
 
-onRawShareVals ∷ Prot → 𝑃 Prin → 𝐼 Val → (𝐿 Val → IM Val) → 𝐿 Val → IM Val
+onRawShareVals ∷ Prot → 𝑃 PrinExp → 𝐼 Val → (𝐿 Val → IM Val) → 𝐿 Val → IM Val
 onRawShareVals φ ρs vs f vs' = case vs' of
   Nil → ShareV ∘ ValS φ ρs ∘ mpcFrVal ^$ f $ list vs
   ShareV (ValS φ' ρs' v) :& vs'' | (φ ≡ φ') ⩓ (ρs ≡ ρs') → 
@@ -471,6 +477,11 @@ interpCase v ψes = case ψes of
 -- PARSING INPUTS --
 --------------------
 
+prinDataPath ∷ PrinExp → 𝕊
+prinDataPath = \case
+  VarPE s → 𝕩name s
+  AccessPE s n → 𝕩name s ⧺ "_" ⧺ show𝕊 n
+
 parseTy ∷ Type → 𝕊 → IM Val
 parseTy τ s = case τ of
   ℤT pr → do
@@ -480,7 +491,9 @@ parseTy τ s = case τ of
     vs ← mapM (parseTy τ') $ list $ filter (≢ "") $ splitOn𝕊 "\n" s
     return $ foldr NilV ConsV vs
   ℙT → do
-    return $ PrinV $ var s
+    -- this needs to be fixed to allow for access `PrinExp`s
+    -- use `splitOn`
+    return $ PrinV $ VarPE $ var s 
   _ → throwIErrorCxt NotImplementedIError "parseTy" $ frhs
     [ ("τ",pretty τ)
     ]
@@ -606,12 +619,23 @@ interpExp e = localL iCxtSourceL (Some $ annotatedTag e) $ case extract e of
     interpApp ṽ₁ ṽ₂
   -- TLamE
   -- TAppE
-  SoloE ρ e' → do
-    restrictMode (SecM ρ) $ interpExp e'
+  SoloE ρe e' → do
+    restrictMode (SecM ρe) $ interpExp e'
   ParE ρs e' → do
     -- env ← askL iCxtEnvL
     -- pptraceM (keys env)
-    joins ^$ mapMOn (iter ρs) $ \ ρ → do restrictMode (SecM ρ) $ interpExp e'
+    -- TODO: for each principal name in ρs
+    -- look up kind of the princpal, if it's a single then do the normal thing;
+    -- if it is an array principal kind of size n, iterate over each [0..n-1]
+    -- and include those in the mode.
+    kinds ← undefined -- get the kinds
+    joins ^$ mapMOn (iter ρs) $ \ ρ → do 
+      case kinds ⋕! ρ of
+        SinglePK → restrictMode (SecM ρ) $ interpExp e'
+        -- for i in [0..n-1], do the above for (Sec $ <turn ρ into ρ.i>)
+        -- (with joins on the outside)
+        SetPK n → undefined
+
   ShareE φ ρs e' → do
     let pρs = pow ρs
     ṽ ← interpExp e'
@@ -668,7 +692,7 @@ interpExp e = localL iCxtSourceL (Some $ annotatedTag e) $ case extract e of
         m ← askL iCxtModeL
         case m of
           TopM → throwIErrorCxt TypeIError "cannot read at top level, must be in solo or par mode" null
-          SecM ρ → AllVP ^$ parseTy τA $ ioUNSAFE $ read $ "examples-data/" ⧺ 𝕩name ρ ⧺ "/" ⧺ fn
+          SecM ρe → AllVP ^$ parseTy τA $ ioUNSAFE $ read $ "examples-data/" ⧺ prinDataPath ρe ⧺ "/" ⧺ fn
           SSecM _ → throwIErrorCxt TypeIError "cannot read in shared secret mode" null
           BotM → throwIErrorCxt TypeIError "cannot read in bot mode" null
       _ → throwIErrorCxt TypeIError "interpExp: ReadE: v ≢ StrV _" $ frhs
@@ -695,12 +719,11 @@ interpTL tl = case extract tl of
     let e' = buildLambda (annotatedTag tl) x ψs e
     v ← asTLM $ interpExp e'
     modifyL itlStateEnvL ((x ↦ v) ⩌)
-  PrinTL ps → skip --do
-    --joins ^$ mapMOn (iter ps) $ \ (p ∧ o) → case o of
-    --  (Some n) → do
-    --    joins ^S mapMOn (repeatI n (\ n′ → Prin $ (𝕩name p) ⧺ "_" ⧺ (show n))) $ \ p′ → modifyL itlStateEnvL ((p ↦ PrinV) ⩌)
-    --  None → do
-    --    modifyL itlStateEnvL ((p ↦ PrinV p) ⩌)
+  PrinTL ps → do
+    let decls = dict $ mapOn (iter ps) $ \case
+          SinglePD ρ → ρ ↦ SinglePK
+          ArrayPD ρ n → ρ ↦ SetPK n
+    modifyL itlStateDeclPrinsL (decls ⩌)
   _ → pptrace (annotatedTag tl) $ error "interpTL: not implemented"
 
 interpTLs ∷ 𝐿 TL → ITLM ()
@@ -771,7 +794,7 @@ testInterpreter = do
   testInterpreterExample "cmp-tutorial"
   testInterpreterExample "euclid"
   testInterpreterExample "msort"
-  -- testInterpreterExample "atq"
+  testInterpreterExample "atq"
   -- testInterpreterExample "cmp-split"
   -- testInterpreterExample "cmp-tutorial"
   -- testInterpreterExample "add"
