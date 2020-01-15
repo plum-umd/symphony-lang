@@ -1,0 +1,11 @@
+principal A
+principal B
+
+def foo : (x : ℙ) → ℤ{yao:A,x}
+def foo x = share{yao:A,x} 1
+
+def main : 𝟙 →{inp:A,B;rev:A,B} ℙ{isec:A,B}
+def main • =
+  let a : ℙ{isec:A,B}
+  let a = {par:A,B} read ℙ "prins.txt"
+  in a

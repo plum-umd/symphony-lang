@@ -221,6 +221,8 @@ pType = cpNewContext "type" $ mixfix $ concat
   , mixTerminal $ do concat [cpSyntax "𝔹",cpSyntax "bool"] ; return 𝔹T
   -- 𝕊
   , mixTerminal $ do concat [cpSyntax "𝕊",cpSyntax "string"] ; return 𝕊T
+  -- ℙ
+  , mixTerminal $ do concat [cpSyntax "ℙ",cpSyntax "prin"] ; return ℙT
   -- ℕ[n.n]
   , mixTerminal $ do
       concat [cpSyntax "ℕ",cpSyntax "nat"]
@@ -252,6 +254,21 @@ pType = cpNewContext "type" $ mixfix $ concat
         return η
       let η₀ = Effect null null
       return $ \ τ₁ τ₂ → τ₁ :→: (ifNone η₀ ηO :* τ₂)
+  -- (x : τ) →{η} τ
+  , mixPrefix levelARROW $ do
+      cpSyntax "("
+      x ← pVar
+      cpSyntax ":"
+      τ₁ ← pType
+      cpSyntax ")"
+      concat [cpSyntax "→",cpSyntax "->"]
+      ηO ← cpOptional $ do
+        cpSyntax "{"
+        η ← pEffect
+        cpSyntax "}"
+        return η
+      let η₀ = Effect null null
+      return $ \ τ₂ → (x :* τ₁) :→†: (ifNone η₀ ηO :* τ₂)
   -- ∀ α:κ. [c,…,c] ⇒ τ
   , mixPrefix levelLAM $ do
       concat [cpSyntax "∀", cpSyntax "forall"]

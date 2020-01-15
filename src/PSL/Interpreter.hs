@@ -47,7 +47,7 @@ data Val =
   | CloV (𝑂 Var) Pat Exp ICloCxt
   | TCloV TVar Exp ICloCxt
   | ShareV ValS
-  | ParV (Prin ⇰ Val)
+  | PrinV Prin
   deriving (Eq,Ord,Show)
 
 -- ṽ ∈ par-val
@@ -67,7 +67,11 @@ instance Bot ValP where bot = BotVP
 instance Join ValP where
   BotVP ⊔ ṽ = ṽ
   ṽ ⊔ BotVP = ṽ
-  SecVP ρ₁ v₁ ⊔ SecVP ρ₂ v₂ | ρ₁ ≢ ρ₂ = ISecVP $ dict $ [ρ₁ ↦ v₁,ρ₂ ↦ v₂]
+  SecVP ρ₁ v₁ ⊔ SecVP ρ₂ v₂ | ρ₁ ≢ ρ₂ = ISecVP $ dict [ρ₁ ↦ v₁,ρ₂ ↦ v₂]
+  -- SecVP ρ₁ v₁ ⊔ SecVP ρ₂ v₂ =
+  --   if ρ₁ ≢ ρ₂ 
+  --     then ISecVP $ dict [ρ₁ ↦ v₁,ρ₂ ↦ v₂]
+  --     else <try next pattern>
   SecVP ρ₁ v₁ ⊔ ISecVP ρvs₂ | ρ₁ ∉ keys ρvs₂ = ISecVP $ (ρ₁ ↦ v₁) ⩌ ρvs₂
   ISecVP ρvs₁ ⊔ SecVP ρ₂ v₂ | ρ₂ ∉ keys ρvs₁ = ISecVP $ (ρ₂ ↦ v₂) ⩌ ρvs₁
   ISecVP ρvs₁ ⊔ ISecVP ρvs₂ | keys ρvs₁ ∩ keys ρvs₂ ≡ pø = ISecVP $ ρvs₁ ⩌ ρvs₂
@@ -95,8 +99,8 @@ newtype ITLState = ITLState
 
 -- ξ ∈ clo-cxt
 data ICloCxt = ICloCxt
-  { iCloCxtEnv ∷ Env
-  , iCloCxtMode ∷ Mode
+  { iCloCxtEnv ∷ Env   -- γ = runtime environment
+  , iCloCxtMode ∷ Mode -- m = executon mode (e.g., secure party A)
   } deriving (Eq,Ord,Show)
 
 makePrettySum ''Val
@@ -108,10 +112,14 @@ makeLenses ''ICloCxt
 
 -- ξ̇ ∈ cxt
 data ICxt = ICxt
-  { iCxtSource ∷ 𝑂 FullContext
-  , iCxtClo ∷ ICloCxt
+  { iCxtSource ∷ 𝑂 FullContext -- the source location for the current expression being interpreted
+  , iCxtClo ∷ ICloCxt          -- runtime context that should be captured by closures
   }
-makeLenses ''ICxt
+makeLenses ''ICxt 
+-- this generates:
+-- iCxtSourceL ∷ (ICxt ⟢ 𝑂 FullContext) -- this is a lens
+-- iCxtClo ∷ ICxt ⟢ ICloCxt
+-- to compose lenses, you can do `l₁ ⊚ l₂`
 
 iCxtEnvL ∷ ICxt ⟢ Env
 iCxtEnvL = iCloCxtEnvL ⊚ iCxtCloL
@@ -182,14 +190,15 @@ throwIError es ec em vals =
 -- TL MONAD --
 --------------
 
+-- Interpreter, Top-Level Monad
 newtype ITLM a = ITLM { unITLM ∷ RWST () IOut ITLState (ErrorT IError ID) a }
   deriving
   ( Functor
   , Return,Bind,Monad
-  , MonadReader ()
-  , MonadWriter IOut
-  , MonadState ITLState
-  , MonadError IError
+  , MonadReader ()      -- operations: ask and local (local is slightly different from usual)
+  , MonadWriter IOut    -- operations: tell and hijack (hijack is slightly different from usual)
+  , MonadState ITLState -- operations: get and put
+  , MonadError IError   -- operations: throw and catch
   )
 
 mkITLM ∷ (ITLState → IError ∨ (ITLState ∧ IOut ∧ a)) → ITLM a
@@ -217,11 +226,12 @@ evalITLMIO σ xM = case evalITLM σ xM of
 -- MONAD --
 -----------
 
+-- Interpreter Monad
 newtype IM a = IM { unIM ∷ RWST ICxt IOut () (ErrorT IError ID) a }
   deriving
   ( Functor
   , Return,Bind,Monad
-  , MonadReader ICxt
+  , MonadReader ICxt -- if you do `ask`, you'll get a ICxt
   , MonadWriter IOut
   , MonadState ()
   , MonadError IError
@@ -254,7 +264,7 @@ trNat ∷ ℕ → ℕ → ℕ
 trNat m n = n ÷ (2 ^^ m)
 
 trPrNat ∷ IPrecision → ℕ → ℕ
-trPrNat pr = case pr of
+trPrNat = \case
   InfIPr → id
   FixedIPr m n → trNat $ m + n
 
@@ -380,7 +390,12 @@ interpVar x = do
       ]
 
 bindVar ∷ Var → ValP → IM a → IM a
-bindVar x v = mapEnvL iCxtEnvL ((x ↦ v) ⩌)
+bindVar x ṽ = mapEnvL iCxtEnvL ((x ↦ ṽ) ⩌)
+-- bindVar x ṽ im = do
+--   γ ← askL iCxtEnvL
+--   let γ' = (x ↦ ṽ) ⩌ γ
+--   localL iCxtEnvL γ' im
+
 
 --------------
 -- PATTERNS --
@@ -404,6 +419,8 @@ bindPatO ψ ṽ = case ψ of
     ṽ' ← bindValP ṽ $ \ v → case v of
           NilV → return $ AllVP $ NilV
           _ → return TopVP
+    -- traceM "hi"
+    -- pptraceM ṽ'
     return $ case ṽ' of
       TopVP → None
       _ → Some id
@@ -462,6 +479,8 @@ parseTy τ s = case τ of
   ListT τ' → do
     vs ← mapM (parseTy τ') $ list $ filter (≢ "") $ splitOn𝕊 "\n" s
     return $ foldr NilV ConsV vs
+  ℙT → do
+    return $ PrinV $ var s
   _ → throwIErrorCxt NotImplementedIError "parseTy" $ frhs
     [ ("τ",pretty τ)
     ]
@@ -540,7 +559,7 @@ interpApp ṽ₁ ṽ₂ =
 interpExp ∷ Exp → IM ValP
 interpExp e = localL iCxtSourceL (Some $ annotatedTag e) $ case extract e of
   VarE x → interpVar x
-  -- BoolE
+  BoolE b → return $ AllVP $ BoolV b
   StrE s → return $ AllVP $ StrV s
   NatE pr n → return $ AllVP $ NatV pr $ trPrNat pr n
   IntE pr i → return $ AllVP $ IntV pr $ trPrInt pr i
@@ -745,6 +764,7 @@ testInterpreter = do
   testInterpreterExample "cmp-tutorial"
   testInterpreterExample "euclid"
   testInterpreterExample "msort"
+  testInterpreterExample "atqtest"
   -- testInterpreterExample "cmp-split"
   -- testInterpreterExample "cmp-tutorial"
   -- testInterpreterExample "add"

@@ -78,7 +78,7 @@ makePrettySum ''Prot
 
 data IPrecision =
     InfIPr
-  | FixedIPr ℕ ℕ
+  | FixedIPr ℕ ℕ -- whole number precision, and decimal precision
   deriving (Eq,Ord,Show)
 makePrettySum ''IPrecision
 
@@ -103,6 +103,7 @@ data Type =
   | UnitT                              --  𝟙                   /  unit
   | 𝔹T                                 --  𝔹                   /  bool
   | 𝕊T                                 --  𝕊                   /  string
+  | ℙT                                 --  ℙ                   /  prin
   | ℕT IPrecision                      --  ℕ[n.n]              /  natn.n
   | ℤT IPrecision                      --  ℤ[n.n]              /  intn.n
   | 𝔽T FPrecision                      --  𝔽[n]                /  floatn
@@ -110,6 +111,7 @@ data Type =
   | Type :×: Type                      --  τ × τ               /  τ × τ
   | ListT Type                         --  list τ              /  list τ
   | Type :→: (Effect ∧ Type)           --  τ →{η} τ            /  τ ->{η} τ
+  | (𝕏 ∧ Type) :→†: (Effect ∧ Type)    --  (x : τ) →{η} τ      /  (x : τ) ->{η} τ
   | ForallT TVar Kind (𝐿 Constr) Type  --  ∀ α:κ. [c,…,c] ⇒ τ  /  forall α:κ. [c,…,c] => τ
   | SecT Prin Type                     --  τ{P}                /  τ{P}
   | SSecT (𝑃 Prin) Type                --  τ{ssec:P}           /  τ{ssec:P}
