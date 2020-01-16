@@ -249,6 +249,9 @@ def combine : ctr -> secretMat
 def all_true : list public_bool -> public_bool
 def all_true l = foldr l true (\a x acc -> x && acc)
 
+def max : comp_shr -> comp_shr -> comp_shr_bool
+def max m n = if m < n then n else m
+
 -- is_zero_vec v: test if v is the vector of shares of 0
 def is_zero_vec : point -> public_bool
 def is_zero_vec p = all_true
@@ -331,13 +334,13 @@ def karmarkar_loop a cost =
        let nzCtrProd =
          -- nzs: real{ isec : Ctr }: product of all non-zero entries in
          -- each constraint
-         let nzs = par{ Ctr } (share{ bgw : Ctr }
-           foldr a
+         let nzs = par{ Ctr } 
+           (foldr a
              1.0
              (\f x acc -> if x == 0.0 then acc else x * acc)) in
          prin_fold{ Ctr }
            (shr_pub_w_ctrs 1.0)
-           (\acc -> nzs * acc) in
+           (\acc -> (share{ bgw : Ctr } nzs) * acc) in
        12 * n *
         ((m + 1) * n +
          (log_2_ceil (abs (ceil (release_nat (
@@ -350,7 +353,8 @@ def karmarkar_loop a cost =
         let x' = karmarkar_iter a cost x in
         let stop =
           let score = pt_cost cost x in
-            (score - (pt_cost cost x')) / (max 1.0 score) < eps in
+          -- BILL: fix max
+            (score - (pt_cost cost x')) / (max (1.0) score) < eps in
         if stop then x'
         else kr x') in
 
