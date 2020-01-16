@@ -335,7 +335,7 @@ def karmarkar_loop a cost =
            foldr a
              1.0
              (\f x acc -> if x == 0.0 then acc else x * acc)) in
-         prin_fold{ Ctr, Ctr[0] }
+         prin_fold{ Ctr }
            (shr_pub_w_ctrs 1.0)
            (\acc -> nzs * acc) in
        12 * n *
@@ -350,7 +350,7 @@ def karmarkar_loop a cost =
         let x' = karmarkar_iter a cost x in
         let stop =
           let score = pt_cost cost x in
-            (score - (pt_cost cost x')) / (max 1 score) < eps in
+            (score - (pt_cost cost x')) / (max 1.0 score) < eps in
         if stop then x'
         else kr x') in
 
