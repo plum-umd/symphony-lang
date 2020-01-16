@@ -628,13 +628,13 @@ interpExp e = localL iCxtSourceL (Some $ annotatedTag e) $ case extract e of
     -- look up kind of the princpal, if it's a single then do the normal thing;
     -- if it is an array principal kind of size n, iterate over each [0..n-1]
     -- and include those in the mode.
-    kinds ← undefined -- get the kinds
-    joins ^$ mapMOn (iter ρs) $ \ ρ → do 
-      case kinds ⋕! ρ of
-        SinglePK → restrictMode (SecM ρ) $ interpExp e'
-        -- for i in [0..n-1], do the above for (Sec $ <turn ρ into ρ.i>)
-        -- (with joins on the outside)
-        SetPK n → undefined
+    joins ^$ mapMOn (iter ρs) $ \ ρ → restrictMode (SecM ρ) $ interpExp e' 
+    -- joins ^$ mapMOn (iter ρs) $ \ ρ → do 
+    --   case kinds ⋕! ρ of
+    --     SinglePK → restrictMode (SecM ρ) $ interpExp e'
+    --     -- for i in [0..n-1], do the above for (Sec $ <turn ρ into ρ.i>)
+    --     -- (with joins on the outside)
+    --     SetPK n → undefined
 
   ShareE φ ρs e' → do
     let pρs = pow ρs
@@ -794,7 +794,7 @@ testInterpreter = do
   testInterpreterExample "cmp-tutorial"
   testInterpreterExample "euclid"
   testInterpreterExample "msort"
-  testInterpreterExample "atq"
+  -- testInterpreterExample "atq"
   -- testInterpreterExample "cmp-split"
   -- testInterpreterExample "cmp-tutorial"
   -- testInterpreterExample "add"
