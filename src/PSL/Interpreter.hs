@@ -794,7 +794,7 @@ testInterpreter = do
   testInterpreterExample "cmp-tutorial"
   testInterpreterExample "euclid"
   testInterpreterExample "msort"
-  testInterpreterExample "atq"
+  -- testInterpreterExample "atq"
   -- testInterpreterExample "cmp-split"
   -- testInterpreterExample "cmp-tutorial"
   -- testInterpreterExample "add"
