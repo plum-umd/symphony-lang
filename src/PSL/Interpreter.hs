@@ -390,9 +390,9 @@ interpVar x = do
   γ ← askL iCxtEnvL
   case γ ⋕? x of
     Some ṽ → return ṽ
-    None → throwIErrorCxt SyntaxIError "interpVar: x ∉ γ" $ frhs
+    None → throwIErrorCxt SyntaxIError "interpVar: x ∉ dom(γ)" $ frhs
       [ ("x",pretty x)
-      , ("γ",pretty γ)
+      , ("dom(γ)",pretty $ keys γ)
       ]
 
 bindVar ∷ Var → ValP → IM a → IM a
