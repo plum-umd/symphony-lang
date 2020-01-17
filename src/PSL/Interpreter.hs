@@ -425,8 +425,6 @@ bindPatO ψ ṽ = case ψ of
     ṽ' ← bindValP ṽ $ \ v → case v of
           NilV → return $ AllVP $ NilV
           _ → return TopVP
-    -- traceM "hi"
-    -- pptraceM ṽ'
     return $ case ṽ' of
       TopVP → None
       _ → Some id
@@ -491,9 +489,13 @@ parseTy τ s = case τ of
     vs ← mapM (parseTy τ') $ list $ filter (≢ "") $ splitOn𝕊 "\n" s
     return $ foldr NilV ConsV vs
   ℙT → do
-    -- this needs to be fixed to allow for access `PrinExp`s
-    -- use `splitOn`
-    return $ PrinV $ VarPE $ var s 
+    prin ← case list $ splitOn𝕊 "_" s of
+      (p :& Nil) → return $ VarPE $ var p
+      (p :& (i :& Nil)) → return $ AccessPE (var p) (HS.read $ chars i ∷ ℕ)
+      _ → throwIErrorCxt SyntaxIError "parseTy: ℙT: Input is not in either of the following forms: \"A\", \"A_1\"" $ frhs
+        [ ("s", pretty s)
+        ]
+    return $ PrinV prin
   _ → throwIErrorCxt NotImplementedIError "parseTy" $ frhs
     [ ("τ",pretty τ)
     ]
@@ -621,20 +623,18 @@ interpExp e = localL iCxtSourceL (Some $ annotatedTag e) $ case extract e of
   -- TAppE
   SoloE ρe e' → do
     restrictMode (SecM ρe) $ interpExp e'
-  ParE ρs e' → do
-    -- env ← askL iCxtEnvL
-    -- pptraceM (keys env)
-    -- TODO: for each principal name in ρs
-    -- look up kind of the princpal, if it's a single then do the normal thing;
-    -- if it is an array principal kind of size n, iterate over each [0..n-1]
-    -- and include those in the mode.
-    joins ^$ mapMOn (iter ρs) $ \ ρ → restrictMode (SecM ρ) $ interpExp e' 
-    -- joins ^$ mapMOn (iter ρs) $ \ ρ → do 
-    --   case kinds ⋕! ρ of
-    --     SinglePK → restrictMode (SecM ρ) $ interpExp e'
-    --     -- for i in [0..n-1], do the above for (Sec $ <turn ρ into ρ.i>)
-    --     -- (with joins on the outside)
-    --     SetPK n → undefined
+  ParE ρes e' → do
+    kinds ← askL iCxtDeclPrinsL
+    joins ^$ mapMOn (iter ρes) $ \ ρe → do
+      case ρe of
+        VarPE p → case kinds ⋕! p of
+          SinglePK → restrictMode (SecM ρe) $ interpExp e'
+          SetPK n → joins ^$ mapMOn (repeatI n (\n' → n'+1)) $ \ i → restrictMode (SecM $ AccessPE p i) $ interpExp e'
+        AccessPE p i → case kinds ⋕! p of
+          SetPK n | i < n → restrictMode (SecM $ AccessPE p i) $ interpExp e'
+          _ → throwIErrorCxt TypeIError "interpExp: ParE: AccessPE: SinglePK: Cannot access a principal that is not a set." $ frhs
+            [ ("ρe", pretty ρe)
+            ]
 
   ShareE φ ρs e' → do
     let pρs = pow ρs
@@ -720,10 +720,10 @@ interpTL tl = case extract tl of
     v ← asTLM $ interpExp e'
     modifyL itlStateEnvL ((x ↦ v) ⩌)
   PrinTL ps → do
-    let decls = dict $ mapOn (iter ps) $ \case
+    let kinds = dict $ mapOn (iter ps) $ \case
           SinglePD ρ → ρ ↦ SinglePK
           ArrayPD ρ n → ρ ↦ SetPK n
-    modifyL itlStateDeclPrinsL (decls ⩌)
+    modifyL itlStateDeclPrinsL (kinds ⩌)
   _ → pptrace (annotatedTag tl) $ error "interpTL: not implemented"
 
 interpTLs ∷ 𝐿 TL → ITLM ()
@@ -794,6 +794,7 @@ testInterpreter = do
   testInterpreterExample "cmp-tutorial"
   testInterpreterExample "euclid"
   testInterpreterExample "msort"
+  -- testInterpreterExample "atq"
   -- testInterpreterExample "atq"
   -- testInterpreterExample "cmp-split"
   -- testInterpreterExample "cmp-tutorial"
