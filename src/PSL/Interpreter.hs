@@ -20,6 +20,7 @@ data ValMPC =
   | NatMV IPrecision ℕ
   | IntMV IPrecision ℤ
   | FltMV FPrecision 𝔻
+  | PrinMV PrinExp
   deriving (Eq,Ord,Show)
 makePrettySum ''ValMPC
 
@@ -339,6 +340,7 @@ valFrMPC (BoolMV b) = BoolV b
 valFrMPC (NatMV pr n) = NatV pr n
 valFrMPC (IntMV pr i) = IntV pr i
 valFrMPC (FltMV pr d) = FltV pr d
+valFrMPC (PrinMV pe) = PrinV pe
 
 rawShareOps ∷ 𝑃 𝕊
 rawShareOps = pow
@@ -374,6 +376,7 @@ onRawVals op f vs = case vs of
           NatMV pr _ → ℕT pr
           IntMV pr _ → ℤT pr
           FltMV pr _ → 𝔽T pr
+          PrinMV _ → ℙT
     tellL iOutResEvsL $ single $ ResEv φ ρs τ op vs
     return v'
   _ → f vs
@@ -643,13 +646,15 @@ interpExp e = localL iCxtSourceL (Some $ annotatedTag e) $ case extract e of
       AllVP v → case v of
         BoolV b → return $ AllVP $ ShareV $ ValS φ pρs $ BoolMV b
         IntV pr i → return $ AllVP $ ShareV $ ValS φ pρs $ IntMV pr i
-        _ → throwIErrorCxt TypeIError "interpExp: ShareE: AllVP: v ∉ {BoolV _,IntV _}" $ frhs
+        PrinV pe → return $ AllVP $ ShareV $ ValS φ pρs $ PrinMV pe
+        _ → throwIErrorCxt TypeIError "interpExp: ShareE: AllVP: v ∉ {BoolV _,IntV _, PrinV}" $ frhs
           [ ("v",pretty v)
           ]
       SecVP _p v → case v of
         BoolV b → return $ AllVP $ ShareV $ ValS φ pρs $ BoolMV b
         IntV pr i → return $ AllVP $ ShareV $ ValS φ pρs $ IntMV pr i
-        _ → throwIErrorCxt TypeIError "interpExp: ShareE: SecVP: v ∉ {BoolV _,IntV _}" $ frhs
+        PrinV pe → return $ AllVP $ ShareV $ ValS φ pρs $ PrinMV pe
+        _ → throwIErrorCxt TypeIError "interpExp: ShareE: SecVP: v ∉ {BoolV _,IntV _, PrinV}" $ frhs
           [ ("v",pretty v)
           ]
       _ → throwIErrorCxt TypeIError "interpExp: ShareE: ṽ ≢ SecVP _ _" $ frhs
@@ -794,7 +799,6 @@ testInterpreter = do
   testInterpreterExample "cmp-tutorial"
   testInterpreterExample "euclid"
   testInterpreterExample "msort"
-  -- testInterpreterExample "atq"
   -- testInterpreterExample "atq"
   -- testInterpreterExample "cmp-split"
   -- testInterpreterExample "cmp-tutorial"

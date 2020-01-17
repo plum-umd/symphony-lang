@@ -4,41 +4,41 @@ principal B[2] -- Both integers and queries
 -- basic functions
 
 def length :
-    list ℤ{bgw:all}
-  → ℤ{bgw:all}
+    list ℤ{bgw:A,B}
+  → ℤ{bgw:A,B}
 def length xs = case xs
-  { [] → share{bgw:all} 0
-  ; x∷xs → length xs + (share{bgw:all} 1)
+  { [] → share{bgw:A,B} 0
+  ; x∷xs' → length xs' + (share{bgw:A,B} 1)
   }
 
 def elem :
-    ℤ{bgw:all}
-  → list ℤ{bgw:all}
-  → 𝔹{bgw:all}
+    ℤ{bgw:A,B}
+  → list ℤ{bgw:A,B}
+  → 𝔹{bgw:A,B}
 def elem y xs = case xs
-  { [] → share{bgw:all} false
+  { [] → share{bgw:A,B} false
   ; x∷xs →
     let b = x == y
-    in b ? (share{bgw:all} true) ◇ (elem y xs)
+    in b ? (share{bgw:A,B} true) ◇ (elem y xs)
   }
 
 def elem-at :
-    ℤ{bgw:all}
-  → list ℤ{bgw:all}
-  → ℤ{bgw:all}
+    ℤ{bgw:A,B}
+  → list ℤ{bgw:A,B}
+  → ℤ{bgw:A,B}
 def elem-at i xs = case xs
-  { [] → -1
+  { [] → share{bgw:A,B} -1
   ; x∷xs' →
-    let b = i ≡ 0
-    in b ? x ◇ (elem-at (i - 1) xs')
+    let b = i ≡ (share{bgw:A,B} 0)
+    in b ? x ◇ (elem-at (i - (share{bgw:A,B} 1)) xs')
   }
 
 
 -- query functions
 
 def min :
-    list ℤ{bgw:all}
-  → ℤ{bgw:all}
+    list ℤ{bgw:A,B}
+  → ℤ{bgw:A,B}
 def min xs = case xs
   { [x] → x
   ; x∷xs →
@@ -49,8 +49,8 @@ def min xs = case xs
 
 
 def max :
-    list ℤ{bgw:all}
-  → ℤ{bgw:all}
+    list ℤ{bgw:A,B}
+  → ℤ{bgw:A,B}
 def max xs = case xs
   { [x] → x
   ; x∷xs →
@@ -61,15 +61,15 @@ def max xs = case xs
 
 
 def median :
-    list ℤ{bgw:all}
-  → ℤ{bgw:all}
-def median xs = share{bgw:all} 0 -- not implemented
+    list ℤ{bgw:A,B}
+  → ℤ{bgw:A,B}
+def median xs = share{bgw:A,B} 0 -- not implemented
 
 
 def num-unique-rec :
-    list ℤ{bgw:all}
-  → list ℤ{bgw:all}
-  → ℤ{bgw:all}
+    list ℤ{bgw:A,B}
+  → list ℤ{bgw:A,B}
+  → ℤ{bgw:A,B}
 def num-unique-rec xs seen = case xs
   { [] → length seen
   ; x∷xs →
@@ -78,64 +78,68 @@ def num-unique-rec xs seen = case xs
   }
 
 def num-unique :
-    list ℤ{bgw:all}
-  → ℤ{bgw:all}
+    list ℤ{bgw:A,B}
+  → ℤ{bgw:A,B}
 def num-unique xs = num-unique-rec xs []
 
--- mpc list manip
+-- mpc/list manip
 
 def append :
-    list ℤ{bgw:all}
-  → list ℤ{bgw:all}
-  → list ℤ{bgw:all}
+    list ℤ{bgw:A,B}
+  → list ℤ{bgw:A,B}
+  → list ℤ{bgw:A,B}
 def append xs ys = case xs
   { [] → ys
   ; (x∷xs) → append xs (x∷ys)
   }
 
 def share-list :
-    list ℤ{A}
-  → list ℤ{bgw:all}
+    list ℤ{isec:any}
+  → list ℤ{bgw:A,B}
 def share-list xs = case xs
   { [] → []
-  ; x∷xs′ → (share{bgw:all} x) ∷ (share-list xs′)
+  ; x∷xs' → (share{bgw:A,B} x) ∷ (share-list xs')
   }
 
-def combine-lists :
+def combine-lists : --to be generalized
     list ℤ{isec:A,B}
-  → list ℤ{bgw:all}
+  → list ℤ{bgw:A,B}
 def combine-lists xs =
   append (share-list xs.A.1) (append (share-list xs.A.2) (append (share-list xs.B.1) (share-list xs.B.2)))
+
+def combine-lists-B :
+    list ℤ{isec:B}
+  → list ℤ{bgw:A,B}
+def combine-lists-B xs =
+  append (share-list xs.B.1) (share-list xs.B.2)
 
 
 -- atq
 
 def run-queries :
-    list ℤ{isec:A,B}
-  → list ℤ{bgw:all}
-def run-queries xs =
-  let xs′ = combine-lists xs
-  in (min xs′) ∷ (max xs′) ∷ (median xs′) ∷ (num-unique xs′) ∷ []
+    list ℤ{bgw:A,B}
+  → list ℤ{bgw:A,B}
+def run-queries xs = (min xs) ∷ (max xs) ∷ (median xs) ∷ (num-unique xs) ∷ []
 
 def send-result :
     (t : ℙ)
-  → list ℤ{bgw:all}
-  → ℤ{isec:B}
-  → list ℤ{ssec:t}
+  → list ℤ{bgw:A,B}
+  → ℤ{bgw:A,B}
+  → ℤ{ssec:t}
 def send-result t results q =
   reveal{t} (elem-at q results)
 
 def send-results :
-    list ℤ{bgw:all}
-  → list ℤ{isec:B}
-  → list ℙ{isec:B}
-  → list ℤ{ssec:hmm}
+    list ℤ{bgw:A,B}
+  → list ℤ{bgw:A,B}
+  → list ℙ{bgw:A,B}
+  → list ℤ{ssec:any}
 def send-results results qs ts = case (qs, ts)
   { ([], []) → []
   ; (q∷qs',t∷ts') → (send-result t results q) ∷ (send-results results qs' ts')
   }
 
-def main : 𝟙 →{inp:A,B;rev:hmmm} list ℤ{ssec:hmm}
+def main : 𝟙 →{inp:A,B;rev:A,B} list ℤ{ssec:any}
 def main • =
   let xs : list ℤ{isec:A,B}
   let xs = {par:A,B} read (list ℤ) "atq-data.txt"
@@ -143,5 +147,5 @@ def main • =
   let qs = {par:B} read (list ℤ) "atq-queries.txt"
   let ts : list ℙ{isec:B}
   let ts = {par:B} read (list ℙ) "atq-targets.txt"
-  let results = run-queries xs
-  in send-results results qs ts
+  let results = run-queries (combine-lists xs)
+  in send-results results (combine-lists-B qs) (combine-lists-B ts)
