@@ -122,7 +122,7 @@ def run-queries :
 def run-queries xs = (min xs) ∷ (max xs) ∷ (median xs) ∷ (num-unique xs) ∷ []
 
 def send-result :
-    (t : ℙ)
+    (t : ℙ{ssec:A,B})
   → list ℤ{bgw:A,B}
   → ℤ{bgw:A,B}
   → ℤ{ssec:t}
@@ -136,7 +136,7 @@ def send-results :
   → list ℤ{ssec:any}
 def send-results results qs ts = case (qs, ts)
   { ([], []) → []
-  ; (q∷qs',t∷ts') → (send-result t results q) ∷ (send-results results qs' ts')
+  ; (q∷qs',t∷ts') → (send-result (reveal{A,B} t) results q) ∷ (send-results results qs' ts')
   }
 
 def main : 𝟙 →{inp:A,B;rev:A,B} list ℤ{ssec:any}

@@ -398,6 +398,20 @@ interpVar x = do
       , ("dom(γ)",pretty $ keys γ)
       ]
 
+interpPrinVar ∷ PrinExp → IM PrinExp
+interpPrinVar (VarPE ρ) = do
+  γ ← askL iCxtEnvL
+  case γ ⋕? ρ of
+    Some v → case v of
+      AllVP (PrinV ρe') → return ρe'
+      SecVP _ (PrinV ρe') → return ρe'
+      SSecVP _ (PrinV ρe') → return ρe'
+      _ → throwIErrorCxt TypeIError "interpPrinVar: v ∉ AllVP, SecVP, SSecVP" $ frhs
+        [ ("v", pretty v)
+        ]
+    None → return $ VarPE ρ
+interpPrinVar ρe = return ρe
+
 bindVar ∷ Var → ValP → IM a → IM a
 bindVar x ṽ = mapEnvL iCxtEnvL ((x ↦ ṽ) ⩌)
 -- bindVar x ṽ im = do
@@ -677,13 +691,15 @@ interpExp e = localL iCxtSourceL (Some $ annotatedTag e) $ case extract e of
       restrictMode (SecM ρ) $ interpExp e'
   -- BundleUnionE
   RevealE ρs e' → do
-    let pρs = pow ρs
+    ρs' ← mapM interpPrinVar ρs
+    let pρs = pow ρs'
     ṽ ← interpExp e'
     case ṽ of
       AllVP v → SSecVP pρs ^$ case v of
         ShareV (ValS _ _ (BoolMV b)) → return $ BoolV b
         ShareV (ValS _ _ (IntMV pr i)) → return $ IntV pr i
-        _ → throwIErrorCxt TypeIError "interpExp: RevealE: v ∉ {ShaveV (ValS (BoolMV _) _ _),ShareV (ValS (IntMV _) _ _)}" $ frhs
+        ShareV (ValS _ _ (PrinMV pe)) → return $ PrinV pe
+        _ → throwIErrorCxt TypeIError "interpExp: RevealE: v ∉ {ShaveV (ValS _ _ (BoolMV _)),ShareV (ValS _ _ (IntMV _ _)),ShareV (ValS _ _ (PrinMV _))}" $ frhs
           [ ("v",pretty v)
           ]
       _ → throwIErrorCxt TypeIError "interpExp: RevealE: ṽ ≢ AllVP _" $ frhs
