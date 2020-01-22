@@ -1,8 +1,15 @@
--- party that provides the constraint:
-principal Ctr[8]
+-- m : number of constraint parties
+def m : nat
+def m = 8
+
+-- Ctr: parties that bring the constraints
+principal Ctr[10]
 
 -- party that provides the cost vector:
 principal Cost
+
+-- party that gets the output:
+principal Out
 
 -- reals: IEEE64
 def real : type
@@ -85,8 +92,11 @@ def point : type
 def secretMat : type
 -- def secretMat = list point
 
--- party that gets the output:
-principal Out
+def curry : (a * b -> c) -> (a -> b -> c)
+def curry f x y = f (a, b)
+
+def uncurry : (a -> b -> c) -> (a * b -> c)
+def uncurry f (a, b) = f a b
 
 -- id: the identity function
 def id : t -> t
@@ -94,7 +104,7 @@ def id x = x
 
 -- compose: function composition
 def compose : (t0 -> t1) -> (t1 -> t2) -> (t0 -> t2)
-def compose f g = \h x -> g (f x)
+def compose f g x = g (f x)
 
 -- elim_nat: form for iterating over nats
 def elim_nat : nat -> t -> (t -> t) -> t
@@ -102,9 +112,13 @@ def elim_nat n z s =
   if n == 0 then z
   else s (elim_nat (n - 1) z s)
 
+-- cons: non-infix list cons
+def cons : t -> list t -> list t
+def cons x l = x :: l
+
 -- const_vec t a n: a vector of constant a of size n
 def const_vec : t -> nat -> list t
-def const_vec c n = elim_nat n [ ] (\s l -> c :: l)
+def const_vec c n = elim_nat n [ ] (cons c)
 
 -- foldr: right fold
 def foldr : list t -> acc -> (t -> acc -> acc) -> acc
@@ -113,13 +127,16 @@ def foldr l acc f = case l
 ; x :: l' -> f x (foldr l' acc f)
 }
 
+def inc : nat -> nat
+def inc n = 1 + n 
+
 -- len l: the length of list l
 def len : list t -> nat
-def len l = foldr l 0 (\a x acc -> 1 + acc)
+def len l = foldr l 0 (\x -> inc)
 
 -- map: map for the list functor
 def map : (t -> u) -> list t -> list u
-def map f l = foldr l [ ] (\c x l' -> (f x) :: l')
+def map f l = foldr l [ ] (compose f cons)
 
 -- zip_lists pt0 pt1: the zip of points p0 and p1
 def zip_lists : list t -> list u -> list (t * u)
@@ -131,30 +148,30 @@ def zip_lists l0 l1 = case (l0, l1)
 
 -- point_div x pt: divide each entry in pt by x
 def point_div : comp_shr -> point -> point
-def point_div x = map (\f a -> a / x) pt
+def point_div x = map (\a -> a / x) 
 
--- vec_div: divide a vector by a constant
+-- vec_div: divide a vector of reals by a constant
 def vec_div : real -> list real -> list real
-def vec_div a = map (\f x -> x / a)
+def vec_div a = map (\x -> x / a)
 
 -- nzProd a: the product of all non-zero entries in a vector:
 def nzProd : list (real{ ssec : p }) -> real{ ssec : p }
 def nzProd l = foldr l
   (shr_pub_w_comp 1.0)
-  (\f x acc -> if x == 0.0 then acc else x * acc)
+  (\x acc -> if x == 0.0 then acc else x * acc)
 
 -- pt_diff: subtract one point from another
 def pt_diff : point -> point -> point
 def pt_diff pt0 pt1 = map
-  (\f (p0, p1) -> p0 - p1)
+  (\(p0, p1) -> p0 - p1)
   (zip_lists pt0 pt1)
 
 -- pt_dot_prod: take the dot product of two points
 def pt_dot_prod : point -> point -> comp_shr
 def pt_dot_prod p0 p1 = foldr
-  (map (\f (p0, p1) -> p0 * p1) (zip_lists p0 p1))
+  (map (\(p0, p1) -> p0 * p1) (zip_lists p0 p1))
   0.0
-  (\f d acc -> d + acc)
+  (\d acc -> d + acc)
 
 -- pt_cost : evaluate the cost of a point
 def pt_cost : costs -> point -> comp_shr
@@ -164,18 +181,18 @@ def pt_cost c = pt_dot_prod (map shr_costs_w_comp c)
 def pub_pt_cost : costs -> list real -> real{ ssec : Cost }
 def pub_pt_cost costs pt = foldr
   (map
-    (\f (c, p) -> par{ Cost } c0 * p0)
+    (\(c, p) -> par{ Cost } c0 * p0)
     (zip_lists costs pt))
   0.0
-  (\f d acc -> par{ Cost } d + acc)
+  (\d acc -> par{ Cost } d + acc)
 
 -- sum: sum of a list of secret reals
 def sum : point -> comp_shr
-def sum pt = fold pt (shr_pub_w_comp 0.0) (\f x acc -> x + acc)
+def sum pt = fold pt (shr_pub_w_comp 0.0) (\x acc -> x + acc)
 
 -- l2norm v: the L2 norm of real vector v
 def l2norm : point -> comp_shr
-def l2norm pt = bgw_sqrt (sum (map (\sq x -> x * x) pt))
+def l2norm pt = bgw_sqrt (sum (map (\x -> x * x) pt))
 
 -- PSL: what's the type of a constant?
 
@@ -191,20 +208,12 @@ def onesVec = const_vec 1.0
 def shift_major : nat -> secretMat -> secretMat
 def shift_major c m = case m
 { [ ] -> const_vec [ ] c
-; v :: m' -> map (\c x cv -> x :: cv) (zip_lists v (shift_major m'))
+; v :: m' -> map cons (zip_lists v (shift_major m'))
 }
 
--- n : parameter: dimension of constraint system
+-- n : parameter: number of variables in the constraint system
 def n : nat
 def n = 1
-
--- vectors of constants:
-def nOnes : list real
-def nOnes = const_vec 1.0 n
-
--- m : number of constraint parties
-def m : nat
-def m = 1
 
 -- row_major: put given matrix in row-major order
 def row_major : secretMat -> secretMat
@@ -218,7 +227,7 @@ def col_major = shift_major n
 def diagonal_matrix : point -> secretMat
 def diagonal_matrix pt = foldr pt
   [ ]
-  (\f d m' ->
+  (\d m' ->
     let n' = len pt' in
     (d :: (zeros_vec n')) :: (row_major
       ((zeros_vec n')) :: (col_major (diagonal_matrix pt')))
@@ -235,22 +244,17 @@ def prod_mat : secretMat -> secretMat -> secretMat
 def prod_mat m0 m1 = row_major
   (foldr (col_major m1)
      [ ]
-     (\f c m' -> (prod_mat_pt m0 c) :: m')
-  )
+     (\f c m' -> (prod_mat_pt m0 c) :: m') )
 
 -- shr_cost: share a (secret) cost among all non-output parties
 def shr_cost : real{ ssec : Cost } -> comp_shr
 def shr_cost x = share{ bgw : Ctr, Cost } x
 
--- combine: all of the Ctr parties share their constraints as a matrix
-def combine : ctr -> secretMat
--- BILL: implement 
-
 def all_true : list public_bool -> public_bool
-def all_true l = foldr l true (\a x acc -> x && acc)
+def all_true l = foldr l true (\x acc -> x && acc)
 
 def max : comp_shr -> comp_shr -> comp_shr_bool
-def max m n = if m < n then n else m
+def max m n = if m <= n then n else m
 
 -- is_zero_vec v: test if v is the vector of shares of 0
 def is_zero_vec : point -> public_bool
@@ -259,27 +263,55 @@ def is_zero_vec p = all_true
     (\f x -> release_bool (x == (shr_pub_w_comp 0.0)))
     p)
 
--- karmarkar_iter: an iteration of Karmarkar's algorithm for exactly
--- one constraint
-def karmarkar_iter : ctr -> cost -> point -> point
-def karmarkar_iter cs cost init_pt =
-  -- d: the diagonal matrix of the initial point
-  let d = diagonal_matrix init_pt in
+-- transpose m: the transposition of matrix t
+def transpose : list (list t) -> list (list t)
+def transpose n m = case m
+{ [ ] -> const_vec [ ] n 
+; v :: m' -> map
+  (compose (uncurry cons))
+  (zip_lists rv (transpose n m'))
+}
 
+-- inverse m: the inverse matrix of m
+def inverse : secretMat -> secretMat
+-- BILL: define
+
+def prod_secret : comp_shr -> comp_shr -> comp_shr
+def prod_secret x y = x * y
+
+def prod_diag_pt : point -> point -> point
+def prod_diag_pt d p = map
+  (uncurry prod_secret)
+  (zip_lists d p) in
+
+-- karmarkar_iter: an iteration of Karmarkar's algorithm
+def karmarkar_iter : ctr -> cost -> point -> point
+def karmarkar_iter a cost init_pt =
+  let nOnes = const_vec 1.0 n in
   let unit_cp =
-    let c' = prod_mat_pt d (map shr_cost cost) in
-    -- construct the B matrix
-    -- BILL: translate defns of b and cp to PSL
-    let a = combine cs in
-    -- BILL: define append_row
-    let b = append_row (prod_mat a d) nOnes in
+    -- c': vector: product of diagonal of initial point and cost
+    let c' = par{ Cost }
+      prod_diag_pt init_pt (map shr_cost cost) in
+
+    -- ad: product of constraints and diagonal matrix
+    let ad = par{ Ctr }
+      prod_diag_pt init_pt (map shr_ctr_w_comp a) in
+
+    -- b: ad concatenated with a row vector of 1.0's
+    let b = prin_fold{ Ctr } [ nOnes ] (cons ad) in
+    let bt = transpose n b in
+
     -- project c onto b's nullspace
-    let cp = pt_diff c'
-             (b *m
-              (inverse (b *m a)) *m
-              prod_mat_pt b c') in
+    let cp = pt_diff
+      c'
+      (prod_mat
+        bt
+        (prod_mat
+          (inverse (prod_mat b bt))
+          (prod_mat_pt b c'))) in
+
     -- test if the projection is the 0 vector:
-    if is_zero_vec cp then const_vec 0.0 n
+    if is_zero_vec cp then const_vec (shr_pub_w_comp 0.0) n
     else point_div (l2norm cp) cp in
 
   -- take a step of 1/3 n in the direction of cp
@@ -287,16 +319,18 @@ def karmarkar_iter cs cost init_pt =
     (map shr_pub_w_comp (vec_div (nat_to_real n) nOnes))
     (point_div (shr_pub_w_comp (nat_to_real (3 * n))) unit_cp) in
 
-  point_div
-    (pt_dot_prod
-      (map shr_pub_with_comp nOnes)
-      (prod_mat_pt d b'))
-    (prod_mat_pt d b')
+  let db' = prod_diag_pt init_pt b' in
+  point_div (pt_dot_prod (map shr_pub_with_comp nOnes) db') db'
 
 -- Karmarkar's algorithm, main loop:
 
+-- nat_mult: infix multiplication of nats
+def nat_mult : nat -> nat -> nat
+def nat_mult m n = m * n
+
+-- nat_exp: exponentiation of nats
 def nat_exp : nat -> nat -> nat
-def nat_exp b a = elim_nat b 1 (\s acc -> a * acc)
+def nat_exp b a = elim_nat b 1 (nat_mult a)
 
 -- nat_log: logarithm over nats
 def nat_log : nat -> nat -> nat
@@ -328,16 +362,17 @@ def karmarkar_loop a cost =
     -- karmarkar_rec: recurse on the number of iterations, which is
     -- pre-computed from the constraints and costs:
     let karmarkar_rec = elim_nat 
-      (let nzCostsProd = foldr l
-         1.0 
-         (\f x acc -> if x == 0.0 then acc else x * acc) in
+      (let nzCostsProd = par{ Cost }
+        (foldr l
+           1.0 
+           (\x -> if x == 0.0 then id else (float_prod x)) in
        let nzCtrProd =
          -- nzs: real{ isec : Ctr }: product of all non-zero entries in
          -- each constraint
          let nzs = par{ Ctr } 
            (foldr a
              1.0
-             (\f x acc -> if x == 0.0 then acc else x * acc)) in
+             (\x -> if x == 0.0 then id else (float_prod x))) in
          prin_fold{ Ctr }
            (shr_pub_w_ctrs 1.0)
            (\acc -> (share{ bgw : Ctr } nzs) * acc) in
@@ -353,8 +388,7 @@ def karmarkar_loop a cost =
         let x' = karmarkar_iter a cost x in
         let stop =
           let score = pt_cost cost x in
-          -- BILL: fix max
-            (score - (pt_cost cost x')) / (max (1.0) score) < eps in
+            (score - (pt_cost cost x')) / (max 1.0 score) < eps in
         if stop then x'
         else kr x') in
 
@@ -368,8 +402,8 @@ def main () =
   let c = { par: Ctr } read (list real) in
   
   -- the cost party reads its input vector
-  let cost = { par: Cost } read (list real) in
-
   -- BILL: strengthen to check that length of each read constraint is
   -- n
-  map (\f x -> reveal{ Out } x) (karmarkar_loop c cost)
+  let cost = { par: Cost } read (list real) in
+
+  map (\x -> reveal{ Out } x) (karmarkar_loop c cost)
