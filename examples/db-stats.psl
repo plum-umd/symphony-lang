@@ -1,0 +1,91 @@
+principal Hosts[128]
+principal C[2] -- using yao for now until further clarification on how to specify closer
+
+-- type Key1 = int{yao:C}
+-- type Key2 = int{yao:C}
+-- type Key = (Key1, Key2)
+
+-- type S = int{yao:C}
+-- type L = int{yao:C}
+
+-- type Value = (S, L)
+
+-- type Count = int{yao:C}
+-- type Median = int{yao:C}
+-- type Mean = float{yao:C}
+-- type StdDev = float{yao:C}
+
+-- type Stats = Stats Median Mean StdDev
+
+-- data Response = Summary Count Stats Stats
+--               | ThresholdNotMet
+--               | Success
+
+def thresholdNotMet : Response
+-- bug, must add argument to this function
+def thresholdNotMet _ = R (L ())
+
+def summary : Count -> Stats -> Stats -> Response
+def summary c s0 s1 = L (c, s0, s1)
+
+def success : Response
+-- bug, must add argument to this function
+def success _ = R (R ())
+
+
+-- data Input = Query Key | Insert Key Value
+
+-- type Database = [(Key, [Value])]
+
+def threshold : int#32
+def threshold = 5
+
+def update : Key -> Value -> Database -> Database
+def update k v db = case db
+  { [] -> (k, v::[])
+  ; (k', vs)::rest ->
+      if k == k'
+      then (k, v::vs)::rest
+      else (k', vs)::update k v rest
+  }
+
+def median : list int#32{yao:C} -> Median
+
+def mean : list int#32{yao:C} -> Mean
+
+def stdDev : list int#32{yao:C} -> StdDev
+
+def stats : list int#32{yao:C} -> Stats
+def stats xs = (median xs, mean xs, stdDev xs)
+
+def and : bool -> bool -> bool
+-- def and x y = x && y
+
+def query : Key -> Database -> Response
+def query k db = case db
+  { [] -> thresholdNotMet
+  ; (k', vs)::rest ->
+    let count = length vs
+    in if and (k == k') (count > threshold)
+       then summary count (stats (map fst vs))
+                          (stats (map snd vs))
+       else if k == k'
+            then thresholdNotMet
+            else query k rest
+  }
+
+def respond : Response -> Database -> Database
+-- How do we handle IO?
+
+def handler : Input -> Database -> Database
+-- Bug: the following is commented out because it does not compile due to parser
+-- def handler input db = case input
+-- { L x -> respond (success _) (update k x db)
+-- ; _ -> respond (query k db) db
+-- }
+
+def main () =
+  -- what is the correct way to read a custom type in?
+  -- let queries = {par:C} read Input "db-stats.txt"
+  let inputs = {par:C} read int "db-stats.txt"
+  in prin_fold{ C } [ [] ] (handler (share inputs))
