@@ -77,15 +77,18 @@ def query k db = case db
 def respond : Response -> Database -> Database
 -- How do we handle IO?
 
-def handler : Input -> Database -> Database
+def handler : Input -> Database -> (Database, Response)
 -- Bug: the following is commented out because it does not compile due to parser
 -- def handler input db = case input
--- { L x -> respond (success _) (update k x db)
--- ; _ -> respond (query k db) db
+-- { L x -> (update k x db, success _)
+-- ; _ -> (db, query k db)
 -- }
 
 def main () =
   -- what is the correct way to read a custom type in?
   -- let queries = {par:C} read Input "db-stats.txt"
   let inputs = {par:C} read int "db-stats.txt"
-  in prin_fold{ C } [ [] ] (handler (share inputs))
+  in prin_fold{ C } [ [] ] (fun party db ->
+    let (db', resp) = handler (share inputs)
+    let _ = write (reveal{party} resp)
+    db')
