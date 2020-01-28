@@ -1,9 +1,8 @@
 {-
-These lines declare what principles that are present. The type
-checker (not yet implemented) will make sure that all principles
-mentioned in types are (at least) well-scoped, and possible also
-check some security relationships as well, e.g., does A trust B, and
-to what extent.
+These lines declare what principals that are present. The type
+checker will make sure that all principals mentioned in types are (at
+least) well-scoped, and possible also check some security
+relationships as well, e.g., does A trust B, and to what extent.
 
 These lines are ignored by the interpreter.
 
@@ -35,7 +34,7 @@ optimization.
 The input variable `xy` has type `ℤ{isec:A,B}`, which reads as “two
 integers, one for each party `A` and `B`, as independent (i.e., not
 necessarily equal) secrets.” To access A's value, we write `xy.A`,
-and likewise for B and `xy.B`. `xy.A` is a secret value, and is (yao)
+and likewise for B and `xy.B`. `xy.A` is a secret value. It is (yao)
 “secret-shared” (i.e., encrypted and embeddable inside of a circuit)
 to C and D by `share{yao:C,D} xy.A`. C and D now hold shares of A's
 secret which will be provided as an input to the next circuit (in

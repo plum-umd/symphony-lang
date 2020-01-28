@@ -1,0 +1,153 @@
+\documentclass[10pt]{article}
+
+\usepackage{times}
+\usepackage{fullpage}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathpartir}
+
+%%%%% DEFS %%%%%%
+
+\newcommand{\rulelab}[1]{{\small \textsc{#1}}}
+\newcommand{\kw}[1]{\ensuremath{\mathtt{#1}}}
+
+% Types
+\newcommand{\tnat}{\ensuremath{\mathtt{nat}}}
+\newcommand{\tlist}[1]{\ensuremath{\mathtt{list}~{#1}}}
+\newcommand{\tfun}[2]{\ensuremath{{#1} \rightarrow {#2}}}
+\newcommand{\tprod}[2]{\ensuremath{{#1} \times {#2}}}
+\newcommand{\ssec}{\ensuremath{\mathtt{ssec}}}
+\newcommand{\isec}{\ensuremath{\mathtt{isec}}}
+\newcommand{\sshare}[1]{\ensuremath{\mathtt{share}~{#1}}}
+\newcommand{\sectyp}[3]{\ensuremath{{#1} \{~{#2}:{#3}~\}}}
+  
+% Terms
+\newcommand{\ebinop}[2]{\ensuremath{{#1}~\oplus~{#2}}}
+\newcommand{\elet}[3]{\ensuremath{\kw{let}~#1\, =\, #2~\kw{in}\;{#3}}}
+\newcommand{\epar}[2]{\ensuremath{\kw{par}~{#1}~{#2}}}
+\newcommand{\ereveal}[1]{\ensuremath{\kw{reveal}~{#1}}}
+\newcommand{\econd}[3]{\ensuremath{\kw{if}~{#1}~\kw{then}~{#2}~\kw{else}~{#3}}}
+
+%%%%%%%%%%
+
+\title{PANTHEON Source Language}
+\author{PANTHEON Team}
+
+\begin{document}
+
+\maketitle
+
+\begin{figure}[h]
+  \centering
+  \[\begin{array}{rlcll}
+      \text{Raw types} & \omega  & ::=  & \tnat & \text{a base type} \\      
+                       && \mid & \tprod{\tau}{\tau} & \text{pairs} \\
+                       && \mid & \tlist{\tau} & \text{lists} \\
+                       && \mid & \tfun{\tau}{\tau} & \text{functions} \\
+      \text{Types} & \tau & ::= & \omega & \text{cleartext values} \\
+                       && \mid & \sectyp\omega\phi{P} & \text{secret values} \\
+      \text{Principal set} & P \\
+      \text{Format} & \phi & ::= & \ssec & \text{private value}  \\
+                       && \mid & \isec & \text{per-principal value}  \\
+                       && \mid & \sshare{\psi} & \text{secret share} \\
+      \text{Protocol} & \psi & ::= & ... & \text{MPC type} \\
+      \text{Expressions} & e & ::= & n & \text{naturals} \\
+                       && \mid & x & \text{variables} \\
+                       && \mid & \ebinop{e_1}{e_2}  & \text{binary operation} \\
+                       && \mid & \elet{x}{e_1}{e_2}  & \text{sequencing} \\
+                       && \mid & \econd{e_1}{e_2}{e_3}  & \text{sequencing} \\
+                       && \mid & \epar{P}{e} & \text{parallel evaluation}\\
+                       && \mid & \ereveal{e} & \text{evaluate share}\\
+  \end{array}
+  \]
+  \caption{Syntax}
+  \label{fig:syntax}
+\end{figure}
+
+\section{Syntax}
+
+The syntax of core PSL is in Figure~\ref{fig:syntax}.
+
+\subsection{Types}
+
+Raw types $\omega$ are normal types (numbers, pairs, lists,
+functions). Types $\tau$ are either raw types $\omega$, which mean
+that they are visible to all parties (who agree on their values) in
+the clear, or they are security types $\sectyp{\omega}{\phi}{P}$. The
+structure of the latter is a the raw type $\omega$, the \emph{format}
+$\phi$, and visibility $P$, which is a list of principals who can
+access/see the value.  The raw type indicates the basic type of the
+value (function, number, list, etc.), while the format is the
+interesting part. It has three variants:
+\begin{itemize}
+\item \emph{secret shares} $\sshare\psi$, which indicate a single
+  value that is secret-shared among the given set of parties $P$,
+  amenable to MPC using protocol $\psi$ (e.g., BGW, GMW, Yao).
+\item \emph{secrets} \ssec, which indicate a single value known to
+  (accessible by) those parties in the set $P$, but no others.
+\item \emph{maps} \isec, which indicate a single variable for which
+  each principal in $P$ may have a distinct value, known only to that
+  principal. 
+\end{itemize}
+
+\subsection{Terms}
+
+
+
+\section{Typing}
+
+We should only permit operations among values of exactly the same type
+$\tau$. That is, $\ebinop{e_1}{e_2}$ type checks if both $e_1$ and
+$e_2$ have exactly the same type $\tau$.
+
+Given this, we might like to employ subtyping. Off the top of my
+head, I think we can support the following:
+\begin{itemize}
+\item An \ssec $P$ can be coerced to \ssec $Q$ when $Q \subseteq
+  P$. That is, a shared value visible to a larger principal set can be
+  viewed as visible to a smaller one. The same is true of \isec. (This
+  assumes that \ssec and \isec are for immutable values; subtyping
+  would not be allowed if there's mutation, as usual.)
+\item There is no subtyping arrangement for \sshare -- all parties have
+  to be present, and additional parties are not allowed.
+\end{itemize}
+
+The $\ereveal{e}$ construct takes as its argument something of type
+$\sectyp{\omega}{\sshare{\psi}}{P}$ and produces a value of type
+$\sectyp{\omega}{\ssec}{P}$. That is, it forces the secure computation
+to produce a result, and reveals that result to the involved
+principals $P$.
+
+The type of $\epar{P}{e} $ should be an $\sectyp{\omega}{\isec}{P}$
+type. This is because $e$ is executed independently by each principal
+$p \in P$. There are constraints on the type of $e$. Off the top of my
+head:
+\begin{itemize}
+  \item Only types with visibility $P$ are allowed. We can use
+    subtyping as needed. 
+  \item We can insert nested Par blocks, with a subset of principals,
+    I think. However, their results will only be visible to subsequent
+    par blocks with the same principal set (not the parent).
+\end{itemize}
+
+\section{Semantics}
+
+The semantics is inspired by that of Wysteria, but relaxed since
+secure blocks are no longer explicit, but implied by the type
+structure. 
+
+\subsection{Single threaded}
+
+\subsection{Distributed}
+
+Here we outline the ideal-world semantics in a distributed fashion.
+
+\section{Notes/To-do}
+
+\begin{itemize}
+\item Add effect $\epsilon$ to arrows?
+\item General sum types? Why do we need lists, if we have these?
+\item 
+\end{itemize}
+
+\end{document}
