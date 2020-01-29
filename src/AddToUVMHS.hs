@@ -17,3 +17,6 @@ indir ∷ 𝕊 → IO a → IO a
 indir = HS.withCurrentDirectory ∘ chars
 
 instance Pretty CallStack where pretty = ppString ∘ string ∘ HS.prettyCallStack
+
+inFailT ∷ (Monad m) ⇒ m a → FailT m a
+inFailT xM = FailT $ Some ^$ xM

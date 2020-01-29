@@ -19,12 +19,25 @@ makePrettySum ''Kind
 -- Prin --
 ----------
 
--- ρ ∈ prin ≈ 𝕏
-type Prin = 𝕏
+-- ρ ∈ prin ≈ 𝕊
+type Prin = 𝕊
+
+data PrinVal =
+    SinglePV Prin
+  | AccessPV Prin ℕ
+  deriving (Eq,Ord,Show)
+makePrettySum ''PrinVal
+    
+data PrinExpVal =
+    SinglePEV Prin
+  | SetPEV ℕ Prin
+  | AccessPEV Prin ℕ
+  deriving (Eq,Ord,Show)
+makePrettySum ''PrinExpVal
 
 data PrinExp =
-    VarPE Prin
-  | AccessPE Prin ℕ
+    VarPE 𝕏
+  | AccessPE 𝕏 ℕ
   deriving (Eq,Ord,Show)
 makePrettySum ''PrinExp
 

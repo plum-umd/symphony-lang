@@ -9,6 +9,7 @@ import PSL.Syntax
 import PSL.Data.Mode
 
 import qualified Prelude as HS
+import qualified Text.Read as HS
 
 -----------------
 -- ENVIRONMENT --
@@ -20,17 +21,15 @@ data ValMPC =
   | NatMV IPrecision ℕ
   | IntMV IPrecision ℤ
   | FltMV FPrecision 𝔻
-  | PrinMV PrinExp
   deriving (Eq,Ord,Show)
 makePrettySum ''ValMPC
 
--- sv ∈ shared-val
-data ValS = ValS
-  { sharedValProt ∷ Prot
-  , sharedValPrins ∷ 𝑃 PrinExp
-  , sharedValRaw ∷ ValMPC
-  } deriving (Eq,Ord,Show)
-makePrettySum ''ValS
+-- -- sv ∈ shared-val
+-- data ValS = ValS
+--   { sharedValProt ∷ Prot
+--   , sharedValPrins ∷ 𝑃 PrinVal
+--   , sharedValRaw ∷ ValMPC
+--   } deriving (Eq,Ord,Show)
 
 -- v ∈ val
 data Val =
@@ -40,44 +39,43 @@ data Val =
   | IntV IPrecision ℤ
   | FltV FPrecision 𝔻
   | BulV
-  | LV Val
-  | RV Val
-  | PairV Val Val
+  | LV ValP
+  | RV ValP
+  | PairV ValP ValP
   | NilV
-  | ConsV Val Val
+  | ConsV ValP ValP
   | CloV (𝑂 Var) Pat Exp ICloCxt
   | TCloV TVar Exp ICloCxt
-  | ShareV ValS
-  | PrinV PrinExp
+  -- | ShareV ValS
+  | PrinV PrinExpVal
   deriving (Eq,Ord,Show)
 
 -- ṽ ∈ par-val
 data ValP =
     BotVP
+  | SSecVP (𝑃 PrinVal) Val
+  | ISecVP (PrinVal ⇰ Val)
+  | ShareVP Prot (𝑃 PrinVal) ValMPC
   | AllVP Val
-  | SecVP PrinExp Val
-  | SSecVP (𝑃 PrinExp) Val
-  | ISecVP (PrinExp ⇰ Val)
-  | TopVP
   deriving (Eq,Ord,Show)
 
-isecFrSSec ∷ 𝑃 PrinExp → Val → PrinExp ⇰ Val
-isecFrSSec ρs v = dict $ mapOn (iter ρs) $ \ ρ → ρ ↦ v
-
-instance Bot ValP where bot = BotVP
-instance Join ValP where
-  BotVP ⊔ ṽ = ṽ
-  ṽ ⊔ BotVP = ṽ
-  SecVP ρ₁ v₁ ⊔ SecVP ρ₂ v₂ | ρ₁ ≢ ρ₂ = ISecVP $ dict [ρ₁ ↦ v₁,ρ₂ ↦ v₂]
-  -- SecVP ρ₁ v₁ ⊔ SecVP ρ₂ v₂ =
-  --   if ρ₁ ≢ ρ₂ 
-  --     then ISecVP $ dict [ρ₁ ↦ v₁,ρ₂ ↦ v₂]
-  --     else <try next pattern>
-  SecVP ρ₁ v₁ ⊔ ISecVP ρvs₂ | ρ₁ ∉ keys ρvs₂ = ISecVP $ (ρ₁ ↦ v₁) ⩌ ρvs₂
-  ISecVP ρvs₁ ⊔ SecVP ρ₂ v₂ | ρ₂ ∉ keys ρvs₁ = ISecVP $ (ρ₂ ↦ v₂) ⩌ ρvs₁
-  ISecVP ρvs₁ ⊔ ISecVP ρvs₂ | keys ρvs₁ ∩ keys ρvs₂ ≡ pø = ISecVP $ ρvs₁ ⩌ ρvs₂
-  _ ⊔ _ = TopVP
-instance JoinLattice ValP
+-- isecFrSSec ∷ 𝑃 PrinExp → Val → PrinExp ⇰ Val
+-- isecFrSSec ρs v = dict $ mapOn (iter ρs) $ \ ρ → ρ ↦ v
+-- 
+-- instance Bot ValP where bot = BotVP
+-- instance Join ValP where
+--   BotVP ⊔ ṽ = ṽ
+--   ṽ ⊔ BotVP = ṽ
+--   SecVP ρ₁ v₁ ⊔ SecVP ρ₂ v₂ | ρ₁ ≢ ρ₂ = ISecVP $ dict [ρ₁ ↦ v₁,ρ₂ ↦ v₂]
+--   -- SecVP ρ₁ v₁ ⊔ SecVP ρ₂ v₂ =
+--   --   if ρ₁ ≢ ρ₂ 
+--   --     then ISecVP $ dict [ρ₁ ↦ v₁,ρ₂ ↦ v₂]
+--   --     else <try next pattern>
+--   SecVP ρ₁ v₁ ⊔ ISecVP ρvs₂ | ρ₁ ∉ keys ρvs₂ = ISecVP $ (ρ₁ ↦ v₁) ⩌ ρvs₂
+--   ISecVP ρvs₁ ⊔ SecVP ρ₂ v₂ | ρ₂ ∉ keys ρvs₁ = ISecVP $ (ρ₂ ↦ v₂) ⩌ ρvs₁
+--   ISecVP ρvs₁ ⊔ ISecVP ρvs₂ | keys ρvs₁ ∩ keys ρvs₂ ≡ pø = ISecVP $ ρvs₁ ⩌ ρvs₂
+--   _ ⊔ _ = AllVP
+-- instance JoinLattice ValP
 
 -- γ ∈ ienv
 type Env = 𝕏 ⇰ ValP
@@ -106,6 +104,7 @@ data ICloCxt = ICloCxt
   } deriving (Eq,Ord,Show)
 
 makePrettySum ''Val
+-- makePrettySum ''ValS
 makePrettySum ''ValP
 makePrettySum ''ITLState
 makeLenses ''ITLState
@@ -139,7 +138,7 @@ iCxtModeL = iCloCxtModeL ⊚ iCxtCloL
 
 data ResEv = ResEv
   { resEvProt ∷ Prot
-  , resEvPrins ∷ 𝑃 PrinExp
+  , resEvPrins ∷ 𝑃 PrinVal
   , resEvType ∷ Type
   , resEvOp ∷ 𝕊
   , resEvArgs ∷ 𝐿 Val
@@ -328,61 +327,63 @@ interpPrimRaw o vs = case (o,vs) of
     , ("vs",pretty vs)
     ]
 
-mpcFrVal ∷ Val → ValMPC
-mpcFrVal (BoolV b) = BoolMV b
-mpcFrVal (NatV pr n) = NatMV pr n
-mpcFrVal (IntV pr i) = IntMV pr i
-mpcFrVal (FltV pr i) = FltMV pr i
-mpcFrVal _ = error "mpcFrVal"
-
-valFrMPC ∷ ValMPC → Val
-valFrMPC (BoolMV b) = BoolV b
-valFrMPC (NatMV pr n) = NatV pr n
-valFrMPC (IntMV pr i) = IntV pr i
-valFrMPC (FltMV pr d) = FltV pr d
-valFrMPC (PrinMV pe) = PrinV pe
-
-rawShareOps ∷ 𝑃 𝕊
-rawShareOps = pow
-  [ "LT"
-  , "GT"
-  , "LTE"
-  , "GTE"
-  , "PLUS"
-  , "MINUS"
-  , "TIMES"
-  , "DIV"
-  , "MOD"
-  , "EQ"
-  ]
-
-onRawShareVals ∷ Prot → 𝑃 PrinExp → 𝐼 Val → (𝐿 Val → IM Val) → 𝐿 Val → IM Val
-onRawShareVals φ ρs vs f vs' = case vs' of
-  Nil → ShareV ∘ ValS φ ρs ∘ mpcFrVal ^$ f $ list vs
-  ShareV (ValS φ' ρs' v) :& vs'' | (φ ≡ φ') ⩓ (ρs ≡ ρs') → 
-    onRawShareVals φ ρs (vs ⧺ single (valFrMPC v)) f vs''
-  _ → throwIErrorCxt TypeIError "onRawShareVals: vs' ∉ {Nil,ShareV …}" $ frhs
-    [ ("vs'",pretty vs')
-    , ("φ",pretty φ)
-    , ("ρs",pretty ρs)
+mpcFrVal ∷ Val → IM ValMPC
+mpcFrVal v = case v of
+  BoolV b → return $ BoolMV b
+  NatV pr n → return $ NatMV pr n
+  IntV pr i → return $ IntMV pr i
+  FltV pr i → return $ FltMV pr i
+  _ → throwIErrorCxt TypeIError "mpcFrVal: cannot share value" $ frhs
+    [ ("v",pretty v)
     ]
 
-onRawVals ∷ 𝕊 → (𝐿 Val → IM Val) → 𝐿 Val → IM Val
-onRawVals op f vs = case vs of
-  ShareV (ValS φ ρs v) :& _ → do
-    v' ← onRawShareVals φ ρs null f vs
-    let τ = case v of
-          BoolMV _ → 𝔹T
-          NatMV pr _ → ℕT pr
-          IntMV pr _ → ℤT pr
-          FltMV pr _ → 𝔽T pr
-          PrinMV _ → ℙT
-    tellL iOutResEvsL $ single $ ResEv φ ρs τ op vs
-    return v'
-  _ → f vs
+valFrMPC ∷ ValMPC → Val
+valFrMPC = \case
+  BoolMV b → BoolV b
+  NatMV pr n → NatV pr n
+  IntMV pr i → IntV pr i
+  FltMV pr d → FltV pr d
 
-interpPrim ∷ 𝕊 → 𝐿 Val → IM Val
-interpPrim op = onRawVals op $ interpPrimRaw op
+-- rawShareOps ∷ 𝑃 𝕊
+-- rawShareOps = pow
+--   [ "LT"
+--   , "GT"
+--   , "LTE"
+--   , "GTE"
+--   , "PLUS"
+--   , "MINUS"
+--   , "TIMES"
+--   , "DIV"
+--   , "MOD"
+--   , "EQ"
+--   ]
+
+-- onRawShareVals ∷ Prot → 𝑃 PrinVal → 𝐼 Val → (𝐿 Val → IM Val) → 𝐿 Val → IM Val
+-- onRawShareVals φ ρs vs f vs' = case vs' of
+--   Nil → ShareV ∘ ValS φ ρs ∘ mpcFrVal ^$ f $ list vs
+--   ShareV (ValS φ' ρs' v) :& vs'' | (φ ≡ φ') ⩓ (ρs ≡ ρs') → 
+--     onRawShareVals φ ρs (vs ⧺ single (valFrMPC v)) f vs''
+--   _ → throwIErrorCxt TypeIError "onRawShareVals: vs' ∉ {Nil,ShareV …}" $ frhs
+--     [ ("vs'",pretty vs')
+--     , ("φ",pretty φ)
+--     , ("ρs",pretty ρs)
+--     ]
+-- 
+-- onRawVals ∷ 𝕊 → (𝐿 Val → IM Val) → 𝐿 Val → IM Val
+-- onRawVals op f vs = case vs of
+--   ShareV (ValS φ ρs v) :& _ → do
+--     v' ← onRawShareVals φ ρs null f vs
+--     let τ = case v of
+--           BoolMV _ → 𝔹T
+--           NatMV pr _ → ℕT pr
+--           IntMV pr _ → ℤT pr
+--           FltMV pr _ → 𝔽T pr
+--     tellL iOutResEvsL $ single $ ResEv φ ρs τ op vs
+--     return v'
+--   _ → f vs
+-- 
+-- interpPrim ∷ 𝕊 → 𝐿 Val → IM Val
+-- interpPrim op = onRawVals op $ interpPrimRaw op
 
 ---------------
 -- VARIABLES --
@@ -398,20 +399,6 @@ interpVar x = do
       , ("dom(γ)",pretty $ keys γ)
       ]
 
-interpPrinVar ∷ PrinExp → IM PrinExp
-interpPrinVar (VarPE ρ) = do
-  γ ← askL iCxtEnvL
-  case γ ⋕? ρ of
-    Some v → case v of
-      AllVP (PrinV ρe') → return ρe'
-      SecVP _ (PrinV ρe') → return ρe'
-      SSecVP _ (PrinV ρe') → return ρe'
-      _ → throwIErrorCxt TypeIError "interpPrinVar: v ∉ AllVP, SecVP, SSecVP" $ frhs
-        [ ("v", pretty v)
-        ]
-    None → return $ VarPE ρ
-interpPrinVar ρe = return ρe
-
 bindVar ∷ Var → ValP → IM a → IM a
 bindVar x ṽ = mapEnvL iCxtEnvL ((x ↦ ṽ) ⩌)
 -- bindVar x ṽ im = do
@@ -424,95 +411,105 @@ bindVar x ṽ = mapEnvL iCxtEnvL ((x ↦ ṽ) ⩌)
 -- PATTERNS --
 --------------
 
-bindPat ∷ Pat → ValP → IM ValP → IM ValP
-bindPat ψ ṽ vM = do
-  fO ← bindPatO ψ ṽ
+bindPat ∷ Pat → ValP → IM a → IM a
+bindPat ψ ṽ xM = do
+  fO ← unFailT $ bindPatO ψ ṽ
   case fO of
-    Some f → f vM
+    Some f → f xM
     None → throwIErrorCxt TypeIError "bindPat: no matching cases" $ frhs
       [ ("ψ",pretty ψ)
       , ("ṽ",pretty ṽ)
       ]
 
-bindPatO ∷ Pat → ValP → IM (𝑂 (IM a → IM a))
+bindPatO ∷ Pat → ValP → FailT IM (IM a → IM a)
 bindPatO ψ ṽ = case ψ of
-  VarP x → return $ Some $ bindVar x ṽ
-  BulP → return $ Some id
+  VarP x → return $ bindVar x ṽ
+  BulP → return id
   NilP → do
-    ṽ' ← bindValP ṽ $ \ v → case v of
-          NilV → return $ AllVP $ NilV
-          _ → return TopVP
-    return $ case ṽ' of
-      TopVP → None
-      _ → Some id
+    v ← inFailT $ elimValP ṽ
+    case v of
+      NilV → return id
+      _ → abort
   ConsP ψ₁ ψ₂ → do
-    ṽ₁ ← bindValP ṽ $ \ v → case v of
-      ConsV v₁ _v₂ → return $ AllVP $ v₁
-      _ → return TopVP
-    ṽ₂ ← bindValP ṽ $ \ v → case v of
-      ConsV _v₁ v₂ → return $ AllVP $ v₂
-      _ → return TopVP
-    fO₁ ← bindPatO ψ₁ ṽ₁
-    fO₂ ← bindPatO ψ₂ ṽ₂
-    return $ do
-      f₁ ← fO₁
-      f₂ ← fO₂
-      return $ f₂ ∘ f₁
+    v ← inFailT $ elimValP ṽ
+    case v of
+      ConsV ṽ₁ ṽ₂ → do
+        f₁ ← bindPatO ψ₁ ṽ₁ 
+        f₂ ← bindPatO ψ₂ ṽ₂
+        return $ f₂ ∘ f₁
+      _ → abort
   TupP ψ₁ ψ₂ → do
-    ṽ₁ ← bindValP ṽ $ \ v → case v of
-      PairV v₁ _v₂ → return $ AllVP $ v₁
-      _ → return TopVP
-    ṽ₂ ← bindValP ṽ $ \ v → case v of
-      PairV _v₁ v₂ → return $ AllVP $ v₂
-      _ → return TopVP
-    fO₁ ← bindPatO ψ₁ ṽ₁
-    fO₂ ← bindPatO ψ₂ ṽ₂
-    return $ do
-      f₁ ← fO₁
-      f₂ ← fO₂
-      return $ f₂ ∘ f₁
-  WildP → return $ Some id
-  _ → return $ Some $ const $ throwIErrorCxt NotImplementedIError "bindPatO" $ frhs
-    [ ("ψ",pretty ψ)
-    , ("ṽ",pretty ṽ)
-    ]
+    v ← inFailT $ elimValP ṽ
+    case v of
+      PairV ṽ₁ ṽ₂ → do
+        f₁ ← bindPatO ψ₁ ṽ₁ 
+        f₂ ← bindPatO ψ₂ ṽ₂
+        return $ f₂ ∘ f₁
+      _ → abort
+  WildP → return id
+  _ → abort
 
 interpCase ∷ ValP → 𝐿 (Pat ∧ Exp) → IM ValP
-interpCase v ψes = case ψes of
-  Nil → throwIErrorCxt TypeIError "interpCase: ψes = []" $ frhs
-    [ ("ψes",pretty ψes)
+interpCase ṽ ψes = do
+  fO ← unFailT $ interpCaseO ṽ ψes
+  case fO of
+    None → throwIErrorCxt TypeIError "interpCase: interpCaseO v ψes = None" $ frhs
+      [ ("ṽ",pretty ṽ)
+      , ("ψes",pretty ψes)
+      ]
+    Some ṽ' → return ṽ'
+
+interpCaseO ∷ ValP → 𝐿 (Pat ∧ Exp) → FailT IM ValP
+interpCaseO ṽ ψes = case ψes of
+  Nil → abort
+  (ψ :* e) :& ψes' → tries
+    [ do f ← bindPatO ψ ṽ 
+         inFailT $ f $ interpExp e
+    , interpCaseO ṽ ψes'
     ]
-  (ψ :* e) :& ψes' → do
-    fO ← bindPatO ψ v 
-    case fO of
-      None → interpCase v ψes'
-      Some f → f $ interpExp e
 
 --------------------
 -- PARSING INPUTS --
 --------------------
 
-prinDataPath ∷ PrinExp → 𝕊
-prinDataPath = \case
-  VarPE s → 𝕩name s
-  AccessPE s n → 𝕩name s ⧺ "_" ⧺ show𝕊 n
+-- prinDataPath ∷ PrinExp → 𝕊
+-- prinDataPath = \case
+--   VarPE s → s
+--   AccessPE s n → s ⧺ "_" ⧺ show𝕊 n
 
-parseTy ∷ Type → 𝕊 → IM Val
+parseTy ∷ Type → 𝕊 → IM ValP
 parseTy τ s = case τ of
   ℤT pr → do
     let i = HS.read $ chars s ∷ ℤ
-    return $ IntV pr $ trPrInt pr i
+    introValP $ IntV pr $ trPrInt pr i
   ListT τ' → do
     vs ← mapM (parseTy τ') $ list $ filter (≢ "") $ splitOn𝕊 "\n" s
-    return $ foldr NilV ConsV vs
+    nil ← introValP NilV
+    mfoldrOnFrom vs nil $ \ ṽ₁ ṽ₂ → introValP $ ConsV ṽ₁ ṽ₂
   ℙT → do
-    prin ← case list $ splitOn𝕊 "_" s of
-      (p :& Nil) → return $ VarPE $ var p
-      (p :& (i :& Nil)) → return $ AccessPE (var p) (HS.read $ chars i ∷ ℕ)
-      _ → throwIErrorCxt SyntaxIError "parseTy: ℙT: Input is not in either of the following forms: \"A\", \"A_1\"" $ frhs
-        [ ("s", pretty s)
-        ]
-    return $ PrinV prin
+    kinds ← askL iCxtDeclPrinsL
+    prin ← case tohs $ list $ splitOn𝕊 "_" s of
+      [ρ] → case kinds ⋕? ρ of
+        Some ρκ → return $ case ρκ of
+          SinglePK → SinglePEV ρ
+          SetPK n → SetPEV n ρ
+        None → throwIErrorCxt TypeIError "parseTy: ℙT: [ρ]: kinds ⋕? ρ ≢ Some _" $ frhs
+          [ ("kinds",pretty kinds)
+          , ("ρ",pretty ρ)
+          ]
+      [ρ,iS] → case (kinds ⋕? ρ,frhs $ HS.readMaybe $ chars iS) of
+        (Some ρκ,Some i) → case ρκ of
+          SetPK n | i < n → return $ AccessPEV ρ i
+          _ → throwIErrorCxt TypeIError "parseTy: ℙT: [ρ,iS]: (Some _,Some _): ρκ ≢ SetPK n | i < n" $ frhs
+            [ ("ρκ",pretty ρκ)
+            , ("i",pretty i)
+            ]
+        _ → throwIErrorCxt TypeIError "parseTy: ℙT: [ρ,iS]: (kinds ≡? ρ,read iS) ≢ (Some _,Some _)" $ frhs
+          [ ("kinds",pretty kinds)
+          , ("ρ",pretty ρ)
+          , ("iS",pretty iS)
+          ]
+    introValP $ PrinV prin
   _ → throwIErrorCxt NotImplementedIError "parseTy" $ frhs
     [ ("τ",pretty τ)
     ]
@@ -521,60 +518,106 @@ parseTy τ s = case τ of
 -- MODES --
 -----------
 
-restrictValP ∷ Mode → ValP → ValP
-restrictValP m x̃ = case (m,x̃) of
-  (TopM,_) → x̃
-  (_,TopVP) → TopVP
-  (BotM,_) → BotVP
-  (_,BotVP) → BotVP
-  (SecM ρ,AllVP v) → SecVP ρ v
-  (SecM ρ,SecVP ρ' v) | ρ ≡ ρ' → SecVP ρ' v
-  (SecM ρ,SSecVP ρs v) | ρ ∈ ρs → SecVP ρ v
-  (SecM ρ,ISecVP ρvs) | ρ ∈ keys ρvs → SecVP ρ $ ρvs ⋕! ρ
-  (SSecM ρs,AllVP v) → SSecVP ρs v
-  (SSecM ρs,SecVP ρ' v) | ρ' ∈ ρs → SecVP ρ' v
-  (SSecM ρs,SSecVP ρs' v) → SSecVP (ρs ∩ ρs') v
-  (SSecM ρs,ISecVP ρvs) → ISecVP $ restrict ρs ρvs
-  (_,_) → BotVP
+--restrictValP ∷ Mode → ValP → ValP
+--restrictValP m x̃ = case (m,x̃) of
+--  (TopM,_) → x̃
+--  (_,AllVP) → AllVP
+--  (BotM,_) → BotVP
+--  (_,BotVP) → BotVP
+--  (SecM ρ,AllVP v) → SecVP ρ v
+--  (SecM ρ,SecVP ρ' v) | ρ ≡ ρ' → SecVP ρ' v
+--  (SecM ρ,SSecVP ρs v) | ρ ∈ ρs → SecVP ρ v
+--  (SecM ρ,ISecVP ρvs) | ρ ∈ keys ρvs → SecVP ρ $ ρvs ⋕! ρ
+--  (SSecM ρs,AllVP v) → SSecVP ρs v
+--  (SSecM ρs,SecVP ρ' v) | ρ' ∈ ρs → SecVP ρ' v
+--  (SSecM ρs,SSecVP ρs' v) → SSecVP (ρs ∩ ρs') v
+--  (SSecM ρs,ISecVP ρvs) → ISecVP $ restrict ρs ρvs
+--  (_,_) → BotVP
 
-restrictMode ∷ Mode → IM ValP → IM ValP
-restrictMode m xM = do
-  m' ← askL iCxtModeL
-  ṽ ← localL iCxtModeL (m ⊓ m') xM
-  return $ restrictValP m ṽ
+restrictMode ∷ Mode → IM a → IM a
+restrictMode m' xM = do
+  m ← askL iCxtModeL
+  when (not $ m' ⊑ m) $ \ _ → throwIErrorCxt TypeIError "m' ⋢ m" $ frhs
+    [ ("m'",pretty m')
+    , ("m",pretty m)
+    ]
+  localL iCxtModeL m' xM
 
 ---------------------
 -- PARALLEL VALUES --
 ---------------------
 
-bindValP ∷ ValP → (Val → IM ValP) → IM ValP
-bindValP ṽ f = case ṽ of
-  BotVP → return BotVP
-  AllVP v → f v
-  SecVP ρ v → restrictMode (SecM ρ) $ f v
-  SSecVP ρs v → restrictMode (SSecM ρs) $ f v
-  ISecVP ρvs → 
-    joins ^$ mapMOn (iter ρvs) $ \ (ρ :* v) →
-      restrictMode (SecM ρ) $ f v
-  TopVP → throwIErrorCxt TypeIError "bindValP: ṽ = TopVP" $ frhs
-    [ ("ṽ",pretty ṽ)
-    ]
+-- bindValP ∷ ValP → (Val → IM ValP) → IM ValP
+-- bindValP ṽ f = case ṽ of
+--   BotVP → return BotVP
+--   AllVP v → f v
+--   SecVP ρ v → restrictMode (SecM ρ) $ f v
+--   SSecVP ρs v → restrictMode (SSecM ρs) $ f v
+--   ISecVP ρvs → 
+--     joins ^$ mapMOn (iter ρvs) $ \ (ρ :* v) →
+--       restrictMode (SecM ρ) $ f v
+--   AllVP → throwIErrorCxt TypeIError "bindValP: ṽ = AllVP" $ frhs
+--     [ ("ṽ",pretty ṽ)
+--     ]
 
-bindValsPR ∷ 𝐼 Val → 𝐿 ValP → (𝐿 Val → IM ValP) → IM ValP
-bindValsPR vs ṽs f = case ṽs of
-  Nil → f $ list vs
-  ṽ :& ṽs' → bindValP ṽ $ \ v → bindValsPR (vs ⧺ single v) ṽs' f
+elimValP ∷ ValP → IM Val
+elimValP ṽ = do
+  m ← askL iCxtModeL
+  case ṽ of
+    SSecVP ρs v | m ⊑ SSecM ρs → return v
+    AllVP v → return v
+    _ → throwIErrorCxt TypeIError "obsValP: ṽ ∉ {AllVP _,SSecVP _ _}" $ frhs
+      [ ("ṽ",pretty ṽ)
+      ]
 
-bindValsP ∷ 𝐿 ValP → (𝐿 Val → IM ValP) → IM ValP
-bindValsP = bindValsPR null
+modeValP ∷ Mode → Val → ValP
+modeValP m v = case m of
+  BotM → BotVP
+  SecM ρ → SSecVP (single ρ) v
+  SSecM ρs → SSecVP ρs v
+  TopM → AllVP v
+
+modePrinValPs ∷ Mode → PrinVal ⇰ Val → ValP
+modePrinValPs m ρvs = case m of
+  BotM → BotVP
+  SecM ρ | ρ ∈ keys ρvs → SSecVP (single ρ) $ ρvs ⋕! ρ
+         | otherwise → BotVP
+  SSecM ρs → ISecVP $ restrict ρs ρvs
+  TopM → ISecVP ρvs
+
+introValP ∷ Val → IM ValP
+introValP v = do
+  m ← askL iCxtModeL
+  return $ modeValP m v
+
+restrictValP ∷ ValP → IM ValP
+restrictValP ṽ = do
+  m ← askL iCxtModeL
+  case ṽ of
+    SSecVP ρs v | m ⊑ SSecM ρs → return $ modeValP m v
+    ISecVP ρvs | m ⊑ SSecM (keys ρvs) → return $ modePrinValPs m ρvs
+    AllVP v → return $ modeValP m v
+    _ → throwIErrorCxt TypeIError "restrictValP: ṽ ∉ {SSecVP _ _ | m ⊑ ρs,ISecVP _ m ⊑ dom(ρvs) | …,AllVP _}" $ frhs
+      [ ("ṽ",pretty ṽ)
+      , ("m",pretty m)
+      ]
+
+-- bindValsPR ∷ 𝐼 Val → 𝐿 ValP → (𝐿 Val → IM ValP) → IM ValP
+-- bindValsPR vs ṽs f = case ṽs of
+--   Nil → f $ list vs
+--   ṽ :& ṽs' → bindValP ṽ $ \ v → bindValsPR (vs ⧺ single v) ṽs' f
+-- 
+-- bindValsP ∷ 𝐿 ValP → (𝐿 Val → IM ValP) → IM ValP
+-- bindValsP = bindValsPR null
 
 -----------------
 -- APPLICATION --
 -----------------
 
 interpApp ∷ ValP → ValP → IM ValP
-interpApp ṽ₁ ṽ₂ =
-  bindValP ṽ₁ $ \ v₁ → case v₁ of
+interpApp ṽ₁ ṽ₂ = do
+  v₁ ← elimValP ṽ₁
+  case v₁ of 
     CloV selfO ψ e ξ → do
       let selfγ = case selfO of
             None → id
@@ -588,50 +631,92 @@ interpApp ṽ₁ ṽ₂ =
 -- EXPRESSIONS --
 -----------------
 
-interpExp ∷ Exp → IM ValP
-interpExp e = localL iCxtSourceL (Some $ annotatedTag e) $ case extract e of
-  VarE x → interpVar x
-  BoolE b → return $ AllVP $ BoolV b
-  StrE s → return $ AllVP $ StrV s
-  NatE pr n → return $ AllVP $ NatV pr $ trPrNat pr n
-  IntE pr i → return $ AllVP $ IntV pr $ trPrInt pr i
-  -- FltE
-  BulE → return $ AllVP $ BulV
-  IfE e₁ e₂ e₃ → do
-    ṽ ← interpExp e₁
-    bindValP ṽ $ \ v → do
+interpPrinVar ∷ 𝕏 → IM PrinExpVal
+interpPrinVar x = do
+  γ ← askL iCxtEnvL
+  kinds ← askL iCxtDeclPrinsL
+  case γ ⋕? x of
+    Some ṽ → do
+      v ← elimValP ṽ
       case v of
-        BoolV b 
-          | b ≡ True → interpExp e₂
-          | b ≡ False → interpExp e₃
-        _ → throwIErrorCxt TypeIError "interpExp: IfE: v ≢ BoolV _" $ frhs
+        PrinV ρev → return ρev
+        _ → throwIErrorCxt TypeIError "interpPrinVar: v ≢ PrinV _" $ frhs
           [ ("v",pretty v)
           ]
+        _ → error "BAD"
+    None → case 𝕩Gen x of
+      None → case kinds ⋕? 𝕩name x of
+        Some ρk → return $ case ρk of
+          SinglePK → SinglePEV $ 𝕩name x
+          SetPK n → SetPEV n $ 𝕩name x
+      _ → throwIErrorCxt TypeIError "interpPrinVar: 𝕩Gen x ≢ None" $ frhs
+        [ ("x",pretty x)
+        ]
+
+interpPrinExp ∷ PrinExp → IM PrinExpVal
+interpPrinExp ρe = do
+  case ρe of
+    VarPE x → interpPrinVar x
+    AccessPE x i → do
+      ρev ← interpPrinVar x
+      case ρev of
+        SetPEV n ρx | i < n → return $ AccessPEV ρx i
+        _ → throwIErrorCxt TypeIError "interpPrinExp: ρev ≢ SetPEV _ _" $ frhs
+          [ ("ρev",pretty ρev)
+          ]
+    -- case kinds ⋕! p of
+    --   SetPK n | i < n → restrictMode (SecM $ AccessPE p i) $ interpExp e'
+    --   _ → throwIErrorCxt TypeIError "interpExp: ParE: AccessPE: SinglePK: Cannot access a principal that is not a set." $ frhs
+    --     [ ("ρe", pretty ρe)
+    --     ]
+
+prinExpVals ∷ PrinExpVal → 𝑃 PrinVal
+prinExpVals ρev = case ρev of
+  SinglePEV ρ → single $ SinglePV ρ
+  SetPEV n ρ → pow $ mapOn (upTo n) $ \ i → AccessPV ρ i
+  AccessPEV ρ i → single $ AccessPV ρ i
+
+
+interpExp ∷ Exp → IM ValP
+interpExp e = localL iCxtSourceL (Some $ annotatedTag e) $ case extract e of
+  VarE x → restrictValP *$ interpVar x
+  BoolE b → introValP $ BoolV b
+  StrE s → introValP $ StrV s
+  NatE pr n → introValP $ NatV pr $ trPrNat pr n
+  IntE pr i → introValP $ IntV pr $ trPrInt pr i
+  -- FltE
+  BulE → introValP BulV
+  IfE e₁ e₂ e₃ → do
+    ṽ ← interpExp e₁
+    v ← elimValP ṽ
+    case v of
+     BoolV b 
+       | b ≡ True → interpExp e₂
+       | b ≡ False → interpExp e₃
+     _ → throwIErrorCxt TypeIError "interpExp: IfE: v ≢ BoolV _" $ frhs
+       [ ("v",pretty v)
+       ]
   -- LE
   -- RE
   TupE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
-    bindValP ṽ₁ $ \ v₁ →
-      bindValP ṽ₂ $ \ v₂ →
-        return $ AllVP $ PairV v₁ v₂
-  NilE → return $ AllVP NilV
+    introValP $ PairV ṽ₁ ṽ₂
+  NilE → introValP NilV
   ConsE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
-    bindValP ṽ₁ $ \ v₁ →
-      bindValP ṽ₂ $ \ v₂ →
-        return $ AllVP $ ConsV v₁ v₂
+    introValP $ ConsV ṽ₁ ṽ₂
   LetTyE _ _ e' → interpExp e'
   LetE ψ e₁ e₂ → do
-    v ← interpExp e₁
-    bindPat ψ v $ interpExp e₂
+    ṽ ← interpExp e₁
+    bindPat ψ ṽ $ interpExp e₂
   CaseE e' ψes → do
     ṽ ← interpExp e'
     interpCase ṽ ψes
   LamE selfO ψ e' → do
     ξ ← askL iCxtCloL
-    return $ AllVP $ CloV selfO ψ e' ξ
+    introValP $ CloV selfO ψ e' ξ
   AppE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
@@ -639,41 +724,22 @@ interpExp e = localL iCxtSourceL (Some $ annotatedTag e) $ case extract e of
   -- TLamE
   -- TAppE
   SoloE ρe e' → do
-    restrictMode (SecM ρe) $ interpExp e'
-  ParE ρes e' → do
-    kinds ← askL iCxtDeclPrinsL
-    joins ^$ mapMOn (iter ρes) $ \ ρe → do
-      case ρe of
-        VarPE p → case kinds ⋕! p of
-          SinglePK → restrictMode (SecM ρe) $ interpExp e'
-          SetPK n → joins ^$ mapMOn (repeatI n (\n' → n'+1)) $ \ i → restrictMode (SecM $ AccessPE p i) $ interpExp e'
-        AccessPE p i → case kinds ⋕! p of
-          SetPK n | i < n → restrictMode (SecM $ AccessPE p i) $ interpExp e'
-          _ → throwIErrorCxt TypeIError "interpExp: ParE: AccessPE: SinglePK: Cannot access a principal that is not a set." $ frhs
-            [ ("ρe", pretty ρe)
-            ]
-
-  ShareE φ ρs e' → do
-    let pρs = pow ρs
-    ṽ ← interpExp e'
-    case ṽ of
-      AllVP v → case v of
-        BoolV b → return $ AllVP $ ShareV $ ValS φ pρs $ BoolMV b
-        IntV pr i → return $ AllVP $ ShareV $ ValS φ pρs $ IntMV pr i
-        PrinV pe → return $ AllVP $ ShareV $ ValS φ pρs $ PrinMV pe
-        _ → throwIErrorCxt TypeIError "interpExp: ShareE: AllVP: v ∉ {BoolV _,IntV _, PrinV}" $ frhs
-          [ ("v",pretty v)
-          ]
-      SecVP _p v → case v of
-        BoolV b → return $ AllVP $ ShareV $ ValS φ pρs $ BoolMV b
-        IntV pr i → return $ AllVP $ ShareV $ ValS φ pρs $ IntMV pr i
-        PrinV pe → return $ AllVP $ ShareV $ ValS φ pρs $ PrinMV pe
-        _ → throwIErrorCxt TypeIError "interpExp: ShareE: SecVP: v ∉ {BoolV _,IntV _, PrinV}" $ frhs
-          [ ("v",pretty v)
-          ]
-      _ → throwIErrorCxt TypeIError "interpExp: ShareE: ṽ ≢ SecVP _ _" $ frhs
-        [ ("ṽ",pretty ṽ)
+    ρvs ← prinExpVals ^$ interpPrinExp ρe
+    case tohs $ list ρvs of
+      [ρv] → restrictMode (SecM ρv) $ interpExp e'
+      _ → throwIErrorCxt TypeIError "interpExp: SoloE: non-singleton principal set" $ frhs
+        [ ("ρvs",pretty ρvs)
         ]
+  ParE ρes e' → do
+    ρvs ← unions ^$ prinExpVals ^^$ mapM interpPrinExp ρes
+    restrictMode (SSecM ρvs) $ interpExp e'
+  ShareE φ ρes e' → do
+    ρvs ← unions ^$ prinExpVals ^^$ mapM interpPrinExp ρes
+    ṽ ← interpExp e'
+    v ← elimValP ṽ
+    sv ← mpcFrVal v
+    return $ ShareVP φ ρvs sv
+  {- LOH
   AccessE e' ρ → do
     ṽ ← interpExp e'
     case ṽ of
@@ -691,15 +757,13 @@ interpExp e = localL iCxtSourceL (Some $ annotatedTag e) $ case extract e of
       restrictMode (SecM ρ) $ interpExp e'
   -- BundleUnionE
   RevealE ρs e' → do
-    ρs' ← mapM interpPrinVar ρs
-    let pρs = pow ρs'
+    let pρs = pow ρs
     ṽ ← interpExp e'
     case ṽ of
       AllVP v → SSecVP pρs ^$ case v of
         ShareV (ValS _ _ (BoolMV b)) → return $ BoolV b
         ShareV (ValS _ _ (IntMV pr i)) → return $ IntV pr i
-        ShareV (ValS _ _ (PrinMV pe)) → return $ PrinV pe
-        _ → throwIErrorCxt TypeIError "interpExp: RevealE: v ∉ {ShaveV (ValS _ _ (BoolMV _)),ShareV (ValS _ _ (IntMV _ _)),ShareV (ValS _ _ (PrinMV _))}" $ frhs
+        _ → throwIErrorCxt TypeIError "interpExp: RevealE: v ∉ {ShaveV (ValS (BoolMV _) _ _),ShareV (ValS (IntMV _) _ _)}" $ frhs
           [ ("v",pretty v)
           ]
       _ → throwIErrorCxt TypeIError "interpExp: RevealE: ṽ ≢ AllVP _" $ frhs
@@ -728,6 +792,7 @@ interpExp e = localL iCxtSourceL (Some $ annotatedTag e) $ case extract e of
     v ← interpExp e₁
     pptrace v $ interpExp e₂
   _ → throwIErrorCxt NotImplementedIError "interpExp" null
+  -}
 
 ---------------
 -- TOP LEVEL --
@@ -815,6 +880,7 @@ testInterpreter = do
   testInterpreterExample "cmp-tutorial"
   testInterpreterExample "euclid"
   testInterpreterExample "msort"
+  -- testInterpreterExample "atq"
   -- testInterpreterExample "atq"
   -- testInterpreterExample "cmp-split"
   -- testInterpreterExample "cmp-tutorial"
