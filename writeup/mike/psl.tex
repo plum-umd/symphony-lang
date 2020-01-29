@@ -55,7 +55,7 @@
                        && \mid & x & \text{variables} \\
                        && \mid & \ebinop{e_1}{e_2}  & \text{binary operation} \\
                        && \mid & \elet{x}{e_1}{e_2}  & \text{sequencing} \\
-                       && \mid & \econd{e_1}{e_2}{e_3}  & \text{sequencing} \\
+                       && \mid & \econd{e_1}{e_2}{e_3}  & \text{conditional} \\
                        && \mid & \epar{P}{e} & \text{parallel evaluation}\\
                        && \mid & \ereveal{e} & \text{evaluate share}\\
   \end{array}
@@ -66,7 +66,14 @@
 
 \section{Syntax}
 
-The syntax of core PSL is in Figure~\ref{fig:syntax}.
+The syntax of core PSL is in Figure~\ref{fig:syntax}. Need terms for
+\begin{itemize}
+\item making and accessing principal maps (isec)
+\item lists -- construct, destruct
+\item making/distributing shares
+\item converting an isec into a list of shares (one per principal's
+  isec)
+\end{itemize}
 
 \subsection{Types}
 
@@ -92,55 +99,92 @@ interesting part. It has three variants:
 
 \subsection{Terms}
 
+\section{Semantics}
 
+The semantics is inspired by that of Wysteria, but relaxed since
+secure blocks are no longer explicit, but implied by the type
+structure.
+
+\paragraph*{Par blocks}
+
+The entire computation begins in a par block, conceptually involving
+all principals. Each principal is running the same program, but it
+will skip those blocks of code that don't apply to it.  A key goal of
+the system is that all parties are ``present'' to perform joint-secure
+operations when they need to be.
+
+Need to figure out rules for what secure-block operations can happen
+in a par block.
+
+\paragraph*{Secure blocks}
+
+Cryptographic computations are those over values of
+$\sectyp{\omega}{\sshare{\psi}}{P}$ type. Whenever something of this
+type ends up in destruct position (e.g., $\ebinop{e_1}{e_2}$) instead
+of actually doing the computation, we can think of the operation as
+being made into a thunk.\footnote{Behind the scenes the operation might
+actually take place, e.g., when adding shares or communicating to
+multiply them. Or the frozen operation might result in a circuit being
+constructed.} For example, if we do $\ebinop{e_1}{e_2}$ and $e_1$ and
+$e_2$ are both shares (i.e., of type $\sshare{\psi}$), then the result
+is that both parties will construct a circuit over those shares,
+locally. The $\ereveal{e}$ construct takes as its argument a share and
+forces the computation to happen. That is, at that moment the secure
+computation will be forced to completion, and the result revealed to
+the involved principals.
 
 \section{Typing}
 
+\paragraph*{Secure blocks}
+
+The $\ereveal{e}$ construct takes as its argument something of type
+$\sectyp{\omega}{\sshare{\psi}}{P}$ and produces a value of type
+$\sectyp{\omega}{\ssec}{P}$. That is, it forces the secure computation
+(which we are thinking of as a thunk) to produce a result, and reveals
+that result to the involved principals $P$.
+
+\paragraph*{Subtyping}
+
 We should only permit operations among values of exactly the same type
 $\tau$. That is, $\ebinop{e_1}{e_2}$ type checks if both $e_1$ and
-$e_2$ have exactly the same type $\tau$.
+$e_2$ have exactly the same type $\tau$. For local, private computations
+(which could involve building circuits for secure computations), they
+would have type $\ssec$ or $\isec$ type.
 
-Given this, we might like to employ subtyping. Off the top of my
-head, I think we can support the following:
+ Given this, we might like to employ subtyping. I think we can support the following:
 \begin{itemize}
 \item An \ssec $P$ can be coerced to \ssec $Q$ when $Q \subseteq
   P$. That is, a shared value visible to a larger principal set can be
   viewed as visible to a smaller one. The same is true of \isec. (This
   assumes that \ssec and \isec are for immutable values; subtyping
   would not be allowed if there's mutation, as usual.)
-\item There is no subtyping arrangement for \sshare -- all parties have
+\item There is no subtyping arrangement for \sshare---all parties have
   to be present, and additional parties are not allowed.
 \end{itemize}
 
-The $\ereveal{e}$ construct takes as its argument something of type
-$\sectyp{\omega}{\sshare{\psi}}{P}$ and produces a value of type
-$\sectyp{\omega}{\ssec}{P}$. That is, it forces the secure computation
-to produce a result, and reveals that result to the involved
-principals $P$.
+\paragraph*{Par blocks}
 
 The type of $\epar{P}{e} $ should be an $\sectyp{\omega}{\isec}{P}$
 type. This is because $e$ is executed independently by each principal
 $p \in P$. There are constraints on the type of $e$. Off the top of my
 head:
 \begin{itemize}
-  \item Only types with visibility $P$ are allowed. We can use
-    subtyping as needed. 
+\item All types with visibility $P$ are allowed. We can use subtyping
+  (to $Q \subset P$) as needed.
   \item We can insert nested Par blocks, with a subset of principals,
     I think. However, their results will only be visible to subsequent
     par blocks with the same principal set (not the parent).
+  \item Conditional execution $\econd{e_1}{e_2}{e_3}$ when $e_1$ could
+    contain an $\isec$ needs to be limited. The issue will be if $e_2$
+    has a secure computation inside it; not all parties $P$ will
+    necessarily reach this point, because their values may differ in
+    $e_1$. Remedies:
+    \begin{itemize}
+      \item Only allow conditionals in Par blocks when $P$ is a singleton, or
+      \item Forbid computations on shares inside the branches of a
+        conditional when the guard involves an \isec.
+      \end{itemize}
 \end{itemize}
-
-\section{Semantics}
-
-The semantics is inspired by that of Wysteria, but relaxed since
-secure blocks are no longer explicit, but implied by the type
-structure. 
-
-\subsection{Single threaded}
-
-\subsection{Distributed}
-
-Here we outline the ideal-world semantics in a distributed fashion.
 
 \section{Notes/To-do}
 
