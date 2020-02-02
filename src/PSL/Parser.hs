@@ -51,6 +51,7 @@ lexer = lexerBasic puns kws prim ops
       , "@"
       , "⊆","c="
       , "#"
+      , "|"
       ]
     kws = list
       [ "primitive"
@@ -65,6 +66,7 @@ lexer = lexerBasic puns kws prim ops
       , "reveal"
       , "share"
       , "trace"
+      , "set"
       ]
     prim = list
       [ "yao","gmw","bgw"
@@ -81,8 +83,9 @@ lexer = lexerBasic puns kws prim ops
       , "list"
       , "read"
       , "inp","rev"
-      , "par"
+      , "par","sec"
       , "∞","inf"
+      , "⊤","all"
       ]
     ops = list 
       [ "•","()"
@@ -128,7 +131,7 @@ pKind = cpNewContext "kind" $ concat
 -- Prin --
 ----------
 
-pPrin ∷ CParser TokenBasic Prin
+pPrin ∷ CParser TokenBasic 𝕏
 pPrin = cpNewContext "prin" cpName
 
 pPrinExp ∷ CParser TokenBasic PrinExp
@@ -145,8 +148,8 @@ pPrinExp = cpNewContext "prin-exp" $ do
 -- Prin-set --
 --------------
 
-pPrins ∷ CParser TokenBasic (𝐿 Prin)
-pPrins = cpManySepBy (cpSyntax ",") pPrin
+pPrins ∷ CParser TokenBasic (𝐿 PrinExp)
+pPrins = cpManySepBy (cpSyntax ",") pPrinExp
 
 pPrinExps ∷ CParser TokenBasic (𝐿 PrinExp)
 pPrinExps = cpManySepBy (cpSyntax ",") pPrinExp
@@ -156,24 +159,45 @@ pPrinExps = cpManySepBy (cpSyntax ",") pPrinExp
 ----------------
 
 pConstr ∷ CParser TokenBasic Constr
-pConstr = cpNewContext "constr" $ concat
-  [ do cpSyntax "{"
-       ρs₁ ← pPrins
-       cpSyntax "}"
-       concat [cpSyntax "⊆",cpSyntax "<="]
-       cpSyntax "{"
-       ρs₂ ← pPrins
-       cpSyntax "}"
-       return $ SubsetC ρs₁ ρs₂
-  ]
+pConstr = cpNewContext "constr" $ do
+  do ρs₁ ← concat
+       [ do cpSyntax "{"
+            ρs₁ ← pPrins
+            cpSyntax "}"
+            return ρs₁
+       , do single ^$ pPrinExp
+       ]
+     concat [cpSyntax "⊆",cpSyntax "<="]
+     ρs₂ ← concat
+       [ do cpSyntax "{"
+            ρs₂ ← pPrins
+            cpSyntax "}"
+            return ρs₂
+       , do single ^$ pPrinExp
+       ]
+     return $ SubsetC ρs₁ ρs₂
 
 ------------
 -- Effect --
 ------------
 
+pEMode ∷ CParser TokenBasic EMode
+pEMode = cpNewContext "effect-mode" $ concat
+  [ do cpSyntax "par"
+       cpSyntax ":"
+       ρs ← pPrins
+       return $ PSecEM ρs
+  , do cpSyntax "sec"
+       cpSyntax ":"
+       ρs ← pPrins
+       return $ SSecEM ρs
+  , do concat [cpSyntax "⊤",cpSyntax "all"]
+       return TopEM
+  ]
+
 pEffect ∷ CParser TokenBasic Effect
 pEffect = cpNewContext "effect" $ do
-  (ρs₁,ρs₂) ← concat
+  (ρs₁,ρs₂,em) ← concat
     [ do cpSyntax "inp"
          cpSyntax ":"
          ρs₁ ← pow ^$ pPrins
@@ -182,14 +206,22 @@ pEffect = cpNewContext "effect" $ do
            cpSyntax "rev"
            cpSyntax ":"
            pow ^$ pPrins
-         return (ρs₁,ifNone null ρs₂O)
+         emO ← cpOptional $ do
+          cpSyntax ";"
+          pEMode
+         return (ρs₁,ifNone null ρs₂O,ifNone TopEM emO)
     , do cpSyntax "rev"
          cpSyntax ":"
          ρs₂ ← pow ^$ pPrins
-         return (null,ρs₂)
-    , do return (null,null)
+         emO ← cpOptional $ do
+          cpSyntax ";"
+          pEMode
+         return (null,ρs₂,ifNone TopEM emO)
+    , do em ← pEMode
+         return (null,null,em)
+    , do return (null,null,TopEM)
     ]
-  return $ Effect ρs₁ ρs₂
+  return $ Effect ρs₁ ρs₂ em
 
 ----------
 -- TVar --
@@ -266,14 +298,17 @@ pType = cpNewContext "type" $ mixfix $ concat
         η ← pEffect
         cpSyntax "}"
         return η
-      let η₀ = Effect null null
+      let η₀ = Effect null null TopEM
       return $ \ τ₁ τ₂ → τ₁ :→: (ifNone η₀ ηO :* τ₂)
-  -- (x : τ) →{η} τ
+  -- (x : τ | c,…,c) →{η} τ
   , mixPrefix levelARROW $ do
       cpSyntax "("
       x ← pVar
       cpSyntax ":"
       τ₁ ← pType
+      cs ← ifNone Nil ^$ cpOptional $ do
+        cpSyntax "|"
+        cpManySepBy (cpSyntax ",") pConstr
       cpSyntax ")"
       concat [cpSyntax "→",cpSyntax "->"]
       ηO ← cpOptional $ do
@@ -281,20 +316,21 @@ pType = cpNewContext "type" $ mixfix $ concat
         η ← pEffect
         cpSyntax "}"
         return η
-      let η₀ = Effect null null
-      return $ \ τ₂ → (x :* τ₁) :→†: (ifNone η₀ ηO :* τ₂)
-  -- ∀ α:κ. [c,…,c] ⇒ τ
+      let η₀ = Effect null null TopEM
+      return $ \ τ₂ → (x :* τ₁ :* cs) :→†: (ifNone η₀ ηO :* τ₂)
+  -- ∀ α:κ,…,α:κ . c,…,c ⇒ τ
   , mixPrefix levelLAM $ do
       concat [cpSyntax "∀", cpSyntax "forall"]
-      α ← pTVar
-      cpSyntax ":"
-      κ ← pKind
-      cpSyntax "."
+      ακs ← cpManySepBy (cpSyntax ",") $ do
+        α ← pTVar
+        cpSyntax ":"
+        κ ← pKind
+        return $ α :* κ
       cs ← ifNone Nil ^$ cpOptional $ do
-        cs ← cpManySepBy (cpSyntax ",") pConstr
-        concat [cpSyntax "⇒",cpSyntax "=>"]
-        return cs
-      return $ ForallT α κ cs
+        cpSyntax "|"
+        cpManySepBy (cpSyntax ",") pConstr
+      cpSyntax "."
+      return $ ForallT ακs cs
   -- τ{ρ}
   , mixPostfix levelMODE $ do 
       cpSyntax "{"
@@ -491,20 +527,17 @@ pExp = fmixfixWithContext "exp" $ concat
         return $ φ :* e'
       cpSyntax "}"
       return $ CaseE e φes
-  -- rλ x ψ → e
+  -- λ [x] ψ…ψ → e
   , fmixPrefix levelLAM $ do
       concat [cpSyntax "λ",cpSyntax "fun"]
-      xO :* ψ ← concat
-        [ do x ← pVar
-             ψO ← cpOptional pPat
-             return $ case ψO of
-               None → None :* VarP x
-               Some ψ → Some x :* ψ
-        , do ψ ← pPat
-             return $ None :* ψ
-        ]
+      xO ← cpOptional $ do
+        cpSyntax "["
+        x ← pVar
+        cpSyntax "]"
+        return x
+      ψs ← cpMany pPat
       concat [cpSyntax "→",cpSyntax "->"]
-      return $ LamE xO ψ
+      return $ LamE xO ψs
   -- e e
   , fmixInfixL levelAPP $ return AppE
   -- Λ α → e
@@ -521,9 +554,9 @@ pExp = fmixfixWithContext "exp" $ concat
   -- {ρ} e
   , fmixPrefix levelPAR $ do
     cpSyntax "{"
-    ρe ← pPrinExp
+    ρes ← pPrinExps
     cpSyntax "}"
-    return $ SoloE ρe
+    return $ SoloE ρes
   -- {par:P} e
   , fmixPrefix levelPAR $ do 
       cpSyntax "{"
@@ -584,6 +617,12 @@ pExp = fmixfixWithContext "exp" $ concat
       es ← cpManySepByContext cpWithContextRendered (cpSyntax ";") pExp
       a ← annotatedTag ^$ cpWithContextRendered $ cpSyntax "]"
       return $ extract $ foldrOnFrom es (Annotated a NilE) $ \ (Annotated a₁ e₁) e₂ → Annotated a₁ $ ConsE e₁ e₂
+  , fmixTerminal $ do
+      cpSyntax "set"
+      cpSyntax "("
+      ρes ← pPrinExps
+      cpSyntax ")"
+      return $ SetE ρes
   -- prim[⊙](e,…,e)
   , fmixInfixL levelPLUS $ do concat [cpSyntax "∨",cpSyntax "||"] ; return $ \ e₁ e₂ → PrimE "OR" $ list [e₁,e₂]
   , fmixInfixL levelTIMES $ do concat [cpSyntax "∧",cpSyntax "&&"] ; return $ \ e₁ e₂ → PrimE "AND" $ list [e₁,e₂]
@@ -628,7 +667,7 @@ pTL = cpNewWithContextRendered "tl" $ concat
          ]
   , do cpSyntax "principal"
        ρds ← cpOneOrMore $ do
-         ρ ← pPrin
+         ρ ← 𝕩name ^$ pPrin
          nO ← cpOptional $ do
            cpSyntax "["
            n ← natΩ ^$ cpInteger

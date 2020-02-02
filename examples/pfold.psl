@@ -1,0 +1,17 @@
+principal A
+principal B
+principal C[2]
+principal E
+
+def pfold : ∀ A:☆,P:ℙ. ℤ → ((Q:ℙ | Q⊆P) → ℤ{Q} → A → A) → ℤ{isec:P} →{sec:P} A
+def pfold i f xy = case xy
+  { ⟪⟫ → i
+  ; ⟪Q.x⟫⧺xy′ → f Q x (pfold i f xy′)
+  }
+
+def main : 𝟙 →{inp:A,B;rev:E} list ℤ{ssec:E}
+def main • = 
+  let xy : ℤ{isec:A,B}
+  let xy = {par:A,B} read ℤ "pfold.txt"
+  in
+  reveal{E} (pfold 0 (λ Q x i → (share{yao:C} x) + i) xy)

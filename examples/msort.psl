@@ -61,8 +61,35 @@ def map f xs = case xs
   ; x∷xs′ → f x∷map f xs′
   }
 
+def obliv-head : ∀ P:☆. ℤ → (list ℤ){isec:P} → ℤ{isec:P}
+def obliv-head P i xs = {P} case xs
+  { [] → i
+  ; x∷_ → x
+  }
+
+def obliv-tail : ∀ P:☆. (list ℤ){isec:P} → (list ℤ){isec:P}
+def obliv-tail P xs = {P} case xs
+  { [] → []
+  ; _∷xs′ → xs′
+  }
+
+def preprocess-lists : (P:ℙ) → ℕ → ℤ → (list ℤ){isec:P} → list ℤ{isec:P}
+def preprocess-lists P n i xs =
+  if n <= 0 
+  then []
+  else
+    let x′ : ℤ{isec:P}
+    let x′ = obliv-head P i xs
+    let xs′ : list ℤ{isec:P}
+    let xs′ = preprocess-lists P (n - 1) i (obliv-tail P xs)
+    in 
+    x′ ∷ xs′
+
 def main : 𝟙 →{inp:A,B;rev:E} list ℤ{ssec:E}
 def main • = 
-  let xsys : list ℤ{isec:A,B}
-  let xsys = {par:A,B} read (list ℤ) "msort-input.txt"
-  in map (λ x → reveal{E} x) (msort xsys)
+  let xys-pre : (list ℤ){isec:A,B}
+  let xys-pre = {par:A,B} read (list ℤ) "msort-input.txt"
+  let xys : list ℤ{isec:A,B}
+  let xys = preprocess-lists set(A,B) 2 0 xys-pre
+  in 
+  map (λ x → reveal{E} x) (msort xys)

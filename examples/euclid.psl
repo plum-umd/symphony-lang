@@ -12,7 +12,7 @@ def euclid-rec n a b =
   if n ≡ 0n
   then b
   else
-    b ≡ share{yao:C,D} 0
+    b ≡ 0
     ? a
     ◇ euclid-rec (n - 1n) b (a % b)
 

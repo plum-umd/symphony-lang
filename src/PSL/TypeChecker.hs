@@ -6,8 +6,6 @@ import AddToUVMHS
 import PSL.Syntax
 import PSL.Parser
 
-import PSL.Data.Mode
-
 -----------------
 -- ENVIRONMENT --
 -----------------
@@ -379,12 +377,12 @@ elabExpCheck τ e = siphon e ^$ localL cCxtSourceL (Some $ annotatedTag e) $ cas
               Some self → bindVar self τ
               None → id
         in f $ do
-          η' :* eᴱ ← hijackL cOutEffL $ bindPat ψ τ₁ $ elabExpCheck τ₂ e'
-          when (not $ η' ⊑ η) $ \ _ → 
-            throwCErrorCxt TypeCError "elabExpCheck: LamE: ¬ (η' ⊑ η)" $ frhs
-              [ ("η'",pretty η')
-              , ("η",pretty η)
-              ]
+          η' :* eᴱ ← undefined -- hijackL cOutEffL $ bindPat ψ τ₁ $ elabExpCheck τ₂ e'
+          -- when False {-(not $ η' ⊑ η)-} $ \ _ → 
+          --   throwCErrorCxt TypeCError "elabExpCheck: LamE: ¬ (η' ⊑ η)" $ frhs
+          --     [ ("η'",pretty η')
+          --     , ("η",pretty η)
+          --     ]
           return $ LamE selfO ψ eᴱ
       _ → throwCErrorCxt TypeCError "elabExpCheck: LamE: τ ≢ (_ → _)" $ frhs
         [ ("τ",pretty τ)
