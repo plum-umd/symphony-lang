@@ -1,0 +1,12 @@
+def main • =
+  -- 4-bit naturals {0..15}
+  let x = L 1
+  let y = R 2
+  in case x,y
+  { L a,L b → 1
+  ; L a,R b → 2
+  ; R a,L b → 3
+  ; R a,R b → 4
+  }
+
+def expected = 2

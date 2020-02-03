@@ -70,6 +70,9 @@ syn match pantheonLiteral "\v\"([^\"\\]|([\\][\"]))*\""
 
 syn match pantheonPunctuation "\v_"
 
+syn match pantheonOperator "\v<L>"
+syn match pantheonOperator "\v<R>"
+
 syn match pantheonKeyword "\v<primitive>"
 syn match pantheonKeyword "\v<principal>"
 syn match pantheonKeyword "\v<def>"
