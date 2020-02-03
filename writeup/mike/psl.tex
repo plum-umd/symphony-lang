@@ -93,45 +93,41 @@
 
 \section{Notes/To-do}
 
-\paragraph{Run-time principal sets}
+\mwh{I'm starting to wonder if our idea from way back --- Wysteria with the
+extension that you can create shares for a subset of parties in a
+secure block --- is all we really needed, where the current approach
+to PSL is just this system with some inference added in.}
 
-If we are supporting generic principal sets, we need to generalize our
-sec, par, etc. blocks so that $P$ can continue run-time values. This
-adds various complications.
+Principle: Communication via sec blocks, independent action via par
+blocks.
 
-\paragraph{Par blocks}
+We make shares explicitly among some set of principals operating in
+lockstep. So, shares of $e$ to $P$ require being in a par block
+involving $Q \supseteq P$. But in Wysteria, you can only access a wire
+bundle value in par mode if it's a singleton. This is to prevent Alice
+and Bob access their values, which would be OK if subset was OK, and
+then summing them up. I think this has to be in a sec block.
 
-I was thinking that the type of par blocks is a map type, with one
-element per principal in the par block. The idea would be for a normal
-type to be lifted implicitly. But this doesn't make sense if par
-blocks can delegate to smaller par block inside; these inner blocks
-would return map types, so the types wouldn't work out.
-
-One possibility is that you have a construct like $\mathtt{allP}$ $P$
-$e$, which says to run $e$ for each principal $p$ in $P$ in mode
-$\mpar{\{p\}}$. Then there's no delegation, and at the end there's an
-implicit concatenation into a map, of the returned results. This is a
-pattern I see with Wysteria programs in the paper.
-
-The challenge here is genericity. What if the $P$ is a run-time
-variable, and not a constant? If we can't know it at compile time,
-then we can't check access to principal-specific values.
-
-Thinking this through I'm having a hard time figuring out how to
-differentiate ``do e for each principal and group the results'' with
-``do e for all principals''. For generic principal sets, it would seem
-there's no difference? For specific ones, there is a difference.
-
-I guess the problem is with computing with wire bundles. Maybe we want
-a generic ``current principal'' to access a wire bundle, which
-represents the one on the local host? I notice in Wysteria that even
-in par mode wire bundles are handled specially; e.g., with wfold or
-wmap to indicate the current principal.
+Should secure mode always return a share type? Thus, Wysteria is
+reveal P (sec P e) ? But this seems not to work with the above. It
+requires I explicitly share with a subset of principals, rather than
+implicitly share with all of them on return.
 
 \section{Syntax}
 
 The syntax of core PSL is in Figure~\ref{fig:syntax}. \mwh{Need terms for
 lists, sums, pairs -- construct, destruct}
+
+\mwh{If we are supporting generic principal sets, we need to generalize our
+sec, par, etc. blocks so that $P$ can continue run-time values. This
+adds various complications.}
+
+\mwh{TODO: Address in the language:} It occurs to me that the
+per-principal comprehension construct, that we were equating with par
+blocks, might not be the same thing. Instead, it's probably like a map
+over a wire bundle, where the bundle is just the identity map over a
+set of principals. Then, the function being mapped has access to that
+principal in that function.
 
 \subsection{Types}
 
@@ -223,8 +219,9 @@ the involved principals $P$.
     \hastyp{\Gamma}{\mpar{P}}{e}{\tau}
     }
     {
-    \hastyp{\Gamma}{M}{\epar{P}{e}}{\sectyp{\omega}{\isec}{P}}
+    \hastyp{\Gamma}{M}{\epar{P}{e}}{\tau}
     }
+    \\ \\
       
   \end{array}
 \]
