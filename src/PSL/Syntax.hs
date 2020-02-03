@@ -140,6 +140,7 @@ data Prot =
     YaoP  -- yao
   | BGWP  -- bgw
   | GMWP  -- gmw
+  | BGVP  -- bgv
   deriving (Eq,Ord,Show)
 makePrettySum ''Prot
 

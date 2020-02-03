@@ -203,7 +203,10 @@ interpExp = wrapInterp $ \case
     m ← askL iCxtModeL
     guard $ PSecM ρvs ⊑ m
     ṽ ← success $ interpExp e'
-    (_,v) ← abort𝑂 $ view sSecVPL ṽ
+    v ← tries
+      [ snd ∘ frhs ^$ abort𝑂 $ view sSecVPL ṽ
+      , abort𝑂 $ view allVPL ṽ
+      ]
     sv ← success $ mpcFrVal v
     return $ ShareVP φ ρvs sv
   AccessE e' ρ → do
