@@ -103,6 +103,8 @@ lexer = lexerBasic puns kws prim ops
       , "^"
       , "?"
       , "◇","><"
+      , "||","∨"
+      , "&&","∧"
       , "true","false"
       , "L","R"
       ]
