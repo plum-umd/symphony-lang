@@ -1,0 +1,8 @@
+def main • =
+  -- 4-bit naturals {0..15}
+  let x = true
+  let y = false
+  in
+  (x && true) ∧ (y || false) || false
+
+def expected = false

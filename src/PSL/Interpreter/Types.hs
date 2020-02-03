@@ -45,6 +45,9 @@ data ValMPC =
   | NatMV IPrecision ℕ
   | IntMV IPrecision ℤ
   | FltMV FPrecision 𝔻
+  | PairMV ValMPC ValMPC
+  | LMV ValMPC
+  | RMV ValMPC
   deriving (Eq,Ord,Show)
 
 -----------------

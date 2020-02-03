@@ -69,7 +69,7 @@ lexer = lexerBasic puns kws prim ops
       , "set"
       ]
     prim = list
-      [ "yao","gmw","bgw"
+      [ "yao","gmw","bgw","bgv"
       , "ssec","isec"
       , "☆","type"
       , "ℙ","prin"
@@ -103,7 +103,10 @@ lexer = lexerBasic puns kws prim ops
       , "^"
       , "?"
       , "◇","><"
+      , "||","∨"
+      , "&&","∧"
       , "true","false"
+      , "L","R"
       ]
 
 testLexer ∷ IO ()
@@ -384,6 +387,7 @@ pProt = cpNewContext "prot" $ concat
   [ do cpSyntax "yao" ; return YaoP
   , do cpSyntax "bgw" ; return BGWP
   , do cpSyntax "gmw" ; return GMWP
+  , do cpSyntax "bgv" ; return BGVP
   ]
 
 ---------

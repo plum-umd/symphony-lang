@@ -48,6 +48,20 @@ bindPatO ∷ (STACK) ⇒ Pat → ValP → FailT IM (IM a → IM a)
 bindPatO ψ ṽ = case ψ of
   VarP x → return $ bindVar x ṽ
   BulP → return id
+  TupP ψ₁ ψ₂ → do
+    v ← success $ elimValP ṽ
+    (ṽ₁,ṽ₂) ← abort𝑂 $ view pairVL v
+    f₁ ← bindPatO ψ₁ ṽ₁ 
+    f₂ ← bindPatO ψ₂ ṽ₂
+    return $ f₂ ∘ f₁
+  LP ψ' → do
+    v' ← success $ elimValP ṽ
+    ṽ' ← abort𝑂 $ view lVL v'
+    bindPatO ψ' ṽ'
+  RP ψ' → do
+    v' ← success $ elimValP ṽ
+    ṽ' ← abort𝑂 $ view rVL v'
+    bindPatO ψ' ṽ'
   NilP → do
     v ← success $ elimValP ṽ
     abort𝑂 $ view nilVL v
@@ -55,12 +69,6 @@ bindPatO ψ ṽ = case ψ of
   ConsP ψ₁ ψ₂ → do
     v ← success $ elimValP ṽ
     (ṽ₁,ṽ₂) ← abort𝑂 $ view consVL v
-    f₁ ← bindPatO ψ₁ ṽ₁ 
-    f₂ ← bindPatO ψ₂ ṽ₂
-    return $ f₂ ∘ f₁
-  TupP ψ₁ ψ₂ → do
-    v ← success $ elimValP ṽ
-    (ṽ₁,ṽ₂) ← abort𝑂 $ view pairVL v
     f₁ ← bindPatO ψ₁ ṽ₁ 
     f₂ ← bindPatO ψ₂ ṽ₂
     return $ f₂ ∘ f₁
@@ -143,8 +151,12 @@ interpExp = wrapInterp $ \case
     if b
     then success $ interpExp e₂
     else success $ interpExp e₃
-  -- LE
-  -- RE
+  LE e' → success $ do
+    ṽ ← interpExp e'
+    introValP $ LV ṽ
+  RE e' → success $ do
+    ṽ ← interpExp e'
+    introValP $ RV ṽ
   TupE e₁ e₂ → success $ do
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
@@ -191,7 +203,10 @@ interpExp = wrapInterp $ \case
     m ← askL iCxtModeL
     guard $ PSecM ρvs ⊑ m
     ṽ ← success $ interpExp e'
-    (_,v) ← abort𝑂 $ view sSecVPL ṽ
+    v ← tries
+      [ snd ∘ frhs ^$ abort𝑂 $ view sSecVPL ṽ
+      , abort𝑂 $ view allVPL ṽ
+      ]
     sv ← success $ mpcFrVal v
     return $ ShareVP φ ρvs sv
   AccessE e' ρ → do
