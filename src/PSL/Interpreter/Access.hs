@@ -69,21 +69,25 @@ restrictValP ṽ = do
   m ← askL iCxtModeL
   ṽO ← unFailT $ do
     case (m,ṽ) of
-      (SecM ρ,SSecVP ρs v) → do
+      (SecM ρ, SSecVP ρs v) → do
         guard $ ρ ∈ ρs 
         return $ SSecVP (single ρ) v
-      (SecM ρ,ISecVP ρvs) → do
+      (SecM ρ, ISecVP ρvs) → do
         v ← abort𝑂 $ ρvs ⋕? ρ
         return $ SSecVP (single ρ) v
-      (PSecM ρs₁,SSecVP ρs₂ v) → do
+      (SecM ρ, AllVP v) → do
+        return $ SSecVP (single ρ) v
+      (PSecM ρs₁, SSecVP ρs₂ v) → do
         let ρs = ρs₁ ∩ ρs₂
         guard $ ρs ≢ pø 
         return $ SSecVP ρs v
-      (PSecM ρs,ISecVP ρvs) → do
+      (PSecM ρs, AllVP v) → do
+        return $ SSecVP ρs v
+      (PSecM ρs, ISecVP ρvs) → do
         let ρvs' = restrict ρs ρvs
         guard $ count ρvs' ≢ 0
         return $ ISecVP ρvs'
-      (PSecM ρs₁,ShareVP φ ρs₂ v) | ρs₁ ≡ ρs₂ → return $ ShareVP φ ρs₁ v
+      (PSecM ρs₁, ShareVP φ ρs₂ v) | ρs₁ ≡ ρs₂ → return $ ShareVP φ ρs₁ v
       (TopM,_) → return ṽ
       _ → abort
   case ṽO of
