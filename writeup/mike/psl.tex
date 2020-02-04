@@ -91,27 +91,58 @@
   \label{fig:syntax}
 \end{figure}
 
-\section{Notes/To-do}
+\section{Encoding in Wysteria}
 
-\mwh{I'm starting to wonder if our idea from way back --- Wysteria with the
-extension that you can create shares for a subset of parties in a
-secure block --- is all we really needed, where the current approach
-to PSL is just this system with some inference added in.}
+I'm starting to wonder if our idea from way back --- Wysteria with
+small extensions --- is all we really needed, where the current approach
+to PSL is just this system with some inference added in. Those
+extensions are:
+\begin{itemize}
+\item that you can create shares for a subset of parties in a secure
+  block. Thus, for Alice to create shares for Bob and Charlie, all
+  three join the secure block, and then create shares from Alice's
+  value. We also need to be able to reconstitute shares for a subset
+  of parties; i.e., if there are shares between A and B, we can make a
+  secure block with A, B, and C, and reconstitute the shares within
+  it. 
+\item some kind of seal/unseal primitives for making $\ssec$ values, as
+in Wys$^\star$, so as to avoid the weird $\Gamma$ in the Wysteria
+paper. I think this also has the benefit that you can use subtyping to
+make a sealed value less visible. But maybe this should be a wire
+bundle instead, so the runtime semantics is clear?
+\mwh{Have a look at the markdown I wrote a while back}
+\end{itemize}
 
-Principle: Communication via sec blocks, independent action via par
-blocks.
+Then PSL is basically inference and encoding down to this.
 
-We make shares explicitly among some set of principals operating in
-lockstep. So, shares of $e$ to $P$ require being in a par block
-involving $Q \supseteq P$. But in Wysteria, you can only access a wire
-bundle value in par mode if it's a singleton. This is to prevent Alice
-and Bob access their values, which would be OK if subset was OK, and
-then summing them up. I think this has to be in a sec block.
+\paragraph{Share primitive} In PSL you can write \texttt{share $P$
+  $e$}, which means to secret-share $e$ among principals $P$. It might
+be that $e$ is owned by some principal $p$ not in $P$. In our encoding
+we do this via \texttt{sec $\{p\}\cup{P}$ (makesh $P$ $e$)}.
 
-Should secure mode always return a share type? Thus, Wysteria is
-reveal P (sec P e) ? But this seems not to work with the above. It
-requires I explicitly share with a subset of principals, rather than
-implicitly share with all of them on return.
+\paragraph{Secure computation} In PSL everything you compute on
+securely is conceptually a share, and only by explicitly revealing a
+share do you get a value. The default in Wysteria is the
+opposite. Thus the encoding of $e_1 \oplus e_2$ in PSL, where $e_1$
+and $e_2$ are both share types over the same principal $P$, would be
+\texttt{sec $P$ (makesh $P$ ((combsh $e_1$) $\oplus$ (combsh
+  $e_2$)))}. The encoding for PSL's \texttt{reveal $P$ $e$} would be
+\texttt{sec $R$ (let x = combsh $e$ in wire $P$ x)} where $e$ is
+a share over principals $Q$ and $Q \cup P = R$. 
+
+\paragraph{SIMD computations resulting in principal mapped values} In
+the euclid example, we have something like
+\begin{verbatim}
+  let ab = {par:A,B} read int "euclid.txt"
+\end{verbatim}
+The idea is that \verb+ab+ is a $\isec$ value for $A$ and $B$. In
+normal Wysteria you can only call \texttt{read} in a par block with a
+single principal, but we can encode something like the above using
+\texttt{wapp}. Basically \texttt{par $P$ e} in PSL is \texttt{wapp $P$
+  ($\lambda$ x. par x $e$)} where \texttt{x} will be bound to the principal
+executing $e$. It's not mentioned in the Wysteria paper, but I suspect
+that the lambda term should executing $e$ in par mode anyway, so I'm
+not sure why we have to specify it.
 
 \section{Syntax}
 
@@ -155,6 +186,19 @@ interesting part. It has three variants:
 
 Note that we expect that sec blocks, and sometimes par blocks, can be
 inferred by an earlier pass. We leave in the core language for clarity.
+
+\mwh{Ramble follows; I think the upshot is that this doesn't work}
+We make shares explicitly among some set of principals operating in
+lockstep. So, shares of $e$ to $P$ require being in a par block
+involving $Q \supseteq P$. But in Wysteria, you can only access a wire
+bundle value in par mode if it's a singleton. This is to prevent Alice
+and Bob access their values, which would be OK if subset was OK, and
+then summing them up. I think this has to be in a sec block.
+
+Should secure mode always return a share type? Thus, Wysteria is
+reveal P (sec P e) ? But this seems not to work with the above. It
+requires I explicitly share with a subset of principals, rather than
+implicitly share with all of them on return.
 
 \section{Semantics}
 
