@@ -1,9 +1,9 @@
 -- m : number of constraint parties
 def m : nat
-def m = 8
+def m = 8n
 
 -- Ctr: parties that bring the constraints
-principal Ctr[10]
+principal Ctr[8]
 
 -- party that provides the cost vector:
 principal Cost
@@ -104,19 +104,32 @@ def release_nat n = reveal{ Ctr, Cost, Out } n
 
 -- library functions for nat
 
--- elim_nat: form for eliminating (folding) over nats
-def elim_nat : nat -> t -> (t -> t) -> t
-def elim_nat n z s =
-  if n == 0 then z
-  else s (elim_nat (n - 1) z s)
+-- plus: non-infix sum
+def plus : nat -> nat -> nat
+def plus m n = m + n
 
--- elim_natl: analog of fold right, for nats
-def elim_natl : nat -> t -> (t -> t) -> t
-def eliml_natl n z s = 
-  (elim_nat n id (compose s)) z
-
+-- inc n: increment of n
 def inc : nat -> nat
-def inc n = 1 + n 
+def inc = plus 1n
+
+-- minus: non-infix substraction
+def minus : nat -> nat -> nat
+def minus m n = m - n
+
+-- dec: decrement
+def dec : nat -> nat
+def dec (n : nat) = n - 1n
+
+-- elim_nats: form for eliminating (folding over) nats
+def elim_nats : nat -> t -> (t -> t) -> t
+def elim_nats m z s = 
+  if m ≡ 0n then z
+  else s (elim_nats (dec m) z s)
+
+-- elim_natsl: analog of fold right, for nats
+def elim_natsl : nat -> t -> (t -> t) -> t
+def eliml_natl n z s = 
+  (elim_nats n id (compose s)) z
 
 -- library functions for functions:
 
@@ -143,7 +156,7 @@ def cons x l = x :: l
 
 -- const_vec t a n: a vector of constant a of size n
 def const_vec : t -> nat -> list t
-def const_vec c n = elim_nat n [ ] (cons c)
+def const_vec c n = elim_nats n [ ] (cons c)
 
 -- foldr: right fold, the list eliminator
 def foldr : list t -> acc -> (t -> acc -> acc) -> acc
@@ -261,7 +274,7 @@ def shift_major c m = foldr m
 
 -- n : parameter: number of variables in the constraint system
 def n : nat
-def n = 1
+def n = 8n
 
 -- row_major: put given matrix in row-major order
 def row_major : secretMat -> secretMat
@@ -486,7 +499,7 @@ def nat_mult m n = m * n
 
 -- nat_exp: exponentiation of nats
 def nat_exp : nat -> nat -> nat
-def nat_exp b a = elim_nat b 1 (nat_mult a)
+def nat_exp b a = elim_nats b 1 (nat_mult a)
 
 -- nat_log: logarithm over nats
 def nat_log : nat -> nat -> nat
@@ -517,7 +530,7 @@ def karmarkar_loop a cost =
   else
     -- karmarkar_rec: recurse on the number of iterations, which is
     -- pre-computed from the constraints and costs:
-    let karmarkar_rec = elim_nat 
+    let karmarkar_rec = elim_nats 
       (let nzCostsProd = { par : Cost }
         (foldr l
            1.0 
@@ -552,15 +565,20 @@ def karmarkar_loop a cost =
     -- compute from the initial point:
     karmarkar_rec shr_init
 
+-- read_vec (): reads a vector of n input floats from a fixed file
+def read_vec : unit -> list float
+def read_vec () =
+  elim_nats n
+    [ ]
+    (fun (acc : list float) -> (read float "in.txt") :: acc)
+  
 -- main:
 def main : unit ->{ inp : Ctr, Cost; rev : Out } (list out_sec)
 def main () =
   -- each constraint party reads its input vector
-  let c = { par : Ctr } read (list real) "ctr.txt" in
+  let c = { par : Ctr } (read_vec ()) in
   
   -- the cost party reads its input vector
-  -- BILL: strengthen to check that length of each read constraint is
-  -- n
-  let cost = { par : Cost } read (list real) "cost.txt" in
+  let cost = { par : Cost } (read_vec ()) in
 
   map (fun x -> reveal{ Out } x) (karmarkar_loop c cost)
