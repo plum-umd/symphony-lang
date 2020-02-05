@@ -24,8 +24,9 @@ def absInt : int -> nat * bool
 -- ceil x: the ceiling of x
 def ceil : real -> int
 
--- exponentiation: exp a b: a^b
-def exp : real -> real -> real
+def exp : float -> float -> float
+-- exp: mockup that lets the code run
+def exp x y = 0.1
 
 -- nat_to_real n: conversion of n into a real:
 def nat_to_real : nat -> real
@@ -568,17 +569,16 @@ def karmarkar_loop a cost =
 -- read_vec (): reads a vector of n input floats from a fixed file
 def read_vec : unit -> list float
 def read_vec () = read (list float) "in.txt"
---  elim_nats 1n
---    [ ]
---    (fun (acc : list float) -> (read float "in.txt") :: acc)
   
 -- main:
 def main : unit ->{ inp : Ctr, Cost; rev : Out } (list out_sec)
 def main () =
   -- each constraint party reads its input vector
-  let c = { par : Ctr } (read_vec ()) in
+-- PSL:  let c = { par : Ctr } (read_vec ()) in
+  let c = { par : Ctr } [ ] in
   
   -- the cost party reads its input vector
-  let cost = { par : Cost } (read_vec ()) in
+--  PSL: let cost = { par : Cost } (read_vec ()) in
+  let cost = { par : Cost } [ ] in
 
   map (fun x -> reveal{ Out } x) (karmarkar_loop c cost)
