@@ -83,6 +83,7 @@ bindPatO ψ ṽ = case ψ of
     f₂ ← bindPatO ψ₁ $ SSecVP (single ρ) v
     f₃ ← bindPatO ψ₂ $ ISecVP ρvs'
     return $ f₃ ∘ f₂ ∘ f₁
+  AscrP ψ _τ → bindPatO ψ ṽ
   WildP → return id
   _ → abort
 

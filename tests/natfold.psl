@@ -1,0 +1,11 @@
+def natfold : ∀ A:☆. ℕ → A → (A → A) → A
+def natfold n z s =
+  if n ≡ 0n
+  then z
+  else s (natfold (n - 1n) z s)
+
+def main • =
+  -- 4-bit naturals {0..15}
+  natfold 10n 0 (λ x → x + 2)
+
+def expected = 20
