@@ -12,14 +12,14 @@ principal Cost
 principal Out
 
 -- reals: IEEE64
-def real : type
+-- def real : type
 -- def real = float[64]
--- PSL: support type aliasing
+-- PSL: support type definitions
 
 -- PSL: BEGIN ops that need to be supported
 
--- int_to_nat i: the magnitude of i and whether it was positive
-def abs : int -> nat * bool
+-- abs i: the magnitude of i and whether it was positive
+def absInt : int -> nat * bool
 
 -- ceil x: the ceiling of x
 def ceil : real -> int
@@ -37,22 +37,22 @@ def bgw_sqrt : real{ bgw : Ctr, Cost } -> real{ bgw : Ctr, Cost }
 -- PSL: END ops that need to be supported
 
 -- ctr: the type of constraints. An independent secret vector.
-def ctr : type
+-- def ctr : type
 -- def ctr = list (real{ isec : Ctr })
 
 -- costs: the type of cost vectors:
-def costs : type
+-- def costs : type
 -- def costs = list (real{ ssec : Cost })
 
 -- comp_shr: a real secret-shared between all compute parties
-def comp_shr : type
+-- def comp_shr : type
 -- def comp_shr = real{ bgw : Ctr, Cost }
 
-def comp_shr_bool : type
-def comp_shr_bool = bool{ bgw: Ctr, Cost }
+-- def comp_shr_bool : type
+-- def comp_shr_bool = bool{ bgw: Ctr, Cost }
 
 -- out_sec: a secret known only to the output party
-def out_sec : type
+-- def out_sec : type
 -- def out_sec = real{ ssec : Out }
 
 -- shr_cost_w_comp: 
@@ -67,8 +67,8 @@ def shr_pub_w_comp : real -> comp_shr
 def shr_pub_w_comp x = share{ bgw : Ctr, Cost } x
 
 -- public_bool: booleans known to everyone
-def public_bool : type
-def public_bool = bool{ ssec: Ctr, Cost, Out }
+-- def public_bool : type
+-- def public_bool = bool{ ssec: Ctr, Cost, Out }
 
 -- release_bool: publicly reveal a bool shared between all compute
 -- parties
@@ -76,31 +76,31 @@ def release_bool : comp_shr_bool -> public_bool
 def release_bool x = reveal{ Ctr, Cost, Out } x
 
 -- public_nat: nats known to everyone
-def public_nat : type 
-def public_nat = nat{ ssec: Ctr, Cost, Out }
+-- def public_nat : type 
+-- def public_nat = nat{ ssec: Ctr, Cost, Out }
 
 -- release_bool: publicly reveal a nat shared between all compute
 -- parties
 def release_nat : comp_shr_nat -> public_nat
-def release_nat n = reveal{ ssec: Ctr, Cost, Out } n
+def release_nat n = reveal{ Ctr, Cost, Out } n
 
 -- point: a point the comp_shrensional space of a constraint
-def point : type 
+-- def point : type 
 -- def point = list comp_shr
 
 -- secretMat: a matrix of additive shares of reals
-def secretMat : type
-def secretMat = list point
+-- def secretMat : type
+-- def secretMat = list point
 
 -- ltMat: a lower-trignular matrix of additive shares of reals in
 -- row-major order
-def ltMat : type
-def ltMat = list ((list comp_shr) * comp_shr)
+-- def ltMat : type
+-- def ltMat = list ((list comp_shr) * comp_shr)
 
 -- ltMat: a lower-triangular matrix of additive shares in column-major
 -- order
-def colLtMat : type
-def colLtMat = list (comp_shr * (list comp_shr))
+-- def colLtMat : type
+-- def colLtMat = list (comp_shr * (list comp_shr))
 
 -- library functions for nat
 
@@ -155,29 +155,29 @@ def foldr l acc f = case l
 -- foldr_tl: right fold with access to the tail of the list
 def foldr_tl : list t -> acc -> (t -> list t -> acc -> acc) -> acc
 def foldr_tl l i f =
-  let (_, a) = foldr l ([ ], i) (\x (l', b) -> (x :: l', f x l' b)) in
+  let (_, a) = foldr l ([ ], i) (fun x (l', b) -> (x :: l', f x l' b)) in
   a
 
 def decons_ls : list t -> u -> (t -> list t -> u) -> u
-def decons_ls l a0 f = foldr_tl l a0 (\x ls -> const (f x ls))
+def decons_ls l a0 f = foldr_tl l a0 (fun x ls -> const (f x ls))
   
 -- foldl: left fold
 def foldl : list t -> acc -> (t -> acc -> acc) -> acc
-def foldl l acc f = (foldr l id (\x -> compose (f x)) acc
+def foldl l acc f = (foldr l id (fun x -> compose (f x))) acc
 
 def concat : list t -> list t -> list t
 def concat l0 l1 = foldr l0 l1 cons
 
 def len : list t -> nat
-def len l = foldr l 0 (\x -> inc)
+def len l = foldr l 0 (fun x -> inc)
 
 -- map: map operation for the list functor
 def map : (t -> u) -> list t -> list u
 def map f l = foldr l [ ] (compose f cons)
 
 -- rev l: the reverse of list l
-def rev : list t -> list t
-def rev l = foldl l [ ] cons
+def rev_ls : list t -> list t
+def rev_ls l = foldl l [ ] cons
 
 def snoc : t -> list t -> list t
 def snoc x l = foldr l [ x ] cons
@@ -187,37 +187,37 @@ def zip_lists : list t -> list u -> list (t * u)
 def zip_lists l0 l1 =
   let zip0 = foldr l0
     (const [ ])
-    (\x z0 l -> decons_ls l
+    (fun x z0 l -> decons_ls l
        [ ]
-       (\y l' -> (x, y) :: z0 l') ) in
+       (fun y l' -> (x, y) :: z0 l') ) in
   zip0 l1
 
 -- point_div x pt: divide each entry in pt by x
 def point_div : comp_shr -> point -> point
-def point_div x = map (\a -> a / x) 
+def point_div x = map (fun a -> a / x) 
 
 -- vec_div: divide a vector of reals by a constant
 def vec_div : real -> list real -> list real
-def vec_div a = map (\x -> x / a)
+def vec_div a = map (fun x -> x / a)
 
 -- nzProd a: the product of all non-zero entries in a vector:
 def nzProd : list (real{ ssec : p }) -> real{ ssec : p }
 def nzProd l = foldr l
   (shr_pub_w_comp 1.0)
-  (\x acc -> if x == 0.0 then acc else x * acc)
+  (fun x acc -> if x == 0.0 then acc else x * acc)
 
 -- pt_diff: subtract one point from another
 def pt_diff : point -> point -> point
 def pt_diff pt0 pt1 = map
-  (\(p0, p1) -> p0 - p1)
+  (fun (p0, p1) -> p0 - p1)
   (zip_lists pt0 pt1)
 
 -- pt_dot_prod: take the dot product of two points
 def pt_dot_prod : point -> point -> comp_shr
 def pt_dot_prod p0 p1 = foldr
-  (map (\(p0, p1) -> p0 * p1) (zip_lists p0 p1))
+  (map (fun (p0, p1) -> p0 * p1) (zip_lists p0 p1))
   0.0
-  (\d acc -> d + acc)
+  (fun d acc -> d + acc)
 
 -- pt_cost : evaluate the cost of a point
 def pt_cost : costs -> point -> comp_shr
@@ -227,34 +227,35 @@ def pt_cost c = pt_dot_prod (map shr_costs_w_comp c)
 def pub_pt_cost : costs -> list real -> real{ ssec : Cost }
 def pub_pt_cost costs pt = foldr
   (map
-    (\(c, p) -> par{ Cost } c0 * p0)
+    (fun (c, p) -> { par : Cost } c0 * p0)
     (zip_lists costs pt))
   0.0
-  (\d acc -> par{ Cost } d + acc)
+  (fun d acc -> { par : Cost } d + acc)
 
 -- sum: sum of a list of secret reals
 def sum : point -> comp_shr
-def sum pt = fold pt (shr_pub_w_comp 0.0) (\x acc -> x + acc)
+def sum pt = fold pt (shr_pub_w_comp 0.0) (fun x acc -> x + acc)
 
 -- l2norm v: the L2 norm of real vector v
 def l2norm : point -> comp_shr
-def l2norm pt = bgw_sqrt (sum (map (\x -> x * x) pt))
+def l2norm pt = bgw_sqrt (sum (map (fun x -> x * x) pt))
 
 -- PSL: what's the type of a constant?
 
 -- zeros_vec: a vector of zeroes
 def zeros_vec : nat -> list real
-def zeros_vec = const_vec 0.0
+def zeros_vec n = const_vec 0.0 n
+-- PSL: support typechecking functions without explicit parameters
 
 -- onesVec: a vector of real ones
 def onesVec : nat -> list real
-def onesVec = const_vec 1.0
+def onesVec n = const_vec 1.0 n
 
 -- shift_major: shift matrix between row major and column major order
 def shift_major : nat -> secretMat -> secretMat
 def shift_major c m = foldr m
   (const_vec [ ] c)
-  (\v acc -> map cons (zip_lists v acc))
+  (fun v acc -> map cons (zip_lists v acc))
 
 -- BILL: generalize type of shift_major
 
@@ -274,7 +275,7 @@ def col_major = shift_major n
 def diagonal_matrix : point -> secretMat
 def diagonal_matrix pt = foldr pt
   [ ]
-  (\d m' ->
+  (fun d m' ->
     let n' = len pt' in
     (d :: (zeros_vec n')) :: (row_major
       ((zeros_vec n')) :: (col_major (diagonal_matrix pt')))
@@ -284,14 +285,14 @@ def diagonal_matrix pt = foldr pt
 def prod_mat_pt : secretMat -> point -> point
 def prod_mat_pt m pt = foldr pt
   [ ]
-  (\f v p -> (map (\g -> pt_dot_prod v) m1) :: p)
+  (fun f v p -> (map (fun g -> pt_dot_prod v) m1) :: p)
 
 -- prod_mat: product of matrices of secrets
 def prod_mat : secretMat -> secretMat -> secretMat
 def prod_mat m0 m1 = row_major
   (foldr (col_major m1)
      [ ]
-     (\f c m' -> (prod_mat_pt m0 c) :: m') )
+     (fun f c m' -> (prod_mat_pt m0 c) :: m') )
 
 -- prod_mat_rowms: product of two matrices in row-major form
 def prod_mat_rowms : secretMat -> secretMat -> secretMat
@@ -302,7 +303,7 @@ def shr_cost : real{ ssec : Cost } -> comp_shr
 def shr_cost x = share{ bgw : Ctr, Cost } x
 
 def all_true : list public_bool -> public_bool
-def all_true l = foldr l true (\x acc -> x && acc)
+def all_true l = foldr l true (fun x acc -> x && acc)
 
 def max : comp_shr -> comp_shr -> comp_shr_bool
 def max m n = if m <= n then n else m
@@ -311,32 +312,32 @@ def max m n = if m <= n then n else m
 def is_zero_vec : point -> public_bool
 def is_zero_vec p = all_true
   (map
-    (\f x -> release_bool (x == (shr_pub_w_comp 0.0)))
+    (fun f x -> release_bool (x == (shr_pub_w_comp 0.0)))
     p)
 
 -- transpose m: the transposition of matrix t
 def transpose : list (list t) -> list (list t)
 def transpose n m = foldr m
   (const_vec [ ] n)
-  (\v acc -> map
+  (fun v acc -> map
     (compose (uncurry cons))
     (zip_lists v acc) )
 
 -- sqMat: square matrix: a matrix with explicit diagonal elements
-def sqMat : type
-def sqMat = list (point * comp_shr * point)
+-- def sqMat : type
+-- def sqMat = list (point * comp_shr * point)
 
 -- partition i a l: l partitioned into the first i - elements, ith
 -- elt, and the everything after element i. a is a default elt, which
 -- should never be used.
 def part_ith : nat -> t -> list t -> (list t) * t * (list t)
 def part_ith a i l = eliml_nat i
-  (\(hd, tl) -> case tl
-     { [ ] -> (rev hd, a, tl)
-     ; b :: l' -> (rev hd, b, l')
+  (fun (hd, tl) -> case tl
+     { [ ] -> (rev_ls hd, a, tl)
+     ; b :: l' -> (rev_ls hd, b, l')
      })
   ([ ], l)
-  (\(rev_hd, tl) -> case tl
+  (fun (rev_hd, tl) -> case tl
    { [ ] -> (rev_hd, tl)
    ; x :: tl' -> (x :: rev_hd, tl')
    })
@@ -346,8 +347,8 @@ def square : secretMat -> sqMat
 def squareMat m =
   let (_, m') = foldl m
     (0, [ ])
-    (\rv (i, acc) -> (inc i, (part_ith (shr_pub_w_comp 0.0) rv i) :: acc)) in
-  rev m'
+    (fun rv (i, acc) -> (inc i, (part_ith (shr_pub_w_comp 0.0) rv i) :: acc)) in
+  rev_ls m'
 
 -- cholesky m: the Cholesky decomposition of matrix m, in column-major
 -- order, computed using the Cholesky-Crout algorithm
@@ -355,22 +356,22 @@ def cholesky : sqMat -> ltMat
 def cholesky m =
   let (m', _) = foldl m -- fold over each column in the matrix,
     ([ ], [ ])
-    (\(top, diag, bot) (tri, base) ->
+    (fun (top, diag, bot) (tri, base) ->
       -- deconstruct the maintained base box 
       let (jth_row', base') = elim_decons base
         ([ ], const_vec [ ] (len bot))
-        (\x tl -> (x, tl)) in
+        (fun x tl -> (x, tl)) in
       -- diag': the diagonal elt of the solution
       let diag' = sqrt (diag - (dot_prod jth_row' jth_row')) in
       -- tri': the upper triangle, extended
       let tri' = snoc (diag', [ ])
-        (map (\((d, tl), jth_elt) -> (d, snoc jth_elt tl))
+        (map (fun ((d, tl), jth_elt) -> (d, snoc jth_elt tl))
           (zip_lists tri jth_row')) in
       -- the base box, extended
       let base'' = map 
-        ((rv', elt) -> snoc ((diag - (dot_prod rv' jth_row')) / diag') rv')
+        (fun (rv', elt) -> snoc ((diag - (dot_prod rv' jth_row')) / diag') rv')
         (zip_lists base' bot) in
-      (tri', base'')
+      (tri', base'')) in
   m'
 
 def ne_single : t -> (t * list t)
@@ -397,11 +398,11 @@ def row_lt_to_col : ltMat -> colLtMat
 def lt_inverse : ltMat -> ltMat
 def lt_inverse l = foldr_tl l -- fold over the LT matrix
   [ ]
-  (\(d, cv) tl -> snoc
+  (fun (d, cv) tl -> snoc
     -- fold over the tail of the current column and the rest of the matrix
     (foldl (zip_lists cv (col_lt_to_row tl))
       (d, [ ])
-      (\(x, (rv, y)) cv' ->
+      (fun (x, (rv, y)) cv' ->
         let dprod = dot_prod (cons rv y) ((uncurry cons) cv') in
         snoc ((shr_add_inv dprod) / y) cv' ) ) )
 
@@ -413,8 +414,8 @@ def lt_lift : t -> list (t * (list t)) -> list (list t)
 def lt_lift d l =
   let (_, m) = foldl l
     ([ ], [ ])
-    (\(hd, tl) (buf, m) -> (d :: buf, (concat buf (hd :: tl)) :: m) )
-    rev m
+    (fun (hd, tl) (buf, m) -> (d :: buf, (concat buf (hd :: tl)) :: m) ) in
+  rev_ls m
 
 -- inverse m: the inverse matrix of m
 def inverse : nat -> secretMat -> secretMat
@@ -430,7 +431,7 @@ def prod_secret x y = x * y
 def prod_diag_pt : point -> point -> point
 def prod_diag_pt d p = map
   (uncurry prod_secret)
-  (zip_lists d p) in
+  (zip_lists d p) 
 
 def pfold : ∀ A:☆,P:ℙ. A → ((Q:ℙ | Q⊆P) → ℤ{Q} → A → A) → ℤ{isec:P} →{sec:P} A
 def pfold i f xy = case xy
@@ -444,15 +445,15 @@ def karmarkar_iter a cost init_pt =
   let nOnes = const_vec 1.0 n in
   let unit_cp =
     -- c': vector: product of diagonal of initial point and cost
-    let c' = par{ Cost }
+    let c' = { par : Cost }
       prod_diag_pt init_pt (map shr_cost cost) in
 
     -- ad: m * n matrix; product of constraints and diagonal matrix
-    let ad = par{ Ctr }
+    let ad = { par : Ctr }
       prod_diag_pt init_pt (map shr_ctr_w_comp a) in
 
     -- b: (m + 1) * n matrix
-    let b = pfold [ nOnes ] (\Q -> cons) ad in
+    let b = pfold [ nOnes ] (fun Q -> cons) ad in
     -- bt: n * (m + 1) matrix
     let bt = transpose n b in
 
@@ -517,30 +518,30 @@ def karmarkar_loop a cost =
     -- karmarkar_rec: recurse on the number of iterations, which is
     -- pre-computed from the constraints and costs:
     let karmarkar_rec = elim_nat 
-      (let nzCostsProd = par{ Cost }
+      (let nzCostsProd = { par : Cost }
         (foldr l
            1.0 
-           (\x -> if x == 0.0 then id else (float_prod x)) in
+           (fun x -> if x == 0.0 then id else (float_prod x)) ) in
        let nzCtrProd =
          -- nzs: real{ isec : Ctr }: product of all non-zero entries in
          -- each constraint
-         let nzs = par{ Ctr } 
+         let nzs = { par : Ctr } 
            (foldr a
              1.0
-             (\x -> if x == 0.0 then id else (float_prod x))) in
-         prin_fold
+             (fun x -> if x == 0.0 then id else (float_prod x))) in
+         pfold
            (shr_pub_w_ctrs 1.0)
-           (\Q pnzs acc -> (share{ bgw : Ctr } pnzs) * acc)
+           (fun Q pnzs acc -> (share{ bgw : Ctr } pnzs) * acc)
            nzs in
        12 * n *
         ((m + 1) * n +
-         (log_2_ceil (abs (ceil (release_nat (
+         (log_2_ceil (absInt (ceil (release_nat (
            (shr_cost_w_comp nzCostsProd) *
            (shr_ctr_w_comp nzCtrProd)))))) +
          n * (log_2_ceil n))
       )
       id
-      (\f kr x ->
+      (fun f kr x ->
         let x' = karmarkar_iter a cost x in
         let stop =
           let score = pt_cost cost x in
@@ -552,14 +553,14 @@ def karmarkar_loop a cost =
     karmarkar_rec shr_init
 
 -- main:
-def main : unit ->{ inp: Ctr, Cost; rev : Out } (list out_sec)
+def main : unit ->{ inp : Ctr, Cost; rev : Out } (list out_sec)
 def main () =
   -- each constraint party reads its input vector
-  let c = { par: Ctr } read (list real) in
+  let c = { par : Ctr } read (list real) "ctr.txt" in
   
   -- the cost party reads its input vector
   -- BILL: strengthen to check that length of each read constraint is
   -- n
-  let cost = { par: Cost } read (list real) in
+  let cost = { par : Cost } read (list real) "cost.txt" in
 
-  map (\x -> reveal{ Out } x) (karmarkar_loop c cost)
+  map (fun x -> reveal{ Out } x) (karmarkar_loop c cost)

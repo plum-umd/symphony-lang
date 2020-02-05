@@ -341,13 +341,14 @@ testInterpreter = do
                 ]
         ]
       ]
-  testInterpreterExample "cmp"
-  testInterpreterExample "cmp-tutorial"
-  testInterpreterExample "euclid"
-  testInterpreterExample "msort"
-  testInterpreterExample "pfold"
-  -- testInterpreterExample "atq"
+  -- testInterpreterExample "cmp"
+  -- testInterpreterExample "cmp-tutorial"
+  -- testInterpreterExample "euclid"
+  -- testInterpreterExample "msort"
+  -- testInterpreterExample "pfold"
+  testInterpreterExample "karmarkar"
   -- testInterpreterExample "atq"
   -- testInterpreterExample "cmp-split"
   -- testInterpreterExample "cmp-tutorial"
   -- testInterpreterExample "add"
+ 
