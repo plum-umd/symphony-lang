@@ -19,6 +19,9 @@ parseInputType ρ τ s = case τ of
   ℤT pr → do
     let i = HS.read $ chars s ∷ ℤ
     return $ IntV pr $ trPrInt pr i
+  𝔽T pr → do
+    let d = HS.read $ chars s ∷ 𝔻
+    return $ FltV pr d
   ListT τ' → do
     vs ← mapM (parseInputType ρ τ') $ list $ filter (≢ "") $ splitOn𝕊 "\n" s
     return $ foldrOnFrom vs NilV $ \ v₁ v₂ → ConsV (SSecVP (single ρ) v₁) $ SSecVP (single ρ) v₂

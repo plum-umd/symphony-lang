@@ -83,6 +83,7 @@ bindPatO ψ ṽ = case ψ of
     f₂ ← bindPatO ψ₁ $ SSecVP (single ρ) v
     f₃ ← bindPatO ψ₂ $ ISecVP ρvs'
     return $ f₃ ∘ f₂ ∘ f₁
+  AscrP ψ _τ → bindPatO ψ ṽ
   WildP → return id
   _ → abort
 
@@ -239,6 +240,7 @@ interpExp = wrapInterp $ \case
       [ do ρ ← abort𝑂 $ view secML m
            v' ← success $ readType ρ τA fn
            return $ SSecVP (single ρ) v'
+      -- get rid of this
       , do ρs ← abort𝑂 $ view pSecML m
            ISecVP ^$ dict ^$ mapMOn (iter ρs) $ \ ρ → do
              v' ← success $ readType ρ τA fn
