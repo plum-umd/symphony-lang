@@ -239,6 +239,7 @@ interpExp = wrapInterp $ \case
       [ do ρ ← abort𝑂 $ view secML m
            v' ← success $ readType ρ τA fn
            return $ SSecVP (single ρ) v'
+      -- get rid of this
       , do ρs ← abort𝑂 $ view pSecML m
            ISecVP ^$ dict ^$ mapMOn (iter ρs) $ \ ρ → do
              v' ← success $ readType ρ τA fn
