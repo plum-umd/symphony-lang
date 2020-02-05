@@ -1,5 +1,5 @@
-principal A[2] -- Just integers
-principal B[2] -- Both integers and queries
+principal A[2] -- Parties who supply just integers
+principal B[2] -- Parties who supply both integers and queries
 
 -- basic functions
 
@@ -7,8 +7,8 @@ def length :
     list ℤ{bgw:A,B}
   → ℤ{bgw:A,B}
 def length xs = case xs
-  { [] → share{bgw:A,B} 0
-  ; x∷xs' → length xs' + (share{bgw:A,B} 1)
+  { [] → 0
+  ; x∷xs' → length xs' + 1
   }
 
 def elem :
@@ -36,53 +36,72 @@ def elem-at i xs = case xs
 
 -- query functions
 
-def min :
-    list ℤ{bgw:A,B}
-  → ℤ{bgw:A,B}
+def min : list ℤ{bgw:A,B} → ℤ{bgw:A,B}
 def min xs = case xs
   { [x] → x
-  ; x∷xs →
-    let y = min xs
-    let b = x < y
+  ; x∷xs' →
+    let y = min xs'
+    let b = ((x ≥ 0) && (x < y)) || (y < 0)
     in b ? x ◇ y
   }
 
 
-def max :
-    list ℤ{bgw:A,B}
-  → ℤ{bgw:A,B}
+def max : list ℤ{bgw:A,B} → ℤ{bgw:A,B}
 def max xs = case xs
   { [x] → x
-  ; x∷xs →
-    let y = max xs
-    let b = x > y
+  ; x∷xs' →
+    let y = max xs'
+    let b = ((x ≥ 0) && (x > y)) || (y < 0)
     in b ? x ◇ y
   }
 
 
-def median :
-    list ℤ{bgw:A,B}
-  → ℤ{bgw:A,B}
+def median : list ℤ{bgw:A,B} → ℤ{bgw:A,B}
 def median xs = share{bgw:A,B} 0 -- not implemented
 
 
-def num-unique-rec :
-    list ℤ{bgw:A,B}
-  → list ℤ{bgw:A,B}
-  → ℤ{bgw:A,B}
+def num-unique-rec : list ℤ{bgw:A,B} → list ℤ{bgw:A,B} → ℤ{bgw:A,B} → ℤ{bgw:A,B}
 def num-unique-rec xs seen = case xs
   { [] → length seen
   ; x∷xs →
-    let b = elem x seen
+    let b = (x < 0) || (elem x seen)
     in b ? num-unique-rec xs seen ◇ num-unique-rec xs (x∷seen)
   }
 
-def num-unique :
-    list ℤ{bgw:A,B}
-  → ℤ{bgw:A,B}
+def num-unique : list ℤ{bgw:A,B} → ℤ{bgw:A,B}
 def num-unique xs = num-unique-rec xs []
 
 -- mpc/list manip
+
+def pfold : ∀ A:☆,P:ℙ. ℤ → ((Q:ℙ | Q⊆P) → ℤ{Q} → A → A) → ℤ{isec:P} →{sec:P} A
+def pfold i f xy = case xy
+  { ⟪⟫ → i
+  ; ⟪Q.x⟫⧺xy′ → f Q x (pfold i f xy′)
+  }
+
+def obliv-head : ∀ P:ℙ. ℤ → (list ℤ){isec:P} → ℤ{isec:P}
+def obliv-head P i xs = {P} case xs
+  { [] → i
+  ; x∷_ → x
+  }
+
+def obliv-tail : ∀ P:ℙ. (list ℤ){isec:P} → (list ℤ){isec:P}
+def obliv-tail P xs = {P} case xs
+  { [] → []
+  ; _∷xs′ → xs′
+  }
+
+def preprocess-lists : (P:ℙ) → ℕ → ℤ → (list ℤ){isec:P} → list ℤ{isec:P}
+def preprocess-lists P n i xs =
+  if n <= 0 
+  then []
+  else
+    let x′ : ℤ{isec:P}
+    let x′ = obliv-head P i xs
+    let xs′ : list ℤ{isec:P}
+    let xs′ = preprocess-lists P (n - 1) i (obliv-tail P xs)
+    in 
+    x′ ∷ xs′
 
 def append :
     list ℤ{bgw:A,B}
@@ -93,26 +112,11 @@ def append xs ys = case xs
   ; (x∷xs) → append xs (x∷ys)
   }
 
-def share-list :
-    list ℤ{isec:any}
-  → list ℤ{bgw:A,B}
-def share-list xs = case xs
+def combine-lists : list ℤ{isec:A,B} → list ℤ{bgw:A,B}
+def combine-lists xs = case xs
   { [] → []
-  ; x∷xs' → (share{bgw:A,B} x) ∷ (share-list xs')
+  ; x∷xs' → append (pfold [] (λ Q x' i → (share{bgw:A,B} x') ∷ i) x) (combine-lists xs')
   }
-
-def combine-lists : --to be generalized
-    list ℤ{isec:A,B}
-  → list ℤ{bgw:A,B}
-def combine-lists xs =
-  append (share-list xs.A.1) (append (share-list xs.A.2) (append (share-list xs.B.1) (share-list xs.B.2)))
-
-def combine-lists-B :
-    list ℤ{isec:B}
-  → list ℤ{bgw:A,B}
-def combine-lists-B xs =
-  append (share-list xs.B.1) (share-list xs.B.2)
-
 
 -- atq
 
@@ -141,11 +145,27 @@ def send-results results qs ts = case (qs, ts)
 
 def main : 𝟙 →{inp:A,B;rev:A,B} list ℤ{ssec:any}
 def main • =
+  let xs-pre : (list ℤ){isec:A,B}
+  let xs-pre = {par:A,B} read (list ℤ) "atq-data.txt"
+  let qs-pre : (list ℤ){isec:B}
+  let qs-pre = {par:B} read (list ℤ) "atq-queries.txt"
+  let ts-pre : (list ℙ){isec:B}
+  let ts-pre = {par:B} read (list ℙ) "atq-targets.txt"
+  
   let xs : list ℤ{isec:A,B}
-  let xs = {par:A,B} read (list ℤ) "atq-data.txt"
+  let xs = preprocess-lists set(A,B) 2 -1 xs-pre
   let qs : list ℤ{isec:B}
-  let qs = {par:B} read (list ℤ) "atq-queries.txt"
-  let ts : list ℙ{isec:B}
-  let ts = {par:B} read (list ℙ) "atq-targets.txt"
-  let results = run-queries (combine-lists xs)
-  in send-results results (combine-lists-B qs) (combine-lists-B ts)
+  let qs = preprocess-lists set(B) 2 -1 qs-pre
+  let ts : list ℤ{isec:B}
+  let ts = preprocess-lists set(B) 2 -1 ts-pre
+
+  let xs' : list ℤ{bgw:A,B}
+  let xs' = combine-lists xs
+  let qs' : list ℤ{bgw:A,B}
+  let qs' = combine-lists qs
+  let ts' : list ℤ{bgw:A,B}
+  let ts' = combine-lists ts
+
+  let results : list ℤ{bgw:A,B}
+  let results = run-queries xs'
+  in send-results results qs' ts'
