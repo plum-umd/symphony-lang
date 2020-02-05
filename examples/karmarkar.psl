@@ -567,10 +567,10 @@ def karmarkar_loop a cost =
 
 -- read_vec (): reads a vector of n input floats from a fixed file
 def read_vec : unit -> list float
-def read_vec () =
-  elim_nats n
-    [ ]
-    (fun (acc : list float) -> (read float "in.txt") :: acc)
+def read_vec () = read (list float) "in.txt"
+--  elim_nats 1n
+--    [ ]
+--    (fun (acc : list float) -> (read float "in.txt") :: acc)
   
 -- main:
 def main : unit ->{ inp : Ctr, Cost; rev : Out } (list out_sec)
