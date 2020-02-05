@@ -348,6 +348,7 @@ testInterpreter = do
   -- testInterpreterExample "euclid"
   -- testInterpreterExample "msort"
   -- testInterpreterExample "pfold"
+  -- testInterpreterExample "bind-fp-const"
   -- testInterpreterExample "karmarkar"
   -- testInterpreterExample "atq"
   -- testInterpreterExample "cmp-split"

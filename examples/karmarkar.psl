@@ -520,7 +520,8 @@ def karmarkar_loop : ctr -> costs -> point
 def karmarkar_loop a cost =
   -- eps: defines the stopping condition for the loop. Constant
   -- comes from the GFI:
-  let eps = exp 10.0 (-8.0) in
+  let eps = 0.1 in
+  -- PSL: let eps = exp 10.0 (-8.0) in
 
   -- init_pt: the initial point:
   let init_pt = vec_div (nat_to_real n) nOnes in
