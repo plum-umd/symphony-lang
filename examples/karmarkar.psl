@@ -19,17 +19,17 @@ principal Out
 -- PSL: BEGIN ops that need to be supported
 
 -- abs i: the magnitude of i and whether it was positive
-def absInt : int -> nat * bool
+-- def absInt : int -> nat * bool
 
 -- ceil x: the ceiling of x
-def ceil : real -> int
+-- def ceil : real -> int
 
 def exp : flt -> flt -> flt
 -- exp: mockup that lets the code run
 def exp x y = x
 
--- nat_to_real n: conversion of n into a real:
-def nat_to_real : nat -> real
+-- to_flt n: conversion of n into a real:
+-- def to_flt : nat -> real
 
 def spdz_sqrt : real{ spdz : Ctr, Cost } -> real{ spdz : Ctr, Cost }
 
@@ -486,8 +486,8 @@ def karmarkar_iter a cost init_pt =
 
   -- take a step of 1/3 n in the direction of cp
   let b' = point_diff
-    (map shr_pub_w_comp (vec_div (nat_to_real n) nOnes))
-    (point_div (shr_pub_w_comp (nat_to_real (3 * n))) unit_cp) in
+    (map shr_pub_w_comp (vec_div (to_flt n) nOnes))
+    (point_div (shr_pub_w_comp (to_flt (3 * n))) unit_cp) in
 
   let db' = prod_diag_pt init_pt b' in
   point_div (pt_dot_prod (map shr_pub_with_comp nOnes) db') db'
@@ -524,7 +524,7 @@ def karmarkar_loop a cost =
   -- PSL: let eps = exp 10.0 (-8.0) in
 
   -- init_pt: the initial point:
-  let init_pt = vec_div (nat_to_real n) nOnes in
+  let init_pt = vec_div (to_flt n) nOnes in
   let shr_init = map shr_pub_w_comp init_pt in
 
   -- if the initial point is optimal, then return it:

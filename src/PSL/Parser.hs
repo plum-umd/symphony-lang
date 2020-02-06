@@ -107,6 +107,10 @@ lexer = lexerBasic puns kws prim ops
       , "&&","∧"
       , "true","false"
       , "L","R"
+      , "to_flt"
+      , "abs_val"
+      , "ceil"
+      , "sqrt"
       ]
 
 testLexer ∷ IO ()
@@ -498,6 +502,14 @@ pExp = fmixfixWithContext "exp" $ concat
   , fmixPrefix levelAPP $ do cpSyntax "L" ; return LE
   -- R e
   , fmixPrefix levelAPP $ do cpSyntax "R" ; return RE
+  -- to_flt
+  , fmixPrefix levelAPP $ do cpSyntax "to_flt" ; return $ \ e → PrimE "TO_FLT" $ list [e]
+  -- abs_val
+  , fmixPrefix levelAPP $ do cpSyntax "abs_val" ; return $ \ e → PrimE "ABS_VAL" $ list [e]
+  -- ceil
+  , fmixPrefix levelAPP $ do cpSyntax "ceil" ; return $ \ e → PrimE "CEIL" $ list [e]
+  -- sqrt
+  , fmixPrefix levelAPP $ do cpSyntax "sqrt" ; return $ \ e → PrimE "SQRT" $ list [e]
   -- e,e
   , fmixInfixL levelCOMMA $ do cpSyntax "," ; return TupE
   -- []
