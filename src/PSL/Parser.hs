@@ -69,7 +69,7 @@ lexer = lexerBasic puns kws prim ops
       , "set"
       ]
     prim = list
-      [ "yao","gmw","bgw","bgv"
+      [ "yao","gmw","bgw","bgv","spdz"
       , "ssec","isec"
       , "☆","type"
       , "ℙ","prin"
@@ -284,7 +284,7 @@ pType = cpNewContext "type" $ mixfix $ concat
       return $ ℤT pr
   -- 𝔽#n
   , mixTerminal $ do
-      concat [cpSyntax "𝔽",cpSyntax "float"]
+      concat [cpSyntax "𝔽",cpSyntax "flt"]
       pr ← pFPrecision
       return $ 𝔽T pr
   -- τ + τ
@@ -384,10 +384,11 @@ pBool = concat
 
 pProt ∷ CParser TokenBasic Prot
 pProt = cpNewContext "prot" $ concat
-  [ do cpSyntax "yao" ; return YaoP
-  , do cpSyntax "bgw" ; return BGWP
-  , do cpSyntax "gmw" ; return GMWP
-  , do cpSyntax "bgv" ; return BGVP
+  [ do cpSyntax "yao"  ; return YaoP
+  , do cpSyntax "bgw"  ; return BGWP
+  , do cpSyntax "gmw"  ; return GMWP
+  , do cpSyntax "bgv"  ; return BGVP
+  , do cpSyntax "spdz" ; return SPDZP
   ]
 
 ---------

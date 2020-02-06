@@ -118,7 +118,8 @@ interpApp ṽ₁ ṽ₂ = do
       let selfγ = case selfO of
             None → id
             Some self → bindVar self ṽ₁
-      compose [localL iCxtCloL ξ,bindPat ψ ṽ₂,selfγ ] $ interpExp e
+      m <- askL iCxtModeL
+      compose [localL iCxtCloL ξ, restrictMode m,bindPat ψ ṽ₂,selfγ] $ interpExp e
     _ → throwIErrorCxt TypeIError "interpExp: AppE: v₁ ≢ CloV _ _ _ _" $ frhs
       [ ("v₁",pretty v₁)
       ]
@@ -143,7 +144,7 @@ interpExp = wrapInterp $ \case
   StrE s → success $ introValP $ StrV s
   NatE pr n → success $ introValP $ NatV pr $ trPrNat pr n
   IntE pr i → success $ introValP $ IntV pr $ trPrInt pr i
-  -- FltE
+  FltE pr f → success $ introValP $ FltV pr $ f --trPrFlt pr f (trPrFlt needs to be written)
   BulE → success $ introValP BulV
   IfE e₁ e₂ e₃ → do
     ṽ ← success $ interpExp e₁

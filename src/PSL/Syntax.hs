@@ -141,6 +141,7 @@ data Prot =
   | BGWP  -- bgw
   | GMWP  -- gmw
   | BGVP  -- bgv
+  | SPDZP -- spdz
   deriving (Eq,Ord,Show)
 makePrettySum ''Prot
 

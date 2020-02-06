@@ -13,7 +13,7 @@ principal Out
 
 -- reals: IEEE64
 -- def real : type
--- def real = float[64]
+-- def real = flt[64]
 -- PSL: support type definitions
 
 -- PSL: BEGIN ops that need to be supported
@@ -24,14 +24,14 @@ def absInt : int -> nat * bool
 -- ceil x: the ceiling of x
 def ceil : real -> int
 
-def exp : float -> float -> float
+def exp : flt -> flt -> flt
 -- exp: mockup that lets the code run
 def exp x y = x
 
 -- nat_to_real n: conversion of n into a real:
 def nat_to_real : nat -> real
 
-def bgw_sqrt : real{ bgw : Ctr, Cost } -> real{ bgw : Ctr, Cost }
+def spdz_sqrt : real{ spdz : Ctr, Cost } -> real{ spdz : Ctr, Cost }
 
 -- PSL: support SPDZ as a protocol
 
@@ -47,10 +47,10 @@ def bgw_sqrt : real{ bgw : Ctr, Cost } -> real{ bgw : Ctr, Cost }
 
 -- comp_shr: a real secret-shared between all compute parties
 -- def comp_shr : type
--- def comp_shr = real{ bgw : Ctr, Cost }
+-- def comp_shr = real{ spdz : Ctr, Cost }
 
 -- def comp_shr_bool : type
--- def comp_shr_bool = bool{ bgw: Ctr, Cost }
+-- def comp_shr_bool = bool{ spdz: Ctr, Cost }
 
 -- out_sec: a secret known only to the output party
 -- def out_sec : type
@@ -58,14 +58,14 @@ def bgw_sqrt : real{ bgw : Ctr, Cost } -> real{ bgw : Ctr, Cost }
 
 -- shr_cost_w_comp: 
 def shr_cost_w_comp : real{ ssec : Cost } -> comp_shr
-def shr_cost_w_comp x = share{ bgw : Ctr, Cost } x
+def shr_cost_w_comp x = share{ spdz : Ctr, Cost } x
 
-def shr_ctr_w_comp : real{ bgw : Ctr } -> comp_shr
-def shr_cost_w_comp x = share{ bgw : Ctr, Cost } x
+def shr_ctr_w_comp : real{ spdz : Ctr } -> comp_shr
+def shr_cost_w_comp x = share{ spdz : Ctr, Cost } x
 
 -- shr_pub_w_comp: make shares of a public real
 def shr_pub_w_comp : real -> comp_shr
-def shr_pub_w_comp x = share{ bgw : Ctr, Cost } x
+def shr_pub_w_comp x = share{ spdz : Ctr, Cost } x
 
 -- public_bool: booleans known to everyone
 -- def public_bool : type
@@ -252,7 +252,7 @@ def sum pt = fold pt (shr_pub_w_comp 0.0) (fun x acc -> x + acc)
 
 -- l2norm v: the L2 norm of real vector v
 def l2norm : point -> comp_shr
-def l2norm pt = bgw_sqrt (sum (map (fun x -> x * x) pt))
+def l2norm pt = spdz_sqrt (sum (map (fun x -> x * x) pt))
 
 -- PSL: what's the type of a constant?
 
@@ -314,7 +314,7 @@ def prod_mat_rowms m0 m1 = prod_mat m0 (shift_major m1)
 
 -- shr_cost: share a (secret) cost among all non-output parties
 def shr_cost : real{ ssec : Cost } -> comp_shr
-def shr_cost x = share{ bgw : Ctr, Cost } x
+def shr_cost x = share{ spdz : Ctr, Cost } x
 
 def all_true : list public_bool -> public_bool
 def all_true l = foldr l true (fun x acc -> x && acc)
@@ -546,7 +546,7 @@ def karmarkar_loop a cost =
              (fun x -> if x == 0.0 then id else (float_prod x))) in
          pfold
            (shr_pub_w_ctrs 1.0)
-           (fun Q pnzs acc -> (share{ bgw : Ctr } pnzs) * acc)
+           (fun Q pnzs acc -> (share{ spdz : Ctr } pnzs) * acc)
            nzs in
        12 * n *
         ((m + 1) * n +
@@ -568,8 +568,8 @@ def karmarkar_loop a cost =
     karmarkar_rec shr_init
 
 -- read_vec (): reads a vector of n input floats from a fixed file
-def read_vec : unit -> list float
-def read_vec () = read (list float) "in.txt"
+def read_vec : unit -> list flt
+def read_vec () = read (list flt) "in.txt"
   
 -- main:
 def main : unit ->{ inp : Ctr, Cost; rev : Out } (list out_sec)
