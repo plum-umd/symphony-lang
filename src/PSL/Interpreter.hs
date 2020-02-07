@@ -350,7 +350,7 @@ testInterpreter = do
   -- testInterpreterExample "msort"
   -- testInterpreterExample "pfold"
   -- testInterpreterExample "bind-fp-const"
-  testInterpreterExample "elim-sec-ls"
+  -- testInterpreterExample "elim-sec-ls"
   -- testInterpreterExample "karmarkar"
   -- testInterpreterExample "atq"
   -- testInterpreterExample "cmp-split"
