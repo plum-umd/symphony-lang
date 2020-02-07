@@ -1,0 +1,7 @@
+principal A B C D
+
+def main • =
+  reveal{A,B,C,D} (reveal{A,B,C} (share{yao:A,B} 3))
+
+def expected =
+  reveal{A,B,C,D} (share{yao:A,B} 3)

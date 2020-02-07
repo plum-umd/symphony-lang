@@ -228,9 +228,16 @@ interpExp = wrapInterp $ \case
   RevealE ρes e' → do
     ρvs ← success $ unions ^$ prinExpVals ^^$ mapM interpPrinExp ρes
     ṽ ← success $ interpExp e'
-    (_φ,_ρs,sv) ← abort𝑂 $ view shareVPL ṽ
-    let v = valFrMPC sv
-    return $ SSecVP ρvs v
+    case ṽ of
+      ShareVP _φ _ρs sv →
+        let v = valFrMPC sv in
+        return $ SSecVP ρvs v
+      SSecVP ρs v → do
+        guard $ ρs ⊆ ρvs
+        return $ SSecVP ρvs v
+      _ → throwIErrorCxt TypeIError "interpExp: RevealE: ṽ ∉ {ShareVP _ _ _,SSecVP _ _}" $ frhs
+        [ ("ṽ",pretty ṽ)
+        ]
   -- AscrE
   ReadE τA e' → do
     ṽ ← success $ interpExp e'
