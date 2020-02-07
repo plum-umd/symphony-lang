@@ -1,0 +1,13 @@
+principal A
+principal B
+
+def is_empty : list t -> bool
+def is_empty l = case l
+{ [ ] -> true
+; _ -> false
+}
+
+-- entry point
+def main () =
+  let l = { par : A, B } [ 0 ; 1 ] in
+  { A, B } is_empty l

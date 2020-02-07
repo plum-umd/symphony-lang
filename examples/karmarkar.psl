@@ -18,22 +18,15 @@ principal Out
 
 -- PSL: BEGIN ops that need to be supported
 
--- abs i: the magnitude of i and whether it was positive
--- def absInt : int -> nat * bool
+def flt_div : flt -> flt -> flt
+-- mockup that lets code run
+def flt_div x y = x
 
--- ceil x: the ceiling of x
--- def ceil : real -> int
-
-def exp : flt -> flt -> flt
+def flt_exp : flt -> flt -> flt
 -- exp: mockup that lets the code run
-def exp x y = x
-
--- to_flt n: conversion of n into a real:
--- def to_flt : nat -> real
+def flt_exp x y = x
 
 def spdz_sqrt : real{ spdz : Ctr, Cost } -> real{ spdz : Ctr, Cost }
-
--- PSL: support SPDZ as a protocol
 
 -- PSL: END ops that need to be supported
 
@@ -212,7 +205,7 @@ def point_div x = map (fun a -> a / x)
 
 -- vec_div: divide a vector of reals by a constant
 def vec_div : real -> list real -> list real
-def vec_div a = map (fun x -> x / a)
+def vec_div a = map (fun x -> flt_div x a)
 
 -- nzProd a: the product of all non-zero entries in a vector:
 def nzProd : list (real{ ssec : p }) -> real{ ssec : p }
@@ -254,24 +247,19 @@ def sum pt = fold pt (shr_pub_w_comp 0.0) (fun x acc -> x + acc)
 def l2norm : point -> comp_shr
 def l2norm pt = spdz_sqrt (sum (map (fun x -> x * x) pt))
 
--- PSL: what's the type of a constant?
-
 -- zeros_vec: a vector of zeroes
 def zeros_vec : nat -> list real
-def zeros_vec n = const_vec 0.0 n
--- PSL: support typechecking functions without explicit parameters
+def zeros_vec = const_vec 0.0
 
 -- onesVec: a vector of real ones
 def onesVec : nat -> list real
-def onesVec n = const_vec 1.0 n
+def onesVec = const_vec 1.0
 
 -- shift_major: shift matrix between row major and column major order
-def shift_major : nat -> secretMat -> secretMat
+def shift_major : nat -> list (list t) -> list (list t)
 def shift_major c m = foldr m
   (const_vec [ ] c)
   (fun v acc -> map cons (zip_lists v acc))
-
--- BILL: generalize type of shift_major
 
 -- n : parameter: number of variables in the constraint system
 def n : nat
@@ -453,10 +441,12 @@ def pfold i f xy = case xy
   ; ⟪Q.x⟫⧺xy′ → f Q x (pfold i f xy′)
   }
 
+def nOnes : list flt
+def nOnes = onesVec n 
+
 -- karmarkar_iter: an iteration of Karmarkar's algorithm
 def karmarkar_iter : ctr -> cost -> point -> point
 def karmarkar_iter a cost init_pt =
-  let nOnes = const_vec 1.0 n in
   let unit_cp =
     -- c': vector: product of diagonal of initial point and cost
     let c' = { par : Cost }
@@ -520,8 +510,7 @@ def karmarkar_loop : ctr -> costs -> point
 def karmarkar_loop a cost =
   -- eps: defines the stopping condition for the loop. Constant
   -- comes from the GFI:
-  let eps = 0.1 in
-  -- PSL: let eps = exp 10.0 (-8.0) in
+  let eps = flt_exp 10.0 (-8.0) in
 
   -- init_pt: the initial point:
   let init_pt = vec_div (to_flt n) nOnes in
@@ -533,7 +522,7 @@ def karmarkar_loop a cost =
     -- karmarkar_rec: recurse on the number of iterations, which is
     -- pre-computed from the constraints and costs:
     let karmarkar_rec = elim_nats 
-      (let nzCostsProd = { par : Cost }
+      (let nzCostsProd = { Cost }
         (foldr l
            1.0 
            (fun x -> if x == 0.0 then id else (float_prod x)) ) in
@@ -550,7 +539,7 @@ def karmarkar_loop a cost =
            nzs in
        12 * n *
         ((m + 1) * n +
-         (log_2_ceil (absInt (ceil (release_nat (
+         (log_2_ceil (abs_val (ceil (release_nat (
            (shr_cost_w_comp nzCostsProd) *
            (shr_ctr_w_comp nzCtrProd)))))) +
          n * (log_2_ceil n))
@@ -576,10 +565,10 @@ def main : unit ->{ inp : Ctr, Cost; rev : Out } (list out_sec)
 def main () =
   -- each constraint party reads its input vector
 -- PSL:  let c = { par : Ctr } (read_vec ()) in
-  let c = { par : Ctr } [ ] in
+  let c = { par : Ctr } [ 0.0 ; 0.1 ] in
   
   -- the cost party reads its input vector
 --  PSL: let cost = { par : Cost } (read_vec ()) in
-  let cost = { par : Cost } [ ] in
+  let cost = { par : Cost } [ 1.0 ; 1.1 ] in
 
   map (fun x -> reveal{ Out } x) (karmarkar_loop c cost)
