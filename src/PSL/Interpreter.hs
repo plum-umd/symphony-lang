@@ -358,6 +358,7 @@ testInterpreter = do
   -- testInterpreterExample "pfold"
   -- testInterpreterExample "bind-fp-const"
   -- testInterpreterExample "elim-sec-ls"
+  -- testInterpreterExample "cmp-fn-flt"
   testInterpreterExample "karmarkar"
   -- testInterpreterExample "atq"
   -- testInterpreterExample "cmp-split"

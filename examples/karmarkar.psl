@@ -18,20 +18,9 @@ principal Out
 
 -- PSL: BEGIN ops that need to be supported
 
-def flt_div : flt -> flt -> flt
--- mockup that lets code run
-def flt_div x y = x
-
 def flt_exp : flt -> flt -> flt
 -- exp: mockup that lets the code run
 def flt_exp x y = x
-
-def flt_add : flt -> flt -> flt
-def flt_add x y = x
-
--- flt_mult: multiplcation over floats
-def flt_mult : flt -> flt -> flt
-def flt_mult x y = x
 
 def spdz_sqrt : real{ spdz : Ctr, Cost } -> real{ spdz : Ctr, Cost }
 
@@ -103,23 +92,27 @@ def release_nat n = reveal{ Ctr, Cost, Out } n
 -- def colLtMat : type
 -- def colLtMat = list (comp_shr * (list comp_shr))
 
--- library functions for nat
+-- library functions for numeric types
 
 -- plus: non-infix sum
-def plus : nat -> nat -> nat
 def plus m n = m + n
+
+-- minus: non-infix substraction
+def minus m n = m - n
 
 -- inc n: increment of n
 def inc : nat -> nat
 def inc = plus 1n
 
--- minus: non-infix substraction
-def minus : nat -> nat -> nat
-def minus m n = m - n
-
--- dec: decrement
+-- dec n: decrement of n
 def dec : nat -> nat
-def dec (n : nat) = n - 1n
+def dec n = n - 1n
+
+-- mult: infix multiplication of nats
+def mult m n = m * n
+
+-- square: multiple a number with itself:
+def square a = a * a
 
 -- elim_nats: form for eliminating (folding over) nats
 def elim_nats : nat -> t -> (t -> t) -> t
@@ -206,44 +199,41 @@ def zip_lists l0 l1 =
        (fun y l' -> (x, y) :: z0 l') ) in
   zip0 l1
 
+def zip_map : list t -> list u -> (t -> u -> v) -> list v
+def zip_map l0 l1 f = map (uncurry f) (zip_lists l0 l1)
+
 -- point_div x pt: divide each entry in pt by x
 def point_div : comp_shr -> point -> point
 def point_div x = map (fun a -> a / x) 
 
 -- vec_div: divide a vector of reals by a constant
 def vec_div : real -> list real -> list real
-def vec_div a = map (fun x -> flt_div x a)
+def vec_div a = map (fun x -> x / a)
 
 -- nzProd a: the product of all non-zero entries in a vector:
 def nzProd : list (real{ ssec : p }) -> real{ ssec : p }
 def nzProd l = foldr l
   (shr_pub_w_comp 1.0)
-  (fun x acc -> if x == 0.0 then acc else flt_mult x acc)
+  (fun x -> if x == 0.0 then id else mult x)
 
 -- pt_diff: subtract one point from another
 def pt_diff : point -> point -> point
-def pt_diff pt0 pt1 = map
-  (fun (p0, p1) -> p0 - p1)
-  (zip_lists pt0 pt1)
-
--- dot_prod: take the dot product of two points
-def dot_prod : point -> point -> comp_shr
-def dot_prod p0 p1 = foldr
-  (map (fun (p0, p1) -> flt_mult p0 p1) (zip_lists p0 p1))
-  0.0
-  (fun d acc -> flt_add d acc)
-
--- pt_cost : evaluate the cost of a point
-def pt_cost : costs -> point -> comp_shr
-def pt_cost c = dot_prod (map shr_costs_w_comp c)
+def pt_diff pt0 pt1 = zip_map pt0 pt1 minus
 
 -- sum: sum of a list of secret reals
 def sum : point -> comp_shr
-def sum pt = fold pt (shr_pub_w_comp 0.0) (fun x acc -> flt_add x acc)
+def sum v z = foldr v z plus
 
--- l2norm v: the L2 norm of real vector v
+-- dot_prod: take the dot product of two points
+def dot_prod p0 p1 = sum (zip_map p0 p1 mult)
+
+-- pt_cost : evaluate the cost of a point
+def pt_cost : costs -> point -> comp_shr
+def pt_cost c = dot_prod (map shr_costs_w_comp c) 0.0
+
+-- l2norm v: the L2 norm of a vector of shares
 def l2norm : point -> comp_shr
-def l2norm pt = spdz_sqrt (sum (map (fun x -> flt_mult x x) pt))
+def l2norm pt = spdz_sqrt (sum (map square pt) (shr_pub_w_comp 0.0))
 
 -- zeros_vec: a vector of zeroes
 def zeros_vec : nat -> list real
@@ -425,9 +415,7 @@ def inverse n m =
   prod_mat (transpose linv) l_inv
 
 def prod_diag_pt : point -> point -> point
-def prod_diag_pt d p = map
-  (uncurry flt_mult)
-  (zip_lists d p) 
+def prod_diag_pt d p = zip_map d p mult 
 
 def pfold : ∀ A:☆,P:ℙ. A → ((Q:ℙ | Q⊆P) → ℤ{Q} → A → A) → ℤ{isec:P} →{sec:P} A
 def pfold i f xy = case xy
@@ -478,14 +466,6 @@ def karmarkar_iter a cost init_pt =
 
 -- Karmarkar's algorithm, main loop:
 
--- nat_mult: infix multiplication of nats
-def nat_mult : nat -> nat -> nat
-def nat_mult m n = m * n
-
--- nat_exp: exponentiation of nats
-def nat_exp : nat -> nat -> nat
-def nat_exp b a = elim_nats b 1 (nat_mult a)
-
 -- nat_log: logarithm over nats
 def nat_log : nat -> nat -> nat
 def nat_log b n =
@@ -496,7 +476,7 @@ def log_2_ceil : nat -> nat
 def log_2_ceil n = 
   let n' = log 2 n in
   let offset = 
-    if n == (nat_exp 2 n') then 0
+    if n == (2 ^ n') then 0
     else 1 in
   n' + offset
 
@@ -504,15 +484,17 @@ def karmarkar_loop : ctr -> costs -> point
 def karmarkar_loop a cost =
   -- eps: defines the stopping condition for the loop. Constant
   -- comes from the GFI:
-  let eps = flt_exp 10.0 (-8.0) in
+  let eps = 10.0 ^ (-8.0) in
 
   -- init_pt: the initial point:
   let init_pt = vec_div (to_flt n) nOnes in
   let shr_init = map shr_pub_w_comp init_pt in
-  let pub_init_cost = reveal{ Ctr, Cost } (share{ bgw : Cost }
-    ({ par : Cost } dot_prod cost init_pt) ) in
-  -- BUG: can't compare shared value to an "all"
+  let pub_init_cost = reveal{ Ctr, Cost }
+    ({ par : Cost } dot_prod cost init_pt) in
+  -- BUG: can't compare shared value to an "all" ?
+  -- let err = "err" + 1 in
   let init_soln = pub_init_cost == 0.0 in
+  let err = "err" + 2 in
 
   -- if the initial point is optimal, then return it:
   if init_soln then shr_init
@@ -522,7 +504,7 @@ def karmarkar_loop a cost =
     let err1 = "err 1" + 1 in
     let karmarkar_rec = elim_nats 
       (let nzCostsProd = { par : Cost }
-        (let err2 = "err" + 2 in
+        (let err2 = "err" + 3 in
          foldr l
            1.0 
            (fun x -> if x == 0.0 then id else (float_prod x)) ) in
