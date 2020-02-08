@@ -9,6 +9,8 @@ import GHC.Stack (CallStack,callStack,withFrozenCallStack)
 import qualified GHC.Stack as HS
 
 import System.Directory as HS
+import Data.Fixed as HS
+import qualified Prelude as HS
 
 files ∷ IO (𝐿 𝕊)
 files = list ∘ map string ^$ HS.listDirectory $ chars "."
@@ -31,3 +33,5 @@ zipSameLength xs ys = case (xs,ys) of
 
 unconsL ∷ 𝐿 a ⌲ (a ∧ 𝐿 a)
 unconsL = Prism (curry (:&)) $ \case { x:&xs → Some (x:*xs) ; _ → None}
+
+instance DivMod 𝔻 where {(⌿) = (HS./);(÷) = HS.mod'}

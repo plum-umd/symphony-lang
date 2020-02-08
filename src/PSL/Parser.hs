@@ -18,12 +18,13 @@ levelMPC     = 𝕟64 24
 levelPAR     = 𝕟64 25
 levelASCR    = 𝕟64 29
 
-levelCOND,levelCOMPARE,levelARROW,levelPLUS,levelTIMES ∷ ℕ64
+levelCOND,levelCOMPARE,levelARROW,levelPLUS,levelTIMES,levelEXP ∷ ℕ64
 levelCOND    = 𝕟64 30
 levelCOMPARE = 𝕟64 35
 levelARROW   = 𝕟64 40
 levelPLUS    = 𝕟64 50
 levelTIMES   = 𝕟64 60
+levelEXP     = 𝕟64 70
 
 levelAPP ∷ ℕ64
 levelAPP = 𝕟64 100
@@ -295,6 +296,8 @@ pType = cpNewContext "type" $ mixfix $ concat
   , mixInfixL levelPLUS $ do concat [cpSyntax "+"] ; return (:+:)
   -- τ × τ
   , mixInfixL levelTIMES $ do concat [cpSyntax "×",cpSyntax "*"] ; return (:×:)
+  -- τ ^ τ
+  , mixInfixL levelEXP $ do cpSyntax "^" ; return (:^:)
   -- list τ
   , mixPrefix levelAPP $ do cpSyntax "list" ; return ListT
   -- τ →{η} τ
@@ -646,7 +649,8 @@ pExp = fmixfixWithContext "exp" $ concat
   , fmixInfixL levelPLUS $ do cpSyntax "+" ; return $ \ e₁ e₂ → PrimE "PLUS" $ list [e₁,e₂]
   , fmixInfixL levelPLUS $ do cpSyntax "-" ; return $ \ e₁ e₂ → PrimE "MINUS" $ list [e₁,e₂]
   , fmixInfixL levelTIMES $ do concat [cpSyntax "×",cpSyntax "*"] ; return $ \ e₁ e₂ → PrimE "TIMES" $ list [e₁,e₂]
-  , fmixInfixL levelTIMES $ do cpSyntax "/" ; return $ \ e₁ e₂ → PrimE "DIVIDE" $ list [e₁,e₂]
+  , fmixInfixL levelEXP $ do cpSyntax "^" ; return $ \ e₁ e₂ → PrimE "EXP" $ list [e₁,e₂]
+  , fmixInfixL levelTIMES $ do cpSyntax "/" ; return $ \ e₁ e₂ → PrimE "DIV" $ list [e₁,e₂]
   , fmixInfixL levelTIMES $ do cpSyntax "%" ; return $ \ e₁ e₂ → PrimE "MOD" $ list [e₁,e₂]
   , fmixInfix levelCOMPARE $ do concat [cpSyntax "≡",cpSyntax "=="] ; return $ \ e₁ e₂ → PrimE "EQ" $ list [e₁,e₂]
   , fmixInfix levelCOMPARE $ do cpSyntax "<" ; return $ \ e₁ e₂ → PrimE "LT" $ list [e₁,e₂]
