@@ -1,9 +1,9 @@
 -- m : number of constraint parties
 def m : nat
-def m = 8n
+def m = 2n
 
 -- Ctr: parties that bring the constraints
-principal Ctr[8]
+principal Ctr[2]
 
 -- party that provides the cost vector:
 principal Cost
@@ -18,9 +18,8 @@ principal Out
 
 -- PSL: BEGIN ops that need to be supported
 
-def flt_exp : flt -> flt -> flt
--- exp: mockup that lets the code run
-def flt_exp x y = x
+def flt_eq : flt -> flt -> bool
+def flt_eq x y = true
 
 def spdz_sqrt : real{ spdz : Ctr, Cost } -> real{ spdz : Ctr, Cost }
 
@@ -251,7 +250,7 @@ def shift_major c m = foldr m
 
 -- n : parameter: number of variables in the constraint system
 def n : nat
-def n = 8n
+def n = 2n
 
 -- row_major: put given matrix in row-major order
 def row_major : secretMat -> secretMat
@@ -490,14 +489,12 @@ def karmarkar_loop a cost =
   let init_pt = vec_div (to_flt n) nOnes in
   let shr_init = map shr_pub_w_comp init_pt in
   let pub_init_cost = reveal{ Ctr, Cost }
-    ({ par : Cost } dot_prod cost init_pt) in
-  -- BUG: can't compare shared value to an "all" ?
-  -- let err = "err" + 1 in
-  let init_soln = pub_init_cost == 0.0 in
-  let err = "err" + 2 in
+    ({ par : Cost } dot_prod cost init_pt 0.0) in
+  let init_soln = { par : Ctr, Cost } flt_eq pub_init_cost 0.0 in
 
   -- if the initial point is optimal, then return it:
-  if init_soln then shr_init
+  { Ctr, Cost } 
+  (if init_soln then shr_init
   else
     -- karmarkar_rec: recurse on the number of iterations, which is
     -- pre-computed from the constraints and costs:
@@ -536,7 +533,7 @@ def karmarkar_loop a cost =
         else kr x') in
 
     -- compute from the initial point:
-    karmarkar_rec shr_init
+    karmarkar_rec shr_init )
 
 -- read_vec (): reads a vector of n input floats from a fixed file
 def read_vec : unit -> list flt
@@ -546,11 +543,11 @@ def read_vec () = read (list flt) "in.txt"
 def main : unit ->{ inp : Ctr, Cost; rev : Out } (list out_sec)
 def main () =
   -- each constraint party reads its input vector
--- PSL:  let c = { par : Ctr } (read_vec ()) in
+--   let c = { par : Ctr } (read_vec ()) in
   let c = { par : Ctr } [ 0.0 ; 0.1 ] in
   
   -- the cost party reads its input vector
---  PSL: let cost = { par : Cost } (read_vec ()) in
+--  let cost = { par : Cost } (read_vec ()) in
   let cost = { par : Cost } [ 1.0 ; 1.1 ] in
 
   map (fun x -> reveal{ Out } x) (karmarkar_loop c cost)
