@@ -26,6 +26,9 @@ def flt_exp : flt -> flt -> flt
 -- exp: mockup that lets the code run
 def flt_exp x y = x
 
+def flt_add : flt -> flt -> flt
+def flt_add x y = x
+
 -- flt_mult: multiplcation over floats
 def flt_mult : flt -> flt -> flt
 def flt_mult x y = x
@@ -215,7 +218,7 @@ def vec_div a = map (fun x -> flt_div x a)
 def nzProd : list (real{ ssec : p }) -> real{ ssec : p }
 def nzProd l = foldr l
   (shr_pub_w_comp 1.0)
-  (fun x acc -> if x == 0.0 then acc else x * acc)
+  (fun x acc -> if x == 0.0 then acc else flt_mult x acc)
 
 -- pt_diff: subtract one point from another
 def pt_diff : point -> point -> point
@@ -226,9 +229,9 @@ def pt_diff pt0 pt1 = map
 -- dot_prod: take the dot product of two points
 def dot_prod : point -> point -> comp_shr
 def dot_prod p0 p1 = foldr
-  (map (fun (p0, p1) -> p0 * p1) (zip_lists p0 p1))
+  (map (fun (p0, p1) -> flt_mult p0 p1) (zip_lists p0 p1))
   0.0
-  (fun d acc -> d + acc)
+  (fun d acc -> flt_add d acc)
 
 -- pt_cost : evaluate the cost of a point
 def pt_cost : costs -> point -> comp_shr
@@ -236,11 +239,11 @@ def pt_cost c = dot_prod (map shr_costs_w_comp c)
 
 -- sum: sum of a list of secret reals
 def sum : point -> comp_shr
-def sum pt = fold pt (shr_pub_w_comp 0.0) (fun x acc -> x + acc)
+def sum pt = fold pt (shr_pub_w_comp 0.0) (fun x acc -> flt_add x acc)
 
 -- l2norm v: the L2 norm of real vector v
 def l2norm : point -> comp_shr
-def l2norm pt = spdz_sqrt (sum (map (fun x -> x * x) pt))
+def l2norm pt = spdz_sqrt (sum (map (fun x -> flt_mult x x) pt))
 
 -- zeros_vec: a vector of zeroes
 def zeros_vec : nat -> list real
@@ -421,13 +424,9 @@ def inverse n m =
     (lt_inverse (cholesky (squareMat (shift_major m)))) in
   prod_mat (transpose linv) l_inv
 
--- prod_secret: take the product of two shares
-def prod_secret : comp_shr -> comp_shr -> comp_shr
-def prod_secret x y = x * y
-
 def prod_diag_pt : point -> point -> point
 def prod_diag_pt d p = map
-  (uncurry prod_secret)
+  (uncurry flt_mult)
   (zip_lists d p) 
 
 def pfold : ∀ A:☆,P:ℙ. A → ((Q:ℙ | Q⊆P) → ℤ{Q} → A → A) → ℤ{isec:P} →{sec:P} A
@@ -510,9 +509,10 @@ def karmarkar_loop a cost =
   -- init_pt: the initial point:
   let init_pt = vec_div (to_flt n) nOnes in
   let shr_init = map shr_pub_w_comp init_pt in
-  let init_soln =
-    (reveal{ Ctr, Cost } ({ par : Cost } dot_prod cost init_pt)) ==
-    0.0 in
+  let pub_init_cost = reveal{ Ctr, Cost } (share{ bgw : Cost }
+    ({ par : Cost } dot_prod cost init_pt) ) in
+  -- BUG: can't compare shared value to an "all"
+  let init_soln = pub_init_cost == 0.0 in
 
   -- if the initial point is optimal, then return it:
   if init_soln then shr_init
@@ -522,7 +522,7 @@ def karmarkar_loop a cost =
     let err1 = "err 1" + 1 in
     let karmarkar_rec = elim_nats 
       (let nzCostsProd = { par : Cost }
-        (let err = "err" + 0 in
+        (let err2 = "err" + 2 in
          foldr l
            1.0 
            (fun x -> if x == 0.0 then id else (float_prod x)) ) in
