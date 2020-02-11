@@ -30,14 +30,19 @@ interpPrim o vs = case (o,vs) of
   ("MOD"     ,tohs → [FltV p₁ f₁,FltV p₂ f₂]) | p₁ ≡ p₂ → return $ FltV p₁ $              if f₂ ≡ 0.0   then f₁ else f₁ ÷ f₂ --trPrFlt
   ("EQ"      ,tohs → [NatV p₁ n₁,NatV p₂ n₂]) | p₁ ≡ p₂ → return $ BoolV   $ n₁ ≡ n₂
   ("EQ"      ,tohs → [IntV p₁ i₁,IntV p₂ i₂]) | p₁ ≡ p₂ → return $ BoolV   $ i₁ ≡ i₂
+  ("EQ"      ,tohs → [FltV p₁ f₁,FltV p₂ f₂]) | p₁ ≡ p₂ → return $ BoolV   $ f₁ ≡ f₂
   ("LT"      ,tohs → [NatV p₁ n₁,NatV p₂ n₂]) | p₁ ≡ p₂ → return $ BoolV   $ n₁ < n₂
   ("LT"      ,tohs → [IntV p₁ i₁,IntV p₂ i₂]) | p₁ ≡ p₂ → return $ BoolV   $ i₁ < i₂
+  ("LT"      ,tohs → [FltV p₁ f₁,FltV p₂ f₂]) | p₁ ≡ p₂ → return $ BoolV   $ f₁ < f₂
   ("GT"      ,tohs → [NatV p₁ n₁,NatV p₂ n₂]) | p₁ ≡ p₂ → return $ BoolV   $ n₁ > n₂
   ("GT"      ,tohs → [IntV p₁ i₁,IntV p₂ i₂]) | p₁ ≡ p₂ → return $ BoolV   $ i₁ > i₂
+  ("GT"      ,tohs → [FltV p₁ f₁,FltV p₂ f₂]) | p₁ ≡ p₂ → return $ BoolV   $ f₁ > f₂
   ("LTE"     ,tohs → [NatV p₁ n₁,NatV p₂ n₂]) | p₁ ≡ p₂ → return $ BoolV   $ n₁ ≤ n₂
   ("LTE"     ,tohs → [IntV p₁ i₁,IntV p₂ i₂]) | p₁ ≡ p₂ → return $ BoolV   $ i₁ ≤ i₂
+  ("LTE"     ,tohs → [FltV p₁ f₁,FltV p₂ f₂]) | p₁ ≡ p₂ → return $ BoolV   $ f₁ ≤ f₂
   ("GTE"     ,tohs → [NatV p₁ n₁,NatV p₂ n₂]) | p₁ ≡ p₂ → return $ BoolV   $ n₁ ≥ n₂
   ("GTE"     ,tohs → [IntV p₁ i₁,IntV p₂ i₂]) | p₁ ≡ p₂ → return $ BoolV   $ i₁ ≥ i₂
+  ("GTE"     ,tohs → [FltV p₁ f₁,FltV p₂ f₂]) | p₁ ≡ p₂ → return $ BoolV   $ f₁ ≥ f₂
   ("COND"    ,tohs → [BoolV b   ,v₁,v₂     ])           → return           $ if b then v₁ else v₂
   ("TO_FLT"  ,tohs → [IntV (FixedIPr prw prd) n])       → return $ FltV (FixedFPr (prw + prd)) $ dbl n
   ("TO_FLT"  ,tohs → [NatV (FixedIPr prw prd) n])       → return $ FltV (FixedFPr (prw + prd)) $ dbl n
