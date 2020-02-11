@@ -76,4 +76,6 @@
   "Major mode for editing PSL code"
   (setq font-lock-defaults '((psl-font-lock-keywords))))
 
+(setq comment-start "-- ")
+
 (provide 'psl-mode)
