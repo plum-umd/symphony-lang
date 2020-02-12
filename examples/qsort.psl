@@ -3,13 +3,13 @@ principal B
 
 -- TODO
 -- not yet working with interpreter, something with case expressions?
--- replace yao by bgw and by SPDZ
+-- merge lists together
 -- replace int by real
 
 def index
-  : int{yao:A,B}
-  -> list int{yao:A,B}
-  -> int{yao:A,B}
+  : int{bgw:A,B}
+  -> list int{bgw:A,B}
+  -> int{bgw:A,B}
 def index i xs =
   case xs
   { [] -> 0
@@ -20,10 +20,10 @@ def index i xs =
   }
 
 def replace
-  : int{yao:A,B} -- index
-  -> int{yao:A,B} -- to insert
-  -> list int{yao:A,B}
-  -> list int{yao:A,B}
+  : int{bgw:A,B} -- index
+  -> int{bgw:A,B} -- to insert
+  -> list int{bgw:A,B}
+  -> list int{bgw:A,B}
 def replace ix x arr =
   case arr
   { [] -> []
@@ -35,11 +35,11 @@ def replace ix x arr =
 
 -- Swap the two indices in the array iff the condition is true
 def condSwap
-  : bool{yao:A,B}
-  -> int{yao:A,B}
-  -> int{yao:A,B}
-  -> list int{yao:A,B}
-  -> list int{yao:A,B}
+  : bool{bgw:A,B}
+  -> int{bgw:A,B}
+  -> int{bgw:A,B}
+  -> list int{bgw:A,B}
+  -> list int{bgw:A,B}
 def condSwap cond i j arr =
   if cond
   then
@@ -48,16 +48,16 @@ def condSwap cond i j arr =
     in replace i r (replace j l arr)
   else arr
 
-def boolToInt : bool{yao:A,B} -> int{yao:A,B}
+def boolToInt : bool{bgw:A,B} -> int{bgw:A,B}
 def boolToInt b = if b then 1 else 0
 
 def partLoop
   : int -- remaining iterations
-  -> int{yao:A,B}
-  -> int{yao:A,B}
-  -> int{yao:A,B}
-  -> list int{yao:A,B}
-  -> list int{yao:A,B} * int{yao:A,B}
+  -> int{bgw:A,B}
+  -> int{bgw:A,B}
+  -> int{bgw:A,B}
+  -> list int{bgw:A,B}
+  -> list int{bgw:A,B} * int{bgw:A,B}
 def partLoop n i lo hi arr =
   if n == 0
   then i, arr
@@ -69,10 +69,10 @@ def partLoop n i lo hi arr =
 
 def partition
   : int -- the size of the entire list
-  -> int{yao:A,B}
-  -> int{yao:A,B}
-  -> list int{yao:A,B}
-  -> list int{yao:A,B} * int{yao:A,B}
+  -> int{bgw:A,B}
+  -> int{bgw:A,B}
+  -> list int{bgw:A,B}
+  -> list int{bgw:A,B} * int{bgw:A,B}
 def partition n lo hi arr =
   -- TODO should swap random value between lo and hi with A[hi]
   -- let r = random lo hi
@@ -82,10 +82,10 @@ def partition n lo hi arr =
 
 def quickSort
   : int -- iterations remaining
-  -> int{yao:A,B} -- lo
-  -> int{yao:A,B} -- hi
-  -> list int{yao:A,B}
-  -> list int{yao:A,B}
+  -> int{bgw:A,B} -- lo
+  -> int{bgw:A,B} -- hi
+  -> list int{bgw:A,B}
+  -> list int{bgw:A,B}
 def quickSort n lo hi arr =
   if n == 0
   then arr
@@ -95,7 +95,7 @@ def quickSort n lo hi arr =
       quickSort (n - 1) (pivot + 1) hi (quickSort lo (pivot - 1))
 arr
 
-def main : unit -> {inp:A,B;rev:A,B} list int{yao:A,B}
+def main : unit -> {inp:A,B;rev:A,B} list int{bgw:A,B}
 def main () =
   let xys-pre : (list ℤ){isec:A,B}
   let xys-pre = {par:A,B} read (list ℤ) "qsort-input.txt"
