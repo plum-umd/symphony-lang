@@ -486,16 +486,11 @@ def karmarkar_loop a cost =
   let eps = 10.0 ^ (-8.0) in
 
   -- init_pt: the initial point:
-  -- let err = "err" + 0 in
   let init_pt = vec_div (to_flt n) nOnes in
-  -- let err = "err" + 1 in
   let shr_init = { par : Ctr, Cost } map shr_pub_w_comp init_pt in
-  -- let err = "err" + 2 in
   let pub_init_cost = reveal{ Ctr, Cost }
     ({ par : Cost } dot_prod cost init_pt 0.0) in
-  let err = "err" + 3 in
   let init_soln = { par : Ctr, Cost } flt_eq pub_init_cost 0.0 in
-  let err = "err" + 4 in
 
   -- if the initial point is optimal, then return it:
   (if init_soln then shr_init
@@ -546,15 +541,14 @@ def read_vec () = read (list flt) "in.txt"
 def main : unit ->{ inp : Ctr, Cost; rev : Out } (list out_sec)
 def main () =
   -- each constraint party reads its input vector
---   let c = { par : Ctr } (read_vec ()) in
+  -- let c = { Ctr } (read_vec ()) in
   let c = { par : Ctr } [ 0.0 ; 0.1 ] in
 
   -- the cost party reads its input vector
   -- let cost = { Cost } (read_vec ()) in
   let cost = { par : Cost } [ 1.0 ; 1.1 ] in
 
-  let soln = { par : Ctr, Cost } karmarkar_loop c cost in
-  soln
-  -- reveal{ Out } soln
-
-  -- map (fun x -> reveal{ Out } x) soln
+  { par : Ctr, Cost }
+     (foldr (karmarkar_loop c cost)
+       (reveal{ Out, Cost, Ctr } [ ])
+       (fun x tl -> reveal{ Out, Ctr, Cost } (reveal{ Out } x) :: tl) )

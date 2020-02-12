@@ -91,5 +91,6 @@ def main • =
   let xys-pre = {par:A,B} read (list ℤ) "msort-input.txt"
   let xys : list ℤ{isec:A,B}
   let xys = preprocess-lists set(A,B) 2 0 xys-pre
-  in 
-  map (λ x → reveal{E} x) (msort xys)
+  in
+  xys
+  -- map (λ x → reveal{E} x) (msort xys)
