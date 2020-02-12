@@ -48,14 +48,16 @@ elimValP ṽ = do
   m ← askL iCxtModeL
   vO ← unFailT $ case ṽ of
     SSecVP ρs v → do
-      guard $ m ⊑ PSecM ρs 
+      guard $ m ⊑ PSecM ρs
       return v
     AllVP v → return v
     _ → abort
   case vO of
     Some v → return v
-    None → throwIErrorCxt TypeIError "elimValP: ṽ ∉ {AllVP _,SSecVP _ _}" $ frhs
+    None → throwIErrorCxt TypeIError "elimValP: ṽ ∉ {AllVP _,SSecVP _ _} or not m ⊑ PSecM ρs" $ frhs
       [ ("ṽ",pretty ṽ)
+      , ("m",pretty m)
+      , ("ρs",pretty "(First part of ṽ if ṽ is SSecVP)")
       ]
 
 -- restrict the mode on a value to be no larger than execution mode
@@ -146,7 +148,9 @@ mpcFrVal v = case v of
   NatV pr n → return $ NatMV pr n
   IntV pr i → return $ IntMV pr i
   FltV pr i → return $ FltMV pr i
-  _ → throwIErrorCxt TypeIError "mpcFrVal: v ∉ BoolV,NatV,IntV,FltV" $ frhs
+  PrinV ρe → return $ PrinMV ρe
+  PrinSetV ρs → return $ PrinMV $ PowPEV ρs
+  _ → throwIErrorCxt TypeIError "mpcFrVal: v ∉ BoolV,NatV,IntV,FltV,PrinV" $ frhs
     [ ("v",pretty v)
     ]
 
@@ -156,4 +160,5 @@ valFrMPC = \case
   NatMV pr n → NatV pr n
   IntMV pr i → IntV pr i
   FltMV pr d → FltV pr d
+  PrinMV pe → PrinV pe
 

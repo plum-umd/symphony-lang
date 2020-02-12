@@ -104,6 +104,7 @@ lexer = lexerBasic puns kws prim ops
       , "^"
       , "?"
       , "◇","><"
+      , "!","¬"
       , "||","∨"
       , "&&","∧"
       , "true","false"
@@ -296,8 +297,6 @@ pType = cpNewContext "type" $ mixfix $ concat
   , mixInfixL levelPLUS $ do concat [cpSyntax "+"] ; return (:+:)
   -- τ × τ
   , mixInfixL levelTIMES $ do concat [cpSyntax "×",cpSyntax "*"] ; return (:×:)
-  -- τ ^ τ
-  , mixInfixL levelEXP $ do cpSyntax "^" ; return (:^:)
   -- list τ
   , mixPrefix levelAPP $ do cpSyntax "list" ; return ListT
   -- τ →{η} τ
@@ -646,6 +645,7 @@ pExp = fmixfixWithContext "exp" $ concat
   -- prim[⊙](e,…,e)
   , fmixInfixL levelPLUS $ do concat [cpSyntax "∨",cpSyntax "||"] ; return $ \ e₁ e₂ → PrimE "OR" $ list [e₁,e₂]
   , fmixInfixL levelTIMES $ do concat [cpSyntax "∧",cpSyntax "&&"] ; return $ \ e₁ e₂ → PrimE "AND" $ list [e₁,e₂]
+  , fmixPrefix levelEXP $ do concat [cpSyntax "!",cpSyntax "¬"] ; return $ \ e → PrimE "NOT" $ list [e]
   , fmixInfixL levelPLUS $ do cpSyntax "+" ; return $ \ e₁ e₂ → PrimE "PLUS" $ list [e₁,e₂]
   , fmixInfixL levelPLUS $ do cpSyntax "-" ; return $ \ e₁ e₂ → PrimE "MINUS" $ list [e₁,e₂]
   , fmixInfixL levelTIMES $ do concat [cpSyntax "×",cpSyntax "*"] ; return $ \ e₁ e₂ → PrimE "TIMES" $ list [e₁,e₂]

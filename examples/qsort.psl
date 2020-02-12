@@ -1,0 +1,109 @@
+principal A
+principal B
+
+-- TODO
+-- not yet working with interpreter, something with case expressions?
+-- merge lists together
+-- replace int by real
+
+def index
+  : int{bgw:A,B}
+  -> list int{bgw:A,B}
+  -> int{bgw:A,B}
+def index i xs =
+  case xs
+  { [] -> 0
+  ; x::xs ->
+    if i == 0
+    then x
+    else index (i-1) xs
+  }
+
+def replace
+  : int{bgw:A,B} -- index
+  -> int{bgw:A,B} -- to insert
+  -> list int{bgw:A,B}
+  -> list int{bgw:A,B}
+def replace ix x arr =
+  case arr
+  { [] -> []
+  ; y::ys ->
+    if ix == 0
+    then x::ys
+    else y::(replace (ix - 1) x ys)
+  }
+
+-- Swap the two indices in the array iff the condition is true
+def condSwap
+  : bool{bgw:A,B}
+  -> int{bgw:A,B}
+  -> int{bgw:A,B}
+  -> list int{bgw:A,B}
+  -> list int{bgw:A,B}
+def condSwap cond i j arr =
+  if cond
+  then
+    let l = index i arr
+    in let r = index j arr
+    in replace i r (replace j l arr)
+  else arr
+
+def boolToInt : bool{bgw:A,B} -> int{bgw:A,B}
+def boolToInt b = if b then 1 else 0
+
+def partLoop
+  : int -- remaining iterations
+  -> int{bgw:A,B}
+  -> int{bgw:A,B}
+  -> int{bgw:A,B}
+  -> list int{bgw:A,B}
+  -> list int{bgw:A,B} * int{bgw:A,B}
+def partLoop n i lo hi arr =
+  if n == 0
+  then i, arr
+  else
+    let cond = index lo arr < index hi arr
+    in let arr = condSwap cond lo hi arr
+    in let i' = i + boolToInt cond
+    in partLoop (n - 1) i' (lo+1) hi arr
+
+def partition
+  : int -- the size of the entire list
+  -> int{bgw:A,B}
+  -> int{bgw:A,B}
+  -> list int{bgw:A,B}
+  -> list int{bgw:A,B} * int{bgw:A,B}
+def partition n lo hi arr =
+  -- TODO should swap random value between lo and hi with A[hi]
+  -- let r = random lo hi
+  -- in let arr = condSwap true r hi arr
+
+  partLoop n lo lo hi arr
+
+def quickSort
+  : int -- iterations remaining
+  -> int{bgw:A,B} -- lo
+  -> int{bgw:A,B} -- hi
+  -> list int{bgw:A,B}
+  -> list int{bgw:A,B}
+def quickSort n lo hi arr =
+  if n == 0
+  then arr
+  else
+    let partitioned, pivot = partition lo hi arr
+    in
+      quickSort (n - 1) (pivot + 1) hi (quickSort lo (pivot - 1))
+arr
+
+def main : unit -> {inp:A,B;rev:A,B} list int{bgw:A,B}
+def main () =
+  let xys-pre : (list ℤ){isec:A,B}
+  let xys-pre = {par:A,B} read (list ℤ) "qsort-input.txt"
+  in
+
+  -- TODO how to merge lists? Is this what preprocess-lists does in msort?
+
+  let n = 10 -- TODO this should be the length of the merged list
+  in
+
+  quickSort n 0 0 xys-pre

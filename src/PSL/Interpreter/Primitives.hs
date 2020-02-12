@@ -10,6 +10,7 @@ interpPrim ∷ (STACK) ⇒ 𝕊 → 𝐿 Val → IM Val
 interpPrim o vs = case (o,vs) of
   ("OR"      ,tohs → [BoolV b₁  ,BoolV b₂  ])           → return $ BoolV   $ b₁ ⩔ b₂
   ("AND"     ,tohs → [BoolV b₁  ,BoolV b₂  ])           → return $ BoolV   $ b₁ ⩓ b₂
+  ("NOT"     ,tohs → [BoolV b])                         → return $ BoolV   $ not b
   ("PLUS"    ,tohs → [NatV p₁ n₁,NatV p₂ n₂]) | p₁ ≡ p₂ → return $ NatV p₁ $ trPrNat p₁ $ n₁ + n₂
   ("PLUS"    ,tohs → [IntV p₁ i₁,IntV p₂ i₂]) | p₁ ≡ p₂ → return $ IntV p₁ $ trPrInt p₁ $ i₁ + i₂
   ("PLUS"    ,tohs → [FltV p₁ f₁,FltV p₂ f₂]) | p₁ ≡ p₂ → return $ FltV p₁ $ f₁ + f₂ --trPrFlt p₁ $ f₁ + f₂
@@ -31,6 +32,7 @@ interpPrim o vs = case (o,vs) of
   ("EQ"      ,tohs → [NatV p₁ n₁,NatV p₂ n₂]) | p₁ ≡ p₂ → return $ BoolV   $ n₁ ≡ n₂
   ("EQ"      ,tohs → [IntV p₁ i₁,IntV p₂ i₂]) | p₁ ≡ p₂ → return $ BoolV   $ i₁ ≡ i₂
   ("EQ"      ,tohs → [FltV p₁ f₁,FltV p₂ f₂]) | p₁ ≡ p₂ → return $ BoolV   $ f₁ ≡ f₂
+  ("EQ"      ,tohs → [PrinV ρev₁,PrinV ρev₂])           → return $ BoolV   $ ρev₁ ≡ ρev₂
   ("LT"      ,tohs → [NatV p₁ n₁,NatV p₂ n₂]) | p₁ ≡ p₂ → return $ BoolV   $ n₁ < n₂
   ("LT"      ,tohs → [IntV p₁ i₁,IntV p₂ i₂]) | p₁ ≡ p₂ → return $ BoolV   $ i₁ < i₂
   ("LT"      ,tohs → [FltV p₁ f₁,FltV p₂ f₂]) | p₁ ≡ p₂ → return $ BoolV   $ f₁ < f₂
