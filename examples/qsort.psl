@@ -24,13 +24,13 @@ def replace
   -> int{yao:A,B} -- to insert
   -> list int{yao:A,B}
   -> list int{yao:A,B}
-def insert ix x arr =
+def replace ix x arr =
   case arr
   { [] -> []
   ; y::ys ->
     if ix == 0
     then x::ys
-    else y::(insert (ix - 1) x ys)
+    else y::(replace (ix - 1) x ys)
   }
 
 -- Swap the two indices in the array iff the condition is true
