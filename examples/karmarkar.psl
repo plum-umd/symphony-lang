@@ -550,6 +550,7 @@ def main () =
 
   -- release the list of results to the output party
   let soln = { par : Ctr, Cost } karmarkar_loop c cost in
+
   let pub_ls = { par : Ctr, Cost } (foldr soln
     (reveal{ Out, Cost, Ctr } [ ])
     (fun x tl -> reveal{ Out, Cost, Ctr} (x :: tl)) ) in

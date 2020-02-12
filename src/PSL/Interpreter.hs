@@ -360,6 +360,7 @@ testInterpreter = do
   -- testInterpreterExample "elim-sec-ls"
   -- testInterpreterExample "cmp-fn-flt"
   -- testInterpreterExample "test"
+  testInterpreterExample "share-ls"
   -- testInterpreterExample "karmarkar"
   -- testInterpreterExample "atq"
   -- testInterpreterExample "cmp-split"

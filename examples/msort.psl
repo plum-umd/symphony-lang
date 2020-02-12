@@ -92,5 +92,4 @@ def main • =
   let xys : list ℤ{isec:A,B}
   let xys = preprocess-lists set(A,B) 2 0 xys-pre
   in
-  xys
-  -- map (λ x → reveal{E} x) (msort xys)
+  map (λ x → reveal{E} x) (msort xys)
