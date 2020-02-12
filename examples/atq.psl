@@ -1,5 +1,6 @@
 principal A[2] -- Parties who supply just integers
 principal B[2] -- Parties who supply both integers and queries
+principal NONE
 
 -- basic functions
 
@@ -20,6 +21,17 @@ def elem y xs = case xs
   ; x∷xs →
     let b = x == y
     in b ? (share{bgw:A,B} true) ◇ (elem y xs)
+  }
+
+def elem-pair :
+    (ℤ{bgw:A,B} × ℙ{bgw:A,B})
+  → list (ℤ{bgw:A,B} × ℙ{bgw:A,B})
+  → 𝔹{bgw:A,B}
+def elem-pair y xs = case (xs,y)
+  { ([],_) → share{bgw:A,B} false
+  ; ((a,b)∷xs,(a',b')) →
+    let b = (a == a') && (b == b')
+    in b ? (share{bgw:A,B} true) ◇ (elem-pair y xs)
   }
 
 def elem-at :
@@ -118,6 +130,24 @@ def combine-lists xs = case xs
   ; x∷xs' → append (pfold [] (λ Q x' i → (share{bgw:A,B} x') ∷ i) x) (combine-lists xs')
   }
 
+def zip xs ys = case (xs,ys)
+  { ([],_) → []
+  ; (_,[]) → []
+  ; (x∷xs',y∷ys') → (x,y)∷(zip xs' ys')
+  }
+
+def remove-dups :
+    list (ℤ{bgw:A,B} × ℙ{bgw:A,B})
+  → list (ℤ{bgw:A,B} × ℙ{bgw:A,B})
+def remove-dups qs = case qs
+  { [] → []
+  ; (q,t)∷qs' →
+    let b = ¬(elem-pair (q,t) qs')
+    let h1 = b ? q ◇ share{bgw:A,B} (-1)
+    let h2 = b ? t ◇ share{bgw:A,B} set(NONE)
+    in (h1,h2)∷(remove-dups qs')
+  }
+
 -- atq
 
 def run-queries :
@@ -135,12 +165,11 @@ def send-result t results q =
 
 def send-results :
     list ℤ{bgw:A,B}
-  → list ℤ{bgw:A,B}
-  → list ℙ{bgw:A,B}
+--  → list (ℤ{bgw:A,B},ℙ{bgw:A,B})
   → list ℤ{ssec:any}
-def send-results results qs ts = case (qs, ts)
-  { ([], []) → []
-  ; (q∷qs',t∷ts') → (send-result (reveal{A,B} t) results q) ∷ (send-results results qs' ts')
+def send-results results ps = case ps
+  { [] → []
+  ; (q,t)∷ps' → (send-result (reveal{A,B} t) results q) ∷ (send-results results ps')
   }
 
 def main : 𝟙 →{inp:A,B;rev:A,B} list ℤ{ssec:any}
@@ -155,17 +184,23 @@ def main • =
   let xs : list ℤ{isec:A,B}
   let xs = preprocess-lists set(A,B) 2 -1 xs-pre
   let qs : list ℤ{isec:B}
-  let qs = preprocess-lists set(B) 2 -1 qs-pre
-  let ts : list ℤ{isec:B}
-  let ts = preprocess-lists set(B) 2 -1 ts-pre
+  let qs = preprocess-lists set(B) 3 -1 qs-pre
+  let ts : list ℙ{isec:B}
+  let ts = preprocess-lists set(B) 3 set(NONE) ts-pre
 
   let xs' : list ℤ{bgw:A,B}
   let xs' = combine-lists xs
   let qs' : list ℤ{bgw:A,B}
   let qs' = combine-lists qs
-  let ts' : list ℤ{bgw:A,B}
+  let ts' : list ℙ{bgw:A,B}
   let ts' = combine-lists ts
+
+  let ps : list (ℤ{bgw:A,B} × ℙ{bgw:A,B})
+  let ps = zip qs' ts'
+  let ps' : list (ℤ{bgw:A,B} × ℙ{bgw:A,B})
+  let ps' = remove-dups ps
 
   let results : list ℤ{bgw:A,B}
   let results = run-queries xs'
-  in send-results results qs' ts'
+
+  in {par:A,B} send-results results ps'

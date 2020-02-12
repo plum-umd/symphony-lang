@@ -183,7 +183,6 @@ data Type =
   | 𝔽T FPrecision                               --  𝔽#n                        /  float#n
   | Type :+: Type                               --  τ + τ                      /  τ + τ
   | Type :×: Type                               --  τ × τ                      /  τ × τ
-  | Type :^: Type                               --  τ ^ τ                      /  τ ^ τ
   | ListT Type                                  --  list τ                     /  list τ
   | Type :→: (Effect ∧ Type)                    --  τ →{η} τ                   /  τ ->{η} τ
   | (𝕏 ∧ Type ∧ 𝐿 Constr) :→†: (Effect ∧ Type)  --  (x : τ | c,…,c) →{η} τ     /  (x : τ | c,…,c) ->{η} τ

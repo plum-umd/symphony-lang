@@ -16,9 +16,9 @@ interpPrinVar x = do
         PrinV ρev → return ρev
         PrinSetV ρvs → return $ PowPEV ρvs
         _ → do
-          traceM "HERE" 
           throwIErrorCxt TypeIError "interpPrinVar: v ≢ PrinV _" $ frhs
             [ ("v",pretty v)
+            , ("γ #? x",pretty (γ ⋕? x)) 
             ]
     _ → throwIErrorCxt TypeIError "interpPrinVar: x ∉ dom(γ)" $ frhs
       [ ("x",pretty x)
