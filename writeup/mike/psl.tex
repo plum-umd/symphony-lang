@@ -15,7 +15,7 @@
 % Types
 \newcommand{\tnat}{\ensuremath{\mathtt{nat}}}
 \newcommand{\tlist}[1]{\ensuremath{\mathtt{list}~{#1}}}
-\newcommand{\tfun}[3]{\ensuremath{{#1} \rightarrow^{#3} {#2}}}
+\newcommand{\tfun}[3]{\ensuremath{{#1} ~^{#3}\!\rightarrow {#2}}}
 \newcommand{\tprod}[2]{\ensuremath{{#1} \times {#2}}}
 \newcommand{\tsum}[2]{\ensuremath{{#1} + {#2}}}
 \newcommand{\ssec}{\ensuremath{\mathtt{\cdot}}}
@@ -223,16 +223,6 @@ running on each host.
     {
     \hastyp{\Gamma}{m}{\eread}{\sectyp{\tnat}{\ssec}{m}}
     }
-    \qquad
-
-    \inferrule*[lab=E-Par]
-    {
-    m \vdash P \\
-    \hastyp{\Gamma}{{P}}{e}{\tau}
-    }
-    {
-    \hastyp{\Gamma}{m}{\epar{P}{e}}{\tau}
-    }
     \\ \\
 
     \inferrule*[lab=E-Pair]
@@ -248,8 +238,7 @@ running on each host.
     
     \inferrule*[lab=E-Access]
     {
-    m \vdash m'\\
-    \hastyp{\Gamma}{m}{e}{\sectyp{\tprod{\tau_1}{\tau_2}}{\ssec}{m'}}\\
+    \hastyp{\Gamma}{m}{e}{\sectyp{\tprod{\tau_1}{\tau_2}}{\ssec}{m}}\\
     }
     {
     \hastyp{\Gamma}{m}{\eproj{i}{e}}{\tau_i}
@@ -277,8 +266,7 @@ running on each host.
     
     \inferrule*[lab=E-Binop]
     {
-    \tau = \sectyp{\tnat}{\phi}{m'}\\
-    m \vdash m'\\\\
+    \tau = \sectyp{\tnat}{\phi}{m}\\\\
     \hastyp{\Gamma}{m}{e_1}{\tau}\\
     \hastyp{\Gamma}{m}{e_2}{\tau}\\
     }
@@ -288,9 +276,8 @@ running on each host.
 
     \inferrule*[lab=E-Mux]
     {
-    \tau = \sectyp{\tnat}{\phi}{m'}\\
-    \tau' = \sectyp{\omega}{\phi}{m'}\\
-    m \vdash m'\\\\
+    \tau = \sectyp{\tnat}{\sshare{\psi}}{m}\\
+    \tau' = \sectyp{\omega}{\sshare{\psi}}{m}\\\\
     \hastyp{\Gamma}{m}{e}{\tau}\\
     \hastyp{\Gamma}{m}{e_1}{\tau'}\\
     \hastyp{\Gamma}{m}{e_2}{\tau'}\\
@@ -301,9 +288,8 @@ running on each host.
 
     \inferrule*[lab=E-Cond]
     {
-    \tau = \sectyp{\tnat}{\ssec}{m'}\\
-    \tau' = \sectyp{\omega}{\phi}{m'}\\
-    m \vdash m'\\\\
+    \tau = \sectyp{\tnat}{\ssec}{m}\\
+    \tau' = \sectyp{\omega}{\phi}{m}\\\\
     \hastyp{\Gamma}{m}{e}{\tau}\\
     \hastyp{\Gamma}{m}{e_1}{\tau'}\\
     \hastyp{\Gamma}{m}{e_2}{\tau'}\\
@@ -324,9 +310,8 @@ running on each host.
 
     \inferrule*[lab=E-Var]
     {
-    x\!:\!\tau \in \Gamma\\
-    m \vdash m'\\\\
-    \tau = \sectyp{\omega}{\phi}{m'}\\
+    x\!:\!\tau \in \Gamma\\\\
+    \tau = \sectyp{\omega}{\phi}{m}\\
     }
     {
     \hastyp{\Gamma}{m}{x}{\tau}
@@ -334,8 +319,8 @@ running on each host.
 
    \inferrule*[lab=E-Abs]
     {
-    m \vdash m'\\\\
-    \hastyp{\Gamma, x\!:\!\tau_1}{m'}{e}{\tau}
+    m \vdash m'\\
+    \hastyp{\Gamma, x\!:\!\tau_1}{m'}{e}{\tau_2}
     }
     {
     \hastyp{\Gamma}{m}{\elam{x}{e}}{\sectyp{\tfun{\tau_1}{\tau_2}{m'}}{\ssec}{m}}
@@ -344,14 +329,32 @@ running on each host.
     \inferrule*[lab=E-App]
     {
     m \vdash m'\\
-    m \vdash m''\\\\
-    \hastyp{\Gamma}{m}{e}{\sectyp{\tfun{\tau_1}{\tau}{m'}}{\ssec}{m''}}\\\\
+    \hastyp{\Gamma}{m}{e}{\sectyp{\tfun{\tau_1}{\tau}{m'}}{\ssec}{m}}\\\\
     \hastyp{\Gamma}{m}{e_1}{\tau_1}\\
     }
     {
     \hastyp{\Gamma}{m}{\eapp{e}{e_1}}{\tau}
     }\\ \\
-   \end{array}
+
+    \inferrule*[lab=E-Par]
+    {
+    m \vdash P \\
+    \hastyp{\Gamma}{{P}}{e}{\tau}
+    }
+    {
+    \hastyp{\Gamma}{m}{\epar{P}{e}}{\tau}
+    } \qquad
+
+    \inferrule*[lab=E-Sub]
+    {
+    \hastyp{\Gamma}{m}{e}{\tau_1}\\
+    \issub{\tau_1}{\tau_2}
+    }
+    {
+    \hastyp{\Gamma}{m}{e}{\tau_2}
+    }
+
+  \end{array}
 \]
 \caption{Typing rules}
 \label{fig:typing}
@@ -369,10 +372,17 @@ Rule~\rulelab{E-Nat} types a (private) constant; it inherits the
 visibility of the current mode. Rule~\rulelab{E-Read} types the
 \kw{read} command; since it will produce a different value at each
 location, it must be run in the visibility of a single principal ($m$
-must be a singleton set). Rule~\rulelab{E-Par} runs its expression $e$
-in par mode involving principals $P$; these principals must be
-compatible with the current mode $m$ (i.e., they must be a subset of
-them).
+must be a singleton set).
+
+Jumping ahead, rule~\rulelab{E-Par} runs its expression $e$ in par
+mode involving principals $P$; these principals must be compatible
+with the current mode $m$ (i.e., they must be a subset of them). This
+coercion is useful for making the requirements of other rules match
+the expected mode; the rule is also an important hint to the execution
+engine about which parties will run a particular block.
+
+Rule~\rulelab{E-Sub} is also useful for making type requirements match
+up. The subtyping judgment is given in Figure~\ref{fig:sub}.
 
 Rules~\rulelab{E-Pair} and~\rulelab{E-Access} type introduction and
 elimination of pairs. A pair's components must have the same
@@ -381,7 +391,7 @@ same format; e.g., $\phi_1$ could be a share, while $\phi_2$ could be
 a normal value. Note that pairs themselves are never shared, but their
 contents can be.
 
-Rule~\rulelab{E-Share} introduces shares, the basis for all secure
+Rule~\rulelab{E-Share} type share introduction, the basis for all secure
 multiparty computations. The $P$ argument indicates the principals to
 which to share components of $e$, which must be a normal (non-share)
 value. This value must be visible in the current mode ($m \vdash m'$)
@@ -391,46 +401,96 @@ must be a number; neither pairs nor functions can be shares.
   Otherwise it will be unclear who should be sharing the value known
   to multiple parties.}
 
-Rule~\rulelab{E-Reveal} converts a share to a normal value. In
-essence, it forces the secure computation (which we are thinking of as
-a thunk) to produce a result, and reveals that result to the specified
-principals $P$. The rule requires that the current mode includes those
-in $P$, and those $m'$ who hold the shares. (We write $\omega$ for the
-type here, but per \rulelab{E-Share} this will always be $\tnat$.)
+Rule~\rulelab{E-Reveal} types share elimination, i.e.,converting a
+share to a normal value. In essence, it forces the secure computation
+(which we are thinking of as a thunk) to produce a result, and reveals
+that result to the specified principals $P$. The rule requires that
+the current mode includes those in $P$, and those $m'$ who hold the
+shares. (We write $\omega$ for the type here, but per
+\rulelab{E-Share} this will always be $\tnat$.)
 
-The type of $\epar{P}{e} $ is $\sectyp{\omega}{\isec}{P}$
-type. This is because $e$ is executed independently by each principal
-$p \in P$. There are constraints on the type of $e$. Off the top of my
-head:
-\begin{itemize}
-\item All types with visibility $P$ are allowed. We can use subtyping
-  (to $Q \subset P$) as needed.
-  \item We can insert nested Par blocks, with a subset of principals,
-    I think. However, their results will only be visible to subsequent
-    par blocks with the same principal set (not the parent).
-  \item Conditional execution $\econd{e_1}{e_2}{e_3}$ when $e_1$ could
-    contain an $\isec$ needs to be limited. The issue will be if $e_2$
-    has a secure computation inside it; not all parties $P$ will
-    necessarily reach this point, because their values may differ in
-    $e_1$. Remedies:
-    \begin{itemize}
-      \item Only allow conditionals in Par blocks when $P$ is a singleton, or
-      \item Forbid computations on shares inside the branches of a
-        conditional when the guard involves an \isec.
-      \end{itemize}
-\end{itemize}
+\mwh{The above two rules might be hard to execute without an
+  additional annotation. That is, we need to know the type of the $e$
+  argument to know who has the value to share or the shares to reveal,
+  and therefore how to coordinate those parties. Probably we just add
+  an additional annotation in the term.}
+
+Rule~\rulelab{E-Binop} types arithmetic computations on both shares
+and normal values---both arguments must have the same type (i.e., both
+shares or both normal values, with the same visibility), and match the
+current mode. Note that this rule precludes adding a 
+share and a normal value; you can always do this by converting the
+latter to a share (the compiler can be smart about this).
+
+Rule~\rulelab{E-Mux} types multiplexing. The semantics is to evaluate
+both branches (second and third arguments), and choose the result to
+return based on the first argument's ultimate result. These are all
+(compatible) shares, so we can think of this as making a multiplexor
+circuit. 
+
+Rule~\rulelab{E-Cond} types conditionals on normal values, i.e., the
+conditional will run on each principal in mode $m$. It can return
+shares or normal values, as desired. 
+
+\mwh{I'm not at all sure about the rules for functions!}
+
+% The type of $\epar{P}{e} $ is $\sectyp{\omega}{\isec}{P}$
+% type. This is because $e$ is executed independently by each principal
+% $p \in P$. There are constraints on the type of $e$. Off the top of my
+% head:
+% \begin{itemize}
+% \item All types with visibility $P$ are allowed. We can use subtyping
+%   (to $Q \subset P$) as needed.
+%   \item We can insert nested Par blocks, with a subset of principals,
+%     I think. However, their results will only be visible to subsequent
+%     par blocks with the same principal set (not the parent).
+%   \item Conditional execution $\econd{e_1}{e_2}{e_3}$ when $e_1$ could
+%     contain an $\isec$ needs to be limited. The issue will be if $e_2$
+%     has a secure computation inside it; not all parties $P$ will
+%     necessarily reach this point, because their values may differ in
+%     $e_1$. Remedies:
+%     \begin{itemize}
+%       \item Only allow conditionals in Par blocks when $P$ is a singleton, or
+%       \item Forbid computations on shares inside the branches of a
+%         conditional when the guard involves an \isec.
+%       \end{itemize}
+% \end{itemize}
 
 \begin{figure}
 \[\begin{array}{c}
 
-    \inferrule*[lab=S-PrinSub]
+    \inferrule*[lab=S-Nat]
     {
     m \vdash m'
     }
     {
-    \issub{\sectyp{\omega}{\ssec}{m}}{\sectyp{\omega}{\ssec}{m'}}
+    \issub{\sectyp{\tnat}{\ssec}{m}}{\sectyp{\tnat}{\ssec}{m'}}
     }
     \\ \\
+    
+    \inferrule*[lab=S-Fun]
+    {
+    m \vdash m'\\
+    \issub{\tau_1'}{\tau_1}\\
+    \issub{\tau_2}{\tau_2'}
+    }
+    {
+    \issub{\sectyp{\tfun{\tau_1}{\tau_2}{m_1}}{\ssec}{m}}{\sectyp{\tfun{\tau_1'}{\tau_2'}{m_1}}{\ssec}{m'}}
+    }
+    \\ \\
+
+    
+    \inferrule*[lab=S-Pair]
+    {
+    m \vdash m'\\
+    \issub{\tau_1}{\tau_1'}\\
+    \issub{\tau_2}{\tau_2'}
+    }
+    {
+    \issub{\sectyp{\tprod{\tau_1}{\tau_2}}{\ssec}{m}}{\sectyp{\tprod{\tau_1'}{\tau_2'}}{\ssec}{m'}}
+    }
+    \\ \\
+
     
 \end{array}
 \]
@@ -445,17 +505,15 @@ head:
 
 We have subtyping $\issub{\tau_1}{\tau_2}$, which indicates when
 $\tau_1$ can be used as $\tau_2$. The rules are in
-Figure~\ref{fig:subtyping}. Typing only permits operations among
-values of exactly the same type $\tau$. Rule PrinSub says an \ssec $P$
-can be coerced to \ssec $Q$ when $Q \subseteq P$. That is, a shared
-value visible to a larger principal set can be viewed as visible to a
-smaller one. The same is true of \isec. There is no subtyping
-arrangement for \sshare---all parties have to be present, and
-additional parties are not allowed. This is because those parties
-represent distributed secret shares of a precise number.
+Figure~\ref{fig:sub}. \mwh{These are wrong! Need to be thinking about
+  shares vs. normal values. Principle is that the visibility of normal
+  values can decrease; if $P$ know a value, then we can pretend $Q
+  \subseteq P$ do. But for shares we have to leave things
+  invariant. For a function's assumed mode, I don't think we can
+  change it---all prescribes principals must be present.}
 
 
-\section{Encoding in Wysteria}
+\section{DEPRECATED: Encoding in Wysteria}
 
 I'm starting to wonder if our idea from way back --- Wysteria with
 small extensions --- is all we really needed, where the current approach
