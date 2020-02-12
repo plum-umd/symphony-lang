@@ -548,7 +548,15 @@ def main () =
   -- let cost = { Cost } (read_vec ()) in
   let cost = { par : Cost } [ 1.0 ; 1.1 ] in
 
-  { par : Ctr, Cost }
-     (foldr (karmarkar_loop c cost)
-       (reveal{ Out, Cost, Ctr } [ ])
-       (fun x tl -> reveal{ Out, Ctr, Cost } (reveal{ Out } x) :: tl) )
+  -- release the list of results to the output party
+  let soln = { par : Ctr, Cost } karmarkar_loop c cost in
+  let pub_ls = { par : Ctr, Cost } (foldr soln
+    (reveal{ Out, Cost, Ctr } [ ])
+    (fun x tl -> reveal{ Out, Cost, Ctr} (x :: tl)) ) in
+  pub_ls
+  -- { par: Out, Ctr, Cost} (map (fun x -> reveal{ Out } x) pub_ls)
+
+  -- pub_ls
+     -- (foldr ()
+     --   (reveal{ Out, Cost, Ctr } [ ])
+     --   (fun x tl -> reveal{ Out, Ctr, Cost } (reveal{ Out } x) :: tl) )
