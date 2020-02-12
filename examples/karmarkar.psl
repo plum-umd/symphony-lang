@@ -554,9 +554,11 @@ def main () =
     (reveal{ Out, Cost, Ctr } [ ])
     (fun x tl -> reveal{ Out, Cost, Ctr} (x :: tl)) ) in
   pub_ls
+
+  -- this fails, unexpectedly
   -- { par: Out, Ctr, Cost} (map (fun x -> reveal{ Out } x) pub_ls)
 
-  -- pub_ls
-     -- (foldr ()
-     --   (reveal{ Out, Cost, Ctr } [ ])
-     --   (fun x tl -> reveal{ Out, Ctr, Cost } (reveal{ Out } x) :: tl) )
+  -- this evaluates, unexpectedly
+  -- (foldr soln
+  --   (reveal{ Out, Cost, Ctr } [ ])
+  --   (fun x tl -> reveal{ Out, Ctr, Cost } (reveal{ Out } x) :: tl) )
