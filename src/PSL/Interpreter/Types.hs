@@ -122,9 +122,8 @@ iCxtModeL = iCloCxtModeL ⊚ iCxtCloL
 data ResEv = ResEv
   { resEvProt ∷ Prot
   , resEvPrins ∷ 𝑃 PrinVal
-  , resEvType ∷ Type
+  , resEvType ∷ 𝕊
   , resEvOp ∷ 𝕊
-  , resEvArgs ∷ 𝐿 Val
   } deriving (Eq,Ord,Show)
 makePrettySum ''ResEv
 makeLenses ''ResEv
