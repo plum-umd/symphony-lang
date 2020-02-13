@@ -8,12 +8,16 @@ def foldr l acc f = case l
 ; x :: l' -> f x (foldr l' acc f)
 }
 
+-- rev_ls l: reveals the structure of l
+def rev_ls l = 
+  (case ({ par : A } (reveal{ A, B } l))
+    { [ ] -> [ ]
+    ; x :: l' -> x :: (rev_ls l') 
+    })
+
 def main () =
   let l = { par : A } [ 0 ; 1 ; 2 ] in
-  -- reveal the structure of the list, but not its contents
-  let l' = { par : A } (foldr l
-    (reveal{ A, B } [ ])
-    (fun x tl -> reveal{ A, B } (x :: tl)) ) in
+  let l' = { par : A, B } rev_ls l in
   -- reveal the contents of the list
   { par : A, B } (foldr l'
     [ ]
