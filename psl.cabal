@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b0c8dbaf150dfc4587ffeb4e545cde4c75275002a6aaa0981df39d27a1ddbb74
+-- hash: fb14922ff461aab49c4929234afbee70892eb6948e5120a39b0bb91faa078d97
 
 name:           psl
 version:        0.0.0.0
@@ -46,7 +46,9 @@ executable psl
   default-extensions: ConstraintKinds DataKinds ExplicitNamespaces FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase MonadComprehensions MultiParamTypeClasses NoImplicitPrelude OverloadedStrings PatternSynonyms PolyKinds QuantifiedConstraints RankNTypes RebindableSyntax ScopedTypeVariables StandaloneDeriving Strict StrictData TemplateHaskell TypeApplications TypeFamilies TypeOperators UndecidableInstances UndecidableSuperClasses UnicodeSyntax ViewPatterns
   ghc-options: -Wall -Wno-orphans -Wno-partial-type-signatures -j
   build-depends:
-      base
+      aeson
+    , base
+    , bytestring
     , directory
     , psl
     , uvmhs
