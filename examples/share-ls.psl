@@ -1,0 +1,20 @@
+principal A
+principal B
+
+-- foldr: right fold, the list eliminator
+def foldr : list t -> acc -> (t -> acc -> acc) -> acc
+def foldr l acc f = case l
+{ [ ] -> acc
+; x :: l' -> f x (foldr l' acc f)
+}
+
+def main () =
+  let l = { par : A } [ 0 ; 1 ; 2 ] in
+  -- reveal the structure of the list, but not its contents
+  let l' = { par : A } (foldr l
+    (reveal{ A, B } [ ])
+    (fun x tl -> reveal{ A, B } (x :: tl)) ) in
+  -- reveal the contents of the list
+  { par : A, B } (foldr l'
+    [ ]
+    (fun x tl -> ((reveal{ A, B } x) :: tl)) )
