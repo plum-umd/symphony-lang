@@ -102,6 +102,30 @@
   \label{fig:syntax}
 \end{figure}
 
+\section{README}
+
+This is a copy of Mike's version; the only changes are to the syntax, typing, and subtyping rules (not the text).
+
+In my view, the biggest change is viewing sums and encrypted sums as a unifying concept for the sorts of ``things'' that can be shared and revealed.
+
+Some of the impacts of this change:
+
+\begin{itemize}
+\item Sums and functions (and primitives like nat which can be thought of as sums) are the only types that it makes sense to be "located somewhere". In your version, you already have the notion that functions can be known to a fixed set of parties. I've simply extended this to sums (and nats). Because these things are, by definition, located at some parties, we can unify raw types and types.
+
+\item I added an explicit "encrypted sum" type which is parameterized by a protocol. This makes sense because sums (corresponding to booleans, arithmetic values, and combinations thereof) are the only real encryptions we have. This rules out the possibility of, say, a share of a function which it is not necessarily clear how to do. This also means that "formats" can be removed, since they are only needed for encrypted sums. (Encrypted sums could probably be unified with sums by including a "cleartext" protocol, but I'm not sure it's worth doing).
+
+\item Many of the typing rules become simpler. For example, pair degenerates to its typical formulation in most type systems. This is because the knownness of objects is tracked by sums and functions, so we don't need an player annotation for tuples. I'd also like to point out this is very much in line with the change to function application discussed yesterday: It's fine to have a pair of values that are known to only a subset of the players in scope. Elimination forms are the only place we need to worry about who is in scope.
+
+\item Share and reveal are generalized to coercion operations between sums and encrypted sums (instead of nats).
+
+\item I went ahead and generalized conditionals/mux's to work over sums/encrypted sums.
+
+\item I added a subtyping rule for sums that matches the existing rules (adjusted to the changes I made)
+\end{itemize}
+
+Let me know if you have any thoughts or questions!
+
 \section{TO DO}
 
 \begin{itemize}
