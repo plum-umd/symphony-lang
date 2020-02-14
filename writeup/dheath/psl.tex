@@ -1,0 +1,562 @@
+\documentclass[10pt]{article}
+
+\usepackage{times}
+\usepackage{fullpage}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathpartir}
+\usepackage{color}
+
+%%%%% DEFS %%%%%%
+
+\newcommand{\rulelab}[1]{{\small \textsc{#1}}}
+\newcommand{\kw}[1]{\ensuremath{\mathtt{#1}}}
+
+% Types
+\newcommand{\tnat}{\ensuremath{\mathtt{nat}}}
+\newcommand{\tlist}[1]{\ensuremath{\mathtt{list}~{#1}}}
+\newcommand{\tfun}[3]{\ensuremath{{#1} ~^{#3}\!\rightarrow {#2}}}
+\newcommand{\tprod}[2]{\ensuremath{{#1} \times {#2}}}
+\newcommand{\tsum}[2]{\ensuremath{{#1} + {#2}}}
+\newcommand{\ssec}{\ensuremath{\mathtt{\cdot}}}
+\newcommand{\isec}{\ensuremath{\mathtt{pmap}}}
+\newcommand{\sshare}[1]{\ensuremath{\mathtt{shr}~{#1}}}
+\newcommand{\sectyp}[3]{\ensuremath{{#1} \{~{#2}:{#3}~\}}}
+  
+% Terms
+\newcommand{\ebinop}[2]{\ensuremath{{#1}~\oplus~{#2}}}
+\newcommand{\elet}[3]{\ensuremath{\kw{let}~#1\, =\, #2~\kw{in}\;{#3}}}
+\newcommand{\epar}[2]{\ensuremath{\kw{par}~{#1}~{#2}}}
+\newcommand{\esec}[2]{\ensuremath{\kw{sec}~{#1}~{#2}}}
+\newcommand{\ereveal}[3]{\ensuremath{\kw{reveal}^{#1}~{#2}~{#3}}}
+\newcommand{\econd}[3]{\ensuremath{\kw{if}~{#1}~\kw{then}~{#2}~\kw{else}~{#3}}}
+\newcommand{\emux}[3]{\ensuremath{\kw{mux}~{#1}~\kw{?}~{#2}~\kw{:}~{#3}}}
+\newcommand{\eshare}[4]{\ensuremath{\kw{share}^{#2}_{#1}~{#3}~{#4}}}
+\newcommand{\esharemap}[3]{\ensuremath{\kw{sharemap}_{#1}~{#2}~{#3}}}
+\newcommand{\econcat}[2]{\ensuremath{{#1} +\!\!+~ {#2}}} 
+\newcommand{\eaccval}[2]{\ensuremath{{#1}.{#2}}}
+\newcommand{\eread}{\ensuremath{\kw{read}}}
+\newcommand{\epair}[2]{\ensuremath{\langle {#1}, {#2} \rangle}}
+\newcommand{\eproj}[2]{\ensuremath{\kw{\#}}_{#1}~{#2}}
+\newcommand{\elam}[2]{\ensuremath{\lambda {#1}.{#2}}}
+\newcommand{\eapp}[2]{\ensuremath{{#1}~{#2}}}
+
+% Judgments
+\newcommand{\hastyp}[4]{\ensuremath{{#1} \vdash_{#2} {#3} : {#4}}}
+\newcommand{\canshare}[1]{\ensuremath{\text{isFlat } {#1}}}
+\newcommand{\subtype}{\ensuremath{<:}}
+\newcommand{\issub}[2]{{#1} \subtype {#2}}
+
+% Aux
+% \newcommand{\mpar}[1]{\ensuremath{\mathsf{p}(#1)}}
+% \newcommand{\msec}[1]{\ensuremath{\mathsf{s}(#1)}}
+
+%%%%%%%%%%
+
+\newcommand{\mwh}[1]{\textcolor{red}{Mike: #1}}
+
+\title{PANTHEON Source Language}
+\author{PANTHEON Team}
+
+\begin{document}
+
+\maketitle
+
+\begin{figure}[h]
+  \centering
+  \[\begin{array}{rlcll}
+      \text{Principal} & p, q \\
+      \text{Principal set} & P, Q \\
+    \text{Execution modes} & m  & ::=  & \top & \text{par mode with all principals}\\
+                 && \mid & P & \text{par mode with principals $P$} \\      
+      \text{Types} & \tau & ::=  & \tnat^m & \text{a base type} \\
+                       && \mid & \mathtt{unit} & \text{singleton type} \\
+                       && \mid & \tprod{\tau}{\tau} & \text{pairs} \\
+                       && \mid & \tau +^m \tau & \text{sums} \\
+                       && \mid & \tau +^m_\psi \tau & \text{encrypted sums} \\
+                       % && \mid & \tlist{\tau} & \text{lists} \\
+                       && \mid & \tau \rightarrow^m \tau & \text{functions} \\
+      \text{Protocol} & \psi & ::= & ... & \text{MPC type} \\
+      \text{Expressions} & e & ::= & n & \text{naturals} \\
+                       && \mid & x & \text{variables} \\
+                       % && \mid & \econcat{e_1}{e_2} & \text{concatenate $\isec$s}\\
+                       % && \mid & \eaccval{e}{p} & \text{$p$'s value}\\
+                       && \mid & \eread & \text{read from terminal}\\
+                       && \mid & \epair{e_1}{e_2} & \text{pair construction}\\
+                       && \mid & \eproj{i}{e} & \text{pair elem, }i \in \{1,2\}\\
+                       && \mid & \eshare{\psi}{P}{Q}{e} & \text{$\psi$ shares at $P$ to $Q$} \\
+                       % && \mid & \esharemap{\psi}{P}{e} & \text{$\psi$ shares of $\isec$ to $P$} \\
+                       && \mid & \ebinop{e_1}{e_2}  & \text{binary operation} \\
+                       && \mid & \econd{e_1}{e_2}{e_3}  & \text{non-MPC conditional} \\
+                       && \mid & \emux{e_1}{e_2}{e_3}  & \text{MPC conditional} \\
+                       && \mid & \epar{P}{e} & \text{parallel evaluation}\\
+%                       && \mid & \eall{P}{e} & \text{parallel evaluation}\\
+                       % && \mid & \esec{P}{e} & \text{secure (cryptographic) evaluation}\\
+                       && \mid & \ereveal{P}{Q}{e} & \text{distribute result at $Q$ to $P$}\\
+                       && \mid & \elam{x}{e}  & \text{abstraction} \\
+                       && \mid & \eapp{e_1}{e_2}  & \text{application} \\
+                       && \mid & \elet{x}{e_1}{e_2}  & \text{sequencing} \\
+  \end{array}
+  \]
+  \caption{Syntax}
+  \label{fig:syntax}
+\end{figure}
+
+\section{TO DO}
+
+\begin{itemize}
+\item list types (can't encrypt)
+\item sum types (can encrypt -- the encrypted part is the boolean as
+  to which branch you are in. Constructors need to provide both
+  options; case statements result in every possibility being executed)
+\item drop $\top$ ?
+\item I've dropped wire bundles and first-class principals, for
+  now. These allow for generic, $N$-party computations. Will want
+  later.
+  \begin{itemize}
+  \item Wire bundles. Can we encode these? We now allow tuples whose
+    components $i$ have visibility $P_i \subseteq Q$ where $Q$ is the
+    visibility of the entire tuple.
+  \item Solo mode
+  \item First-class principal sets, as data, and appearing in
+    syntactic forms (e.g., $\ereveal{P}{Q}{e}$ should be
+    $\ereveal{e_q}{e_q}{e}$ where $e_P$ and $e_q$ are principal sets).
+  \end{itemize}
+\end{itemize}
+
+\section{Syntax}
+  
+The syntax of core PSL is in Figure~\ref{fig:syntax}.
+
+Raw types $\omega$ are normal types (numbers, pairs, functions). Types
+$\tau$ have form $\sectyp{\omega}{\phi}{m}$, which includes a the raw
+type $\omega$, the \emph{format} $\phi$, and the \emph{mode}
+$m$, which is a list of principals who can access/see the value (if
+it's $\top$, then all involved principals can see the value). The raw
+type indicates the basic type of the value (function, number, list,
+etc.), while the format is either \emph{secret shares} $\sshare\psi$,
+which indicate a single value that is secret-shared among the given
+set of parties $m$, amenable to MPC using protocol $\psi$ (e.g., BGW,
+GMW, Yao), or \emph{secrets} \ssec, which indicate a single value
+known to (accessible by) those parties in the set $m$, but no others.
+% \item \emph{maps} \isec, which indicate a single variable for which
+%   each principal in $P$ may have a distinct value, known only to that
+%   principal. 
+
+% \mwh{Ramble follows; I think the upshot is that this doesn't work}
+% We make shares explicitly among some set of principals operating in
+% lockstep. So, shares of $e$ to $P$ require being in a par block
+% involving $Q \supseteq P$. But in Wysteria, you can only access a wire
+% bundle value in par mode if it's a singleton. This is to prevent Alice
+% and Bob access their values, which would be OK if subset was OK, and
+% then summing them up. I think this has to be in a sec block.
+
+% Should secure mode always return a share type? Thus, Wysteria is
+% reveal P (sec P e) ? But this seems not to work with the above. It
+% requires I explicitly share with a subset of principals, rather than
+% implicitly share with all of them on return.
+
+\section{Semantics}
+
+The semantics is inspired by that of Wysteria, in there being a single
+program involving multiple, lock-step principals. However, the notion
+of secure mode has disappeared. We just have a mode $m$ which is
+either $\top$, meaning all principals are conceptually executing the
+present expression, or $P$ indicating that the principals
+$p \in P$ are executing it, but other principals $q \not\in P$ are not
+(they skip it). The computation always starts in mode $\top$, i.e.,
+with all principals. Thus, each principal is running the same program,
+but it will skip those blocks of code that don't apply to it.  A key
+goal of the system is that all parties are ``present'' to perform
+joint-secure operations when they need to be.
+
+Our hoped-for invariant of the semantics is that all parties $p \in P$
+will execute $e$ in $\epar{P}{e}$. Within $e$, there may be variables
+$x$ that are only visible to some set $Q \subseteq P$. For those
+$p \not\in Q$, it should be sufficient to store $\langle \rangle$
+(unit) in this variable---it will never be ``destructed'' and is just
+a placeholder.
+
+Cryptographic computations are those over values of
+$\sectyp{\omega}{\sshare{\psi}}{m}$ type. Whenever something of this
+type ends up in destruct position (e.g., $\ebinop{e_1}{e_2}$) instead
+of actually doing the computation, we can think of the operation as
+being made into a thunk.\footnote{Behind the scenes the operation
+  might actually take place, e.g., when adding shares or communicating
+  to multiply them. Or the frozen operation might result in a circuit
+  being constructed.} For example, if we do $\ebinop{e_1}{e_2}$ and
+$e_1$ and $e_2$ are both shares (i.e., of type $\sshare{\psi}$), then
+the result is that both parties will construct a circuit over those
+shares, locally. The $\ereveal{P}{Q}{e}$ construct takes as its argument
+a share and forces the computation to happen. That is, at that moment
+the secure computation will be forced to completion, and the result
+revealed to the involved principals $Q$.
+
+Not all operations can happen cryptographically. For example, a
+$\kw{mux}$ operation can, and thus can operate directly on shares, but
+a conditional $\kw{if}$ cannot---it operates on cleartext values,
+running on each host.
+
+\section{Typing}
+
+\begin{figure}
+\[\begin{array}{c}
+
+    \inferrule*[lab=E-Nat]
+    {
+    }
+    {
+    \hastyp{\Gamma}{m}{n}{\tnat^{m}}
+    }
+    \qquad
+
+    \inferrule*[lab=E-Read]
+    {
+    m\text{ is a singleton}
+    }
+    {
+    \hastyp{\Gamma}{m}{\eread}{\tnat^{m}}
+    }
+    \\ \\
+
+    \inferrule*[lab=E-Pair]
+    {
+    \hastyp{\Gamma}{m}{e_1}{\tau_1}\\
+    \hastyp{\Gamma}{m}{e_2}{\tau_2}
+    }
+    {
+    \hastyp{\Gamma}{m}{\epair{e_1}{e_2}}{\tau_1 \times \tau_2}
+    }\qquad
+    
+    \inferrule*[lab=E-Access]
+    {
+    \hastyp{\Gamma}{m}{e}{\tau_1 \times \tau_2}\\
+    }
+    {
+    \hastyp{\Gamma}{m}{\eproj{i}{e}}{\tau_i}
+    }\\\\
+    
+    \inferrule*[lab=E-Share]
+    {
+    m \vdash P\\
+    m \vdash Q\\\\
+    \hastyp{\Gamma}{m}{e}{\tau_0 +^P \tau_1}\\
+    }
+    {
+    \hastyp{\Gamma}{m}{\eshare{\psi}{P}{Q}{e}}{\tau_0 +^Q_\psi \tau_1}
+    }    \qquad
+    
+    \inferrule*[lab=E-Reveal]
+    {
+    m \vdash P\\
+    m \vdash Q\\\\
+    \hastyp{\Gamma}{m}{e}{\tau_0 +^P_\psi \tau_1}\\
+    }
+    {
+    \hastyp{\Gamma}{m}{\ereveal{P}{Q}{e}}{\tau_0 +^Q \tau_1}
+    }\\\\
+    
+    \inferrule*[lab=E-Binop]
+    {
+    \tau = \tnat^m\\\\
+    \hastyp{\Gamma}{m}{e_1}{\tau}\\
+    \hastyp{\Gamma}{m}{e_2}{\tau}\\
+    }
+    {
+    \hastyp{\Gamma}{m}{\ebinop{e_1}{e_2}}{\tau}
+    }\qquad
+
+    \inferrule*[lab=E-Mux]
+    {
+    \hastyp{\Gamma}{m}{e}{\tau_0 +^m_\psi \tau_1}\\\\
+    \hastyp{\Gamma}{m}{e_1}{\tau_0 \rightarrow^m \tau}\\
+    \hastyp{\Gamma}{m}{e_2}{\tau_1 \rightarrow^m \tau}\\
+    }
+    {
+    \hastyp{\Gamma}{m}{\emux{e}{e_1}{e_2}}{\tau}
+    }\\ \\
+
+    \inferrule*[lab=E-Match]
+    {
+    \hastyp{\Gamma}{m}{e}{\tau_0 +^m \tau_1}\\\\
+    \hastyp{\Gamma}{m}{e_1}{\tau_0 \rightarrow^m \tau}\\
+    \hastyp{\Gamma}{m}{e_2}{\tau_1 \rightarrow^m \tau}\\
+    }
+    {
+      \hastyp{\Gamma}{m}{\mathtt{match}~e~\mathtt{with}~e_1\mid e_2}{\tau}
+    }\qquad
+
+    \inferrule*[lab=E-Let]
+    {
+    \hastyp{\Gamma}{m}{e_1}{\tau_1}\\\\
+    \hastyp{\Gamma, x\!:\!\tau_1}{m}{e_2}{\tau}
+    }
+    {
+    \hastyp{\Gamma}{m}{\elet{x}{e_1}{e_2}}{\tau}
+    }\\ \\
+
+    \inferrule*[lab=E-Var]
+    {
+    x\!:\!\tau \in \Gamma
+    }
+    {
+    \hastyp{\Gamma}{m}{x}{\tau}
+    }\qquad
+
+   \inferrule*[lab=E-Abs]
+    {
+    m \vdash m'\\
+    \hastyp{\Gamma, x\!:\!\tau_1}{m'}{e}{\tau_2}
+    }
+    {
+    \hastyp{\Gamma}{m}{\elam{x}{e}}{\tau_1 \rightarrow^{m'} \tau_2}
+    }\qquad
+   
+    \inferrule*[lab=E-App]
+    {
+    m \vdash m'\\
+    \hastyp{\Gamma}{m}{e}{\tau_1 \rightarrow^{m'}\tau}\\\\
+    \hastyp{\Gamma}{m}{e_1}{\tau_1}\\
+    }
+    {
+    \hastyp{\Gamma}{m}{\eapp{e}{e_1}}{\tau}
+    }\\ \\
+
+    \inferrule*[lab=E-Par]
+    {
+    m \vdash P \\
+    \hastyp{\Gamma}{{P}}{e}{\tau}
+    }
+    {
+    \hastyp{\Gamma}{m}{\epar{P}{e}}{\tau}
+    } \qquad
+
+    \inferrule*[lab=E-Sub]
+    {
+    \hastyp{\Gamma}{m}{e}{\tau_1}\\
+    \issub{\tau_1}{\tau_2}
+    }
+    {
+    \hastyp{\Gamma}{m}{e}{\tau_2}
+    }
+
+  \end{array}
+\]
+\caption{Typing rules}
+\label{fig:typing}
+\end{figure}
+
+The typing judgment's rules are defined in Figure~\ref{fig:typing}.
+The typing judgment has form $\hastyp{\Gamma}{m}{e}{\tau}$. It states
+that under context $\Gamma$, expression $e$ has type $\tau$ when
+evaluating in mode $m$. These rules reference the judgment
+$m \vdash m;$ says that principals designated in $m'$ are
+\emph{present} when executing in mode $m$. $m \vdash m'$ holds when
+$m = \top$ or $m = Q$ and $m' = P$ and $P \subseteq Q$.
+
+Rule~\rulelab{E-Nat} types a (private) constant; it inherits the
+visibility of the current mode. Rule~\rulelab{E-Read} types the
+\kw{read} command; since it will produce a different value at each
+location, it must be run in the visibility of a single principal ($m$
+must be a singleton set).
+
+Jumping ahead, rule~\rulelab{E-Par} runs its expression $e$ in par
+mode involving principals $P$; these principals must be compatible
+with the current mode $m$ (i.e., they must be a subset of them). This
+coercion is useful for making the requirements of other rules match
+the expected mode; the rule is also an important hint to the execution
+engine about which parties will run a particular block.
+
+Rule~\rulelab{E-Sub} is also useful for making type requirements match
+up. The subtyping judgment is given in Figure~\ref{fig:sub}.
+
+Rules~\rulelab{E-Pair} and~\rulelab{E-Access} type introduction and
+elimination of pairs. A pair's components must have the 
+at least the same visibility $m$ as the pair itself. They are not required to have the
+same format; e.g., $\phi_1$ could be a share, while $\phi_2$ could be
+a normal value. Note that pairs themselves are never shared, but their
+contents can be. \mwh{Enforce this?}
+
+Rule~\rulelab{E-Share} type share introduction, the basis for all secure
+multiparty computations. The $P$ argument indicates the principal
+doing the sharing, while the $Q$ argument indicates the principals to
+which to share $e$ (which must be a normal (non-share)
+value). This value of $e$ must be visible in the current mode ($m \vdash P$)
+and the principals $Q$ must be present as well. Finally, the value
+must be a number; neither pairs nor functions can be shares. 
+\mwh{Should we require the share's visibility $m'$ to be singleton?
+  Otherwise it will be unclear who should be sharing the value known
+  to multiple parties.}
+
+Rule~\rulelab{E-Reveal} types share elimination, i.e., converting a
+share to a normal value. In essence, it forces the secure computation
+(which we are thinking of as a thunk) to produce a result, and reveals
+that result held by principals $P$ to the specified principals
+$Q$. The rule requires that the current mode includes those in $Q$,
+and those $P$ who hold the shares. (We write $\omega$ for the type
+here, but per \rulelab{E-Share} this will always be $\tnat$.)
+
+Rule~\rulelab{E-Binop} types arithmetic computations on both shares
+and normal values---both arguments must have the same type (i.e., both
+shares or both normal values, with the same visibility), and match the
+current mode. Note that this rule precludes adding a 
+share and a normal value; you can always do this by converting the
+latter to a share (the compiler can be smart about this).
+
+Rule~\rulelab{E-Mux} types multiplexing. The semantics is to evaluate
+both branches (second and third arguments), and choose the result to
+return based on the first argument's ultimate result. These are all
+(compatible) shares, so we can think of this as making a multiplexor
+circuit. 
+
+Rule~\rulelab{E-Cond} types conditionals on normal values, i.e., the
+conditional will run on each principal in mode $m$. It can return
+shares or normal values, as desired. 
+
+\mwh{Say more about the var, abs, app rules. The key here is that the
+  variable rule does not require $\tau$'s visibility to match the
+  current mode. The visibility requirement will be enforced later. The
+  abs rule needs to think about variables added in the closure. The
+  app rule takes this into account.}
+
+% The type of $\epar{P}{e} $ is $\sectyp{\omega}{\isec}{P}$
+% type. This is because $e$ is executed independently by each principal
+% $p \in P$. There are constraints on the type of $e$. Off the top of my
+% head:
+% \begin{itemize}
+% \item All types with visibility $P$ are allowed. We can use subtyping
+%   (to $Q \subset P$) as needed.
+%   \item We can insert nested Par blocks, with a subset of principals,
+%     I think. However, their results will only be visible to subsequent
+%     par blocks with the same principal set (not the parent).
+%   \item Conditional execution $\econd{e_1}{e_2}{e_3}$ when $e_1$ could
+%     contain an $\isec$ needs to be limited. The issue will be if $e_2$
+%     has a secure computation inside it; not all parties $P$ will
+%     necessarily reach this point, because their values may differ in
+%     $e_1$. Remedies:
+%     \begin{itemize}
+%       \item Only allow conditionals in Par blocks when $P$ is a singleton, or
+%       \item Forbid computations on shares inside the branches of a
+%         conditional when the guard involves an \isec.
+%       \end{itemize}
+% \end{itemize}
+
+\begin{figure}
+\[\begin{array}{c}
+
+    \inferrule*[lab=S-Nat]
+    {
+    m \vdash m'
+    }
+    {
+    \issub{\tnat^m}{\tnat^{m'}}
+    } \qquad
+
+    \inferrule*[lab=S-Sum]
+    {
+    m \vdash m'\\
+    \issub{\tau_1}{\tau_1'}\\
+    \issub{\tau_2}{\tau_2'}
+    }
+    {
+    \issub{\tau_1 +^m \tau_2}{\tau_1' +^{m'} \tau_2'}
+    }
+    \\ \\
+    
+    \inferrule*[lab=S-Fun]
+    {
+    m \vdash m'\\
+    \issub{\tau_1'}{\tau_1}\\
+    \issub{\tau_2}{\tau_2'}
+    }
+    {
+    \issub{\tau_1 \rightarrow^m \tau_2}{\tau_1' \rightarrow^{m'} \tau_2'}
+    }\qquad
+
+    
+    \inferrule*[lab=S-Pair]
+    {
+    \issub{\tau_1}{\tau_1'}\\
+    \issub{\tau_2}{\tau_2'}
+    }
+    {
+    \issub{\tau_1 \times \tau_2}{\tau_1' \times \tau_2'}
+    }
+    \\ \\
+
+    
+\end{array}
+\]
+\caption{Subtyping}
+\label{fig:sub}
+\end{figure}
+
+
+
+
+\paragraph{Subtyping}
+
+We have subtyping $\issub{\tau_1}{\tau_2}$, which indicates when
+$\tau_1$ can be used as $\tau_2$. The rules are in
+Figure~\ref{fig:sub}. \mwh{These are wrong! Need to be thinking about
+  shares vs. normal values. Principle is that the visibility of normal
+  values can decrease; if $P$ know a value, then we can pretend $Q
+  \subseteq P$ do. But for shares we have to leave things
+  invariant. For a function's assumed mode, I don't think we can
+  change it---all prescribes principals must be present.}
+
+
+\section{DEPRECATED: Encoding in Wysteria}
+
+I'm starting to wonder if our idea from way back --- Wysteria with
+small extensions --- is all we really needed, where the current approach
+to PSL is just this system with some inference added in. Those
+extensions are:
+\begin{itemize}
+\item that you can create shares for a subset of parties in a secure
+  block. Thus, for Alice to create shares for Bob and Charlie, all
+  three join the secure block, and then create shares from Alice's
+  value. We also need to be able to reconstitute shares for a subset
+  of parties; i.e., if there are shares between A and B, we can make a
+  secure block with A, B, and C, and reconstitute the shares within
+  it. 
+\item some kind of seal/unseal primitives for making $\ssec$ values, as
+in Wys$^\star$, so as to avoid the weird $\Gamma$ in the Wysteria
+paper. I think this also has the benefit that you can use subtyping to
+make a sealed value less visible. But maybe this should be a wire
+bundle instead, so the runtime semantics is clear?
+\mwh{Have a look at the markdown I wrote a while back}
+\end{itemize}
+
+Then PSL is basically inference and encoding down to this.
+
+\paragraph{Share primitive} In PSL you can write \texttt{share $P$
+  $e$}, which means to secret-share $e$ among principals $P$. It might
+be that $e$ is owned by some principal $p$ not in $P$. In our encoding
+we do this via \texttt{sec $\{p\}\cup{P}$ (makesh $P$ $e$)}.
+
+\paragraph{Secure computation} In PSL everything you compute on
+securely is conceptually a share, and only by explicitly revealing a
+share do you get a value. The default in Wysteria is the
+opposite. Thus the encoding of $e_1 \oplus e_2$ in PSL, where $e_1$
+and $e_2$ are both share types over the same principal $P$, would be
+\texttt{sec $P$ (makesh $P$ ((combsh $e_1$) $\oplus$ (combsh
+  $e_2$)))}. The encoding for PSL's \texttt{reveal $P$ $e$} would be
+\texttt{sec $R$ (let x = combsh $e$ in wire $P$ x)} where $e$ is
+a share over principals $Q$ and $Q \cup P = R$. 
+
+\paragraph{SIMD computations resulting in principal mapped values} In
+the euclid example, we have something like
+\begin{verbatim}
+  let ab = {par:A,B} read int "euclid.txt"
+\end{verbatim}
+The idea is that \verb+ab+ is a $\isec$ value for $A$ and $B$. In
+normal Wysteria you can only call \texttt{read} in a par block with a
+single principal, but we can encode something like the above using
+\texttt{wapp}. Basically \texttt{par $P$ e} in PSL is \texttt{wapp $P$
+  ($\lambda$ x. par x $e$)} where \texttt{x} will be bound to the principal
+executing $e$. It's not mentioned in the Wysteria paper, but I suspect
+that the lambda term should executing $e$ in par mode anyway, so I'm
+not sure why we have to specify it.
+
+\end{document}
