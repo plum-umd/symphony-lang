@@ -34,7 +34,7 @@ data Val =
 data ValP =
     SSecVP (𝑃 PrinVal) Val
   | ISecVP (PrinVal ⇰ Val)
-  | ShareVP Prot (𝑃 PrinVal) ValMPC
+  | ShareVP Prot (𝑃 PrinVal) ℕ ValMPC
   | AllVP Val
   deriving (Eq,Ord,Show)
 
@@ -122,9 +122,9 @@ iCxtModeL = iCloCxtModeL ⊚ iCxtCloL
 data ResEv = ResEv
   { resEvProt ∷ Prot
   , resEvPrins ∷ 𝑃 PrinVal
-  , resEvType ∷ Type
+  , resEvType ∷ 𝕊
   , resEvOp ∷ 𝕊
-  , resEvArgs ∷ 𝐿 Val
+  , resEvMultDepth ∷ ℕ
   } deriving (Eq,Ord,Show)
 makePrettySum ''ResEv
 makeLenses ''ResEv

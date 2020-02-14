@@ -6,7 +6,7 @@ principal NONE
 
 def length :
     list ℤ{bgw:A,B}
-  → ℤ{bgw:A,B}
+  → ℤ
 def length xs = case xs
   { [] → 0
   ; x∷xs' → length xs' + 1
@@ -142,9 +142,9 @@ def remove-dups :
 def remove-dups qs = case qs
   { [] → []
   ; (q,t)∷qs' →
-    let b = ¬(elem-pair (q,t) qs')
-    let h1 = b ? q ◇ share{bgw:A,B} (-1)
-    let h2 = b ? t ◇ share{bgw:A,B} set(NONE)
+    let b = elem-pair (q,t) qs'
+    let h1 = b ? share{bgw:A,B} (-1) ◇ q
+    let h2 = b ? share{bgw:A,B} set(NONE) ◇ t
     in (h1,h2)∷(remove-dups qs')
   }
 
@@ -165,7 +165,7 @@ def send-result t results q =
 
 def send-results :
     list ℤ{bgw:A,B}
---  → list (ℤ{bgw:A,B},ℙ{bgw:A,B})
+  → list (ℤ{bgw:A,B} × ℙ{bgw:A,B})
   → list ℤ{ssec:any}
 def send-results results ps = case ps
   { [] → []

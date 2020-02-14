@@ -13,6 +13,9 @@ import PSL.Interpreter.Access
 import PSL.Interpreter.PrinExp
 import PSL.Interpreter.ReadType
 
+import qualified Data.Aeson as JSON
+import qualified Data.ByteString.Lazy as BS
+
 ---------------
 -- VARIABLES --
 ---------------
@@ -210,7 +213,7 @@ interpExp = wrapInterp $ \case
       , abort𝑂 $ view allVPL ṽ
       ]
     sv ← success $ mpcFrVal v
-    return $ ShareVP φ ρvs sv
+    return $ ShareVP φ ρvs 0 sv
   AccessE e' ρ → do
     ρv ← success $ interpPrinExpSingle ρ
     ṽ ← success $ interpExp e'
@@ -229,7 +232,7 @@ interpExp = wrapInterp $ \case
     ρvs ← success $ unions ^$ prinExpVals ^^$ mapM interpPrinExp ρes
     ṽ ← success $ interpExp e'
     case ṽ of
-      ShareVP _φ _ρs sv →
+      ShareVP _φ _ρs _md sv →
         let v = valFrMPC sv in
         return $ SSecVP ρvs v
       SSecVP ρs v → do
@@ -259,8 +262,16 @@ interpExp = wrapInterp $ \case
   PrimE o es → success $ do
     ṽs ← mapM interpExp es
     vs :* φρsO ← unShareValPs ṽs
-    v ← interpPrim o vs
-    reShareValP φρsO v
+    v :* τ ← interpPrim o vs
+    let φρsO' = mapOn φρsO $ \ (φ :* ρs :* md) →
+          let md' = if o ≡ "TIMES" then md + 1 else md
+          in φ :* ρs :* md'
+    v' ← reShareValP φρsO' v
+    case φρsO' of
+      None → skip
+      Some (φ :* ρs :* md) → do 
+        tellL iOutResEvsL $ single $ ResEv φ ρs τ o md
+    return v'
   TraceE e₁ e₂ → success $ do
     v ← interpExp e₁
     pptrace v $ interpExp e₂
@@ -305,6 +316,34 @@ interpretFile fn = do
     σ ← get
     return $ o :* σ
 
+stringProtocol ∷ Prot → 𝕊
+stringProtocol = \case
+  YaoP  → "yao"
+  BGWP  → "bgw"
+  GMWP  → "gmw"
+  BGVP  → "bgv"
+  SPDZP → "spdz"
+
+jsonPrinVal ∷ PrinVal → 𝕊
+jsonPrinVal = \case
+  SinglePV s → s
+  AccessPV s i → s ⧺ "_" ⧺ show𝕊 i
+
+jsonPrins ∷ 𝑃 PrinVal → JSON.Value
+jsonPrins = JSON.toJSON ∘ lazyList ∘ map jsonPrinVal ∘ iter
+
+jsonEvent ∷ ResEv → JSON.Value
+jsonEvent (ResEv φ ρs τ o md) = 
+  JSON.object [ "protocol" JSON..= stringProtocol φ 
+              , "principals" JSON..= jsonPrins ρs
+              , "type" JSON..= τ
+              , "op" JSON..= o
+              , "mult_depth" JSON..= md
+              ]
+
+jsonEvents ∷ (ToIter ResEv t) ⇒ t → JSON.Value
+jsonEvents = JSON.toJSON ∘ lazyList ∘ map jsonEvent ∘ iter
+
 interpretExample ∷ 𝕊 → IO ValP
 interpretExample fn = do
   let path = "examples/" ⧺ fn ⧺ ".psl"
@@ -312,7 +351,9 @@ interpretExample fn = do
   o₁ :* σtl ← interpretFile path
   let v = itlStateEnv σtl ⋕! var "main"
   o₂ :* v' ← evalITLMIO σtl $ hijack $ asTLM $ interpApp v $ AllVP BulV
-  write ("resources/" ⧺ fn ⧺ ".res") $ "RESOURCE ESTIMATION\n" ⧺ concat (inbetween "\n" $ map show𝕊 $ iOutResEvs $ o₁ ⧺ o₂)
+  let o = o₁ ⧺ o₂
+  -- write ("resources/" ⧺ fn ⧺ ".res") $ "RESOURCE ESTIMATION\n" ⧺ concat (inbetween "\n" $ map show𝕊 $ iOutResEvs o)
+  BS.writeFile (chars $ "resources/" ⧺ fn ⧺ ".res") $ JSON.encode $ jsonEvents $ iOutResEvs o
   return v'
 
 interpretTest ∷ 𝕊 → IO (ValP ∧ ValP)
@@ -367,3 +408,4 @@ testInterpreter = do
   -- testInterpreterExample "cmp-split"
   -- testInterpreterExample "cmp-tutorial"
   -- testInterpreterExample "add"
+  -- testInterpreterExample "sumprod"

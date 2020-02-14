@@ -1,0 +1,53 @@
+(Keep in mind there may be some operations missing or some may not actually be needed)
+
+Msort
+  BGV
+    Cond(S,S,S)
+    S ≤ S
+
+Qsort
+  BGW, SPDZ
+    Cond(S,S,S)
+    S ≤ S
+    S + S
+    S - S
+
+GCD/Euclid
+  Yao, BGV
+    S ≡ const
+    Cond(S,S,S)
+    S % S
+    S < S
+
+Karmakar
+  SPDZ (with floats)
+    Cond(S,S,S)
+    sqrt S
+    S ≡ const
+    S ≤ S
+    S + S
+    S + const   --?
+    S * S
+    S * const   --?
+    S / S
+
+DB-Stats
+  BGV
+    Cond(S,S,S)
+    S ≡ S
+    S < S
+    (↓ used for avg and std-dev over lists of secrets with secret lengths)
+    S + S
+    S * S
+    S / S
+
+ATQ
+  BGW, SPDZ
+    Cond(S,S,S)
+    S ≡ S
+    S < S
+    (↓ used for testing for dummy data, might be able to remove these)
+    S < const
+    S || S
+    S && S
+

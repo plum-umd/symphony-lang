@@ -69,18 +69,13 @@
       \text{Principal set} & P, Q \\
     \text{Execution modes} & m  & ::=  & \top & \text{par mode with all principals}\\
                  && \mid & P & \text{par mode with principals $P$} \\      
-      \text{Raw types} & \omega  & ::=  & \tnat & \text{a base type} \\      
+      \text{Types} & \tau & ::=  & \tnat^m & \text{a base type} \\
+                       && \mid & \mathtt{unit} & \text{singleton type} \\
                        && \mid & \tprod{\tau}{\tau} & \text{pairs} \\
-                       % && \mid & \tsum{\tau}{\tau} & \text{sums} \\
+                       && \mid & \tau +^m \tau & \text{sums} \\
+                       && \mid & \tau +^m_\psi \tau & \text{encrypted sums} \\
                        % && \mid & \tlist{\tau} & \text{lists} \\
-                       && \mid & \tfun{\tau}{\tau}{m} & \text{functions} \\
-      \text{Types} & \tau & ::= &
-                       %                  \omega & \text{cleartext values} \\
-                       % && \mid &
-                                 \sectyp\omega\phi{m} & \text{located values} \\
-      \text{Format} & \phi & ::= & \ssec & \text{private value}  \\
-                       % && \mid & \isec & \text{per-principal value}  \\
-                       && \mid & \sshare{\psi} & \text{secret share of type $\psi$} \\
+                       && \mid & \tau \rightarrow^m \tau & \text{functions} \\
       \text{Protocol} & \psi & ::= & ... & \text{MPC type} \\
       \text{Expressions} & e & ::= & n & \text{naturals} \\
                        && \mid & x & \text{variables} \\
@@ -106,6 +101,30 @@
   \caption{Syntax}
   \label{fig:syntax}
 \end{figure}
+
+\section{README}
+
+This is a copy of Mike's version; the only changes are to the syntax, typing, and subtyping rules (not the text).
+
+In my view, the biggest change is viewing sums and encrypted sums as a unifying concept for the sorts of ``things'' that can be shared and revealed.
+
+Some of the impacts of this change:
+
+\begin{itemize}
+\item Sums and functions (and primitives like nat which can be thought of as sums) are the only types that it makes sense to be "located somewhere". In your version, you already have the notion that functions can be known to a fixed set of parties. I've simply extended this to sums (and nats). Because these things are, by definition, located at some parties, we can unify raw types and types.
+
+\item I added an explicit "encrypted sum" type which is parameterized by a protocol. This makes sense because sums (corresponding to booleans, arithmetic values, and combinations thereof) are the only real encryptions we have. This rules out the possibility of, say, a share of a function which it is not necessarily clear how to do. This also means that "formats" can be removed, since they are only needed for encrypted sums. (Encrypted sums could probably be unified with sums by including a "cleartext" protocol, but I'm not sure it's worth doing).
+
+\item Many of the typing rules become simpler. For example, pair degenerates to its typical formulation in most type systems. This is because the knownness of objects is tracked by sums and functions, so we don't need an player annotation for tuples. I'd also like to point out this is very much in line with the change to function application discussed yesterday: It's fine to have a pair of values that are known to only a subset of the players in scope. Elimination forms are the only place we need to worry about who is in scope.
+
+\item Share and reveal are generalized to coercion operations between sums and encrypted sums (instead of nats).
+
+\item I went ahead and generalized conditionals/mux's to work over sums/encrypted sums.
+
+\item I added a subtyping rule for sums that matches the existing rules (adjusted to the changes I made)
+\end{itemize}
+
+Let me know if you have any thoughts or questions!
 
 \section{TO DO}
 
@@ -211,7 +230,7 @@ running on each host.
     {
     }
     {
-    \hastyp{\Gamma}{m}{n}{\sectyp{\tnat}{\ssec}{m}}
+    \hastyp{\Gamma}{m}{n}{\tnat^{m}}
     }
     \qquad
 
@@ -220,26 +239,22 @@ running on each host.
     m\text{ is a singleton}
     }
     {
-    \hastyp{\Gamma}{m}{\eread}{\sectyp{\tnat}{\ssec}{m}}
+    \hastyp{\Gamma}{m}{\eread}{\tnat^{m}}
     }
     \\ \\
 
     \inferrule*[lab=E-Pair]
     {
-    \tau_1 = \sectyp{\omega_1}{\phi_1}{m'}\\
-    \tau_2 = \sectyp{\omega_2}{\phi_2}{m''}\\\\
-    m \vdash m'\\
-    m \vdash m''\\\\
     \hastyp{\Gamma}{m}{e_1}{\tau_1}\\
-    \hastyp{\Gamma}{m}{e_1}{\tau_2}
+    \hastyp{\Gamma}{m}{e_2}{\tau_2}
     }
     {
-    \hastyp{\Gamma}{m}{\epair{e_1}{e_2}}{\sectyp{\tprod{\tau_1}{\tau_2}}{\ssec}{m}}
+    \hastyp{\Gamma}{m}{\epair{e_1}{e_2}}{\tau_1 \times \tau_2}
     }\qquad
     
     \inferrule*[lab=E-Access]
     {
-    \hastyp{\Gamma}{m}{e}{\sectyp{\tprod{\tau_1}{\tau_2}}{\ssec}{m}}\\
+    \hastyp{\Gamma}{m}{e}{\tau_1 \times \tau_2}\\
     }
     {
     \hastyp{\Gamma}{m}{\eproj{i}{e}}{\tau_i}
@@ -249,25 +264,25 @@ running on each host.
     {
     m \vdash P\\
     m \vdash Q\\\\
-    \hastyp{\Gamma}{m}{e}{\sectyp{\tnat}{\ssec}{P}}\\
+    \hastyp{\Gamma}{m}{e}{\tau_0 +^P \tau_1}\\
     }
     {
-    \hastyp{\Gamma}{m}{\eshare{\psi}{P}{Q}{e}}{\sectyp{\tnat}{\sshare{\psi}}{Q}}
+    \hastyp{\Gamma}{m}{\eshare{\psi}{P}{Q}{e}}{\tau_0 +^Q_\psi \tau_1}
     }    \qquad
     
     \inferrule*[lab=E-Reveal]
     {
     m \vdash P\\
     m \vdash Q\\\\
-    \hastyp{\Gamma}{m}{e}{\sectyp{\omega}{\sshare{\psi}}{P}}\\
+    \hastyp{\Gamma}{m}{e}{\tau_0 +^P_\psi \tau_1}\\
     }
     {
-    \hastyp{\Gamma}{m}{\ereveal{P}{Q}{e}}{\sectyp{\omega}{\ssec}{Q}}
+    \hastyp{\Gamma}{m}{\ereveal{P}{Q}{e}}{\tau_0 +^Q \tau_1}
     }\\\\
     
     \inferrule*[lab=E-Binop]
     {
-    \tau = \sectyp{\tnat}{\phi}{m}\\\\
+    \tau = \tnat^m\\\\
     \hastyp{\Gamma}{m}{e_1}{\tau}\\
     \hastyp{\Gamma}{m}{e_2}{\tau}\\
     }
@@ -277,27 +292,24 @@ running on each host.
 
     \inferrule*[lab=E-Mux]
     {
-    \tau = \sectyp{\tnat}{\sshare{\psi}}{m}\\
-    \tau' = \sectyp{\omega}{\sshare{\psi}}{m}\\\\
-    \hastyp{\Gamma}{m}{e}{\tau}\\
-    \hastyp{\Gamma}{m}{e_1}{\tau'}\\
-    \hastyp{\Gamma}{m}{e_2}{\tau'}\\
+    \hastyp{\Gamma}{m}{e}{\tau_0 +^m_\psi \tau_1}\\\\
+    \hastyp{\Gamma}{m}{e_1}{\tau_0 \rightarrow^m \tau}\\
+    \hastyp{\Gamma}{m}{e_2}{\tau_1 \rightarrow^m \tau}\\
     }
     {
-    \hastyp{\Gamma}{m}{\emux{e}{e_1}{e_2}}{\tau'}
+    \hastyp{\Gamma}{m}{\emux{e}{e_1}{e_2}}{\tau}
     }\\ \\
 
-    \inferrule*[lab=E-Cond]
+    \inferrule*[lab=E-Match]
     {
-    \hastyp{\Gamma}{m}{e}{\sectyp{\tnat}{\ssec}{m}}\\\\
-    \hastyp{\Gamma}{m}{e_1}{\tau'}\\
-    \hastyp{\Gamma}{m}{e_2}{\tau'}\\
+    \hastyp{\Gamma}{m}{e}{\tau_0 +^m \tau_1}\\\\
+    \hastyp{\Gamma}{m}{e_1}{\tau_0 \rightarrow^m \tau}\\
+    \hastyp{\Gamma}{m}{e_2}{\tau_1 \rightarrow^m \tau}\\
     }
     {
-    \hastyp{\Gamma}{m}{\econd{e}{e_1}{e_2}}{\tau'}
+      \hastyp{\Gamma}{m}{\mathtt{match}~e~\mathtt{with}~e_1\mid e_2}{\tau}
     }\qquad
 
-       
     \inferrule*[lab=E-Let]
     {
     \hastyp{\Gamma}{m}{e_1}{\tau_1}\\\\
@@ -321,13 +333,13 @@ running on each host.
     \hastyp{\Gamma, x\!:\!\tau_1}{m'}{e}{\tau_2}
     }
     {
-    \hastyp{\Gamma}{m}{\elam{x}{e}}{\sectyp{\tfun{\tau_1}{\tau_2}{m'}}{\ssec}{m}}
+    \hastyp{\Gamma}{m}{\elam{x}{e}}{\tau_1 \rightarrow^{m'} \tau_2}
     }\qquad
    
     \inferrule*[lab=E-App]
     {
     m \vdash m'\\
-    \hastyp{\Gamma}{m}{e}{\sectyp{\tfun{\tau_1}{\tau}{m'}}{\ssec}{m}}\\\\
+    \hastyp{\Gamma}{m}{e}{\tau_1 \rightarrow^{m'}\tau}\\\\
     \hastyp{\Gamma}{m}{e_1}{\tau_1}\\
     }
     {
@@ -461,7 +473,17 @@ shares or normal values, as desired.
     m \vdash m'
     }
     {
-    \issub{\sectyp{\tnat}{\ssec}{m}}{\sectyp{\tnat}{\ssec}{m'}}
+    \issub{\tnat^m}{\tnat^{m'}}
+    } \qquad
+
+    \inferrule*[lab=S-Sum]
+    {
+    m \vdash m'\\
+    \issub{\tau_1}{\tau_1'}\\
+    \issub{\tau_2}{\tau_2'}
+    }
+    {
+    \issub{\tau_1 +^m \tau_2}{\tau_1' +^{m'} \tau_2'}
     }
     \\ \\
     
@@ -472,19 +494,17 @@ shares or normal values, as desired.
     \issub{\tau_2}{\tau_2'}
     }
     {
-    \issub{\sectyp{\tfun{\tau_1}{\tau_2}{m_1}}{\ssec}{m}}{\sectyp{\tfun{\tau_1'}{\tau_2'}{m_1}}{\ssec}{m'}}
-    }
-    \\ \\
+    \issub{\tau_1 \rightarrow^m \tau_2}{\tau_1' \rightarrow^{m'} \tau_2'}
+    }\qquad
 
     
     \inferrule*[lab=S-Pair]
     {
-    m \vdash m'\\
     \issub{\tau_1}{\tau_1'}\\
     \issub{\tau_2}{\tau_2'}
     }
     {
-    \issub{\sectyp{\tprod{\tau_1}{\tau_2}}{\ssec}{m}}{\sectyp{\tprod{\tau_1'}{\tau_2'}}{\ssec}{m'}}
+    \issub{\tau_1 \times \tau_2}{\tau_1' \times \tau_2'}
     }
     \\ \\
 
