@@ -61,7 +61,7 @@ interpPrim o vs = case (o,vs) of
   ("GTE"     ,tohs → [NatV p₁ n₁,NatV p₂ n₂]) | p₁ ≡ p₂ → return $ (BoolV   $ n₁ ≥ n₂)                                         :* "nat"⧺iprecisionSuffix p₁
   ("GTE"     ,tohs → [IntV p₁ i₁,IntV p₂ i₂]) | p₁ ≡ p₂ → return $ (BoolV   $ i₁ ≥ i₂)                                         :* "int"⧺iprecisionSuffix p₁
   ("GTE"     ,tohs → [FltV p₁ f₁,FltV p₂ f₂]) | p₁ ≡ p₂ → return $ (BoolV   $ f₁ ≥ f₂)                                         :* "flt"⧺fprecisionSuffix p₁
-  ("COND"    ,tohs → [BoolV b   ,v₁,v₂     ])           → return $ (if b then v₁ else v₂)                                      :* "bool"
+  ("COND"    ,tohs → [BoolV b   ,v₁,v₂     ])           → return $ (if b then v₁ else v₂)                                      :* "bool" -- TODO: change to branch type
   ("TO_FLT"  ,tohs → [NatV p n])                        → return $ (FltV (fPrecFrIPrec p) $ dbl n)                             :* "nat"⧺iprecisionSuffix p
   ("TO_FLT"  ,tohs → [IntV p n])                        → return $ (FltV (fPrecFrIPrec p) $ dbl n)                             :* "int"⧺iprecisionSuffix p
   ("ABS_VAL" ,tohs → [NatV p n])                        → return $ (NatV p n)                                                  :* "nat"⧺iprecisionSuffix p

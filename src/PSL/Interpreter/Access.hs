@@ -89,7 +89,7 @@ restrictValP ṽ = do
         let ρvs' = restrict ρs ρvs
         guard $ count ρvs' ≢ 0
         return $ ISecVP ρvs'
-      (PSecM ρs₁, ShareVP φ ρs₂ v) | ρs₁ ≡ ρs₂ → return $ ShareVP φ ρs₁ v
+      (PSecM ρs₁, ShareVP φ ρs₂ md v) | ρs₁ ≡ ρs₂ → return $ ShareVP φ ρs₁ md v
       (TopM,_) → return ṽ
       _ → abort
   case ṽO of
@@ -99,7 +99,7 @@ restrictValP ṽ = do
       , ("ṽ",pretty ṽ)
       ]
 
-unShareValPsMode ∷ Mode → 𝐿 ValP → 𝑂 (𝐿 Val ∧ 𝑂 (Prot ∧ 𝑃 PrinVal))
+unShareValPsMode ∷ Mode → 𝐿 ValP → 𝑂 (𝐿 Val ∧ 𝑂 (Prot ∧ 𝑃 PrinVal ∧ ℕ))
 unShareValPsMode m ṽs = case ṽs of
   Nil → return $ Nil :* None
   ṽ :& ṽs' → do
@@ -107,22 +107,22 @@ unShareValPsMode m ṽs = case ṽs of
       SSecVP ρs v → do
         guard $ m ⊑ PSecM ρs
         return (v,None)
-      ShareVP φ ρs v → do
+      ShareVP φ ρs md v → do
         guard $ PSecM ρs ⊑ m
-        return (valFrMPC v,Some $ φ :* ρs)
+        return (valFrMPC v,Some $ φ :* ρs :* md)
       AllVP v → return (v,None)
       ISecVP _ → abort
     vs :* φρsO₂ ← unShareValPsMode m ṽs'
     φρsO ← case (φρsO₁,φρsO₂) of
       (None,_) → return φρsO₂
       (_,None) → return φρsO₁
-      (Some (φ₁ :* ρs₁),Some (φ₂ :* ρs₂)) → do
+      (Some (φ₁ :* ρs₁ :* md₁),Some (φ₂ :* ρs₂ :* md₂)) → do
         guard $ φ₁ ≡ φ₂
         guard $ ρs₁ ≡ ρs₂
-        return φρsO₁
+        return $ Some $ φ₁ :* ρs₁ :* (md₁ ⊔ md₂)
     return $ (v :& vs) :* φρsO
 
-unShareValPs ∷ 𝐿 ValP → IM (𝐿 Val ∧ 𝑂 (Prot ∧ 𝑃 PrinVal))
+unShareValPs ∷ 𝐿 ValP → IM (𝐿 Val ∧ 𝑂 (Prot ∧ 𝑃 PrinVal ∧ ℕ))
 unShareValPs ṽs = do
   m ← askL iCxtModeL
   case unShareValPsMode m ṽs of
@@ -131,12 +131,12 @@ unShareValPs ṽs = do
       [ ("ṽs",pretty ṽs)
       ]
 
-reShareValP ∷ 𝑂 (Prot ∧ 𝑃 PrinVal) → Val → IM ValP
+reShareValP ∷ 𝑂 (Prot ∧ 𝑃 PrinVal ∧ ℕ) → Val → IM ValP
 reShareValP φρsO v = case φρsO of
   None → introValP v
-  Some (φ :* ρs) → do
+  Some (φ :* ρs :* md) → do
     sv ← mpcFrVal v
-    return $ ShareVP φ ρs sv
+    return $ ShareVP φ ρs md sv
 
 ----------------
 -- MPC VALUES --
@@ -161,4 +161,5 @@ valFrMPC = \case
   IntMV pr i → IntV pr i
   FltMV pr d → FltV pr d
   PrinMV pe → PrinV pe
+  -- PairMV v₁ v₂ → PairV (valFrMCP v₁) $ valFrMPC v₂
 
