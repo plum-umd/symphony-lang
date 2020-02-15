@@ -1,0 +1,9 @@
+principal A
+principal B
+principal C
+
+def main () =
+  let a = share{ spdz : A } 0 in
+  let l = { par : A, B } ((share{ spdz : A } 0) :: [ ]) in
+  let l' = { par : A, B } (a :: [ ]) in
+  l'

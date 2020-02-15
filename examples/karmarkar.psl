@@ -537,10 +537,10 @@ def karmarkar_loop a cost =
 def read_vec : unit -> list flt
 def read_vec () = read (list flt) "in.txt"
   
-def rev_ls l = 
+def reveal_ls l = 
   case ({ par : Ctr, Cost } (reveal{ Ctr, Cost, Out } l))
   { [ ] -> [ ]
-  ; x :: l' -> (reveal{ Out } x) :: (rev_ls l') 
+  ; x :: l' -> x :: (rev_ls l') 
   }
 
 -- main:
@@ -557,6 +557,8 @@ def main () =
   -- release the list of results to the output party
   let soln = { par : Ctr, Cost } karmarkar_loop c cost in
 
-  { par: Ctr, Cost, Out } (map
-    (fun x -> reveal{ Out } x)
-    (rev_ls soln) )
+  -- let soln' = { par : Ctr, Cost, Out } reveal_ls soln in
+
+  { par: Ctr, Cost } (map
+     (fun x -> reveal{ Out } x)
+     soln )
