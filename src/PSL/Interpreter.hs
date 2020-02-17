@@ -401,6 +401,7 @@ testInterpreter = do
   -- testInterpreterExample "elim-sec-ls"
   -- testInterpreterExample "cmp-fn-flt"
   testInterpreterExample "test"
+  -- testInterpreterExample "bind-shares"
   -- testInterpreterExample "share-ls"
   -- testInterpreterExample "single-share"
   -- testInterpreterExample "karmarkar"

@@ -3,7 +3,8 @@ principal B
 principal C
 
 def main () =
-  let a = share{ spdz : A } 0 in
+  let a0 = share{ spdz : A } 0 in
+  let a1 = { par : A, B } (share{ spdz : A } 0) in
   let l = { par : A, B } ((share{ spdz : A } 0) :: [ ]) in
-  let l' = { par : A, B } (a :: [ ]) in
+  let l' = { par : A, B } (a0 :: [ ]) in
   l'
