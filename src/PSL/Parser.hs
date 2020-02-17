@@ -9,14 +9,13 @@ levelIF,levelLAM,levelLET ∷ ℕ64
 levelIF   = 𝕟64 10
 levelLAM  = 𝕟64 10
 levelLET  = 𝕟64 10
+levelPAR  = 𝕟64 10
 
-levelCOMMA,levelCONS,levelMPC,levelPAR,levelASCR ∷ ℕ64
+levelCOMMA,levelCONS,levelPAR,levelASCR ∷ ℕ64
 
 levelCOMMA   = 𝕟64 20
-levelCONS    = 𝕟64 21
-levelMPC     = 𝕟64 24
-levelPAR     = 𝕟64 25
-levelASCR    = 𝕟64 29
+levelASCR    = 𝕟64 21
+levelCONS    = 𝕟64 22
 
 levelCOND,levelCOMPARE,levelARROW,levelPLUS,levelTIMES,levelEXP ∷ ℕ64
 levelCOND    = 𝕟64 30

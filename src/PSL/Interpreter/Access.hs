@@ -46,19 +46,17 @@ introValP v = do
 elimValP ∷ (STACK) ⇒ ValP → IM Val
 elimValP ṽ = do
   m ← askL iCxtModeL
-  vO ← unFailT $ case ṽ of
-    SSecVP ρs v → do
-      guard $ m ⊑ PSecM ρs
-      return v
-    AllVP v → return v
-    _ → abort
-  case vO of
-    Some v → return v
-    None → throwIErrorCxt TypeIError "elimValP: ṽ ∉ {AllVP _,SSecVP _ _} or not m ⊑ PSecM ρs" $ frhs
-      [ ("ṽ",pretty ṽ)
-      , ("m",pretty m)
-      , ("ρs",pretty "(First part of ṽ if ṽ is SSecVP)")
-      ]
+  case ṽ of
+    SSecVP ρs v' → do
+      guardErr (m ⊑ PSecM ρs) (throwIErrorCxt TypeIError "elimValP: m ⋢ PSecM ρs" $ frhs
+                               [ ("m",pretty m)
+                               , ("ρs",pretty ρs)
+                               ])
+      return v'
+    AllVP v' → return v'
+    _ → throwIErrorCxt TypeIError "elimValP: ṽ ∉ {AllVP _,SSecVP _ _}" $ frhs
+        [ ("ṽ",pretty ṽ)
+        ]
 
 -- restrict the mode on a value to be no larger than execution mode
 -- e.g.:
@@ -69,35 +67,47 @@ elimValP ṽ = do
 restrictValP ∷ (STACK) ⇒ ValP → IM ValP
 restrictValP ṽ = do
   m ← askL iCxtModeL
-  ṽO ← unFailT $ do
-    case (m,ṽ) of
-      (SecM ρ, SSecVP ρs v) → do
-        guard $ ρ ∈ ρs 
-        return $ SSecVP (single ρ) v
-      (SecM ρ, ISecVP ρvs) → do
-        v ← abort𝑂 $ ρvs ⋕? ρ
-        return $ SSecVP (single ρ) v
-      (SecM ρ, AllVP v) → do
-        return $ SSecVP (single ρ) v
-      (PSecM ρs₁, SSecVP ρs₂ v) → do
-        let ρs = ρs₁ ∩ ρs₂
-        guard $ ρs ≢ pø 
-        return $ SSecVP ρs v
-      (PSecM ρs, AllVP v) → do
-        return $ SSecVP ρs v
-      (PSecM ρs, ISecVP ρvs) → do
-        let ρvs' = restrict ρs ρvs
-        guard $ count ρvs' ≢ 0
-        return $ ISecVP ρvs'
-      (PSecM ρs₁, ShareVP φ ρs₂ md v) | ρs₁ ≡ ρs₂ → return $ ShareVP φ ρs₁ md v
-      (TopM,_) → return ṽ
-      _ → abort
-  case ṽO of
-    Some ṽ' → return ṽ'
-    None → throwIErrorCxt TypeIError "restrictValP" $ frhs
-      [ ("m",pretty m)
-      , ("ṽ",pretty ṽ)
-      ]
+  case (m,ṽ) of
+    (SecM ρ, SSecVP ρs v) → do
+      guardErr (ρ ∈ ρs) (throwIErrorCxt TypeIError "restrictValP: ρ ∉ ρs" $ frhs
+                         [ ("ρ",pretty ρ)
+                         , ("ρs",pretty ρs)
+                         ])
+      return $ SSecVP (single ρ) v
+    (SecM ρ, ISecVP ρvs) →
+      case ρvs ⋕? ρ of
+        Some v -> return $ SSecVP (single ρ) v
+        None -> (throwIErrorCxt TypeIError "restrictValP: ρ not in ρvs" $ frhs
+                  [ ("ρvs",pretty ρvs)
+                  , ("ρ",pretty ρ)
+                  ])
+    (SecM ρ, AllVP v) → do
+      return $ SSecVP (single ρ) v
+    (PSecM ρs₁, SSecVP ρs₂ v) → do
+      let ρs = ρs₁ ∩ ρs₂
+      guardErr (ρs ≢ pø) (throwIErrorCxt TypeIError "restrictValP: ρs ∉ pø" $ frhs
+                          [ ("ρs",pretty ρs)
+                          ])
+      return $ SSecVP ρs v
+    (PSecM ρs, ISecVP ρvs) → do
+      let ρvs' = restrict ρs ρvs
+      guardErr (count ρvs' ≢ 0) (throwIErrorCxt TypeIError "restrictValP: count ρvs' ≢ 0" $ frhs
+                              [ ("ρvs'",pretty ρvs')
+                              ])
+      return $ ISecVP ρvs'
+    (PSecM ρs₁, ShareVP φ ρs₂ v md) → do
+      guardErr (ρs₂ ⊆ ρs₁) (throwIErrorCxt TypeIError "restrictValP: ρs₁ ⊈ ρs₂" $ frhs
+                            [ ("ρs₁",pretty ρs₁)
+                            , ("ρs₂",pretty ρs₂)
+                            ])
+      return $ ShareVP φ ρs₂ v md
+    (PSecM ρs, AllVP v) → do
+      return $ SSecVP ρs v
+    (TopM,_) → return ṽ
+    _ → throwIErrorCxt TypeIError "restrictValP: Pattern match fail on (m,ṽ)" $ frhs
+        [ ("m",pretty m)
+        , ("ṽ",pretty ṽ)
+        ]
 
 unShareValPsMode ∷ Mode → 𝐿 ValP → 𝑂 (𝐿 Val ∧ 𝑂 (Prot ∧ 𝑃 PrinVal ∧ ℕ))
 unShareValPsMode m ṽs = case ṽs of

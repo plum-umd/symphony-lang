@@ -171,6 +171,11 @@ throwIError es ec em vals =
     , ppVertical $ mapOn vals $ \ (n :* v) → ppHorizontal [ppString n,ppString "=",v]
     ]
 
+guardErr ∷ Bool -> IM () -> IM ()
+guardErr x im = case x of
+  True -> skip
+  False -> im
+
 ----------------------
 -- EXPRESSION MONAD --
 ----------------------

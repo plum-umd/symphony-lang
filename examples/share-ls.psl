@@ -17,8 +17,8 @@ def rev_ls l =
 
 def main () =
   let l = { par : A } [ 0 ; 1 ; 2 ] in
-  let l' = { par : A, B } rev_ls l in
+  -- let l' = { par : A, B } rev_ls l in
   -- reveal the contents of the list
-  { par : A, B } (foldr l'
-    [ ]
-    (fun x tl -> ((reveal{ A, B } x) :: tl)) )
+  { par : A } (foldr l
+    (reveal{ A, B } [ ])
+    (fun x tl -> reveal{ A, B } (x :: tl)) )
