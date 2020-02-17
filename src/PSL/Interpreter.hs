@@ -230,6 +230,11 @@ interpExp = wrapInterp $ \case
   -- BundleUnionE
   RevealE ρes e' → do
     ρvs ← success $ unions ^$ prinExpVals ^^$ mapM interpPrinExp ρes
+    m ← askL iCxtModeL
+    case m of
+      PSecM ρs → guard $ ρvs ⊆ ρs
+      TopM → skip
+      _ → abort
     ṽ ← success $ interpExp e'
     case ṽ of
       ShareVP _φ _ρs _md sv →
@@ -401,7 +406,7 @@ testInterpreter = do
   -- testInterpreterExample "elim-sec-ls"
   -- testInterpreterExample "cmp-fn-flt"
   -- testInterpreterExample "test"
-  -- testInterpreterExample "share-ls"
+  testInterpreterExample "share-ls"
   -- testInterpreterExample "single-share"
   -- testInterpreterExample "karmarkar"
   -- testInterpreterExample "atq"
@@ -409,4 +414,4 @@ testInterpreter = do
   -- testInterpreterExample "cmp-tutorial"
   -- testInterpreterExample "add"
   -- testInterpreterExample "sumprod"
-  testInterpreterExample "bind-shares"
+  -- testInterpreterExample "bind-shares"
