@@ -400,7 +400,7 @@ testInterpreter = do
   -- testInterpreterExample "bind-fp-const"
   -- testInterpreterExample "elim-sec-ls"
   -- testInterpreterExample "cmp-fn-flt"
-  testInterpreterExample "test"
+  -- testInterpreterExample "test"
   -- testInterpreterExample "share-ls"
   -- testInterpreterExample "single-share"
   -- testInterpreterExample "karmarkar"
@@ -409,3 +409,4 @@ testInterpreter = do
   -- testInterpreterExample "cmp-tutorial"
   -- testInterpreterExample "add"
   -- testInterpreterExample "sumprod"
+  testInterpreterExample "bind-shares"

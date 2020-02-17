@@ -83,13 +83,15 @@ restrictValP ṽ = do
         let ρs = ρs₁ ∩ ρs₂
         guard $ ρs ≢ pø 
         return $ SSecVP ρs v
-      (PSecM ρs, AllVP v) → do
-        return $ SSecVP ρs v
       (PSecM ρs, ISecVP ρvs) → do
         let ρvs' = restrict ρs ρvs
         guard $ count ρvs' ≢ 0
         return $ ISecVP ρvs'
-      (PSecM ρs₁, ShareVP φ ρs₂ md v) | ρs₁ ≡ ρs₂ → return $ ShareVP φ ρs₁ md v
+      (PSecM ρs₁, ShareVP φ ρs₂ v md) → do
+        guard $ ρs₂ ⊆ ρs₁
+        return $ ShareVP φ ρs₂ v md
+      (PSecM ρs, AllVP v) → do
+        return $ SSecVP ρs v
       (TopM,_) → return ṽ
       _ → abort
   case ṽO of
