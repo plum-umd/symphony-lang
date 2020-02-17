@@ -131,68 +131,69 @@ interpApp ṽ₁ ṽ₂ = do
 -- EXPRESSIONS --
 -----------------
 
-wrapInterp ∷ (STACK) ⇒ (ExpR → FailT IM ValP) → Exp → IM ValP
-wrapInterp f e = do
-  ṽO ← unFailT $ localL iCxtSourceL (Some $ annotatedTag e) $ f $ extract e
-  case ṽO of
-    Some ṽ → return ṽ
-    None → throwIErrorCxt TypeIError "interpExp: failed" $ frhs
-      [ ("e",pretty e)
-      ]
+wrapInterp ∷ (STACK) ⇒ (ExpR → IM ValP) → Exp → IM ValP
+wrapInterp f e = localL iCxtSourceL (Some $ annotatedTag e) $ f $ extract e
 
 interpExp ∷ (STACK) ⇒ Exp → IM ValP
 interpExp = wrapInterp $ \case
-  VarE x → success $ restrictValP *$ interpVar x
-  BoolE b → success $ introValP $ BoolV b
-  StrE s → success $ introValP $ StrV s
-  NatE pr n → success $ introValP $ NatV pr $ trPrNat pr n
-  IntE pr i → success $ introValP $ IntV pr $ trPrInt pr i
-  FltE pr f → success $ introValP $ FltV pr $ f --trPrFlt pr f (trPrFlt needs to be written)
-  BulE → success $ introValP BulV
+  VarE x → restrictValP *$ interpVar x
+  BoolE b → introValP $ BoolV b
+  StrE s → introValP $ StrV s
+  NatE pr n → introValP $ NatV pr $ trPrNat pr n
+  IntE pr i → introValP $ IntV pr $ trPrInt pr i
+  FltE pr f → introValP $ FltV pr $ f --trPrFlt pr f (trPrFlt needs to be written)
+  BulE → introValP BulV
   IfE e₁ e₂ e₃ → do
-    ṽ ← success $ interpExp e₁
-    v ← success $ elimValP ṽ
-    b ← abort𝑂 $ view boolVL v
-    if b
-    then success $ interpExp e₂
-    else success $ interpExp e₃
-  LE e' → success $ do
+    ṽ ← interpExp e₁
+    v ← elimValP ṽ
+    case view boolVL v of
+      Some b → if b
+               then interpExp e₂
+               else interpExp e₃
+      None → throwIErrorCxt TypeIError "interpExp: IfE: view boolVL v ≡ None" $ frhs
+             [ ("v",pretty v)
+             ]
+  LE e' → do
     ṽ ← interpExp e'
     introValP $ LV ṽ
-  RE e' → success $ do
+  RE e' → do
     ṽ ← interpExp e'
     introValP $ RV ṽ
-  TupE e₁ e₂ → success $ do
+  TupE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
     introValP $ PairV ṽ₁ ṽ₂
-  NilE → success $ introValP NilV
-  ConsE e₁ e₂ → success $ do
+  NilE → introValP NilV
+  ConsE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
     introValP $ ConsV ṽ₁ ṽ₂
-  LetTyE _ _ e' → success $ interpExp e'
-  LetE ψ e₁ e₂ → success $ do
+  LetTyE _ _ e' → interpExp e'
+  LetE ψ e₁ e₂ → do
     ṽ ← interpExp e₁
     bindPat ψ ṽ $ interpExp e₂
-  CaseE e' ψes → success $ do
+  CaseE e' ψes → do
     ṽ ← interpExp e'
     interpCase ṽ ψes
   LamE selfO ψs e' → do
     ξ ← askL iCxtCloL
-    ψ :* ψs' ← abort𝑂 $ view unconsL $ ψs
-    let e'' = 
-          if ψs' ≡ Nil
-          then e'
-          else siphon e' $ LamE None ψs' e'
-    success $ introValP $ CloV selfO ψ e'' ξ
-  AppE e₁ e₂ → success $ do
+    case view unconsL $ ψs of
+      Some (ψ :* ψs') →
+        let e'' =
+              if ψs' ≡ Nil
+              then e'
+              else siphon e' $ LamE None ψs' e'
+        in introValP $ CloV selfO ψ e'' ξ
+      None → throwIErrorCxt TypeIError "interpExp: LamE: view unconsL $ ψs ≡ None" $ frhs
+             [ ("ψs",pretty ψs)
+             ]
+  AppE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
     interpApp ṽ₁ ṽ₂
   -- TLamE
   -- TAppE
-  SoloE ρes e' → success $ do
+  SoloE ρes e' → do
     ρvs ← prinExpValss ^$ mapM interpPrinExp ρes
     ρṽs ← mapMOn (iter ρvs) $ \ ρv → 
       restrictMode (SecM ρv) $ do
@@ -200,42 +201,70 @@ interpExp = wrapInterp $ \case
         v ← elimValP ṽ
         return $ ρv ↦ v
     return $ ISecVP $ dict ρṽs
-  ParE ρes e' → success $ do
+  ParE ρes e' → do
     ρvs ← prinExpValss ^$ mapM interpPrinExp ρes
     restrictMode (PSecM ρvs) $ interpExp e'
   ShareE φ ρes e' → do
-    ρvs ← success $ prinExpValss ^$ mapM interpPrinExp ρes
+    ρvs ← prinExpValss ^$ mapM interpPrinExp ρes
     m ← askL iCxtModeL
-    guard $ PSecM ρvs ⊑ m
-    ṽ ← success $ interpExp e'
-    v ← tries
-      [ snd ∘ frhs ^$ abort𝑂 $ view sSecVPL ṽ
-      , abort𝑂 $ view allVPL ṽ
-      ]
-    sv ← success $ mpcFrVal v
+    guardErr (PSecM ρvs ⊑ m) (throwIErrorCxt TypeIError "interpExp: ShareE: ρvs ⋢ m" $ frhs
+                              [ ("ρvs",pretty ρvs)
+                              , ("m",pretty m)
+                              ])
+    ṽ ← interpExp e'
+    v ← elim𝑂
+        (throwIErrorCxt TypeIError "interpExp: ShareE: failed" $ frhs
+         [ ("ṽ",pretty ṽ)
+         ])
+        return
+        (tries
+          [ snd ∘ frhs ^$ abort𝑂 $ view sSecVPL ṽ
+          , abort𝑂 $ view allVPL ṽ
+          ])
+    sv ← mpcFrVal v
     return $ ShareVP φ ρvs 0 sv
   AccessE e' ρ → do
-    ρv ← success $ interpPrinExpSingle ρ
-    ṽ ← success $ interpExp e'
-    ρvs ← abort𝑂 $ view iSecVPL ṽ
-    v ← abort𝑂 $ view justL $ ρvs ⋕? ρv
-    return $ SSecVP (single ρv) v
+    ρv ← interpPrinExpSingle ρ
+    ṽ ← interpExp e'
+    case view iSecVPL ṽ of
+      Some ρvs → do
+        case view justL $ ρvs ⋕? ρv of
+          Some v → return $ SSecVP (single ρv) v
+          None → throwIErrorCxt TypeIError "interpExp: AccessE: ρv not in ρvs" $ frhs
+                 [ ("ρv",pretty ρv)
+                 , ("ρvs",pretty ρvs)
+                 ]
+      None → throwIErrorCxt TypeIError "interpExp: AccessE: view iSecVPL ṽ ≡ None" $ frhs
+             [ ("ṽ",pretty ṽ)
+             ]
   BundleE ρes → do
     ISecVP ^$ dict ^$ mapMOn (iter ρes) $ \ (ρ :* e') → do
-      ρv ← success $ interpPrinExpSingle ρ
-      ṽ ← success $ restrictMode (SecM ρv) $ interpExp e'
-      (ρvs,v) ← abort𝑂 $ view sSecVPL ṽ
-      guard (ρvs ≡ single ρv)
-      return $ ρv ↦ v
+      ρv ← interpPrinExpSingle ρ
+      ṽ ← restrictMode (SecM ρv) $ interpExp e'
+      case view sSecVPL ṽ of
+        Some (ρvs,v) → do
+          guardErr (ρvs ≡ single ρv) (throwIErrorCxt TypeIError "interpExp: BundleE: ρvs ≢ single ρv" $ frhs
+                                      [ ("ρvs",pretty ρvs)
+                                      , ("ρv",pretty ρv)
+                                      ])
+          return $ ρv ↦ v
+        None → throwIErrorCxt TypeIError "interpExp: BundleE: view sSecVPL ṽ ≡ None" $ frhs
+               [ ("ṽ",pretty ṽ)
+               ]
   -- BundleUnionE
   RevealE ρes e' → do
-    ρvs ← success $ unions ^$ prinExpVals ^^$ mapM interpPrinExp ρes
+    ρvs ← unions ^$ prinExpVals ^^$ mapM interpPrinExp ρes
     m ← askL iCxtModeL
     case m of
-      PSecM ρs → guard $ ρvs ⊆ ρs
+      PSecM ρs → guardErr (ρvs ⊆ ρs) (throwIErrorCxt TypeIError "interpExp: RevealE: ρvs ⊈ ρs" $ frhs
+                                      [ ("ρvs",pretty ρvs)
+                                      , ("ρs",pretty ρs)
+                                      ])
       TopM → skip
-      _ → abort
-    ṽ ← success $ interpExp e'
+      _ → (throwIErrorCxt TypeIError "interpExp: RevealE: m ∉ {PSecM _, TopM}" $ frhs
+          [ ("m",pretty m)
+          ])
+    ṽ ← interpExp e'
     case ṽ of
       ShareVP _φ _ρs _md sv →
         let v = valFrMPC sv in
@@ -246,23 +275,30 @@ interpExp = wrapInterp $ \case
         ]
   -- AscrE
   ReadE τA e' → do
-    ṽ ← success $ interpExp e'
-    v ← success $ elimValP ṽ
-    fn ← abort𝑂 $ view strVL v
-    m ← askL iCxtModeL
-    tries
-      [ do ρ ← abort𝑂 $ view secML m
-           v' ← success $ readType ρ τA fn
-           return $ SSecVP (single ρ) v'
-      -- get rid of this
-      , do ρs ← abort𝑂 $ view pSecML m
-           ISecVP ^$ dict ^$ mapMOn (iter ρs) $ \ ρ → do
-             v' ← success $ readType ρ τA fn
-             return $ ρ ↦ v'
-      ]
+    ṽ ← interpExp e'
+    v ← elimValP ṽ
+    case view strVL v of
+      Some fn → do
+        m ← askL iCxtModeL
+        case view secML m of
+          Some ρ → do
+            v' ← readType ρ τA fn
+            return $ SSecVP (single ρ) v'
+          None → do -- get rid of this ↓
+            case view pSecML m of
+              Some ρs →
+                ISecVP ^$ dict ^$ mapMOn (iter ρs) $ \ ρ → do
+                v' ← readType ρ τA fn
+                return $ ρ ↦ v' --    ↑
+              None → throwIErrorCxt TypeIError "interpExp: ReadE: Could not read" $ frhs
+                [ ("m",pretty m)
+                ]
+      None → throwIErrorCxt TypeIError "interpExp: ReadE: view strVL v ≡ None" $ frhs
+        [ ("v",pretty v)
+        ]
   -- InferE
   -- HoleE
-  PrimE o es → success $ do
+  PrimE o es → do
     ṽs ← mapM interpExp es
     vs :* φρsO ← unShareValPs ṽs
     v :* τ ← interpPrim o vs
@@ -275,13 +311,15 @@ interpExp = wrapInterp $ \case
       Some (φ :* ρs :* md) → do 
         tellL iOutResEvsL $ single $ ResEv φ ρs τ o md
     return v'
-  TraceE e₁ e₂ → success $ do
+  TraceE e₁ e₂ → do
     v ← interpExp e₁
     pptrace v $ interpExp e₂
-  SetE ρes → success $ do
+  SetE ρes → do
     ρvs ← unions ^$ prinExpVals ^^$ mapM interpPrinExp ρes
     introValP $ PrinSetV ρvs
-  _ → abort
+  e → throwIErrorCxt NotImplementedIError "interpExp: not implemented" $ frhs
+    [ ("e",pretty e)
+    ]
 
 ---------------
 -- TOP LEVEL --
