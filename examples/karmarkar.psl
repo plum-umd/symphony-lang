@@ -554,12 +554,12 @@ def main () =
   -- let cost = { Cost } (read_vec ()) in
   let cost = { par : Cost } [ 1.0 ; 1.1 ] in
 
-  -- Ctr and Cost share the data in the list to Out:
-  let soln'' = { par : Ctr, Cost, Out } (map
+  -- Ctr and Cost send the data in the list to Out:
+  let soln = { par : Ctr, Cost, Out } (map
     (fun x -> reveal{ Out } x)
-    -- Ctr and Cost reveal the strucuture of the list to Out:
+    -- Ctr and Cost reveal the structure of the list to Out:
     (reveal_ls set(Ctr,Cost,Out)
-      -- compute the output:
+      -- Ctr and Cost run the algorithm:
       ({ par : Ctr, Cost } karmarkar_loop c cost))) in
   -- Ctr and Cost forget the structure of the list
-  { par : Out } reveal_ls set(Out) soln''
+  { par : Out } reveal_ls set(Out) soln
