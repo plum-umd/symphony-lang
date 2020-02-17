@@ -240,9 +240,7 @@ interpExp = wrapInterp $ \case
       ShareVP _φ _ρs _md sv →
         let v = valFrMPC sv in
         return $ SSecVP ρvs v
-      SSecVP ρs v → do
-        guard $ ρs ⊆ ρvs
-        return $ SSecVP ρvs v
+      SSecVP ρs v → return $ SSecVP ρvs v
       _ → throwIErrorCxt TypeIError "interpExp: RevealE: ṽ ∉ {ShareVP _ _ _,SSecVP _ _}" $ frhs
         [ ("ṽ",pretty ṽ)
         ]
@@ -406,7 +404,7 @@ testInterpreter = do
   -- testInterpreterExample "elim-sec-ls"
   -- testInterpreterExample "cmp-fn-flt"
   -- testInterpreterExample "test"
-  testInterpreterExample "share-ls"
+  -- testInterpreterExample "share-ls"
   -- testInterpreterExample "single-share"
   -- testInterpreterExample "karmarkar"
   -- testInterpreterExample "atq"
