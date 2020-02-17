@@ -21,15 +21,17 @@ GCD/Euclid
 
 Karmakar
   SPDZ (with floats)
-    Cond(S,S,S)
+    Cond(S,const,S)
     sqrt S
     S ≡ const
-    S ≤ S
     S + S
-    S + const   --?
+    S + const   -- ?
     S * S
-    S * const   --?
+    S * const   -- ?
     S / S
+    (↓ Low priority (only needed if early returns are required))
+    Cond(S,S,S)
+    S ≤ S
 
 DB-Stats
   BGV
