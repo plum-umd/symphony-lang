@@ -69,11 +69,12 @@ restrictValP ṽ = do
   m ← askL iCxtModeL
   case (m,ṽ) of
     (SecM ρ, SSecVP ρs v) → do
-      guardErr (ρ ∈ ρs) (throwIErrorCxt TypeIError "restrictValP: ρ ∉ ρs" $ frhs
-                         [ ("ρ",pretty ρ)
-                         , ("ρs",pretty ρs)
-                         ])
-      return $ SSecVP (single ρ) v
+      -- guardErr (ρ ∈ ρs) (throwIErrorCxt TypeIError "restrictValP: ρ ∉ ρs" $ frhs
+      --                    [ ("ρ",pretty ρ)
+      --                    , ("ρs",pretty ρs)
+      --                    ])
+      -- return $ SSecVP (single ρ) v
+      return $ SSecVP (single ρ ∩ ρs) v
     (SecM ρ, ISecVP ρvs) →
       case ρvs ⋕? ρ of
         Some v -> return $ SSecVP (single ρ) v
@@ -85,15 +86,16 @@ restrictValP ṽ = do
       return $ SSecVP (single ρ) v
     (PSecM ρs₁, SSecVP ρs₂ v) → do
       let ρs = ρs₁ ∩ ρs₂
-      guardErr (ρs ≢ pø) (throwIErrorCxt TypeIError "restrictValP: ρs ∉ pø" $ frhs
-                          [ ("ρs",pretty ρs)
-                          ])
+      -- guardErr (ρs ≢ pø) (throwIErrorCxt TypeIError "restrictValP: ρs ∉ pø" $ frhs
+      --                     [ ("ρs",pretty ρs)
+      --                     ])
+      -- return $ SSecVP ρs v
       return $ SSecVP ρs v
     (PSecM ρs, ISecVP ρvs) → do
       let ρvs' = restrict ρs ρvs
-      guardErr (count ρvs' ≢ 0) (throwIErrorCxt TypeIError "restrictValP: count ρvs' ≢ 0" $ frhs
-                              [ ("ρvs'",pretty ρvs')
-                              ])
+      -- guardErr (count ρvs' ≢ 0) (throwIErrorCxt TypeIError "restrictValP: count ρvs' ≢ 0" $ frhs
+      --                         [ ("ρvs'",pretty ρvs')
+      --                         ])
       return $ ISecVP ρvs'
     (PSecM ρs₁, ShareVP φ ρs₂ v md) → do
       guardErr (ρs₂ ⊆ ρs₁) (throwIErrorCxt TypeIError "restrictValP: ρs₁ ⊈ ρs₂" $ frhs
