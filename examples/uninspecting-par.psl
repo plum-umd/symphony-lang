@@ -2,7 +2,7 @@ principal A
 principal B
 principal C
 
-def idA x = { par : A } x
+def idA x = { par : A } (x, ())
 
 def main () =
   let x0 = { par : B } 0 in
