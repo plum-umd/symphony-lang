@@ -1,0 +1,1 @@
+[{"op":"PLUS","mult_depth":0,"protocol":"yao","principals":["A","B"],"type":"int#64.0"},{"op":"PLUS","mult_depth":0,"protocol":"gmw","principals":["A","B"],"type":"int#64.0"}]

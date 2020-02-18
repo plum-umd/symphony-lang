@@ -188,9 +188,9 @@ data Type =
   | (𝕏 ∧ Type ∧ 𝐿 Constr) :→†: (Effect ∧ Type)  --  (x : τ | c,…,c) →{η} τ     /  (x : τ | c,…,c) ->{η} τ
   | ForallT (𝐿 (TVar ∧ Kind)) (𝐿 Constr) Type   --  ∀ α:κ,…,α:κ | c,…,c. τ     /  forall α:κ,…,α:κ | c,…,c. τ
   | SecT PrinExp Type                           --  τ{P}                       /  τ{P}
-  | SSecT (𝑃 PrinExp) Type                      --  τ{ssec:P}                  /  τ{ssec:P}
-  | ISecT (𝑃 PrinExp) Type                      --  τ{isec:P}                  /  τ{isec:P}
-  | ShareT Prot (𝑃 PrinExp) Type                --  τ{φ:P}                     /  τ{φ:P}
+  | SSecT (𝐿 PrinExp) Type                      --  τ{ssec:P}                  /  τ{ssec:P}
+  | ISecT (𝐿 PrinExp) Type                      --  τ{isec:P}                  /  τ{isec:P}
+  | ShareT Prot (𝐿 PrinExp) Type                --  τ{φ:P}                     /  τ{φ:P}
   deriving (Eq,Ord,Show)
 makePrettySum ''Type
 
@@ -257,7 +257,9 @@ data ExpR =
   | BundleUnionE Exp Exp          -- e⧺e                   /  e++e
   | RevealE (𝐿 PrinExp) Exp       -- reveal{P} e           /  reveal{P} e
   | AscrE Exp Type                -- e:τ                   /  e:τ
-  | ReadE Type Exp                -- read[τ] e             /  read[τ] e
+  | ReadE Type Exp                -- read τ e              /  read τ e
+  | RandE Type                    -- rand τ                /  rand τ
+  | RandRangeE Type Exp           -- rand-range τ e        /  rand-range τ e
   | InferE                        -- _                     /  _
   | HoleE                         -- ⁇                     /  ??
   | PrimE 𝕊 (𝐿 Exp)               -- prim[⊙](e,…,e)        /  𝑁/𝐴

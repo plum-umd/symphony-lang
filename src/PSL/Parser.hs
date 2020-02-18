@@ -5,17 +5,18 @@ import UVMHS
 
 import PSL.Syntax
 
-levelIF,levelLAM,levelLET ∷ ℕ64
+levelIF,levelLAM,levelLET,levelPAR ∷ ℕ64
 levelIF   = 𝕟64 10
 levelLAM  = 𝕟64 10
 levelLET  = 𝕟64 10
 levelPAR  = 𝕟64 10
 
-levelCOMMA,levelCONS,levelPAR,levelASCR ∷ ℕ64
+levelCOMMA,levelASCR,levelCONS,levelREVEAL ∷ ℕ64
 
 levelCOMMA   = 𝕟64 20
 levelASCR    = 𝕟64 21
 levelCONS    = 𝕟64 22
+levelREVEAL  = 𝕟64 25
 
 levelCOND,levelCOMPARE,levelARROW,levelPLUS,levelTIMES,levelEXP ∷ ℕ64
 levelCOND    = 𝕟64 30
@@ -81,7 +82,7 @@ lexer = lexerBasic puns kws prim ops
       , "ℤ","int"
       , "𝔽","flt"
       , "list"
-      , "read"
+      , "read","rand","rand-range"
       , "inp","rev"
       , "par","sec"
       , "∞","inf"
@@ -350,7 +351,7 @@ pType = cpNewContext "type" $ mixfix $ concat
       cpSyntax "{"
       cpSyntax "ssec"
       cpSyntax ":"
-      ρes ← pow ^$ pPrinExps
+      ρes ← pPrinExps
       cpSyntax "}"
       return $ SSecT ρes
   -- τ{isec:P}
@@ -358,7 +359,7 @@ pType = cpNewContext "type" $ mixfix $ concat
       cpSyntax "{"
       cpSyntax "isec"
       cpSyntax ":"
-      ρes ← pow ^$ pPrinExps
+      ρes ← pPrinExps
       cpSyntax "}"
       return $ ISecT ρes
   -- τ{φ:P}
@@ -366,7 +367,7 @@ pType = cpNewContext "type" $ mixfix $ concat
       cpSyntax "{"
       φ ← pProt
       cpSyntax ":"
-      ρes ← pow ^$ pPrinExps
+      ρes ← pPrinExps
       cpSyntax "}"
       return $ ShareT φ ρes
   -- (τ)
@@ -607,7 +608,7 @@ pExp = fmixfixWithContext "exp" $ concat
   -- e⧺e
   , fmixInfixL levelPLUS $ do concat [cpSyntax "⧺",cpSyntax "++"] ; return BundleUnionE
   -- reveal{P} e
-  , fmixPrefix levelLET $ do
+  , fmixPrefix levelREVEAL $ do
       cpSyntax "reveal"
       cpSyntax "{"
       ρes ← pPrinExps
@@ -623,6 +624,14 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntax "read"
       τ ← pType
       return $ ReadE τ
+  , fmixTerminal $ do
+      cpSyntax "rand"
+      τ ← pType
+      return $ RandE τ
+  , fmixPrefix levelAPP $ do
+      cpSyntax "rand-range"
+      τ ← pType
+      return $ RandRangeE τ
   -- _
   , fmixTerminal $ do cpSyntax "_" ; return InferE
   -- ⁇

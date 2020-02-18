@@ -180,7 +180,7 @@ guardErr x im = case x of
 -- EXPRESSION MONAD --
 ----------------------
 
-newtype IM a = IM { unIM ∷ RWST ICxt IOut () (ErrorT IError ID) a }
+newtype IM a = IM { unIM ∷ RWST ICxt IOut () (ErrorT IError IO) a }
   deriving
   ( Functor
   , Return,Bind,Monad
@@ -188,23 +188,28 @@ newtype IM a = IM { unIM ∷ RWST ICxt IOut () (ErrorT IError ID) a }
   , MonadWriter IOut
   , MonadState ()
   , MonadError IError
+  , MonadIO
   )
 
-mkIM ∷ (ICxt → IError ∨ (IOut ∧ a)) → IM a
-mkIM f = IM $ mkRWST $ \ γ () → ErrorT $ ID $ case f γ of
-  Inl r → Inl r
-  Inr (o :* x) → Inr $ () :* o :* x
+mkIM ∷ (ICxt → IO (IError ∨ (IOut ∧ a))) → IM a
+mkIM f = IM $ mkRWST $ \ γ () → ErrorT $ do
+  rox ← f γ
+  return $ case rox of
+    Inl r → Inl r
+    Inr (o :* x) → Inr $ () :* o :* x
 
-runIM ∷ ICxt → IM a → IError ∨ (IOut ∧ a)
-runIM γ xM = case unID $ unErrorT $ runRWST γ () $ unIM xM of
-  Inl r → Inl r
-  Inr (() :* o :* x) → Inr (o :* x)
+runIM ∷ ICxt → IM a → IO (IError ∨ (IOut ∧ a))
+runIM γ xM = do
+  rox ← unErrorT $ runRWST γ () $ unIM xM
+  return $ case rox of
+    Inl r → Inl r
+    Inr (() :* o :* x) → Inr (o :* x)
 
 --------------------
 -- TOPLEVEL MONAD --
 --------------------
 
-newtype ITLM a = ITLM { unITLM ∷ RWST () IOut ITLState (ErrorT IError ID) a }
+newtype ITLM a = ITLM { unITLM ∷ RWST () IOut ITLState (ErrorT IError IO) a }
   deriving
   ( Functor
   , Return,Bind,Monad
@@ -212,32 +217,34 @@ newtype ITLM a = ITLM { unITLM ∷ RWST () IOut ITLState (ErrorT IError ID) a }
   , MonadWriter IOut
   , MonadState ITLState
   , MonadError IError
+  , MonadIO
   )
 
-mkITLM ∷ (ITLState → IError ∨ (ITLState ∧ IOut ∧ a)) → ITLM a
-mkITLM f = ITLM $ mkRWST $ \ () σ → ErrorT $ ID $ f σ
+mkITLM ∷ (ITLState → IO (IError ∨ (ITLState ∧ IOut ∧ a))) → ITLM a
+mkITLM f = ITLM $ mkRWST $ \ () σ → ErrorT $ f σ
 
-runITLM ∷ ITLState → ITLM a → IError ∨ (ITLState ∧ IOut ∧ a)
-runITLM σ xM = unID $ unErrorT $ runRWST () σ $ unITLM xM
+runITLM ∷ ITLState → ITLM a → IO (IError ∨ (ITLState ∧ IOut ∧ a))
+runITLM σ xM = unErrorT $ runRWST () σ $ unITLM xM
 
-evalITLM ∷ ITLState → ITLM a → IError ∨ a
-evalITLM σ = map snd ∘ runITLM σ
+evalITLM ∷ ITLState → ITLM a → IO (IError ∨ a)
+evalITLM σ = mapp snd ∘ runITLM σ
 
 evalITLMIO ∷ ITLState → ITLM a → IO a
-evalITLMIO σ xM = case evalITLM σ xM of
-  Inl (IError rsO cs rc rm) → do
-    pprint $ ppVertical $ concat
-      [ single𝐼 $ ppHeader $ show𝕊 rc
-      , elim𝑂 empty𝐼 (single𝐼 ∘ pretty) rsO
-      -- UNCOMMENT TO SEE DUMPED VALUES
-      , single𝐼 $ rm
-      , single𝐼 $ pretty cs
-      ]
-    abortIO
-  Inr x → return x
+evalITLMIO σ xM = 
+  evalITLM σ xM ≫= \case
+    Inl (IError rsO cs rc rm) → do
+      pprint $ ppVertical $ concat
+        [ single𝐼 $ ppHeader $ show𝕊 rc
+        , elim𝑂 empty𝐼 (single𝐼 ∘ pretty) rsO
+        -- UNCOMMENT TO SEE DUMPED VALUES
+        , single𝐼 $ rm
+        , single𝐼 $ pretty cs
+        ]
+      abortIO
+    Inr x → return x
 
 asTLM ∷ IM a → ITLM a
-asTLM xM = mkITLM $ \ σ → 
+asTLM xM = mkITLM $ \ σ → do
   let ds = itlStateDeclPrins σ
       -- princpal declarations as values
       γ' = dict $ mapOn (iter $ itlStateDeclPrins σ) $ \ (ρ :* κ) → case κ of
@@ -248,6 +255,7 @@ asTLM xM = mkITLM $ \ σ →
       ξ = update iCxtEnvL (γ' ⩌ γ) $
           update iCxtDeclPrinsL ds $
           ξ₀
-  in case runIM ξ xM of
+  rox ← runIM ξ xM
+  return $ case rox of
     Inl r → Inl r
     Inr (o :* x) → Inr $ σ :* o :* x
