@@ -13,8 +13,12 @@ import PSL.Interpreter.Access
 import PSL.Interpreter.PrinExp
 import PSL.Interpreter.ReadType
 
+import qualified Prelude as HS
+
 import qualified Data.Aeson as JSON
 import qualified Data.ByteString.Lazy as BS
+
+import qualified System.Random as R
 
 ---------------
 -- VARIABLES --
@@ -86,7 +90,7 @@ bindPatO ψ ṽ = case ψ of
     f₂ ← bindPatO ψ₁ $ SSecVP (single ρ) v
     f₃ ← bindPatO ψ₂ $ ISecVP ρvs'
     return $ f₃ ∘ f₂ ∘ f₁
-  AscrP ψ _τ → bindPatO ψ ṽ
+  AscrP _ψ _τ → bindPatO ψ ṽ
   WildP → return id
   _ → abort
 
@@ -253,7 +257,7 @@ interpExp = wrapInterp $ \case
                ]
   -- BundleUnionE
   RevealE ρes e' → do
-    ρvs ← unions ^$ prinExpVals ^^$ mapM interpPrinExp ρes
+    ρvs ← prinExpValss ^$ mapM interpPrinExp ρes
     m ← askL iCxtModeL
     case m of
       PSecM ρs → guardErr (ρvs ⊆ ρs) (throwIErrorCxt TypeIError "interpExp: RevealE: ρvs ⊈ ρs" $ frhs
@@ -269,7 +273,7 @@ interpExp = wrapInterp $ \case
       ShareVP _φ _ρs _md sv →
         let v = valFrMPC sv in
         return $ SSecVP ρvs v
-      SSecVP ρs v → return $ SSecVP ρvs v
+      SSecVP _ρs v → return $ SSecVP ρvs v
       _ → throwIErrorCxt TypeIError "interpExp: RevealE: ṽ ∉ {ShareVP _ _ _,SSecVP _ _}" $ frhs
         [ ("ṽ",pretty ṽ)
         ]
@@ -296,6 +300,35 @@ interpExp = wrapInterp $ \case
       None → throwIErrorCxt TypeIError "interpExp: ReadE: view strVL v ≡ None" $ frhs
         [ ("v",pretty v)
         ]
+  RandE τ → do
+    wrap :* τ' ← case τ of
+      ShareT φ ρes τ' → do
+        ρvs ← prinExpValss ^$ mapM interpPrinExp ρes
+        return $ ShareVP φ ρvs 0 :* τ'
+      _ → return $ AllVP ∘ valFrMPC :* τ
+    v ← case τ' of
+      ℕT ip → io $ NatMV ip ∘ trPrNat ip ∘ nat ^$ R.randomIO @ℕ64
+      ℤT ip → io $ IntMV ip ∘ trPrInt ip ∘ int ^$ R.randomIO @ℤ64
+      𝔽T fp → io $ FltMV fp ^$ R.randomIO @𝔻
+    return $ wrap v
+  RandRangeE τ e → do
+    wrap :* τ' ← case τ of
+      ShareT φ ρes τ' → do
+        ρvs ← prinExpValss ^$ mapM interpPrinExp ρes
+        return $ ShareVP φ ρvs 0 :* τ'
+      _ → return $ AllVP ∘ valFrMPC :* τ
+    ṽ ← interpExp e
+    v ← elimValP ṽ
+    (ṽ₁,ṽ₂) ← 
+      elim𝑂 (throwIErrorCxt TypeIError "interpExp: ReadRangeE: Expected a pair argument" $ frhs [ ("v",pretty v) ]) return $
+      view pairVL v
+    v₁ ← elimValP ṽ₁
+    v₂ ← elimValP ṽ₂
+    v' ← case (τ',v₁,v₂) of
+      (ℕT ip,NatV ip₁ n₁,NatV ip₂ n₂) | (ip₁ ≡ ip) ⩓ (ip₂ ≡ ip) → io $ NatMV ip ∘ nat ^$ (R.randomRIO @ℕ64) (HS.fromIntegral n₁,HS.fromIntegral n₂)
+      (ℤT ip,IntV ip₁ i₁,IntV ip₂ i₂) | (ip₁ ≡ ip) ⩓ (ip₂ ≡ ip) → io $ IntMV ip ∘ int ^$ (R.randomRIO @ℤ64) (HS.fromIntegral i₁,HS.fromIntegral i₂)
+      (𝔽T fp,FltV fp₁ d₁,FltV fp₂ d₂) | (fp₁ ≡ fp) ⩓ (fp₂ ≡ fp) → io $ FltMV fp ^$ (R.randomRIO @𝔻) (d₁,d₂)
+    return $ wrap v'
   -- InferE
   -- HoleE
   PrimE o es → do
@@ -315,7 +348,7 @@ interpExp = wrapInterp $ \case
     v ← interpExp e₁
     pptrace v $ interpExp e₂
   SetE ρes → do
-    ρvs ← unions ^$ prinExpVals ^^$ mapM interpPrinExp ρes
+    ρvs ← prinExpValss ^$ mapM interpPrinExp ρes
     introValP $ PrinSetV ρvs
   e → throwIErrorCxt NotImplementedIError "interpExp: not implemented" $ frhs
     [ ("e",pretty e)
@@ -410,6 +443,8 @@ testInterpreterExample fn = pprint *$ interpretExample fn
 
 testInterpreter ∷ IO ()
 testInterpreter = do
+  -- UNCOMMENT TO FIX THE RANDOM SEED
+  -- R.setStdGen $ R.mkStdGen $ HS.fromIntegral 54321
   pprint $ ppHeader "TESTING INTERPRETER"
   indir "tests" $ do
     fs ← files
@@ -450,4 +485,5 @@ testInterpreter = do
   -- testInterpreterExample "single-share"
   -- testInterpreterExample "sumprod"
   -- testInterpreterExample "test"
-  testInterpreterExample "uninspecting-par"
+  -- testInterpreterExample "uninspecting-par"
+  -- testInterpreterExample "rand"

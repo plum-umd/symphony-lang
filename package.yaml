@@ -61,3 +61,4 @@ executable:
     - uvmhs
     - aeson
     - bytestring
+    - random

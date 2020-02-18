@@ -214,15 +214,15 @@ primInferShare ∷ 𝕊 → 𝐿 Type → Prot → 𝑃 PrinExp → 𝐼 Type �
 primInferShare o τs φ ρs τsA = case τs of
   Nil → do
     τ ← primInferRaw o $ list τsA
-    return $ ShareT φ ρs τ
-  ShareT φ' ρs' τ' :& τs' | (φ' ≡ φ) ⩓ (ρs ≡ ρs') → primInferShare o τs' φ ρs $ τsA ⧺ single τ'
+    return $ ShareT φ (list ρs) τ
+  ShareT φ' ρs' τ' :& τs' | (φ' ≡ φ) ⩓ (list ρs ≡ ρs') → primInferShare o τs' φ ρs $ τsA ⧺ single τ'
   _ → throwCErrorCxt TypeCError "primInferShare: τs ∉ {Nil,ShareT _ _ :& _ | φ' ≡ φ ∧ ρs' ≡ ρs}" $ frhs
     [ ("τs",pretty τs)
     ]
 
 primInfer ∷ 𝕊 → 𝐿 Type → CM Type
 primInfer o τs = case τs of
-  ShareT φ ρs _ :& _ → primInferShare o τs φ ρs null
+  ShareT φ ρs _ :& _ → primInferShare o τs φ (pow ρs) null
   _ → primInferRaw o τs
 
 ---------------
@@ -310,12 +310,12 @@ elabExpInfer e = mapFst (siphon e) ^$ localL cCxtSourceL (Some $ annotatedTag e)
           _ → throwCErrorCxt TypeCError "elabExpInfer: ShareE: τ' ∉ {SecT _ _,𝔹T,ℕT _,ℤT _}" $ frhs 
             [ ("τ'",pretty τ')
             ]
-    return $ ShareE φ ρs eᴱ' :* ShareT φ (pow ρs) τ''
+    return $ ShareE φ ρs eᴱ' :* ShareT φ ρs τ''
   AccessE e' ρ → do
     eᴱ' :* τ' ← elabExpInfer e'
     τ'' ← case τ' of
       ISecT ρs τ'³ →
-        if ρ ∈ ρs 
+        if ρ ∈ pow ρs 
         then return $ SecT ρ τ'³
         else throwCErrorCxt TypeCError "elabExpInfer: AccessE: ISecT: ρ ∉ ρs" $ frhs
           [ ("ρ",pretty ρ)
@@ -331,7 +331,7 @@ elabExpInfer e = mapFst (siphon e) ^$ localL cCxtSourceL (Some $ annotatedTag e)
     return $ PrimE o (map fst eτsᴱ') :* τ'
   ParE ρs e' → do
     eᴱ' :* τ' ← elabExpInfer e'
-    return $ ParE ρs eᴱ' :* ISecT (pow ρs) τ'
+    return $ ParE ρs eᴱ' :* ISecT ρs τ'
   ReadE τ e' → do
     case τ of
       ℕT _ → skip
@@ -354,7 +354,7 @@ elabExpInfer e = mapFst (siphon e) ^$ localL cCxtSourceL (Some $ annotatedTag e)
   RevealE ρs e' → do
     eᴱ' :* τ' ← elabExpInfer e'
     case τ' of
-      ShareT _ _ τ'' → return $ RevealE ρs eᴱ' :* SSecT (pow ρs) τ''
+      ShareT _ _ τ'' → return $ RevealE ρs eᴱ' :* SSecT ρs τ''
       _ → throwCErrorCxt TypeCError "elabExpIner: RevealE: τ' ≠ ShareT _ _ _" $ frhs
         [ ("τ'",pretty τ')
         ]
