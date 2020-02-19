@@ -438,14 +438,14 @@ def karmarkar_iter a cost pt =
 
     -- ad: m * n matrix; product of diagonal of point and constraints,
     -- and a row of ones
-    let b = pfold a
+    let b = pfold 
       [ nOnes ]
       (fun Q ctr -> cons
         (prod_diag_pt pt
-          (map shr_w_comp (reveal_ls set(Cost,Ctr) ctr)) ) ) in
+          (map shr_w_comp (reveal_ls set(Cost,Ctr) ctr)) ) )
+      a in
 
     -- bt: n * (m + 1) matrix
-    let err = "iter: post pfold" + 0 in
     let bt = transpose n b in
 
     -- project c onto b's nullspace
@@ -454,17 +454,19 @@ def karmarkar_iter a cost pt =
       (prod_mat_rowms
         bt
         (prod_mat_rowms
-          (inverse (m + 1) (prod_mat_rowms b bt))
+          (inverse (m + 1n) (prod_mat_rowms b bt))
           (prod_mat_pt b c'))) in
 
     -- test if the projection is the 0 vector:
+    let err = "post define cp" + 0 in
     if is_zero_vec cp then const_vec (shr_w_comp 0.0) n
     else point_div (l2norm cp) cp in
 
   -- take a step of 1/3 n in the direction of cp
+  let err = "pre define b'" + 0 in
   let b' = point_diff
     (map shr_w_comp (vec_div (to_flt n) nOnes))
-    (point_div (shr_w_comp (to_flt (3 * n))) unit_cp) in
+    (point_div (shr_w_comp (to_flt (3n * n))) unit_cp) in
 
   let db' = prod_diag_pt pt b' in
   point_div (dot_prod (map shr_pub_with_comp nOnes) db') db'
