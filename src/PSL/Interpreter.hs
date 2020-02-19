@@ -479,7 +479,7 @@ testInterpreter = do
   -- testInterpreterExample "elim-sec-ls"
   -- testInterpreterExample "euclid"
   -- testInterpreterExample "pfold"
-  -- testInterpreterExample "karmarkar-simple"
+  testInterpreterExample "karmarkar-simple"
   -- testInterpreterExample "msort"
   -- testInterpreterExample "reshare"
   -- testInterpreterExample "share-ls"
