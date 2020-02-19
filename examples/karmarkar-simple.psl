@@ -45,10 +45,6 @@ def spdz_sqrt : real{ spdz : Ctr, Cost } -> real{ spdz : Ctr, Cost }
 def shr_w_comp : real{ ssec : Cost } -> comp_shr
 def shr_w_comp x = share{ spdz : Ctr, Cost } x
 
--- shr_pub_w_comp: make shares of a public real
-def shr_pub_w_comp : real -> comp_shr
-def shr_pub_w_comp x = share{ spdz : Ctr, Cost } x
-
 -- public_bool: booleans known to everyone
 -- def public_bool : type
 -- def public_bool = bool{ ssec: Ctr, Cost, Out }
@@ -56,11 +52,6 @@ def shr_pub_w_comp x = share{ spdz : Ctr, Cost } x
 -- public_nat: nats known to everyone
 -- def public_nat : type 
 -- def public_nat = nat{ ssec: Ctr, Cost, Out }
-
--- release_nat: publicly reveal a nat shared between all compute
--- parties
-def release_nat : comp_shr_nat -> public_nat
-def release_nat n = reveal{ Ctr, Cost, Out } n
 
 -- point: a point the comp_shrensional space of a constraint
 -- def point : type 
@@ -80,6 +71,7 @@ def release_nat n = reveal{ Ctr, Cost, Out } n
 -- def colLtMat : type
 -- def colLtMat = list (comp_shr * (list comp_shr))
 
+-- err msg: throw an error message
 def err msg = msg + 0
 
 -- library functions for types with equality:
@@ -282,10 +274,6 @@ def prod_mat m0 m1 = row_major
 def prod_mat_rowms : secretMat -> secretMat -> secretMat
 def prod_mat_rowms m0 m1 = prod_mat m0 (shift_major m1)
 
--- shr_cost: share a (secret) cost among all non-output parties
-def shr_cost : real{ ssec : Cost } -> comp_shr
-def shr_cost x = share{ spdz : Ctr, Cost } x
-
 def all_true : list public_bool -> public_bool
 def all_true l = foldr l true (fun x acc -> x && acc)
 
@@ -390,8 +378,6 @@ def lt_inverse l = foldr_tl l -- fold over the LT matrix
         let dprod = dot_prod (cons rv y) ((uncurry cons) cv') in
         snoc ((shr_add_inv dprod) / y) cv' ) ) )
 
--- BILL: fix defn of lt_inverse
-
 -- lt_lift d l: lower-triangular matrix l, lifted into a matrix by
 -- padding copies of default element d
 def lt_lift : t -> list (t * (list t)) -> list (list t)
@@ -436,7 +422,7 @@ def karmarkar_iter : ctr -> cost -> point -> point
 def karmarkar_iter a cost pt =
   let unit_cp =
     -- c': vector: product of diagonal of point and cost
-    let c' = prod_diag_pt pt (map shr_cost cost) in
+    let c' = prod_diag_pt pt (map shr_w_comp cost) in
 
     -- ad: m * n matrix; product of diagonal of point and constraints,
     -- and a row of ones
@@ -466,7 +452,7 @@ def karmarkar_iter a cost pt =
     else point_div (l2norm cp) cp in
 
   -- take a step of 1/3 n in the direction of cp
-  let err = "pre define b'" + 0 in
+  let _ = "pre define b'" in
   let b' = point_diff
     (map shr_w_comp (vec_div (to_flt n) nOnes))
     (point_div (shr_w_comp (to_flt (3n * n))) unit_cp) in
@@ -480,15 +466,12 @@ def karmarkar_iter a cost pt =
 def nat_log : nat -> nat -> nat
 def nat_log b n =
   if n == 1n then 0n
-  else 1n + (nat_log b (n / 2n))
+  else inc (nat_log b (n / 2n))
 
 def log_2_ceil : nat -> nat
 def log_2_ceil n = 
   let n' = nat_log 2n n in
-  let offset = 
-    if n == (2n ^ n') then 0n
-    else 1n in
-  n' + offset
+  n' + (if n == (2n ^ n') then 0n else 1n)
 
 def karmarkar_loop : ctr -> costs -> point
 def karmarkar_loop a cost =
@@ -502,7 +485,7 @@ def karmarkar_loop a cost =
              -- multiply non-zero cost coeffs,
              (shr_w_comp ({ par : Cost } nzProd cost))
              -- multiply non-zero constraint coeffs,
-             (fun Q pnzs -> mult (share{ spdz : Cost, Ctr } pnzs))
+             (fun Q pnzs -> mult (shr_w_comp pnzs))
              ({ Ctr } (nzProd a))
            ) ) ) ) ) ) +
          n * (log_2_ceil n) ) )
