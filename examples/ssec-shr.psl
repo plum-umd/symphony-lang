@@ -1,0 +1,7 @@
+principal A
+principal B
+principal C
+
+def main () =
+  let x = share{ yao : A, B } 0 in
+  { par : A } ((), x)

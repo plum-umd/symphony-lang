@@ -1,0 +1,11 @@
+principal A
+principal B
+principal C
+
+def main () =
+  let x = { par : B } 0 in
+  let y = { par : A } ((), x) in
+  let z = reveal{ A, B } y in
+  { par : B } 
+    let (_, i) = z in
+    i + 1
