@@ -105,21 +105,66 @@
 \section{TO DO}
 
 \begin{itemize}
+\item Contemplate Muxable t psi, which denotes that there must be some
+  way to combine two different values of type t according to a mux
+  under protocol psi 
 \item finish list types (can't encrypt) 
 \item drop $\top$ ?
 \item I've dropped wire bundles and first-class principals, for
   now. These allow for generic, $N$-party computations. Will want
   later.
   \begin{itemize}
-  \item Wire bundles. Can we encode these? We now allow tuples whose
-    components $i$ have visibility $P_i \subseteq Q$ where $Q$ is the
-    visibility of the entire tuple.
+  \item Wire bundles. Without first-class principal sets, they are
+    basically sugar for pairs where each pair element is at a
+    different host.
   \item Solo mode
   \item First-class principal sets, as data, and appearing in
     syntactic forms (e.g., $\ereveal{P}{Q}{e}{\psi}$ should be
-    $\ereveal{e_q}{e_q}{e}{\psi}$ where $e_P$ and $e_q$ are principal sets).
+    $\ereveal{e_q}{e_q}{e}{\psi}$ where $e_P$ and $e_q$ are principal
+    sets). Generalize wire bundles.
   \end{itemize}
+\item Function types preclude top-level functions? See note below.
 \end{itemize}
+
+\begin{verbatim}
+By the way, I don't know if this will overcomplicate everything, but
+I've been thinking about how to get back the notion of applying a
+function with fewer parties than were there when the closure was
+made. (Which if I understand correctly is not possible in the current
+version since function sub-typing is invariant in the knownness of the
+function arrow). 
+
+It seems that you can view the annotation ^m (on both values and
+contexts) as a sort of upper bound on the parties who know some
+information (which you can subtype to include fewer parties). 
+Analogously you could imagine adding an annotation _n to represent a
+lower bound on the parties who know information (conceptually, the
+parties whose presence is mandatory to use a value). 
+Then you could give function arrows this subtype rule:
+
+t1' <: t1
+t2 <: t2'
+m >= m'
+n' >= n
+-------------------
+t1 ->^m_n t2    <:    t1' ->^m'_n' t2'
+
+The application rule would require the upper and lower bound to match: 
+
+gamma |-^m_n e : t1 ->^m_m t2
+gamma |-^m_n e1 : t1
+------------------
+gamma |-^m_n (e e1) : t2
+
+par blocks would constrain the lower bound: By including a par block
+as a subexpression you indicating that the containing expression must
+involve the par block parties: 
+
+m >= m'
+gamma |-^m'_n e : t
+--------------
+gamma |-^m_(n \cup m') par m' e : t
+\end{verbatim}
 
 \section{Syntax}
   
@@ -139,6 +184,9 @@ be able to access its values, as these could be located at particular
 locations.
 
 \section{Semantics}
+
+\begin{figure}
+\end{figure}
 
 The semantics is inspired by that of Wysteria, in there being a single
 program involving multiple, lock-step principals. However, the notion
@@ -169,15 +217,22 @@ think of the operation as being made into a thunk.\footnote{Behind the
   shares or communicating to multiply them. Or the frozen operation
   might result in a circuit being constructed.} For example, if we do
 $\ebinop{e_1}{e_2}$ and $e_1$ and $e_2$ are both $\psi$ shares (i.e.,
-of type $\tnat^m_\psi$ for a set of parties $m$), then the result is
+of type $\tnat^m_\psi$ for a set of parties $m$), then we can imagine
 that all parties will construct a circuit over those shares,
 locally. The $\ereveal{P}{Q}{e}{\psi}$ construct takes as its argument
 a share encoded using $\psi$ and forces the computation to
 happen. That is, at that moment the secure computation will be forced
 to completion, and the result revealed to the involved principals $Q$.
 
-\mwh{Something about how shares of nats and sums are represented. How
-  mux works.}
+Sum types can also be encrypted. The way we think about representing
+something of type $\tsum{\tau_1}{\tau_2}{m}{\psi}$ is that $\tau_1$
+and $\tau_2$ are stored in a pair $\tprod{\tau_1}{\tau_2}$, while
+location $m$ has access to an encrypted boolean (under $\psi$) which
+indicates whether the left or right element of the pair is valid. When
+computing on such a sum with $\emux{e}{e_1}{e_2}$, we feed the lhs
+into $e_1$ and compute it, feed the rhs into $e_2$ and compute that,
+and then select one output or the other based on the encrypted
+boolean.
 
 \section{Typing}
 
@@ -221,26 +276,18 @@ to completion, and the result revealed to the involved principals $Q$.
     
     \inferrule*[lab=E-Share]
     {
+    P\text{ is a singleton}    \\\\
     m \vdash P\\
     m \vdash Q\\\\
     \hastyp{\Gamma}{m}{e}{\tnat^P}\\
     }
     {
     \hastyp{\Gamma}{m}{\eshare{\psi}{P}{Q}{e}}{\tnat^Q_\psi}
-    }    \qquad
-    
-    \inferrule*[lab=E-Reveal]
-    {
-    m \vdash P\\
-    m \vdash Q\\\\
-    \hastyp{\Gamma}{m}{e}{\tnat^P_\psi}\\
-    }
-    {
-    \hastyp{\Gamma}{m}{\ereveal{P}{Q}{e}{\psi}}{\tnat^Q}
-    }\\\\
-    
+    }\qquad
+
     \inferrule*[lab=E-Sharesum]
     {
+    P\text{ is a singleton}    \\\\
     m \vdash P\\
     m \vdash Q\\\\
     \hastyp{\Gamma}{m}{e}{\tsum{\tau_0}{\tau_1}{Q}{}}
@@ -272,6 +319,16 @@ to completion, and the result revealed to the involved principals $Q$.
     \hastyp{\Gamma}{m}{\emux{e}{e_1}{e_2}}{\tau}
     }\\ \\
 
+    \inferrule*[lab=E-Reveal]
+    {
+    m \vdash P\\
+    m \vdash Q\\\\
+    \hastyp{\Gamma}{m}{e}{\tnat^P_\psi}\\
+    }
+    {
+    \hastyp{\Gamma}{m}{\ereveal{P}{Q}{e}{\psi}}{\tnat^Q}
+    }\qquad
+    
     \inferrule*[lab=E-Match]
     {
     \hastyp{\Gamma}{m}{e}{\tau_0 +^m \tau_1}\\\\
@@ -282,6 +339,14 @@ to completion, and the result revealed to the involved principals $Q$.
     }
     {
       \hastyp{\Gamma}{m}{\econd{e}{e_1}{e_2}}{\tau}
+    }\\ \\
+
+    \inferrule*[lab=E-Var]
+    {
+    x\!:\!\tau \in \Gamma
+    }
+    {
+    \hastyp{\Gamma}{m}{x}{\tau}
     }\qquad
 
     \inferrule*[lab=E-Let]
@@ -293,13 +358,6 @@ to completion, and the result revealed to the involved principals $Q$.
     \hastyp{\Gamma}{m}{\elet{x}{e_1}{e_2}}{\tau}
     }\\ \\
 
-    \inferrule*[lab=E-Var]
-    {
-    x\!:\!\tau \in \Gamma
-    }
-    {
-    \hastyp{\Gamma}{m}{x}{\tau}
-    }\qquad
 
    \inferrule*[lab=E-Abs]
     {
@@ -322,6 +380,7 @@ to completion, and the result revealed to the involved principals $Q$.
     \inferrule*[lab=E-Par]
     {
     m \vdash P \\
+    P \vdash \tau\\
     \hastyp{\Gamma}{{P}}{e}{\tau}
     }
     {
@@ -347,11 +406,12 @@ The typing judgment's rules are defined in Figure~\ref{fig:typing}.
 The typing judgment has form $\hastyp{\Gamma}{m}{e}{\tau}$. It states
 that under context $\Gamma$, expression $e$ has type $\tau$ when
 evaluating in mode $m$. These rules reference the judgment
-$m \vdash m;$ says that principals designated in $m'$ are
-\emph{present} when executing in mode $m$. $m \vdash m'$ holds when
-$m = \top$ or $m = Q$ and $m' = P$ and $P \subseteq Q$.
+$m \vdash m'$ which is given in Figure~\ref{fig:aux}. It says that
+principals designated in $m'$ are \emph{present} when executing in
+mode $m$. $m \vdash m'$ holds when $m = \top$ or $m = Q$ and $m' = P$
+and $P \subseteq Q$.
 
-Rule~\rulelab{E-Nat} types a (private) constant; it inherits the
+Rule~\rulelab{E-Nat} types a (cleartext) constant; it inherits the
 visibility of the current mode. Rule~\rulelab{E-Read} types the
 \kw{read} command; since it will produce a different value at each
 location, it must be run in the visibility of a single principal ($m$
@@ -362,10 +422,20 @@ mode involving principals $P$; these principals must be compatible
 with the current mode $m$ (i.e., they must be a subset of them). This
 coercion is useful for making the requirements of other rules match
 the expected mode; the rule is also an important hint to the execution
-engine about which parties will run a particular block.
+engine about which parties will run a particular block. This rule
+requires that the returned result be compatible with current mode $P$;
+i.e., it should not be ``located'' at principals $q \not\in P$.
+Compatibility $m \vdash \tau$ is given in Figure~\ref{fig:aux}. For
+example, in mode $\{p\}$ we don't want to return a value located at
+$q$. If we did, then subsequent access in mode $\{q\}$ would be
+allowed by the type system but would fail at run-time as that location
+did not perform the extraction (only $p$ did).
 
 Rule~\rulelab{E-Sub} is also useful for making type requirements match
-up. The subtyping judgment is given in Figure~\ref{fig:sub}.
+up. The subtyping judgment is given in Figure~\ref{fig:sub}. Simply
+put, a cleartext value located at $m$ can be located at a compatible
+location instead. When the value is encrypted, the location is
+invariant. 
 
 Rule~\rulelab{E-Pair} types the introduction of pairs. A pair's
 components must be typeable in the current mode, but they do not
@@ -374,32 +444,20 @@ a pair could have one component at $p$ and the other at
 $q$. Rule~\rulelab{E-Access} types the elimination of pairs. Here we
 require that the visibility of the element of type $\tau_i$ being
 removed from the pair is compatible with the current mode $m$, per the
-judgment $m \vdash \tau$ given in Figure~\ref{fig:aux}. This check is
-needed to prevent one party from extracting the element of a pair that
-is visible to parties not currently present; e.g., in mode $\{p\}$ we
-don't want to allow extraction of a pair element located in
-$\{p,q\}$. If we did, then subsequent access in mode $\{q\}$ would be
-allowed by the type system but would fail at run-time as that location
-did not perform the extraction (only $p$ did).
+judgment $m \vdash \tau$.
 
-Rule~\rulelab{E-Share} types encrypting a $\tnat$. The $P$ argument
-indicates the principal doing the sharing, while the $Q$ argument
-indicates the principals to which to share $e$ (which must be a normal
-(non-share) value). This value of $e$ must be visible in the current
-mode ($m \vdash P$) and the principals $Q$ must be present as
-well. Finally, the value must be a number; neither pairs nor functions
-can be shares.  \mwh{Should we require the share's visibility $m'$ to
-  be singleton?  Otherwise it will be unclear who should be sharing
-  the value known to multiple parties.}
+Rule~\rulelab{E-Share} types encrypting a $\tnat$ (via secret
+sharing). The $P$ argument indicates the principal doing the sharing,
+and it must be a singleton. The $Q$ argument indicates the principals
+to which to share $e$ (which must be a normal (non-share) value). This
+value of $e$ must be visible in the current mode ($m \vdash P$) and
+the principals $Q$ must be present as well. Finally, the value must be
+a number; neither pairs nor functions can be shares.
 
-Rule~\rulelab{E-Reveal} types share elimination, i.e., converting a
-share of a $\tnat$ to a normal value. In essence, it forces the secure
-computation (which we are thinking of as a thunk) to produce a result,
-and reveals that result held by principals $P$ to the specified
-principals $Q$. The rule requires that the current mode includes those
-in $Q$, and those $P$ who hold the shares.
-
-\mwh{TODO: sharesum}
+Rule~\rulelab{E-Sharesum} types encrypting a sum type. The $P$ and $Q$
+arguments are as with \rulelab{E-Share}. No requirements are made
+about $\tau_0$ and $\tau_1$; their location is enforced when the pair
+is used in a $\kw{mux}$; see below.
 
 Rule~\rulelab{E-Binop} types arithmetic computations on both shares
 and normal values---both arguments must have the same type (i.e., both
@@ -408,22 +466,38 @@ current mode. Note that this rule precludes adding a
 share and a normal value; you can always do this by converting the
 latter to a share (the compiler can be smart about this).
 
-\mwh{Fix the following}
 Rule~\rulelab{E-Mux} types multiplexing. The semantics is to evaluate
-both branches (second and third arguments), and choose the result to
-return based on the first argument's ultimate result. These are all
-(compatible) shares, so we can think of this as making a multiplexor
-circuit. 
+both branches (second and third arguments), binding $x$ to the left
+and right-hand sides of the sum, respectively. The $\kw{mux}$ chooses
+the result to return based on the first argument's ultimate
+result. These are all (compatible) shares (under protocol $\psi$), so
+we can think of this as making a multiplexor circuit.
+
+Rule~\rulelab{E-Reveal} types share elimination, i.e., converting a
+share of a $\tnat$ to a normal value. In essence, it forces the secure
+computation (which we are thinking of as a thunk) to produce a result,
+and reveals that result held by principals $P$ to the specified
+principals $Q$. The rule requires that the current mode includes those
+in $Q$, and those $P$ who hold the shares. (We do not allow revealing
+encrypted sums, directly---we require destructing them first.)
 
 Rule~\rulelab{E-Match} types conditionals on normal sums, i.e., the
 conditional will run on each principal in mode $m$. It can return
 shares or normal values, as desired. 
 
-\mwh{Say more about the var, abs, app rules. The key here is that the
-  variable rule does not require $\tau$'s visibility to match the
-  current mode. The visibility requirement will be enforced later. The
-  abs rule needs to think about variables added in the closure. The
-  app rule takes this into account.}
+Unlike the elimination rules for pairs and sums, the \rulelab{E-Var}
+does not mandate ``presence'' of its contents. So the following
+program would typecheck: $\elet{x0}{\epar{b}0}{\epar{a}{x0}}$. When
+checking the second $\kw{par}$ block, the type of $x0$ is $\tnat^{b}$,
+and this variable is occurring with a $\kw{par}$ block with only $a$
+present. But this is not prevented because nothing actually done with
+the contents of that variable.
+
+\mwh{Say more about the let, abs, app rules. The let rule is
+  unsurprising. Maybe point out that all hosts in $m$ must create the
+  variable $x$, no matter the visibility of $\tau_1$. The abs rule
+  needs to think about variables added in the closure. The app rule
+  takes this into account.}
 
 Rule~\rulelab{E-Sub} defines subsumption, using subtyping.  The
 definition of subtyping $\issub{\tau_1}{\tau_2}$, which indicates when
@@ -455,6 +529,21 @@ $\tau_1$ can be used as $\tau_2$ is given in Figure~\ref{fig:sub}.
 \begin{figure}
 \[\begin{array}{c}
 
+    \inferrule*[lab=M-top]
+    {
+    }
+    {
+    \top \vdash m
+    } \qquad
+
+    \inferrule*[lab=M-sub]
+    {
+    P \subseteq Q
+    }
+    {
+    Q \vdash P
+    } \\ \\
+    
     \inferrule*[lab=M-Nat]
     {
     m = n \vee
@@ -471,7 +560,7 @@ $\tau_1$ can be used as $\tau_2$ is given in Figure~\ref{fig:sub}.
     }
     {
     m \vdash \tsum{\tau_1}{\tau_2}{m}{\psi}
-    } \qquad
+    } \\ \\
 
     \inferrule*[lab=M-Fun]
     {
@@ -479,7 +568,7 @@ $\tau_1$ can be used as $\tau_2$ is given in Figure~\ref{fig:sub}.
     }
     {
     m \vdash \tfun{\tau_1}{\tau_2}{n}
-    }\\\\
+    }\qquad
 
     \inferrule*[lab=M-Prod]
     { }
