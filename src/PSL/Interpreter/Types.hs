@@ -173,8 +173,13 @@ throwIError es ec em vals =
 
 guardErr ∷ Bool -> IM () -> IM ()
 guardErr x im = case x of
-  True -> skip
-  False -> im
+  True → skip
+  False → im
+
+error𝑂 ∷ 𝑂 a -> IM a -> IM a
+error𝑂 e err = case e of
+  Some x → return x
+  None → err
 
 ----------------------
 -- EXPRESSION MONAD --

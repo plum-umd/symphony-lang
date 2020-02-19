@@ -75,13 +75,12 @@ restrictValP ṽ = do
       --                    ])
       -- return $ SSecVP (single ρ) v
       return $ SSecVP (single ρ ∩ ρs) v
-    (SecM ρ, ISecVP ρvs) →
-      case ρvs ⋕? ρ of
-        Some v -> return $ SSecVP (single ρ) v
-        None -> (throwIErrorCxt TypeIError "restrictValP: ρ not in ρvs" $ frhs
-                  [ ("ρvs",pretty ρvs)
-                  , ("ρ",pretty ρ)
-                  ])
+    (SecM ρ, ISecVP ρvs) → do
+      v ← error𝑂 (ρvs ⋕? ρ) (throwIErrorCxt TypeIError "restrictValP: ρ not in ρvs" $ frhs
+                             [ ("ρvs",pretty ρvs)
+                             , ("ρ",pretty ρ)
+                             ])
+      return $ SSecVP (single ρ) v
     (SecM ρ, AllVP v) → do
       return $ SSecVP (single ρ) v
     (PSecM ρs₁, SSecVP ρs₂ v) → do
@@ -137,14 +136,13 @@ unShareValPsMode m ṽs = case ṽs of
 unShareValPs ∷ 𝐿 ValP → IM (𝐿 Val ∧ 𝑂 (Prot ∧ 𝑃 PrinVal ∧ ℕ))
 unShareValPs ṽs = do
   m ← askL iCxtModeL
-  case unShareValPsMode m ṽs of
-    Some vsφρsO → return vsφρsO
-    None → throwIErrorCxt TypeIError "unShareValsPs" $ frhs
-      [ ("ṽs",pretty ṽs)
-      ]
+  vsφρsO ← error𝑂 (unShareValPsMode m ṽs) (throwIErrorCxt TypeIError "unShareValsPs" $ frhs
+                                           [ ("ṽs",pretty ṽs)
+                                           ])
+  return vsφρsO
 
 reShareValP ∷ 𝑂 (Prot ∧ 𝑃 PrinVal ∧ ℕ) → Val → IM ValP
-reShareValP φρsO v = case φρsO of
+reShareValP φρsO v =case φρsO of
   None → introValP v
   Some (φ :* ρs :* md) → do
     sv ← mpcFrVal v

@@ -150,13 +150,12 @@ interpExp = wrapInterp $ \case
   IfE e₁ e₂ e₃ → do
     ṽ ← interpExp e₁
     v ← elimValP ṽ
-    case view boolVL v of
-      Some b → if b
-               then interpExp e₂
-               else interpExp e₃
-      None → throwIErrorCxt TypeIError "interpExp: IfE: view boolVL v ≡ None" $ frhs
-             [ ("v",pretty v)
-             ]
+    b ← error𝑂 (view boolVL v) (throwIErrorCxt TypeIError "interpExp: IfE: view boolVL v ≡ None" $ frhs
+                                [ ("v",pretty v)
+                                ])
+    if b
+      then interpExp e₂
+      else interpExp e₃
   LE e' → do
     ṽ ← interpExp e'
     introValP $ LV ṽ
@@ -181,16 +180,13 @@ interpExp = wrapInterp $ \case
     interpCase ṽ ψes
   LamE selfO ψs e' → do
     ξ ← askL iCxtCloL
-    case view unconsL $ ψs of
-      Some (ψ :* ψs') →
-        let e'' =
-              if ψs' ≡ Nil
+    (ψ :* ψs') ← error𝑂 (view unconsL $ ψs) (throwIErrorCxt TypeIError "interpExp: LamE: view unconsL $ ψs ≡ None" $ frhs
+                                             [ ("ψs",pretty ψs)
+                                             ])
+    let e'' = if ψs' ≡ Nil
               then e'
               else siphon e' $ LamE None ψs' e'
-        in introValP $ CloV selfO ψ e'' ξ
-      None → throwIErrorCxt TypeIError "interpExp: LamE: view unconsL $ ψs ≡ None" $ frhs
-             [ ("ψs",pretty ψs)
-             ]
+      in introValP $ CloV selfO ψ e'' ξ
   AppE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
@@ -216,45 +212,38 @@ interpExp = wrapInterp $ \case
                               , ("m",pretty m)
                               ])
     ṽ ← interpExp e'
-    v ← elim𝑂
+    v ← error𝑂 (tries
+                [ snd ∘ frhs ^$ abort𝑂 $ view sSecVPL ṽ
+                , abort𝑂 $ view allVPL ṽ
+                ])
         (throwIErrorCxt TypeIError "interpExp: ShareE: failed" $ frhs
          [ ("ṽ",pretty ṽ)
          ])
-        return
-        (tries
-          [ snd ∘ frhs ^$ abort𝑂 $ view sSecVPL ṽ
-          , abort𝑂 $ view allVPL ṽ
-          ])
     sv ← mpcFrVal v
     return $ ShareVP φ ρvs 0 sv
   AccessE e' ρ → do
     ρv ← interpPrinExpSingle ρ
     ṽ ← interpExp e'
-    case view iSecVPL ṽ of
-      Some ρvs → do
-        case view justL $ ρvs ⋕? ρv of
-          Some v → return $ SSecVP (single ρv) v
-          None → throwIErrorCxt TypeIError "interpExp: AccessE: ρv not in ρvs" $ frhs
-                 [ ("ρv",pretty ρv)
-                 , ("ρvs",pretty ρvs)
-                 ]
-      None → throwIErrorCxt TypeIError "interpExp: AccessE: view iSecVPL ṽ ≡ None" $ frhs
-             [ ("ṽ",pretty ṽ)
-             ]
+    ρvs ← error𝑂 (view iSecVPL ṽ) (throwIErrorCxt TypeIError "interpExp: AccessE: view iSecVPL ṽ ≡ None" $ frhs
+                                   [ ("ṽ",pretty ṽ)
+                                   ])
+    v ← error𝑂 (view justL $ ρvs ⋕? ρv) (throwIErrorCxt TypeIError "interpExp: AccessE: ρv not in ρvs" $ frhs
+                                         [ ("ρv",pretty ρv)
+                                         , ("ρvs",pretty ρvs)
+                                         ])
+    return $ SSecVP (single ρv) v
   BundleE ρes → do
     ISecVP ^$ dict ^$ mapMOn (iter ρes) $ \ (ρ :* e') → do
       ρv ← interpPrinExpSingle ρ
       ṽ ← restrictMode (SecM ρv) $ interpExp e'
-      case view sSecVPL ṽ of
-        Some (ρvs,v) → do
-          guardErr (ρvs ≡ single ρv) (throwIErrorCxt TypeIError "interpExp: BundleE: ρvs ≢ single ρv" $ frhs
-                                      [ ("ρvs",pretty ρvs)
-                                      , ("ρv",pretty ρv)
-                                      ])
-          return $ ρv ↦ v
-        None → throwIErrorCxt TypeIError "interpExp: BundleE: view sSecVPL ṽ ≡ None" $ frhs
-               [ ("ṽ",pretty ṽ)
-               ]
+      (ρvs,v) ← error𝑂 (view sSecVPL ṽ) (throwIErrorCxt TypeIError "interpExp: BundleE: view sSecVPL ṽ ≡ None" $ frhs
+                                         [ ("ṽ",pretty ṽ)
+                                         ])
+      guardErr (ρvs ≡ single ρv) (throwIErrorCxt TypeIError "interpExp: BundleE: ρvs ≢ single ρv" $ frhs
+                                  [ ("ρvs",pretty ρvs)
+                                  , ("ρv",pretty ρv)
+                                  ])
+      return $ ρv ↦ v
   -- BundleUnionE
   RevealE ρes e' → do
     ρvs ← prinExpValss ^$ mapM interpPrinExp ρes
@@ -300,6 +289,7 @@ interpExp = wrapInterp $ \case
       None → throwIErrorCxt TypeIError "interpExp: ReadE: view strVL v ≡ None" $ frhs
         [ ("v",pretty v)
         ]
+
   RandE τ → do
     wrap :* τ' ← case τ of
       ShareT φ ρes τ' → do
