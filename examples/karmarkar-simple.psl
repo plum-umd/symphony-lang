@@ -496,21 +496,20 @@ def karmarkar_loop a cost =
       -- magic bound on iterations, based on product of non-zero
       -- constraint and cost coeffs:
       (12n * n *
-        ((m + 1n) * n +
+        ((inc m) * n +
          (log_2_ceil (abs_val (ceil (reveal{ Cost, Ctr } (
-           -- multiply non-zero cost coeffs,
-           (shr_w_comp ({ par : Cost } nzProd cost) ) *
-           -- multiply non-zero constraint coeffs,
            (pfold
-             (share{ spdz : Cost, Ctr } 1.0)
-             (fun Q pnzs acc -> (share{ spdz : Cost, Ctr } pnzs) * acc)
+             -- multiply non-zero cost coeffs,
+             (shr_w_comp ({ par : Cost } nzProd cost))
+             -- multiply non-zero constraint coeffs,
+             (fun Q pnzs -> mult (share{ spdz : Cost, Ctr } pnzs))
              ({ Ctr } (nzProd a))
            ) ) ) ) ) ) +
          n * (log_2_ceil n) ) )
       id
       (fun kr x -> kr (karmarkar_iter a cost x) ) )
-      -- the constant initial point of 1/n's
-      ({ par : Ctr, Cost } map shr_w_comp (vec_div (to_flt n) nOnes)) 
+      -- the initial point of 1/n's
+    ({ par : Ctr, Cost } map shr_w_comp (vec_div (to_flt n) nOnes)) 
 
 -- read_vec (): reads a vector of n input floats from a fixed file
 def read_vec : unit -> list flt
