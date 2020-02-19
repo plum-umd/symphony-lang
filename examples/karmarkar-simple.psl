@@ -525,10 +525,11 @@ def main () =
       ({ par : Ctr, Cost } karmarkar_loop
         -- Ctr reads inputs constraints,
         ({ par : Ctr } (read_vec ()) ) 
-        -- Cost reads cost vector, shares list structure with Ctr,
-        ({ par : Ctr, Cost } (pdecons 
+        -- Cost shares the list structure of the cost vector with Ctr,
+        (pdecons 
           [ ]
           (fun Q c -> reveal_ls set(Cost,Ctr) (reveal{ Cost, Ctr } c))
-          ({ par : Cost } read_vec ()) ) ) ) ) ) in
+          -- Cost reads the cost vector,
+          ({ par : Cost } read_vec ()) ) ) ) ) in
   -- Ctr and Cost forget the structure of the solution
   { par : Out } reveal_ls set(Out) soln
