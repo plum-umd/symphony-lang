@@ -1,6 +1,5 @@
 principal A[2] -- Parties who supply just integers
 principal B[2] -- Parties who supply both integers and queries
-principal NONE
 
 -- basic functions
 
@@ -144,7 +143,7 @@ def remove-dups qs = case qs
   ; (q,t)∷qs' →
     let b = elem-pair (q,t) qs'
     let h1 = b ? share{bgw:A,B} (-1) ◇ q
-    let h2 = b ? share{bgw:A,B} set(NONE) ◇ t
+    let h2 = b ? share{bgw:A,B} set(A,B) ◇ t
     in (h1,h2)∷(remove-dups qs')
   }
 
@@ -186,7 +185,7 @@ def main • =
   let qs : list ℤ{isec:B}
   let qs = preprocess-lists set(B) 3 -1 qs-pre
   let ts : list ℙ{isec:B}
-  let ts = preprocess-lists set(B) 3 set(NONE) ts-pre
+  let ts = preprocess-lists set(B) 3 set(A,B) ts-pre
 
   let xs' : list ℤ{bgw:A,B}
   let xs' = combine-lists xs
