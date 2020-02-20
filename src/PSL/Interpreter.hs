@@ -472,7 +472,7 @@ testInterpreter = do
   -- testInterpreterExample "pfold"
   -- testInterpreterExample "karmarkar-simple"
   -- testInterpreterExample "msort"
-  testInterpreterExample "partial-diverge"
+  -- testInterpreterExample "partial-diverge"
   -- testInterpreterExample "reshare"
   -- testInterpreterExample "share-ls"
   -- testInterpreterExample "single-share"
