@@ -62,66 +62,36 @@
 
 \maketitle
 
-\begin{figure}[h]
-  \centering
-  \[\begin{array}{rlcll}
-      \text{Principal} & p, q \\
-      \text{Principal set} & P, Q \\
-    \text{Execution modes} & m  & ::=  & \top & \text{par mode with all principals}\\
-                       && \mid & P & \text{par mode with principals $P$} \\
-      \text{Protocol} & \psi & ::= & \cdot & \text{cleartext} \\
-                       && \mid & \phi & \text{encryption format} \\
-      \text{Types} & \tau & ::=  & \tnat^m_\psi & \text{a base type} \\
-                       && \mid & \tprod{\tau}{\tau} & \text{pairs} \\
-                       && \mid & \tsum{\tau}{\tau}{m}{\psi} & \text{sums} \\
-                       && \mid & \tlist{\tau} & \text{lists} \\
-                       && \mid & \tfun{\tau}{\tau}{m} & \text{functions} \\
-      \text{Protocol} & \psi & ::= & ... & \text{MPC type} \\
-      \text{Expressions} & e & ::= & n & \text{naturals} \\
-                       && \mid & x & \text{variables} \\
-                       % && \mid & \econcat{e_1}{e_2} & \text{concatenate $\isec$s}\\
-                       % && \mid & \eaccval{e}{p} & \text{$p$'s value}\\
-                       && \mid & \eread & \text{read from terminal}\\
-                       && \mid & \epair{e_1}{e_2} & \text{pair construction}\\
-                       && \mid & \eproj{i}{e} & \text{pair elem, }i \in \{1,2\}\\
-                       && \mid & \eshare{\psi}{P}{Q}{e} & \text{$\psi$ shares of {\tnat} at $P$ to $Q$} \\
-                       && \mid & \esharesum{\psi}{P}{Q}{e} & \text{$\psi$ shares of sum $P$ to $Q$} \\
-                       && \mid & \ereveal{P}{Q}{e}{\psi} & \text{distribute result in $\psi$ at $Q$ to $P$}\\
-                       && \mid & \ebinop{e_1}{e_2}  & \text{binary operation} \\
-                       && \mid & \econd{e_1}{e_2}{e_3}  & \text{non-MPC conditional} \\
-                       && \mid & \emux{e_1}{e_2}{e_3}  & \text{MPC conditional} \\
-                       && \mid & \epar{P}{e} & \text{parallel evaluation}\\
-%                       && \mid & \eall{P}{e} & \text{parallel evaluation}\\
-                       % && \mid & \esec{P}{e} & \text{secure (cryptographic) evaluation}\\
-                       && \mid & \elam{x}{e}  & \text{abstraction} \\
-                       && \mid & \eapp{e_1}{e_2}  & \text{application} \\
-                       && \mid & \elet{x}{e_1}{e_2}  & \text{sequencing} \\
-  \end{array}
-  \]
-  \caption{Syntax}
-  \label{fig:syntax}
-\end{figure}
-
 \section{TO DO}
 
+Soon:
+\begin{itemize}
+\item finish list types (can't encrypt), add (or generalize lambdas
+  to) recursive functions
+\item Add statically known (non dependent) wire bundles, encoded as
+  tuples. May involve adding solo mode.
+\item Develop operational semantics, both single threaded mode and
+  multiparty mode. Make sure the types do what we want!
+\end{itemize}
+
+Next: Look at \texttt{writeup/spdz.md} and think about language
+changes to support verification.
+
+Later:
 \begin{itemize}
 \item Contemplate Muxable t psi, which denotes that there must be some
   way to combine two different values of type t according to a mux
-  under protocol psi 
-\item finish list types (can't encrypt) 
+  under protocol psi. From David D: \emph{Regarding muxable: I still see $A +^P_psi B$ as a sum type where psi only describes the encryption of the "sum bit", and $A$ and $B$ should either be shared base types, tuples, or shared sums (arbitrarily nested). This is the muxable constraint, and I think what David H had in mind.}
+\item Contemplate generalized ``reveal'' operation, which works on all
+  datatypes by recursing into their contents and revealing
+  those. E.g., you could reveal a list of shares all at once.
 \item drop $\top$ ?
-\item I've dropped wire bundles and first-class principals, for
-  now. These allow for generic, $N$-party computations. Will want
-  later.
+\item First-class principal sets, as data,
   \begin{itemize}
-  \item Wire bundles. Without first-class principal sets, they are
-    basically sugar for pairs where each pair element is at a
-    different host.
-  \item Solo mode
-  \item First-class principal sets, as data, and appearing in
-    syntactic forms (e.g., $\ereveal{P}{Q}{e}{\psi}$ should be
+    \item Add to syntactic forms (e.g., $\ereveal{P}{Q}{e}{\psi}$ should be
     $\ereveal{e_q}{e_q}{e}{\psi}$ where $e_P$ and $e_q$ are principal
-    sets). Generalize wire bundles.
+    sets).
+  \item Generalize wire bundles.
   \end{itemize}
 \item Function types preclude top-level functions? See note below.
 \end{itemize}
@@ -165,6 +135,49 @@ gamma |-^m'_n e : t
 --------------
 gamma |-^m_(n \cup m') par m' e : t
 \end{verbatim}
+
+
+\begin{figure}[h]
+  \centering
+  \[\begin{array}{rlcll}
+      \text{Principal} & p, q \\
+      \text{Principal set} & P, Q \\
+    \text{Execution modes} & m  & ::=  & \top & \text{par mode with all principals}\\
+                       && \mid & P & \text{par mode with principals $P$} \\
+      \text{Protocol} & \psi & ::= & \cdot & \text{cleartext} \\
+                       && \mid & \phi & \text{encryption format} \\
+      \text{Types} & \tau & ::=  & \tnat^m_\psi & \text{a base type} \\
+                       && \mid & \tprod{\tau}{\tau} & \text{pairs} \\
+                       && \mid & \tsum{\tau}{\tau}{m}{\psi} & \text{sums} \\
+                       && \mid & \tlist{\tau} & \text{lists} \\
+                       && \mid & \tfun{\tau}{\tau}{m} & \text{functions} \\
+      \text{Protocol} & \psi & ::= & ... & \text{MPC type} \\
+      \text{Expressions} & e & ::= & n & \text{naturals} \\
+                       && \mid & x & \text{variables} \\
+                       % && \mid & \econcat{e_1}{e_2} & \text{concatenate $\isec$s}\\
+                       % && \mid & \eaccval{e}{p} & \text{$p$'s value}\\
+                       && \mid & \eread & \text{read from terminal}\\
+                       && \mid & \epair{e_1}{e_2} & \text{pair construction}\\
+                       && \mid & \eproj{i}{e} & \text{pair elem, }i \in \{1,2\}\\
+                       && \mid & \eshare{\psi}{P}{Q}{e} & \text{$\psi$ shares of {\tnat} at $P$ to $Q$} \\
+                       && \mid & \esharesum{\psi}{P}{Q}{e} & \text{$\psi$ shares of sum $P$ to $Q$} \\
+                       && \mid & \ereveal{P}{Q}{e}{\psi} & \text{distribute result in $\psi$ at $Q$ to $P$}\\
+                       && \mid & \ebinop{e_1}{e_2}  & \text{binary operation} \\
+                       && \mid & \econd{e_1}{e_2}{e_3}  & \text{non-MPC conditional} \\
+                       && \mid & \emux{e_1}{e_2}{e_3}  & \text{MPC conditional} \\
+                       && \mid & \epar{P}{e} & \text{parallel evaluation}\\
+%                       && \mid & \eall{P}{e} & \text{parallel evaluation}\\
+                       % && \mid & \esec{P}{e} & \text{secure (cryptographic) evaluation}\\
+                       && \mid & \elam{x}{e}  & \text{abstraction} \\
+                       && \mid & \eapp{e_1}{e_2}  & \text{application} \\
+                       && \mid & \elet{x}{e_1}{e_2}  & \text{sequencing} \\
+  \end{array}
+  \]
+  \caption{Syntax}
+  \label{fig:syntax}
+\end{figure}
+
+\newpage
 
 \section{Syntax}
   
@@ -290,10 +303,10 @@ boolean.
     P\text{ is a singleton}    \\\\
     m \vdash P\\
     m \vdash Q\\\\
-    \hastyp{\Gamma}{m}{e}{\tsum{\tau_0}{\tau_1}{Q}{}}
+    \hastyp{\Gamma}{m}{e}{\tsum{\tau_0}{\tau_1}{P}{}}
     }
     {
-    \hastyp{\Gamma}{m}{\esharesum{\psi}{P}{Q}{e}}{\tsum{\tau_0}{\tau_1}{P}{\psi}}
+    \hastyp{\Gamma}{m}{\esharesum{\psi}{P}{Q}{e}}{\tsum{\tau_0}{\tau_1}{Q}{\psi}}
     } \\ \\
     
     \inferrule*[lab=E-Binop]
