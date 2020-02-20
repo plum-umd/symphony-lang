@@ -509,7 +509,7 @@ def main () =
       -- Ctr and Cost compute the solution point:
       ({ par : Ctr, Cost } karmarkar_loop
         -- Ctr reads inputs constraints,
-        ({ par : Ctr } (read_vec ()) ) 
+        ({ par : Ctr } (read_vec ())) 
         -- Cost shares the list structure of the cost vector with Ctr,
         (pdecons 
           [ ]

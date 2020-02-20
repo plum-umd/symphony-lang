@@ -1,0 +1,5 @@
+principal A
+principal B
+principal C
+
+def main () = { par : } main ()
