@@ -123,6 +123,9 @@ def curry f x y = f (a, b)
 def id : t -> t
 def id x = x
 
+def swap : (a -> b -> c) -> (b -> a -> c)
+def swap f y x = f x y
+
 def uncurry : (a -> b -> c) -> (a * b -> c)
 def uncurry f (a, b) = f a b
 
@@ -138,10 +141,12 @@ def const_vec c n = elim_nats n [ ] (cons c)
 
 -- foldr: right fold, the list eliminator
 def foldr : list t -> acc -> (t -> acc -> acc) -> acc
-def foldr l acc f = case l
-{ [ ] -> acc
-; x :: l' -> f x (foldr l' acc f)
-}
+def foldr l acc f =
+  let foldr_rec l' = case l'
+    { [ ] -> acc
+    ; x :: l'' -> f x (foldr_rec l'')
+    } in
+  foldr_rec l
 
 -- foldr_tl: right fold with access to the tail of the list
 def foldr_tl : list t -> acc -> (t -> list t -> acc -> acc) -> acc
@@ -160,7 +165,7 @@ def concat : list t -> list t -> list t
 def concat l0 l1 = foldr l0 l1 cons
 
 def len : list t -> nat
-def len l = foldr l 0 (fun x -> inc)
+def len l = foldr l 0 (const inc)
 
 -- map: map operation for the list functor
 def map : (t -> u) -> list t -> list u
@@ -176,15 +181,15 @@ def snoc x l = foldr l [ x ] cons
 -- zip_lists pt0 pt1: the zip of points p0 and p1
 def zip_lists : list t -> list u -> list (t * u)
 def zip_lists l0 l1 =
-  let zip0 = foldr l0
+  (foldr l0
     (const [ ])
     (fun x z0 l -> decons_ls l
        [ ]
-       (fun y l' -> (x, y) :: z0 l') ) in
-  zip0 l1
+       (fun y l' -> (x, y) :: z0 l') ) )
+    l1
 
 def zip_map : list t -> list u -> (t -> u -> v) -> list v
-def zip_map l0 l1 f = map (uncurry f) (zip_lists l0 l1)
+def zip_map f l0 l1 = map (uncurry f) (zip_lists l0 l1)
 
 -- point_div x pt: divide each entry in pt by x
 def point_div : comp_shr -> point -> point
@@ -202,14 +207,14 @@ def nzProd l = foldr l
 
 -- pt_diff: subtract one point from another
 def pt_diff : point -> point -> point
-def pt_diff pt0 pt1 = zip_map pt0 pt1 minus
+def pt_diff pt0 pt1 = minus zip_map pt0 pt1 
 
 -- sum: sum of a list of secret reals
 def sum : point -> comp_shr
 def sum v z = foldr v z plus
 
 -- dot_prod: take the dot product of two points
-def dot_prod p0 p1 = sum (zip_map p0 p1 mult)
+def dot_prod p0 p1 = sum (zip_map mult p0 p1)
 
 -- pt_cost : evaluate the cost of a point
 def pt_cost : costs -> point -> comp_shr
@@ -229,44 +234,24 @@ def onesVec = const_vec 1.0
 
 -- shift_major: shift matrix between row major and column major order
 def shift_major : nat -> list (list t) -> list (list t)
-def shift_major c m = foldr m
-  (const_vec [ ] c)
-  (fun v acc -> map cons (zip_lists v acc))
-
--- row_major: put given matrix in row-major order
-def row_major : secretMat -> secretMat
-def row_major = shift_major m
-
--- col_major: put given matrix in column-major order
-def col_major : secretMat -> secretMat
-def col_major = shift_major n
-
--- diagonal_matrix p: the diagonal matrix of a point
-def diagonal_matrix : point -> secretMat
-def diagonal_matrix pt = foldr pt
-  [ ]
-  (fun d m' ->
-    let n' = len pt' in
-    (d :: (zeros_vec n')) :: (row_major
-      ((zeros_vec n')) :: (col_major (diagonal_matrix pt')))
-  )
+def shift_major c m = foldr m (const_vec [ ] c) (zip_map cons acc)
 
 -- prod_mat_pt : multiply a matrix of secrets and a point
-def prod_mat_pt : secretMat -> point -> point
-def prod_mat_pt m pt = map m (dot_prod pt)
+def prod_mat_pt : matrix -> point -> point
+def prod_mat_pt m pt = map (dot_prod pt) m
 
--- prod_mat: product of matrices of secrets
+-- prod_mat: product of row matrix and column matrix
 def prod_mat : secretMat -> secretMat -> secretMat
-def prod_mat m0 m1 = row_major (map (col_major m1) (prod_mat_pt m0))
+def prod_mat m0 m1 = map (fun v -> map (dot_prod v) m1) m0 
 
 -- prod_mat_rowms: product of two matrices in row-major form
 def prod_mat_rowms : secretMat -> secretMat -> secretMat
-def prod_mat_rowms m0 m1 = prod_mat m0 (shift_major m1)
+def prod_mat_rowms m0 m1 = prod_mat m0 (shift_major XX m1)
 
 -- and: non-infix Boolean conjunction
 def and b0 b1 = b0 && b1
 
-def all_true : list public_bool -> public_bool
+def all_true : list bool -> bool
 def all_true l = foldr l true and
 
 def max : comp_shr -> comp_shr -> comp_shr_bool
@@ -274,18 +259,11 @@ def max m n = if m <= n then n else m
 
 -- is_zero_vec v: test if v is the vector of shares of 0
 def is_zero_vec : point -> public_bool
-def is_zero_vec p = all_true
-  (map
-    (fun f x -> release_bool (x == (shr_w_comp 0.0)))
-    p)
+def is_zero_vec p = all_true (map (eq (shr_w_comp 0.0)) p)
 
 -- transpose m: the transposition of matrix t
-def transpose : list (list t) -> list (list t)
-def transpose n m = foldr m
-  (const_vec [ ] n)
-  (fun v acc -> map
-    (compose (uncurry cons))
-    (zip_lists v acc) )
+def transpose : nat -> list (list t) -> list (list t)
+def transpose = shift_major
 
 -- sqMat: square matrix: a matrix with explicit diagonal elements
 -- def sqMat : type
@@ -387,7 +365,7 @@ def inverse n m =
   prod_mat (transpose n linv) l_inv
 
 def prod_diag_pt : point -> point -> point
-def prod_diag_pt d p = zip_map d p mult 
+def prod_diag_pt d p = zip_map mult d p
 
 def pdecons a f xy = case xy
   { ⟪⟫ → a
@@ -425,7 +403,7 @@ def karmarkar_iter a cost pt =
           (map shr_w_comp (reveal_ls set(Cost,Ctr) ctr)) ) )
       a in
 
-    -- bt: n * (m + 1) matrix
+    -- bt: (m + 1) * n matrix
     let bt = transpose n b in
 
     -- project c onto b's nullspace
@@ -451,8 +429,6 @@ def karmarkar_iter a cost pt =
   let db' = prod_diag_pt pt b' in
   point_div (dot_prod (map shr_pub_with_comp nOnes) db') db'
 
--- Karmarkar's algorithm, main loop:
-
 -- nat_log: logarithm over nats
 def nat_log : nat -> nat -> nat
 def nat_log b n =
@@ -463,6 +439,8 @@ def log_2_ceil : nat -> nat
 def log_2_ceil n = 
   let n' = nat_log 2n n in
   n' + (if n == (2n ^ n') then 0n else 1n)
+
+-- Karmarkar's algorithm, main loop:
 
 def karmarkar_loop : ctr -> costs -> point
 def karmarkar_loop a cost =
