@@ -92,7 +92,6 @@ bindPatO ψ ṽ = case ψ of
     return $ f₃ ∘ f₂ ∘ f₁
   AscrP _ψ _τ → bindPatO ψ ṽ
   WildP → return id
-  _ → abort
 
 interpCase ∷ (STACK) ⇒ ValP → 𝐿 (Pat ∧ Exp) → IM ValP
 interpCase ṽ ψes = do
@@ -300,6 +299,7 @@ interpExp = wrapInterp $ \case
       ℕT ip → io $ NatMV ip ∘ trPrNat ip ∘ nat ^$ R.randomIO @ℕ64
       ℤT ip → io $ IntMV ip ∘ trPrInt ip ∘ int ^$ R.randomIO @ℤ64
       𝔽T fp → io $ FltMV fp ^$ R.randomIO @𝔻
+      𝔹T → io $ BoolMV ^$ R.randomIO @𝔹
     return $ wrap v
   RandRangeE τ e → do
     wrap :* τ' ← case τ of

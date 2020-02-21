@@ -177,9 +177,9 @@ guardErr x im = case x of
   False → im
 
 error𝑂 ∷ 𝑂 a -> IM a -> IM a
-error𝑂 e err = case e of
+error𝑂 e er = case e of
   Some x → return x
-  None → err
+  None → er
 
 ----------------------
 -- EXPRESSION MONAD --
