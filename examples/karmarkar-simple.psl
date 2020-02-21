@@ -1,6 +1,10 @@
--- m : number of constraint parties
+-- m : user parameter: number of constraint parties
 def m : nat
 def m = 2n
+
+-- n : user parameter: dimension of the constraint system
+def n : nat
+def n = 2n
 
 -- Ctr: parties that bring the constraints
 principal Ctr[2]
@@ -15,12 +19,6 @@ principal Out
 -- def real : type
 -- def real = flt[64]
 -- PSL: support type definitions
-
--- PSL: BEGIN ops that need to be supported
-
-def spdz_sqrt : real{ spdz : Ctr, Cost } -> real{ spdz : Ctr, Cost }
-
--- PSL: END ops that need to be supported
 
 -- ctr: the type of constraints. An independent secret vector.
 -- def ctr : type
@@ -235,10 +233,6 @@ def shift_major c m = foldr m
   (const_vec [ ] c)
   (fun v acc -> map cons (zip_lists v acc))
 
--- n : parameter: number of variables in the constraint system
-def n : nat
-def n = 2n
-
 -- row_major: put given matrix in row-major order
 def row_major : secretMat -> secretMat
 def row_major = shift_major m
@@ -259,23 +253,21 @@ def diagonal_matrix pt = foldr pt
 
 -- prod_mat_pt : multiply a matrix of secrets and a point
 def prod_mat_pt : secretMat -> point -> point
-def prod_mat_pt m pt = foldr pt
-  [ ]
-  (fun f v p -> (map (fun g -> dot_prod v) m1) :: p)
+def prod_mat_pt m pt = map m (dot_prod pt)
 
 -- prod_mat: product of matrices of secrets
 def prod_mat : secretMat -> secretMat -> secretMat
-def prod_mat m0 m1 = row_major
-  (foldr (col_major m1)
-     [ ]
-     (fun f c m' -> (prod_mat_pt m0 c) :: m') )
+def prod_mat m0 m1 = row_major (map (col_major m1) (prod_mat_pt m0))
 
 -- prod_mat_rowms: product of two matrices in row-major form
 def prod_mat_rowms : secretMat -> secretMat -> secretMat
 def prod_mat_rowms m0 m1 = prod_mat m0 (shift_major m1)
 
+-- and: non-infix Boolean conjunction
+def and b0 b1 = b0 && b1
+
 def all_true : list public_bool -> public_bool
-def all_true l = foldr l true (fun x acc -> x && acc)
+def all_true l = foldr l true and
 
 def max : comp_shr -> comp_shr -> comp_shr_bool
 def max m n = if m <= n then n else m
@@ -437,7 +429,6 @@ def karmarkar_iter a cost pt =
     let bt = transpose n b in
 
     -- project c onto b's nullspace
-    let _ = err "pre define cp" in
     let cp = pt_diff
       c'
       (prod_mat_rowms
