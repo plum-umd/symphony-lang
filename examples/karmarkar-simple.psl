@@ -72,6 +72,26 @@ def shr_w_comp x = share{ spdz : Ctr, Cost } x
 -- err msg: throw an error message
 def err msg = msg + 0
 
+-- library functions for functions:
+
+def compose : (t0 -> t1) -> (t1 -> t2) -> (t0 -> t2)
+def compose f g x = g (f x)
+
+def const : t -> u -> t
+def const x y = x
+
+def curry : (a * b -> c) -> (a -> b -> c)
+def curry f x y = f (x, y)
+
+def id : t -> t
+def id x = x
+
+def swap : (a -> b -> c) -> (b -> a -> c)
+def swap f y x = f x y
+
+def uncurry : (a -> b -> c) -> (a * b -> c)
+def uncurry f (a, b) = f a b
+
 -- library functions for types with equality:
 
 def eq x y = x == y
@@ -105,29 +125,9 @@ def elim_nats m z s =
   else s (elim_nats (dec m) z s)
 
 -- elim_natsl: analog of fold right, for nats
-def elim_natsl : nat -> t -> (t -> t) -> t
-def eliml_natl n z s = 
+def eliml_nat : nat -> t -> (t -> t) -> t
+def eliml_nat n z s = 
   (elim_nats n id (compose s)) z
-
--- library functions for functions:
-
-def compose : (t0 -> t1) -> (t1 -> t2) -> (t0 -> t2)
-def compose f g x = g (f x)
-
-def const : t -> u -> t
-def const x y = x
-
-def curry : (a * b -> c) -> (a -> b -> c)
-def curry f x y = f (a, b)
-
-def id : t -> t
-def id x = x
-
-def swap : (a -> b -> c) -> (b -> a -> c)
-def swap f y x = f x y
-
-def uncurry : (a -> b -> c) -> (a * b -> c)
-def uncurry f (a, b) = f a b
 
 -- library functions for lists:
 
@@ -163,7 +163,7 @@ def concat : list t -> list t -> list t
 def concat l0 l1 = foldr l0 l1 cons
 
 def len : list t -> nat
-def len l = foldr l 0 (const inc)
+def len l = foldr l 0n (const inc)
 
 -- map: map operation for the list functor
 def map : (t -> u) -> list t -> list u
@@ -285,8 +285,8 @@ def part_ith a i l = eliml_nat i
 def square : secretMat -> sqMat
 def squareMat m =
   let (_, m') = foldl m
-    (0, [ ])
-    (fun rv (i, acc) -> (inc i, (part_ith (shr_w_comp 0.0) rv i) :: acc)) in
+    (0n, [ ])
+    (fun rv (i, acc) -> (inc i, (part_ith (shr_w_comp 0.0) i rv) :: acc)) in
   rev_ls m'
 
 -- cholesky m: the Cholesky decomposition of matrix m, in column-major
@@ -356,7 +356,7 @@ def lt_lift d l =
 
 -- inverse m: the inverse matrix of m
 def inverse : nat -> secretMat -> secretMat
-def inverse n m =
+def inverse m =
   let l_inv = lt_lift (shr_w_comp 0.0)
     (lt_inverse (cholesky (squareMat (shift_major m)))) in
   prod_mat (transpose linv) l_inv
@@ -389,15 +389,10 @@ def karmarkar_iter : ctr -> cost -> point -> point
 def karmarkar_iter a cost pt =
   let unit_cp =
     -- c': vector: product of diagonal of point and cost
-    -- let _ = err "pre define c'" in
-    let c' =
-      let shrs = map shr_w_comp cost in
-      shrs in
-      -- prod_diag_pt pt shrs in
+    let c' = prod_diag_pt pt (map shr_w_comp cost) in
 
     -- ad: m * n matrix; product of diagonal of point and constraints,
     -- and a row of ones
-    let _ = err "pre define b" in
     let b = pfold 
       [ nOnes ]
       (fun Q ctr -> cons
@@ -405,18 +400,15 @@ def karmarkar_iter a cost pt =
           (map shr_w_comp (reveal_ls set(Cost,Ctr) ctr)) ) )
       a in
 
-    -- bt: (m + 1) * n matrix
-    let _ = err "pre transpose" in
-    let bt = transpose b in
-
     -- project c onto b's nullspace
-    let _ = err "pre define cp" in
     let cp = pt_diff
       c'
-      (prod_mat_rowms
+      -- bt: (m + 1) * n matrix
+      (let bt = transpose b in
+       prod_mat_rowms
         bt
         (prod_mat_rowms
-          (inverse (inc m) (prod_mat_rowms b bt))
+          (inverse (prod_mat_rowms b bt))
           (prod_mat_pt b c'))) in
 
     -- test if the projection is the 0 vector:
@@ -448,7 +440,7 @@ def log_2_ceil n =
 
 def karmarkar_loop : ctr -> costs -> point
 def karmarkar_loop a cost =
-  let bound = 0n in
+  let bound = 1n in
       -- (12n * n *
       --   ((inc m) * n +
       --    (log_2_ceil (abs_val (ceil (reveal{ Cost, Ctr } (
