@@ -14,10 +14,11 @@
 
 % Types
 \newcommand{\tnat}{\ensuremath{\mathtt{nat}}}
-\newcommand{\tlist}[1]{\ensuremath{\mathtt{list}~{#1}}}
 \newcommand{\tfun}[3]{\ensuremath{{#1} ~^{#3}\!\rightarrow {#2}}}
 \newcommand{\tprod}[2]{\ensuremath{{#1} \times {#2}}}
-\newcommand{\tsum}[4]{\ensuremath{{#1} +^{#3}_{#4} {#2}}}
+%\newcommand{\tsum}[4]{\ensuremath{{#1} +^{#3}_{#4} {#2}}}
+\newcommand{\tsum}[3]{\ensuremath{{#1} +^{#3} {#2}}}
+\newcommand{\trec}[2]{\ensuremath{\mu {#1}.{#2}}}
 \newcommand{\ssec}{\ensuremath{\mathtt{\cdot}}}
 \newcommand{\isec}{\ensuremath{\mathtt{pmap}}}
 \newcommand{\sshare}[1]{\ensuremath{\mathtt{shr}~{#1}}}
@@ -29,17 +30,20 @@
 \newcommand{\epar}[2]{\ensuremath{\kw{par}~{#1}~{#2}}}
 \newcommand{\esec}[2]{\ensuremath{\kw{sec}~{#1}~{#2}}}
 \newcommand{\ereveal}[4]{\ensuremath{\kw{reveal}^{#1}_{#4}~{#2}~{#3}}}
-\newcommand{\econd}[3]{\ensuremath{\kw{match}~{#1}~\kw{with}~{#2} \mid {#3}}}
+\newcommand{\econd}[3]{\ensuremath{\kw{match}~{#1}~\kw{with}~x.{#2} \mid x.{#3}}}
+%\newcommand{\emux}[3]{\ensuremath{\kw{mux}~{#1}~\kw{?}~x.{#2}~\kw{:}~x.{#3}}}
 \newcommand{\emux}[3]{\ensuremath{\kw{mux}~{#1}~\kw{?}~{#2}~\kw{:}~{#3}}}
 \newcommand{\eshare}[4]{\ensuremath{\kw{share}^{#2}_{#1}~{#3}~{#4}}}
-\newcommand{\esharesum}[4]{\ensuremath{\kw{sharesum}^{#2}_{#1}~{#3}~{#4}}}
-\newcommand{\econcat}[2]{\ensuremath{{#1} +\!\!+~ {#2}}} 
-\newcommand{\eaccval}[2]{\ensuremath{{#1}.{#2}}}
+%\newcommand{\esharesum}[4]{\ensuremath{\kw{sharesum}^{#2}_{#1}~{#3}~{#4}}}
+\newcommand{\einj}[2]{\ensuremath{\kw{inj}_{#1}~{#2}}}
 \newcommand{\eread}{\ensuremath{\kw{read}}}
 \newcommand{\epair}[2]{\ensuremath{\langle {#1}, {#2} \rangle}}
 \newcommand{\eproj}[2]{\ensuremath{\kw{\#}}_{#1}~{#2}}
 \newcommand{\elam}[2]{\ensuremath{\lambda {#1}.{#2}}}
 \newcommand{\eapp}[2]{\ensuremath{{#1}~{#2}}}
+\newcommand{\efix}[3]{\ensuremath{\kw{fix}~{#1}.\elam{#2}{#3}}}
+\newcommand{\efold}[2]{\ensuremath{\kw{fold}_{#1}~{#2}}}
+\newcommand{\eunfold}[1]{\ensuremath{\kw{unfold}~{#1}}}
 
 % Judgments
 \newcommand{\hastyp}[4]{\ensuremath{{#1} \vdash_{#2} {#3} : {#4}}}
@@ -66,16 +70,28 @@
 
 Soon:
 \begin{itemize}
-\item finish list types (can't encrypt), add (or generalize lambdas
-  to) recursive functions
-\item Add statically known (non dependent) wire bundles, encoded as
-  tuples. May involve adding solo mode.
+\item Add text to go with sums (no longer encrypted, directly),
+  recursive types, fixpoint functions. Work out some questions:
+  \begin{itemize}
+    \item Fixpoints now have the mode $m$ in the context and on the
+      arrow as the same. In normal abstractions this doesn't need to
+      be. Not sure if I'm being too restrictive.
+    \item Sum construction doesn't require its components to be
+      present, but deconstruction does. Is the latter required? It
+      should be if it's the same as pair access; is it?
+    \item No subtyping at present for recursive types. Should we add
+      it?
+    \end{itemize}
+\item Add encrypted sum as a derived form, encoded as type
+  $\tprod{\tnat^m_\psi}{(\tprod{\tau_1}{\tau_2})}$. 
+\item Add statically known (non dependent) wire bundles as a derived form, encoded as
+  tuples. Will involve adding solo mode.
 \item Develop operational semantics, both single threaded mode and
   multiparty mode. Make sure the types do what we want!
 \end{itemize}
 
-Next: Look at \texttt{writeup/spdz.md} and think about language
-changes to support verification.
+% Next: Look at \texttt{writeup/spdz.md} and think about language
+% changes to support verification.
 
 Later:
 \begin{itemize}
@@ -148,26 +164,26 @@ gamma |-^m_(n \cup m') par m' e : t
                        && \mid & \phi & \text{encryption format} \\
       \text{Types} & \tau & ::=  & \tnat^m_\psi & \text{a base type} \\
                        && \mid & \tprod{\tau}{\tau} & \text{pairs} \\
-                       && \mid & \tsum{\tau}{\tau}{m}{\psi} & \text{sums} \\
-                       && \mid & \tlist{\tau} & \text{lists} \\
+%                       && \mid & \tsum{\tau}{\tau}{m}{\psi} & \text{sums} \\
+                       && \mid & \tsum{\tau}{\tau}{m} & \text{sums} \\
+                       && \mid & \trec{\alpha}{\tau} & \text{(iso)recursive types} \\
                        && \mid & \tfun{\tau}{\tau}{m} & \text{functions} \\
       \text{Protocol} & \psi & ::= & ... & \text{MPC type} \\
       \text{Expressions} & e & ::= & n & \text{naturals} \\
                        && \mid & x & \text{variables} \\
-                       % && \mid & \econcat{e_1}{e_2} & \text{concatenate $\isec$s}\\
-                       % && \mid & \eaccval{e}{p} & \text{$p$'s value}\\
                        && \mid & \eread & \text{read from terminal}\\
                        && \mid & \epair{e_1}{e_2} & \text{pair construction}\\
                        && \mid & \eproj{i}{e} & \text{pair elem, }i \in \{1,2\}\\
                        && \mid & \eshare{\psi}{P}{Q}{e} & \text{$\psi$ shares of {\tnat} at $P$ to $Q$} \\
-                       && \mid & \esharesum{\psi}{P}{Q}{e} & \text{$\psi$ shares of sum $P$ to $Q$} \\
+                       % && \mid & \esharesum{\psi}{P}{Q}{e} & \text{$\psi$ shares of sum $P$ to $Q$} \\
                        && \mid & \ereveal{P}{Q}{e}{\psi} & \text{distribute result in $\psi$ at $Q$ to $P$}\\
                        && \mid & \ebinop{e_1}{e_2}  & \text{binary operation} \\
-                       && \mid & \econd{e_1}{e_2}{e_3}  & \text{non-MPC conditional} \\
-                       && \mid & \emux{e_1}{e_2}{e_3}  & \text{MPC conditional} \\
+                       && \mid & \emux{e}{e_1}{e_2}  & \text{MPC conditional} \\
+                       && \mid & \einj{i}{e} & \text{sum elem, }i \in \{1,2\}\\
+                       && \mid & \econd{e}{e_1}{e_2}  & \text{sum elimination} \\
+                       && \mid & \efold{\trec{\alpha}{\tau}}{e} & \text{rectype intro}\\
+                       && \mid & \eunfold{e} & \text{rectype elim}\\
                        && \mid & \epar{P}{e} & \text{parallel evaluation}\\
-%                       && \mid & \eall{P}{e} & \text{parallel evaluation}\\
-                       % && \mid & \esec{P}{e} & \text{secure (cryptographic) evaluation}\\
                        && \mid & \elam{x}{e}  & \text{abstraction} \\
                        && \mid & \eapp{e_1}{e_2}  & \text{application} \\
                        && \mid & \elet{x}{e_1}{e_2}  & \text{sequencing} \\
@@ -237,15 +253,15 @@ a share encoded using $\psi$ and forces the computation to
 happen. That is, at that moment the secure computation will be forced
 to completion, and the result revealed to the involved principals $Q$.
 
-Sum types can also be encrypted. The way we think about representing
-something of type $\tsum{\tau_1}{\tau_2}{m}{\psi}$ is that $\tau_1$
-and $\tau_2$ are stored in a pair $\tprod{\tau_1}{\tau_2}$, while
-location $m$ has access to an encrypted boolean (under $\psi$) which
-indicates whether the left or right element of the pair is valid. When
-computing on such a sum with $\emux{e}{e_1}{e_2}$, we feed the lhs
-into $e_1$ and compute it, feed the rhs into $e_2$ and compute that,
-and then select one output or the other based on the encrypted
-boolean.
+% Sum types can also be encrypted. The way we think about representing
+% something of type $\tsum{\tau_1}{\tau_2}{m}{\psi}$ is that $\tau_1$
+% and $\tau_2$ are stored in a pair $\tprod{\tau_1}{\tau_2}$, while
+% location $m$ has access to an encrypted boolean (under $\psi$) which
+% indicates whether the left or right element of the pair is valid. When
+% computing on such a sum with $\emux{e}{e_1}{e_2}$, we feed the lhs
+% into $e_1$ and compute it, feed the rhs into $e_2$ and compute that,
+% and then select one output or the other based on the encrypted
+% boolean.
 
 \section{Typing}
 
@@ -267,11 +283,11 @@ boolean.
     {
     \hastyp{\Gamma}{m}{\eread}{\tnat^{m}}
     }
-    \\ \\
+    \qquad
 
     \inferrule*[lab=E-Pair]
     {
-    \hastyp{\Gamma}{m}{e_1}{\tau_1}\\
+    \hastyp{\Gamma}{m}{e_1}{\tau_1}\\\\
     \hastyp{\Gamma}{m}{e_2}{\tau_2}
     }
     {
@@ -280,13 +296,50 @@ boolean.
     
     \inferrule*[lab=E-Access]
     {
-    m \vdash \tau_i \\
+    m \vdash \tau_i \\\\
     \hastyp{\Gamma}{m}{e}{\tau_1 \times \tau_2}\\
     }
     {
     \hastyp{\Gamma}{m}{\eproj{i}{e}}{\tau_i}
     }\\\\
+
+    \inferrule*[lab=E-inj]
+    {
+    \hastyp{\Gamma}{m}{e}{\tau}
+    }
+    {
+    \hastyp{\Gamma}{m}{\einj{1}{e}}{\tsum{\tau}{\tau_0}{m}}\\\\
+    \hastyp{\Gamma}{m}{\einj{2}{e}}{\tsum{\tau_0}{\tau}{m}}
+    } \qquad
     
+    \inferrule*[lab=E-Match]
+    {
+    \hastyp{\Gamma}{m}{e}{\tau_0 +^m \tau_1}\\\\
+    m \vdash \tau_0 \\
+    m \vdash \tau_1 \\\\
+    \hastyp{\Gamma,x\!:\!\tau_0}{m}{e_1}{\tau}\\
+    \hastyp{\Gamma,x\!:\!\tau_1}{m}{e_2}{\tau}\\
+    }
+    {
+      \hastyp{\Gamma}{m}{\econd{e}{e_1}{e_2}}{\tau}
+    }\\ \\
+
+    \inferrule*[lab=E-Fold]
+    {
+    \hastyp{\Gamma}{m}{e}{\tau[\trec{\alpha}{\tau}\setminus\alpha]}
+    }
+    {
+    \hastyp{\Gamma}{m}{\efold{\trec{\alpha}{\tau}}{e}}{\trec{\alpha}{\tau}}
+    } \qquad
+
+    \inferrule*[lab=E-Unfold]
+    {
+    \hastyp{\Gamma}{m}{e}{\trec{\alpha}{\tau}}
+    }
+    {
+    \hastyp{\Gamma}{m}{\eunfold{e}}{\tau[\trec{\alpha}{\tau}\setminus\alpha]}
+    } \\ \\
+
     \inferrule*[lab=E-Share]
     {
     P\text{ is a singleton}    \\\\
@@ -298,35 +351,46 @@ boolean.
     \hastyp{\Gamma}{m}{\eshare{\psi}{P}{Q}{e}}{\tnat^Q_\psi}
     }\qquad
 
-    \inferrule*[lab=E-Sharesum]
-    {
-    P\text{ is a singleton}    \\\\
-    m \vdash P\\
-    m \vdash Q\\\\
-    \hastyp{\Gamma}{m}{e}{\tsum{\tau_0}{\tau_1}{P}{}}
-    }
-    {
-    \hastyp{\Gamma}{m}{\esharesum{\psi}{P}{Q}{e}}{\tsum{\tau_0}{\tau_1}{Q}{\psi}}
-    } \\ \\
+    % \inferrule*[lab=E-Sharesum]
+    % {
+    % P\text{ is a singleton}    \\\\
+    % m \vdash P\\
+    % m \vdash Q\\\\
+    % \hastyp{\Gamma}{m}{e}{\tsum{\tau_0}{\tau_1}{P}{}}
+    % }
+    % {
+    % \hastyp{\Gamma}{m}{\esharesum{\psi}{P}{Q}{e}}{\tsum{\tau_0}{\tau_1}{Q}{\psi}}
+    % } \\ \\
     
     \inferrule*[lab=E-Binop]
     {
     \tau = \tnat^m_\psi\\\\
-    \hastyp{\Gamma}{m}{e_1}{\tau}\\
+    \hastyp{\Gamma}{m}{e_1}{\tau}\\\\
     \hastyp{\Gamma}{m}{e_2}{\tau}\\
     }
     {
     \hastyp{\Gamma}{m}{\ebinop{e_1}{e_2}}{\tau}
     }\qquad
 
+    % \inferrule*[lab=E-Mux]
+    % {
+    % \hastyp{\Gamma}{m}{e}{\tau_0 +^m_\psi \tau_1}\\\\
+    % m \vdash \tau_0 \\
+    % m \vdash \tau_1 \\\\
+    % \tau = \tnat^m_\psi \vee \tau = \tsum{\tau_2}{\tau_3}{m}{\psi}\\\\
+    % \hastyp{\Gamma,x\!:\!\tau_0}{m}{e_1}{\tau}\\
+    % \hastyp{\Gamma,x\!:\!\tau_1}{m}{e_2}{\tau}\\
+    % }
+    % {
+    % \hastyp{\Gamma}{m}{\emux{e}{e_1}{e_2}}{\tau}
+    % }\\ \\
+
     \inferrule*[lab=E-Mux]
     {
-    \hastyp{\Gamma}{m}{e}{\tau_0 +^m_\psi \tau_1}\\\\
-    m \vdash \tau_0 \\
-    m \vdash \tau_1 \\\\
-    \tau = \tnat^m_\psi \vee \tau = \tsum{\tau_2}{\tau_3}{m}{\psi}\\\\
-    \hastyp{\Gamma,x\!:\!\tau_0}{m}{e_1}{\tau}\\
-    \hastyp{\Gamma,x\!:\!\tau_1}{m}{e_2}{\tau}\\
+    \hastyp{\Gamma}{m}{e}{\tau}\\\\
+    \tau = \tnat^m_\psi\\\\
+    \hastyp{\Gamma}{m}{e_1}{\tau}\\
+    \hastyp{\Gamma}{m}{e_2}{\tau}\\
     }
     {
     \hastyp{\Gamma}{m}{\emux{e}{e_1}{e_2}}{\tau}
@@ -342,18 +406,6 @@ boolean.
     \hastyp{\Gamma}{m}{\ereveal{P}{Q}{e}{\psi}}{\tnat^Q}
     }\qquad
     
-    \inferrule*[lab=E-Match]
-    {
-    \hastyp{\Gamma}{m}{e}{\tau_0 +^m \tau_1}\\\\
-    m \vdash \tau_0 \\
-    m \vdash \tau_1 \\\\
-    \hastyp{\Gamma,x\!:\!\tau_0}{m}{e_1}{\tau}\\
-    \hastyp{\Gamma,x\!:\!\tau_1}{m}{e_2}{\tau}\\
-    }
-    {
-      \hastyp{\Gamma}{m}{\econd{e}{e_1}{e_2}}{\tau}
-    }\\ \\
-
     \inferrule*[lab=E-Var]
     {
     x\!:\!\tau \in \Gamma
@@ -374,7 +426,7 @@ boolean.
 
    \inferrule*[lab=E-Abs]
     {
-    m \vdash m'\\
+    m \vdash m'\\\\
     \hastyp{\Gamma, x\!:\!\tau_1}{m'}{e}{\tau_2}
     }
     {
@@ -388,6 +440,14 @@ boolean.
     }
     {
     \hastyp{\Gamma}{m}{\eapp{e}{e_1}}{\tau}
+    }\qquad
+
+    \inferrule*[lab=E-Fix]
+    {
+    \hastyp{\Gamma,f\!:\! \tfun{\tau_1}{\tau_2}{m}}{m}{\elam{x}{e}}{\tfun{\tau_1}{\tau_2}{m}}
+    }
+    {
+    \hastyp{\Gamma}{m}{\efix{f}{x}{e}}{\tfun{\tau_1}{\tau_2}{m}}
     }\\ \\
 
     \inferrule*[lab=E-Par]
@@ -467,10 +527,10 @@ value of $e$ must be visible in the current mode ($m \vdash P$) and
 the principals $Q$ must be present as well. Finally, the value must be
 a number; neither pairs nor functions can be shares.
 
-Rule~\rulelab{E-Sharesum} types encrypting a sum type. The $P$ and $Q$
-arguments are as with \rulelab{E-Share}. No requirements are made
-about $\tau_0$ and $\tau_1$; their location is enforced when the pair
-is used in a $\kw{mux}$; see below.
+% Rule~\rulelab{E-Sharesum} types encrypting a sum type. The $P$ and $Q$
+% arguments are as with \rulelab{E-Share}. No requirements are made
+% about $\tau_0$ and $\tau_1$; their location is enforced when the pair
+% is used in a $\kw{mux}$; see below.
 
 Rule~\rulelab{E-Binop} types arithmetic computations on both shares
 and normal values---both arguments must have the same type (i.e., both
@@ -478,6 +538,13 @@ shares or both normal values, with the same visibility), and match the
 current mode. Note that this rule precludes adding a 
 share and a normal value; you can always do this by converting the
 latter to a share (the compiler can be smart about this).
+
+% Rule~\rulelab{E-Mux} types multiplexing. The semantics is to evaluate
+% both branches (second and third arguments), binding $x$ to the left
+% and right-hand sides of the sum, respectively. The $\kw{mux}$ chooses
+% the result to return based on the first argument's ultimate
+% result. These are all (compatible) shares (under protocol $\psi$), so
+% we can think of this as making a multiplexor circuit.
 
 Rule~\rulelab{E-Mux} types multiplexing. The semantics is to evaluate
 both branches (second and third arguments), binding $x$ to the left
@@ -555,7 +622,7 @@ $\tau_1$ can be used as $\tau_2$ is given in Figure~\ref{fig:sub}.
     }
     {
     Q \vdash P
-    } \\ \\
+    } \qquad
     
     \inferrule*[lab=M-Nat]
     {
@@ -564,16 +631,24 @@ $\tau_1$ can be used as $\tau_2$ is given in Figure~\ref{fig:sub}.
     }
     {
     m \vdash \tnat^n_\psi
-    } \qquad
+    } \\ \\
+
+    % \inferrule*[lab=M-Sum]
+    % {
+    % m = n \vee
+    % (\psi = \cdot \Rightarrow m \vdash n)
+    % }
+    % {
+    % m \vdash \tsum{\tau_1}{\tau_2}{m}{\psi}
+    % } \\ \\
 
     \inferrule*[lab=M-Sum]
     {
-    m = n \vee
-    (\psi = \cdot \Rightarrow m \vdash n)
+    m \vdash n
     }
     {
-    m \vdash \tsum{\tau_1}{\tau_2}{m}{\psi}
-    } \\ \\
+    m \vdash \tsum{\tau_1}{\tau_2}{m}
+    } \qquad
 
     \inferrule*[lab=M-Fun]
     {
@@ -588,9 +663,9 @@ $\tau_1$ can be used as $\tau_2$ is given in Figure~\ref{fig:sub}.
     {m \vdash \tprod{\tau_1}{\tau_2}}
     \qquad
 
-    \inferrule*[lab=M-List]
+    \inferrule*[lab=M-Rec]
     { }
-    {m \vdash \tlist{\tau}}
+    {m \vdash \trec{\alpha}{\tau}}
   \end{array}\]
 \caption{Mode well-formedness}
 \label{fig:aux}
@@ -607,16 +682,24 @@ $\tau_1$ can be used as $\tau_2$ is given in Figure~\ref{fig:sub}.
     \issub{\tnat^m_\psi}{\tnat^n_\psi}
     } \qquad
 
+    % \inferrule*[lab=S-Sum]
+    % {
+    % m \vdash \tsum{\tau_1'}{\tau_2'}{n}{\psi}\\\\
+    % \psi = \cdot \Rightarrow \issub{\tau_1}{\tau_1'} \land \issub{\tau_2}{\tau_2'}\\\\
+    % \psi \not= \cdot \Rightarrow \tau_1 = \tau_1' \land \tau_2 = \tau_2'\\
+    % }
+    % {
+    % \issub{\tsum{\tau_1}{\tau_2}{m}{\psi}}{\tsum{\tau_1'}{\tau_2'}{n}{\psi}}
+    % }
+
     \inferrule*[lab=S-Sum]
     {
-    m \vdash \tsum{\tau_1'}{\tau_2'}{n}{\psi}\\\\
-    \psi = \cdot \Rightarrow \issub{\tau_1}{\tau_1'} \land \issub{\tau_2}{\tau_2'}\\\\
-    \psi \not= \cdot \Rightarrow \tau_1 = \tau_1' \land \tau_2 = \tau_2'\\
+    m \vdash \tsum{\tau_1'}{\tau_2'}{n}\\\\
+    \issub{\tau_1}{\tau_1'} \land \issub{\tau_2}{\tau_2'}
     }
     {
-    \issub{\tsum{\tau_1}{\tau_2}{m}{\psi}}{\tsum{\tau_1'}{\tau_2'}{n}{\psi}}
-    }
-    \\ \\
+    \issub{\tsum{\tau_1}{\tau_2}{m}}{\tsum{\tau_1'}{\tau_2'}{n}}
+    } \qquad
     
     \inferrule*[lab=S-Fun]
     {
@@ -635,15 +718,6 @@ $\tau_1$ can be used as $\tau_2$ is given in Figure~\ref{fig:sub}.
     }
     {
     \issub{\tau_1 \times \tau_2}{\tau_1' \times \tau_2'}
-    }
-    \qquad
-
-    \inferrule*[lab=S-List]
-    {
-    \issub{\tau}{\tau'}
-    }
-    {
-    \issub{\tlist{\tau}}{\tlist{\tau'}}
     }
     
 \end{array}
