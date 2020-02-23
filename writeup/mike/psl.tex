@@ -19,10 +19,10 @@
 %\newcommand{\tsum}[4]{\ensuremath{{#1} +^{#3}_{#4} {#2}}}
 \newcommand{\tsum}[3]{\ensuremath{{#1} +^{#3} {#2}}}
 \newcommand{\trec}[2]{\ensuremath{\mu {#1}.{#2}}}
-\newcommand{\ssec}{\ensuremath{\mathtt{\cdot}}}
-\newcommand{\isec}{\ensuremath{\mathtt{pmap}}}
-\newcommand{\sshare}[1]{\ensuremath{\mathtt{shr}~{#1}}}
-\newcommand{\sectyp}[3]{\ensuremath{{#1} \{~{#2}:{#3}~\}}}
+% \newcommand{\ssec}{\ensuremath{\mathtt{\cdot}}}
+% \newcommand{\isec}{\ensuremath{\mathtt{pmap}}}
+% \newcommand{\sshare}[1]{\ensuremath{\mathtt{shr}~{#1}}}
+% \newcommand{\sectyp}[3]{\ensuremath{{#1} \{~{#2}:{#3}~\}}}
   
 % Terms
 \newcommand{\ebinop}[2]{\ensuremath{{#1}~\oplus~{#2}}}
@@ -82,10 +82,6 @@ Soon:
     \item No subtyping at present for recursive types. Should we add
       it?
     \end{itemize}
-\item Add encrypted sum as a derived form, encoded as type
-  $\tprod{\tnat^m_\psi}{(\tprod{\tau_1}{\tau_2})}$. 
-\item Add statically known (non dependent) wire bundles as a derived form, encoded as
-  tuples. Will involve adding solo mode.
 \item Develop operational semantics, both single threaded mode and
   multiparty mode. Make sure the types do what we want!
 \end{itemize}
@@ -387,8 +383,8 @@ to completion, and the result revealed to the involved principals $Q$.
 
     \inferrule*[lab=E-Mux]
     {
-    \hastyp{\Gamma}{m}{e}{\tau}\\\\
     \tau = \tnat^m_\psi\\\\
+    \hastyp{\Gamma}{m}{e}{\tau}\\\\
     \hastyp{\Gamma}{m}{e_1}{\tau}\\
     \hastyp{\Gamma}{m}{e_2}{\tau}\\
     }
@@ -726,5 +722,98 @@ $\tau_1$ can be used as $\tau_2$ is given in Figure~\ref{fig:sub}.
 \label{fig:sub}
 \end{figure}
 
+\section{Derived Forms}
 
+Rather than put every useful construct in the language, we can defined
+some in terms of others.
+
+\subsection{Encrypted sums}
+
+An encrypted sum is a value of the type
+$\tprod{\tnat^m_\psi}{(\tprod{\tau_1}{\tau_2})}$. Here, the first
+element is a boolean that represents whether the ``real'' portion of
+the sum is the left side. We can introduce (encrypt) an existing sum
+by doing the following:
+\begin{verbatim}
+let sharesum e def_lhs def_rhs =
+  match e with
+    x.(share 1,x,def_rhs)
+  | x.(share 0,def_lhs,x)
+\end{verbatim}
+We can eliminate an encrypted sum by using $\kw{mux}$, which forces us
+to produce a $\tnat^m_\psi$, to ensure obliviousness:
+\begin{verbatim}
+let muxshare e t f =
+  let x = #1 e in
+  let bs = #2 e in
+  mux x ? t (#1 bs) : f (#2 bs)
+\end{verbatim}
+
+\mwh{TO DO}:
+\begin{itemize}
+\item I'm not sure if we literally want to encode this with functions,
+  as above, or whether syntax like $\kw{match}$ which does the binding
+  locally makes more sense.
+\item I'm not sure about modes etc. Probably should just work out the
+  derived rules for these things.
+\end{itemize}
+  
+\subsection{Wire bundles and solo mode}
+
+A wire bundle is just a product where each element of the product is
+only visible to a single party. For simplicity, consider the smallest
+one: $\tprod{\tnat^{\{p\}}_\psi}{\tnat^{\{q\}}_\psi}$. One way we
+could write this as a derived type might be
+$W~\{p,q\}~\tnat^\alpha_\phi$ where the interpretation is to
+substitute each principal in the first argument to $W$ (a principal
+set $P$) for $\alpha$ in the second argument (a type $\tau$).
+
+To operate on a wire bundle we can use \emph{solo mode}, exemplified
+in the construct $\kw{wmap}$:
+\begin{verbatim}
+let wmap (x:W {p,q} t) (f:t -> t0) =
+  (par {p} (f (#1 x)), 
+   par {q} (f (#2 x)))
+\end{verbatim}
+This runs the function $f$ on each element of the wire bundle, on its
+respective host, and packages the results in another wire bundle. Note
+that $f$ would need to be inlined at each call site because we don't
+support polymorphism in the language. Moreover, $f$ might contain
+occurrences of $\alpha$ which would  be substituted with
+\texttt{\{p\}} in the first half of the pair, and \texttt{\{q\}} in
+the second.
+
+The above is basically Wysteria's notion of wire bundles when
+constructed and operated on in $\kw{par}$ mode, and the \texttt{wmap}
+above is similar to Wysteria's \texttt{waps}. Wysteria's notion of a
+wire bundle in \texttt{sec} mode is basically a product of
+shares, which is generated automatically by calling $\kw{share}$ on
+each element of the input wire bundle. This is easily done:
+
+\bigskip
+\noindent
+\texttt{wmap w }($\elam{x}{\eshare{\phi}{\alpha}{\{p,q\}}{x}}$)
+\bigskip
+
+\noindent
+The \texttt{wmap} will produce a pair of shares (which . Notice the
+$\alpha$ annotation on the $\kw{share}$---this will match the (solo)
+mode of the principal doing the sharing, after substitution.
+
+You can imagine generalizing this to wire bundles of arbitrary
+size. You can also easily imagine converting this pair to a list, and
+then supporting equivalent constructs like \texttt{wfold}.
+
+\mwh{TO DO}
+\begin{itemize}
+  \item Do we want a way to run code over a wire bundle in which
+    parties are not in solo mode? For example, they could run in full
+    par mode (with both principals) but then accesses to the
+    individual elements could be dropped to a single mode, for those
+    accesses. For this, you need a map from principal $\alpha$ to
+    index in the pair for $\alpha$'s value. For the accessor in the
+    code, you use the map to extra from the pair. Maybe use ``self''
+    and not $\alpha$. 
+  \end{itemize}
+  
 \end{document}
