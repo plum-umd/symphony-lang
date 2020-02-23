@@ -547,7 +547,9 @@ both branches (second and third arguments), binding $x$ to the left
 and right-hand sides of the sum, respectively. The $\kw{mux}$ chooses
 the result to return based on the first argument's ultimate
 result. These are all (compatible) shares (under protocol $\psi$), so
-we can think of this as making a multiplexor circuit.
+we can think of this as making a multiplexor circuit. The rule
+restrict the results to be $\tnat$s, but this is easily generalized
+via encoding (Section~\ref{sec:derived}).
 
 Rule~\rulelab{E-Reveal} types share elimination, i.e., converting a
 share of a $\tnat$ to a normal value. In essence, it forces the secure
@@ -723,9 +725,30 @@ $\tau_1$ can be used as $\tau_2$ is given in Figure~\ref{fig:sub}.
 \end{figure}
 
 \section{Derived Forms}
+\label{sec:derived}
 
 Rather than put every useful construct in the language, we can defined
 some in terms of others.
+
+\subsection{Generalized Mux}
+
+The $\kw{mux}$ construct is restricted to returning encrypted
+$\tnat$s. We can generalize this to returning pairs of encrypted
+$\tnat$s:
+\begin{verbatim}
+muxtopair e e1 e2 =
+  let b = e in
+  let (l1,r1) = e1 in
+  let (l2,r2) = e2 in
+  (mux b l1 l2, mux b r1 r2)
+\end{verbatim}
+With this encoding, we can likewise support encrypted sums, which are
+encoded as pairs of encrypted nats (see below).
+
+\begin{itemize}
+\item It seems evident we can work this out for equal-sized lists
+  too. Generalized encoding for (non-encrypted) sums?
+\end{itemize}
 
 \subsection{Encrypted sums}
 
