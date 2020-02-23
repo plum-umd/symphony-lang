@@ -44,14 +44,18 @@
 \newcommand{\efix}[3]{\ensuremath{\kw{fix}~{#1}.\elam{#2}{#3}}}
 \newcommand{\efold}[2]{\ensuremath{\kw{fold}_{#1}~{#2}}}
 \newcommand{\eunfold}[1]{\ensuremath{\kw{unfold}~{#1}}}
+\newcommand{\vshare}[3]{\ensuremath{\{{#3}\}^{#1}_{#2}}}
 
 % Judgments
 \newcommand{\hastyp}[4]{\ensuremath{{#1} \vdash_{#2} {#3} : {#4}}}
-\newcommand{\canshare}[1]{\ensuremath{\text{isFlat } {#1}}}
+%\newcommand{\canshare}[1]{\ensuremath{\text{isFlat } {#1}}}
 \newcommand{\subtype}{\ensuremath{<:}}
 \newcommand{\issub}[2]{{#1} \subtype {#2}}
 
 % Aux
+\newcommand{\env}{\ensuremath{\sigma}}
+\newcommand{\config}[2]{\ensuremath{\langle{#1},{#2}\rangle}}
+  
 % \newcommand{\mpar}[1]{\ensuremath{\mathsf{p}(#1)}}
 % \newcommand{\msec}[1]{\ensuremath{\mathsf{s}(#1)}}
 
@@ -211,7 +215,44 @@ locations.
 \section{Semantics}
 
 \begin{figure}
+  \[\begin{array}{rlcll}
+      \text{Value} & v  & ::=  & n & \text{naturals} \\
+                       && \mid & \epair{v_1}{v_2} & \text{pair value}\\
+                       && \mid & \einj{i}{v} & \text{sum elem, }i \in \{1,2\}\\
+                       && \mid & \efold{\trec{\alpha}{\tau}}{v} & \text{rectype value}\\
+                       && \mid & \elam{x}{e}  & \text{abstraction} \\
+                       && \mid & \epar{P}{v} & \text{partially visible value}\\
+                       && \mid & \vshare{Q}{\psi}{n} & \text{$\psi$-$Q$ share of $n$} \\
+  \end{array}
+\]
+\caption{Values}
+\label{fig:val}
 \end{figure}
+
+We define a big-step operational semantics. The judgment
+$\config{\env}{e} \longrightarrow^m v$ states that program $e$ evaluates
+under mode $m$ and store $\env$ to a value $v$. Values are defined in
+Figure~\ref{fig:val}. Looking at the figure, the first five forms are
+standard. The interesting ones are (1) $\epar{P}{v}$, which is a value
+only visible to principals $p \in P$, and (2) $\vshare{Q}{\psi}{n}$
+which is a natural number $n$ but encrypted under scheme $\psi$ shared
+with the principals in $q \in Q$. 
+
+\mwh{Finish up: Some key rules. I'm now thinking I might want a
+  different syntactic form for value visible somewhere, rather than
+  reusing $\kw{par}$.}
+
+$$
+\begin{array}{lcll}
+\config{\env}{\epar{P}{(\epar{Q}{v}})} &
+  \longrightarrow^m & \epar{R}{v} & \text{where }R = P \cap Q\\
+ %%
+\config{\env}{\eshare{\phi}{\{p\}}{Q}{n}} &
+  \longrightarrow^m & \vshare{Q}{\psi}{v} & \text{when }m \vdash Q \cup \{p\}\\
+\end{array}
+$$
+
+\mwh{OLD:}
 
 The semantics is inspired by that of Wysteria, in there being a single
 program involving multiple, lock-step principals. However, the notion
