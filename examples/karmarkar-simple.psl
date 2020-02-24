@@ -324,31 +324,27 @@ def ne_to_list = uncurry cons
 def shr_add_inv : comp_shr -> comp_shr
 def shr_add_inv x = (shr_w_comp 0.0) - x
 
--- col_lt_to_row: convert a column-major LT-matrix to be column major
-def col_lt_to_row : colLtMat -> ltMat
+-- col_lt_to_row m: converstion of LT matrix in col-major form to
+-- row-major form
 def col_lt_to_row m = foldr m
   [ ]
   (fun (hd, bot) acc -> ([ ], hd) ::
     (zip_map (fun b (ls, rt) -> (b :: ls, rt)) bot acc) )
 
--- lt_inverse m: the inverse of lower-triangular matrix m 
+-- lt_inverse m: the inverse of LT matrix m:
 def lt_inverse : ltMat -> ltMat
 def lt_inverse z l = foldr_tl l -- fold over the LT matrix
   [ ]
   (fun (d, cv) tl -> snoc
     -- fold over the tail of the current column and the rest of the matrix
-    (let colm = col_lt_to_row tl in
-     let pr = zip_lists cv colm in
-    (foldl pr
+    (foldl (zip_lists cv (col_lt_to_row tl))
       (d, [ ])
       (fun (x, (rv, y)) (hd', tl') ->
         let dprod = dot_prod z (snoc y rv) (hd' :: tl') in
-        (hd', snoc ((shr_add_inv dprod) / y) tl') ) ) ) )
+        (hd', snoc ((shr_add_inv dprod) / y) tl') ) ) )
 
--- BILL: cleanup bindings
-
--- lt_lift d l: lower-triangular matrix l, lifted into a matrix by
--- padding copies of default element d
+-- lt_lift d l: LT matrix l, lifted into a matrix by padding copies of
+-- default element d
 def lt_lift : t -> list (t * (list t)) -> list (list t)
 def lt_lift d l =
   let (_, m) = foldl l
@@ -356,20 +352,17 @@ def lt_lift d l =
     (fun (hd, tl) (buf, m) -> (d :: buf, (concat buf (hd :: tl)) :: m) ) in
   rev_ls m
 
--- inverse m: the inverse matrix of m
+-- inverse z m: the inverse matrix of m over numeric type with zero
+-- element z
 def inverse : num -> matrix -> matrix
 def inverse z m =
-  let m' = shift_major m in
-  let sqm = squareMat m' in
   let l_inv = lt_lift z
-    -- BILL: inline one-off bindings
-    (let c = cholesky z sqm in
-     let res = lt_inverse z c in
-     res) in
+    (lt_inverse z (cholesky z (squareMat (shift_major m)))) in
   mult_mat z (transpose l_inv) l_inv
 
+-- mult_diag_vec d p: product of diagonal matrix over vector d, and v
 def mult_diag_vec : point -> point -> point
-def mult_diag_vec d p = zip_map mult d p
+def mult_diag_vec = zip_map mult 
 
 def pdecons a f xy = case xy
   { ⟪⟫ → a
