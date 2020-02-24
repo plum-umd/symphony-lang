@@ -146,6 +146,10 @@ def foldr l acc f = case l
   ; x :: l' -> f x (foldr l' acc f)
   } 
 
+def filter test l = foldr l
+  [ ]
+  (fun x rest -> if test x then x :: rest else rest)
+
 -- foldr_tl: right fold with access to the tail of the list
 def foldr_tl : list t -> acc -> (t -> list t -> acc -> acc) -> acc
 def foldr_tl l i f =
@@ -189,23 +193,26 @@ def zip_lists l0 l1 =
 def zip_map : (t -> u -> v) -> list t -> list u -> list v
 def zip_map f l0 l1 = map (uncurry f) (zip_lists l0 l1)
 
--- vec_div: divide a vector of reals by a constant
-def vec_div : real -> list real -> list real
-def vec_div a = map (fun x -> x / a)
+-- numeric operations:
 
--- nzProd a: the product of all non-zero entries in a vector:
-def nzProd : list (real{ ssec : p }) -> real{ ssec : p }
-def nzProd l = foldr l
-  1.0
-  (fun x -> if x == 0.0 then id else mult x)
+-- prod: the product over a list of numerics
+def prod v one = foldr v one mult
+
+-- sum: the sum over a list of numerics
+def sum v z = foldr v z plus
+
+-- nzProd z one l: the product of all non-zero entries in list l:
+def nzProd z one l = prod
+  (filter (fun x -> !(z == x)) l)
+  one 
 
 -- pt_diff: subtract one point from another
 def vec_diff : point -> point -> point
 def vec_diff v0 v1 = zip_map minus v0 v1 
 
--- sum: sum of a list of secret reals
-def sum : point -> comp_shr
-def sum v z = foldr v z plus
+-- vec_div: divide a vector of reals by a constant
+def vec_div : real -> list real -> list real
+def vec_div a = map (fun x -> x / a)
 
 -- dot_prod: take the dot product of two points
 def dot_prod z p0 p1 = sum (zip_map mult p0 p1) z
@@ -214,7 +221,7 @@ def dot_prod z p0 p1 = sum (zip_map mult p0 p1) z
 def l2norm : point -> comp_shr
 def l2norm pt = sqrt (sum (map square pt) (shr_w_comp 0.0))
 
--- zeros_vec: a vector of zeroes
+-- zeros_vec: a vector of floating-point zeroes
 def zeros_vec : nat -> list real
 def zeros_vec = const_vec 0.0
 
@@ -228,12 +235,12 @@ def shift_major m = foldr m
   (const_vec [ ] (decons_ls m 0n (compose len const)) )
   (zip_map cons)
 
--- prod_mat_pt : multiply a matrix of secrets and a point
-def prod_mat_vec : num -> matrix -> point -> point
-def prod_mat_vec z m pt = map (dot_prod z pt) m
+-- mult_mat_vec : multiply a matrix of secrets and a point
+def mult_mat_vec : num -> matrix -> point -> point
+def mult_mat_vec z m pt = map (dot_prod z pt) m
 
--- prod_mat: product of row matrix and column matrix
-def prod_mat z m0 m1 = map (fun v -> map (dot_prod z v) m1) m0 
+-- mult_mat: product of row matrix and column matrix
+def mult_mat z m0 m1 = map (fun v -> map (dot_prod z v) m1) m0 
 
 -- and: non-infix Boolean conjunction
 def and b0 b1 = b0 && b1
@@ -361,10 +368,10 @@ def inverse z m =
     (let c = cholesky z sqm in
      let res = lt_inverse z c in
      res) in
-  prod_mat z (transpose l_inv) l_inv
+  mult_mat z (transpose l_inv) l_inv
 
-def prod_diag_pt : point -> point -> point
-def prod_diag_pt d p = zip_map mult d p
+def mult_diag_vec : point -> point -> point
+def mult_diag_vec d p = zip_map mult d p
 
 def pdecons a f xy = case xy
   { ⟪⟫ → a
@@ -392,32 +399,31 @@ def karmarkar_iter a cost pt =
   let shr0 = shr_w_comp 0.0 in
   let unit_cp =
     -- c': vector: product of diagonal of point and cost
-    let c' = prod_diag_pt pt (map shr_w_comp cost) in
+    let c' = mult_diag_vec pt (map shr_w_comp cost) in
 
     -- ad: m * n matrix; product of diagonal of point and constraints,
     -- and a row of ones
     let b = pfold 
       [ nOnes ]
       (fun Q ctr -> cons
-        (prod_diag_pt pt
+        (mult_diag_vec pt
           (map shr_w_comp (reveal_ls set(Cost,Ctr) ctr)) ) )
       a in
 
     -- project c onto b's nullspace
-    let full = prod_mat_vec shr0
+    let full = mult_mat_vec shr0
         (let bt = transpose b in
          bt)
-        (let rem = prod_mat_vec shr0
-          (let bbtinv = inverse shr0 (prod_mat shr0 b b) in
+        (let rem = mult_mat_vec shr0
+          (let bbtinv = inverse shr0 (mult_mat shr0 b b) in
            bbtinv)
-          (let res = prod_mat_vec shr0 b c' in
+          (let res = mult_mat_vec shr0 b c' in
            res) in
          rem) in
 
     let cp = vec_diff c' full in
 
     -- test if the projection is the 0 vector:
-    -- TODO: rework this to typecheck
     let is_const = is_const_vec shr0 cp in
     zip_map (fun c n -> is_const ? c ◇ n)
       (const_vec shr0 n) (vec_div (l2norm cp) cp)
@@ -427,7 +433,7 @@ def karmarkar_iter a cost pt =
     (map shr_w_comp (vec_div (to_flt n) nOnes))
     (vec_div (shr_w_comp (to_flt (3n * n))) unit_cp) in
 
-  let db' = prod_diag_pt pt b' in
+  let db' = mult_diag_vec pt b' in
   vec_div (dot_prod shr0 (map shr_w_comp nOnes) db') db'
 
 -- BILL: cleanup inlined one-off bindings
