@@ -157,7 +157,7 @@ def decons_ls l a0 f = foldr_tl l a0 (fun x ls -> const (f x ls))
   
 -- foldl: left fold
 def foldl : list t -> acc -> (t -> acc -> acc) -> acc
-def foldl l acc f = (foldr l id (fun x -> compose (f x))) acc
+def foldl l acc0 f = (foldr l id (fun x acc -> compose acc (f x))) acc0
 
 def concat : list t -> list t -> list t
 def concat l0 l1 = foldr l0 l1 cons
@@ -208,11 +208,7 @@ def sum : point -> comp_shr
 def sum v z = foldr v z plus
 
 -- dot_prod: take the dot product of two points
-def dot_prod p0 p1 = sum (zip_map mult p0 p1)
-
--- pt_cost : evaluate the cost of a point
-def pt_cost : costs -> point -> comp_shr
-def pt_cost c = dot_prod (map shr_costs_w_comp c) 0.0
+def dot_prod z p0 p1 = sum (zip_map mult p0 p1) z
 
 -- l2norm v: the L2 norm of a vector of shares
 def l2norm : point -> comp_shr
@@ -229,21 +225,15 @@ def onesVec = const_vec 1.0
 -- shift_major: shift matrix between row major and column major order
 def shift_major : list (list t) -> list (list t)
 def shift_major m = foldr m
-  (const_vec [ ]
-    (decons_ls m 0n (compose len const)) )
+  (const_vec [ ] (decons_ls m 0n (compose len const)) )
   (zip_map cons)
 
 -- prod_mat_pt : multiply a matrix of secrets and a point
-def prod_mat_pt : matrix -> point -> point
-def prod_mat_pt m pt = map (dot_prod pt) m
+def prod_mat_vec : num -> matrix -> point -> point
+def prod_mat_vec z m pt = map (dot_prod z pt) m
 
 -- prod_mat: product of row matrix and column matrix
-def prod_mat : secretMat -> secretMat -> secretMat
-def prod_mat m0 m1 = map (fun v -> map (dot_prod v) m1) m0 
-
--- prod_mat_rowms: product of two matrices in row-major form
-def prod_mat_rowms : secretMat -> secretMat -> secretMat
-def prod_mat_rowms m0 m1 = prod_mat m0 (shift_major m1)
+def prod_mat z m0 m1 = map (fun v -> map (dot_prod z v) m1) m0 
 
 -- and: non-infix Boolean conjunction
 def and b0 b1 = b0 && b1
@@ -266,20 +256,21 @@ def transpose = shift_major
 -- def sqMat : type
 -- def sqMat = list (point * comp_shr * point)
 
--- partition i a l: l partitioned into the first i - elements, ith
+-- partition a i l: l partitioned into the first i - elements, ith
 -- elt, and the everything after element i. a is a default elt, which
 -- should never be used.
 def part_ith : nat -> t -> list t -> (list t) * t * (list t)
-def part_ith a i l = eliml_nat i
-  (fun (hd, tl) -> case tl
-     { [ ] -> (rev_ls hd, a, tl)
-     ; b :: l' -> (rev_ls hd, b, l')
-     })
-  ([ ], l)
-  (fun (rev_hd, tl) -> case tl
-   { [ ] -> (rev_hd, tl)
-   ; x :: tl' -> (x :: rev_hd, tl')
-   })
+def part_ith a i l =
+  let (first_i, rem) =
+    eliml_nat i
+      ([ ], l)
+      (fun (front, tl) -> decons_ls tl
+        (front, tl) -- shouldn't happen
+        (fun hd tl' -> (hd :: front, tl)) ) in
+  let (ith, tl) = decons_ls rem
+    (a, rem) -- shoudln't happen
+    (fun b rem' -> (b, rem')) in
+  (first_i, ith, tl)
 
 -- square m: matrix m coerced into a square matrix
 def square : secretMat -> sqMat
@@ -292,23 +283,24 @@ def squareMat m =
 -- cholesky m: the Cholesky decomposition of matrix m, in column-major
 -- order, computed using the Cholesky-Crout algorithm
 def cholesky : sqMat -> ltMat
-def cholesky m =
+def cholesky z m =
   let (m', _) = foldl m -- fold over each column in the matrix,
     ([ ], [ ])
     (fun (top, diag, bot) (tri, base) ->
       -- deconstruct the maintained base box 
-      let (jth_row', base') = elim_decons base
+      let (jth_row', base') = decons_ls base
         ([ ], const_vec [ ] (len bot))
         (fun x tl -> (x, tl)) in
       -- diag': the diagonal elt of the solution
-      let diag' = sqrt (diag - (dot_prod jth_row' jth_row')) in
+      let diag' = sqrt (diag - (dot_prod z jth_row' jth_row')) in
       -- tri': the upper triangle, extended
       let tri' = snoc (diag', [ ])
         (map (fun ((d, tl), jth_elt) -> (d, snoc jth_elt tl))
           (zip_lists tri jth_row')) in
       -- the base box, extended
       let base'' = map 
-        (fun (rv', elt) -> snoc ((diag - (dot_prod rv' jth_row')) / diag') rv')
+        (fun (rv', elt) ->
+          snoc ((diag - (dot_prod z rv' jth_row')) / diag') rv')
         (zip_lists base' bot) in
       (tri', base'')) in
   m'
@@ -325,25 +317,30 @@ def ne_to_list = uncurry cons
 def shr_add_inv : comp_shr -> comp_shr
 def shr_add_inv x = (shr_w_comp 0.0) - x
 
--- col_lt_to_row: convert a row-major LT-matrix to be column major
+-- col_lt_to_row: convert a column-major LT-matrix to be column major
 def col_lt_to_row : colLtMat -> ltMat
--- BILL: define
-
--- row_lt_to_col: convert a row-major LT-matrix to be column major
-def row_lt_to_col : ltMat -> colLtMat
--- BILL: deprecated?
+def col_lt_to_row m = foldr m
+  [ ]
+  (fun (hd, bot) acc -> ([ ], hd) ::
+    (zip_map (fun b (ls, rt) -> (b :: ls, rt)) bot acc) )
 
 -- lt_inverse m: the inverse of lower-triangular matrix m 
 def lt_inverse : ltMat -> ltMat
-def lt_inverse l = foldr_tl l -- fold over the LT matrix
+def lt_inverse z l = foldr_tl l -- fold over the LT matrix
   [ ]
   (fun (d, cv) tl -> snoc
     -- fold over the tail of the current column and the rest of the matrix
-    (foldl (zip_lists cv (col_lt_to_row tl))
+    (let colm = col_lt_to_row tl in
+     let pr = zip_lists cv colm in
+    (foldl pr
       (d, [ ])
-      (fun (x, (rv, y)) cv' ->
-        let dprod = dot_prod (cons rv y) ((uncurry cons) cv') in
-        snoc ((shr_add_inv dprod) / y) cv' ) ) )
+      (fun (x, (rv, y)) (hd', tl') ->
+        let dprod = dot_prod z (snoc y rv) (hd' :: tl') in
+        (hd', snoc ((shr_add_inv dprod) / y) tl') ) ) ) )
+
+-- BILL: should top-level snoc be a cons?
+
+-- BILL: inline binding of dprod
 
 -- lt_lift d l: lower-triangular matrix l, lifted into a matrix by
 -- padding copies of default element d
@@ -355,11 +352,16 @@ def lt_lift d l =
   rev_ls m
 
 -- inverse m: the inverse matrix of m
-def inverse : nat -> secretMat -> secretMat
-def inverse m =
-  let l_inv = lt_lift (shr_w_comp 0.0)
-    (lt_inverse (cholesky (squareMat (shift_major m)))) in
-  prod_mat (transpose linv) l_inv
+def inverse : num -> matrix -> matrix
+def inverse z m =
+  let m' = shift_major m in
+  let sqm = squareMat m' in
+  let l_inv = lt_lift z
+    -- BILL: inline one-off bindings
+    (let c = cholesky z sqm in
+     let res = lt_inverse z c in
+     res) in
+  prod_mat z (transpose l_inv) l_inv
 
 def prod_diag_pt : point -> point -> point
 def prod_diag_pt d p = zip_map mult d p
@@ -387,6 +389,7 @@ def reveal_ls P l =
 -- karmarkar_iter: an iteration of Karmarkar's algorithm
 def karmarkar_iter : ctr -> cost -> point -> point
 def karmarkar_iter a cost pt =
+  let shr0 = shr_w_comp 0.0 in
   let unit_cp =
     -- c': vector: product of diagonal of point and cost
     let c' = prod_diag_pt pt (map shr_w_comp cost) in
@@ -403,17 +406,14 @@ def karmarkar_iter a cost pt =
     -- project c onto b's nullspace
     let cp = pt_diff
       c'
-      -- bt: (m + 1) * n matrix
-      (let bt = transpose b in
-       prod_mat_rowms
-        bt
-        (prod_mat_rowms
-          (inverse (prod_mat_rowms b bt))
-          (prod_mat_pt b c'))) in
+      (prod_mat_vec (transpose b)
+         (prod_mat_vec
+           (inverse shr0 (prod_mat shr0 b (transpose b)))
+           (prod_mat_vec b c')) ) in
 
     -- test if the projection is the 0 vector:
-    let _ = err "post define cp" in
-    if is_zero_vec cp then const_vec (shr_w_comp 0.0) n
+    let _ = err "pre multiplexed definition of unitcp" in
+    if is_zero_vec cp then const_vec shr0 n
     else vec_div (l2norm cp) cp in
 
   -- take a step of 1/3 n in the direction of cp
@@ -423,7 +423,7 @@ def karmarkar_iter a cost pt =
     (vec_div (shr_w_comp (to_flt (3n * n))) unit_cp) in
 
   let db' = prod_diag_pt pt b' in
-  vec_div (dot_prod (map shr_pub_with_comp nOnes) db') db'
+  vec_div (dot_prod shr0 (map shr_pub_with_comp nOnes) db') db'
 
 -- nat_log: logarithm over nats
 def nat_log : nat -> nat -> nat
