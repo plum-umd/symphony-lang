@@ -139,7 +139,7 @@ def eliml_nat n z s =
 def nat_log : nat -> nat -> nat
 def nat_log b n =
   if n == 1n then 0n
-  else inc (nat_log b (n / 2n))
+  else inc (nat_log b (n / b))
 
 -- library functions for lists:
 
@@ -241,9 +241,9 @@ def zeros_vec = const_vec 0.0
 def onesVec : nat -> list real
 def onesVec = const_vec 1.0
 
--- shift_major: shift matrix between row major and column major order
-def shift_major : list (list t) -> list (list t)
-def shift_major m = foldr m
+-- transpose: shift matrix between row major and column major order
+def transpose : list (list t) -> list (list t)
+def transpose m = foldr m
   (const_vec [ ] (decons_ls m 0n (compose len const)) )
   (zip_map cons)
 
@@ -267,16 +267,12 @@ def max m n = if m <= n then n else m
 def is_const_vec : point -> public_bool
 def is_const_vec c v = all_true (map (eq c) v)
 
--- transpose m: the transposition of matrix t
-def transpose : list (list t) -> list (list t)
-def transpose = shift_major
-
 -- sqMat: square matrix: a matrix with explicit diagonal elements
 -- def sqMat : type
 -- def sqMat = list (point * comp_shr * point)
 
--- partition a i l: l partitioned into the first i - elements, ith
--- elt, and the everything after element i. a is a default elt, which
+-- part_ith a i l: l partitioned into the first i - elements, ith elt,
+-- and the everything after element i. a is a default elt, which
 -- should never be used.
 def part_ith : nat -> t -> list t -> (list t) * t * (list t)
 def part_ith a i l =
@@ -358,7 +354,7 @@ def lt_lift d l =
 def inverse : num -> matrix -> matrix
 def inverse z m =
   let l_inv = lt_lift z
-    (lt_inverse z (cholesky z (squareMat (shift_major m)))) in
+    (lt_inverse z (cholesky z (squareMat (transpose m)))) in
   mult_mat z (transpose l_inv) l_inv
 
 -- mult_diag_vec d v: product of diagonal matrix over vector d, and v
@@ -387,8 +383,7 @@ def reveal_ls P l =
 
 -- karmarkar_iter: an iteration of Karmarkar's algorithm
 def karmarkar_iter : ctr -> cost -> point -> point
-def karmarkar_iter a cost pt =
-  let shr0 = shr_w_comp 0.0 in
+def karmarkar_iter shr0 a cost pt =
   -- vector and matrix operations instantiated to SPDZ
   let invert_spdz = inverse shr0 in
   let mult_spdz_mats = mult_mat shr0 in
@@ -434,26 +429,28 @@ def log_2_ceil = ceil_fn (nat_log 2n) (exp 2n)
 
 def karmarkar_loop : ctr -> costs -> point
 def karmarkar_loop a cost =
-  let bound = 2n in
-      -- (12n * n *
-      --   ((inc m) * n +
-      --    (log_2_ceil (abs_val (ceil (reveal{ Cost, Ctr } (
-      --      (pfold
-      --        -- multiply non-zero cost coeffs,
-      --        (shr_w_comp ({ par : Cost } nzProd cost))
-      --        -- multiply non-zero constraint coeffs,
-      --        (fun Q pnzs -> mult (shr_w_comp pnzs))
-      --        ({ Ctr } (nzProd a))
-      --      ) ) ) ) ) ) +
-      --    n * (log_2_ceil n) ) ) in
+  -- bound: upper bound on the required number of iterations, based on
+  -- product of non-zero constraint and cost coeffs:
+  let shr0 = share{ spdz : Ctr, Cost } 0.0 in
+  let nzFltProd = nzProd 0.0 1.0 in
+  let bound = 
+        (12n * n *
+         ((inc m) * n +
+          (log_2_ceil (abs_val (ceil (reveal{ Cost, Ctr } ( 
+           (pfold
+             -- multiply non-zero cost coeffs,
+             (shr_w_comp ({ par : Cost } nzFltProd cost))
+             -- multiply non-zero constraint coeffs,
+             (fun Q pnzs -> mult (shr_w_comp pnzs))
+             ({ Ctr } nzFltProd a) )
+          ) ) ) ) ) +
+         n * (log_2_ceil n) ) ) in
   (elim_nats bound
-    -- magic bound on iterations, based on product of non-zero
-    -- constraint and cost coeffs:
     id
-    (compose (karmarkar_iter a cost)) )
+    (compose (karmarkar_iter shr0 a cost)) )
     (vec_div (to_flt n) nOnes)
 
--- read_vec (): reads a vector of n input floats from a fixed file
+-- read_vec (): reads a vector of n input floats from a fixed filename
 def read_vec : unit -> list flt
 def read_vec () = read (list flt) "in.txt"
   
