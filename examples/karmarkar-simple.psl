@@ -219,7 +219,7 @@ def dot_prod z p0 p1 = sum (zip_map mult p0 p1) z
 
 -- l2norm v: the L2 norm of a vector of shares
 def l2norm : point -> comp_shr
-def l2norm pt = sqrt (sum (map square pt) (shr_w_comp 0.0))
+def l2norm z v = sqrt (sum (map square v) z)
 
 -- zeros_vec: a vector of floating-point zeroes
 def zeros_vec : nat -> list real
@@ -345,9 +345,7 @@ def lt_inverse z l = foldr_tl l -- fold over the LT matrix
         let dprod = dot_prod z (snoc y rv) (hd' :: tl') in
         (hd', snoc ((shr_add_inv dprod) / y) tl') ) ) ) )
 
--- BILL: should top-level snoc be a cons?
-
--- BILL: inline binding of dprod
+-- BILL: cleanup bindings
 
 -- lt_lift d l: lower-triangular matrix l, lifted into a matrix by
 -- padding copies of default element d
@@ -397,36 +395,32 @@ def reveal_ls P l =
 def karmarkar_iter : ctr -> cost -> point -> point
 def karmarkar_iter a cost pt =
   let shr0 = shr_w_comp 0.0 in
+  -- vector and matrix operations instantiated to SPDZ
+  let invert_spdz = inverse shr0 in
+  let mult_spdz_mats = mult_mat shr0 in
+  let mult_spdz_mat_vec = mult_mat_vec shr0 in
+
   let unit_cp =
-    -- c': vector: product of diagonal of point and cost
-    let c' = mult_diag_vec pt (map shr_w_comp cost) in
-
-    -- ad: m * n matrix; product of diagonal of point and constraints,
-    -- and a row of ones
-    let b = pfold 
-      [ nOnes ]
-      (fun Q ctr -> cons
-        (mult_diag_vec pt
-          (map shr_w_comp (reveal_ls set(Cost,Ctr) ctr)) ) )
-      a in
-
     -- project c onto b's nullspace
-    let full = mult_mat_vec shr0
-        (let bt = transpose b in
-         bt)
-        (let rem = mult_mat_vec shr0
-          (let bbtinv = inverse shr0 (mult_mat shr0 b b) in
-           bbtinv)
-          (let res = mult_mat_vec shr0 b c' in
-           res) in
-         rem) in
-
-    let cp = vec_diff c' full in
+    let cp =
+      -- c': product of diagonal of point and cost vector
+      let c' = mult_diag_vec pt (map shr_w_comp cost) in
+      let b = pfold 
+        [ nOnes ]
+        (fun Q ctr -> cons
+          (mult_diag_vec pt
+            (map shr_w_comp (reveal_ls set(Cost,Ctr) ctr)) ) )
+        a in
+      vec_diff
+        c'
+        (mult_spdz_mat_vec (transpose b)
+          (mult_spdz_mat_vec (invert_spdz (mult_spdz_mats b b))
+            (mult_spdz_mat_vec b c') ) ) in
 
     -- test if the projection is the 0 vector:
     let is_const = is_const_vec shr0 cp in
     zip_map (fun c n -> is_const ? c ◇ n)
-      (const_vec shr0 n) (vec_div (l2norm cp) cp)
+      (const_vec shr0 n) (vec_div (l2norm shr0 cp) cp)
 
   -- take a step of 1/3 n in the direction of cp
   let b' = vec_diff
@@ -438,7 +432,7 @@ def karmarkar_iter a cost pt =
 
 -- BILL: cleanup inlined one-off bindings
 
--- nat_log: logarithm over nats
+-- nat_log: logarithm over nats. Diverges at 0n.
 def nat_log : nat -> nat -> nat
 def nat_log b n =
   if n == 1n then 0n
