@@ -408,7 +408,7 @@ def karmarkar_iter a cost pt =
       c'
       (prod_mat_vec (transpose b)
          (prod_mat_vec
-           (inverse shr0 (prod_mat shr0 b (transpose b)))
+           (inverse shr0 (prod_mat shr0 b b))
            (prod_mat_vec b c')) ) in
 
     -- test if the projection is the 0 vector:
