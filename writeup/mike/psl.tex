@@ -30,7 +30,7 @@
 \newcommand{\epar}[2]{\ensuremath{\kw{par}~{#1}~{#2}}}
 \newcommand{\esec}[2]{\ensuremath{\kw{sec}~{#1}~{#2}}}
 \newcommand{\ereveal}[4]{\ensuremath{\kw{reveal}^{#1}_{#4}~{#2}~{#3}}}
-\newcommand{\econd}[3]{\ensuremath{\kw{match}~{#1}~\kw{with}~x.{#2} \mid x.{#3}}}
+\newcommand{\econd}[3]{\ensuremath{\kw{match}~{#1}~\kw{with}~x.{#2} \diamond {#3}}}
 %\newcommand{\emux}[3]{\ensuremath{\kw{mux}~{#1}~\kw{?}~x.{#2}~\kw{:}~x.{#3}}}
 \newcommand{\emux}[3]{\ensuremath{\kw{mux}~{#1}~\kw{?}~{#2}~\kw{:}~{#3}}}
 \newcommand{\eshare}[4]{\ensuremath{\kw{share}^{#2}_{#1}~{#3}~{#4}}}
@@ -45,20 +45,24 @@
 \newcommand{\efold}[2]{\ensuremath{\kw{fold}_{#1}~{#2}}}
 \newcommand{\eunfold}[1]{\ensuremath{\kw{unfold}~{#1}}}
 \newcommand{\vshare}[3]{\ensuremath{\{{#3}\}^{#1}_{#2}}}
+\newcommand{\vloc}[2]{\ensuremath{{#1}\kw{@}{#2}}}
+\newcommand{\vclos}[2]{\ensuremath{\mathbf{clos}~({#1},{#2})}}
 
 % Judgments
 \newcommand{\hastyp}[4]{\ensuremath{{#1} \vdash_{#2} {#3} : {#4}}}
 %\newcommand{\canshare}[1]{\ensuremath{\text{isFlat } {#1}}}
 \newcommand{\subtype}{\ensuremath{<:}}
 \newcommand{\issub}[2]{{#1} \subtype {#2}}
+\newcommand{\eval}[4]{\ensuremath{\config{#1}{#3} \longrightarrow_{#2} {#4}}}
 
 % Aux
 \newcommand{\env}{\ensuremath{\sigma}}
 \newcommand{\config}[2]{\ensuremath{\langle{#1},{#2}\rangle}}
+\newcommand{\locof}[2]{\ensuremath{\mathit{loc}_{#1}~{#2}}}
+\newcommand{\getat}[2]{\ensuremath{\mathit{on}_{#1}~{#2}}}
+% \newcommand{\ctxt}{\ensuremath{\mathcal{E}}}
+% \newcommand{\pctxt}{\ensuremath{\mathcal{P}}}
   
-% \newcommand{\mpar}[1]{\ensuremath{\mathsf{p}(#1)}}
-% \newcommand{\msec}[1]{\ensuremath{\mathsf{s}(#1)}}
-
 %%%%%%%%%%
 
 \newcommand{\mwh}[1]{\textcolor{red}{Mike: #1}}
@@ -74,6 +78,11 @@
 
 Soon:
 \begin{itemize}
+\item I think that $m \vdash \tau$ is backwards. Fix this, and then
+  fix the definition of subtyping, which relies on it being
+  backwards. I also wonder if \rulelab{M-Sum} etc. are wrong because
+  they are not ``deep''. They don't seem to match up with
+  $\locof{P}{e}$ but maybe they should?
 \item Add text to go with sums (no longer encrypted, directly),
   recursive types, fixpoint functions. Work out some questions:
   \begin{itemize}
@@ -86,8 +95,8 @@ Soon:
     \item No subtyping at present for recursive types. Should we add
       it?
     \end{itemize}
-\item Develop operational semantics, both single threaded mode and
-  multiparty mode. Make sure the types do what we want!
+  \item Prove type soundness for single-threaded semantics
+  \item Develop multi-party operational semantics.
 \end{itemize}
 
 % Next: Look at \texttt{writeup/spdz.md} and think about language
@@ -216,96 +225,332 @@ locations.
 
 \begin{figure}
   \[\begin{array}{rlcll}
-      \text{Value} & v  & ::=  & n & \text{naturals} \\
+      \text{Store} & \sigma & \in & \mathbf{Var} \rightharpoonup \mathbf{Val}\\
+      \text{Locatable value} & u & ::=  & n & \text{numbers} \\
+                             && \mid & \einj{i}{v} & \text{sum elem, }i \in \{1,2\}\\
+                             && \mid & \vclos{\env}{\elam{x}{e}}  & \text{closure} \\
+                             && \mid & \vshare{Q}{\psi}{e} & \text{$\psi$-$Q$ share of evaluating $e$} \\
+      \text{Value} & v  \in \mathbf{Val} & ::=  & u & \text{locatable value}\\
                        && \mid & \epair{v_1}{v_2} & \text{pair value}\\
-                       && \mid & \einj{i}{v} & \text{sum elem, }i \in \{1,2\}\\
                        && \mid & \efold{\trec{\alpha}{\tau}}{v} & \text{rectype value}\\
-                       && \mid & \elam{x}{e}  & \text{abstraction} \\
-                       && \mid & \epar{P}{v} & \text{partially visible value}\\
-                       && \mid & \vshare{Q}{\psi}{n} & \text{$\psi$-$Q$ share of $n$} \\
+                       && \mid & \vloc{u}{P} & \text{located value}\\
+      % \text{Eval Context} & \ctxt & ::= & \multicolumn{2}{l}{\bullet \mid\epair{\ctxt}{e} \mid
+      %                        \epair{v}{\ctxt} \mid \eproj{i}{\ctxt}}  \\
+      %          && \mid & \multicolumn{2}{l}{\eshare{\psi}{P}{Q}{\ctxt} \mid
+      %                        \ereveal{P}{Q}{\ctxt}{\psi} \mid \ebinop{\ctxt}{e_2} \mid \ebinop{v}{\ctxt} }  \\
+      %          && \mid & \multicolumn{2}{l}{\emux{\ctxt}{e_1}{e_2}
+      %                    \mid \emux{v}{\ctxt}{e_2} \mid \emux{v}{v_1}{\ctxt}  }  \\
+      %          && \mid & \multicolumn{2}{l}{\einj{i}{\ctxt} \mid \econd{\ctxt}{e_1}{e_2} }  \\
+      %          && \mid & \multicolumn{2}{l}{\efold{\trec{\alpha}{\tau}}{\ctxt} \mid \eunfold{\ctxt}}  \\
+      %          && \mid & \multicolumn{2}{l}{\eapp{\ctxt}{e} \mid
+      %                    \eapp{v}{\ctxt} \mid \elet{x}{\ctxt}{e_2} }\\
+    \end{array}
+  \]
+
+\[\begin{array}{l@{~~=~~}l}
+    \locof{P}{n} & \vloc{n}{P} \\
+    \locof{P}{\einj{i}{v}} & \vloc{(\locof{P}{v})}{P} \\
+    \locof{P}{\vclos{\env}{\elam{x}{e}}} & \vloc{(\vclos{(\locof{P}{\env})}{\elam{x}{e}})}{P}\\
+    \locof{P}{\vshare{Q}{\psi}{e}} & \vloc{(\vshare{Q}{\psi}{e})}{P} \\
+    \locof{P}{\epair{v_1}{v_2}} & \epair{\locof{P}{v_1}}{\locof{P}{v_2}}\\
+    \locof{P}{ \efold{\trec{\alpha}{\tau}}{v}} &  \efold{\trec{\alpha}{\tau}}{\locof{P}{v}}\\
+    \locof{P}{\vloc{u}{Q}} & \vloc{(\locof{P}{u})}{R} \qquad\text{where }R = P \cap Q\\
+    \locof{P}{\sigma} & \{ x \mapsto v' \mid \sigma(x) = v \land \locof{P}{v} = v' \}\\
+    \multicolumn{2}{c}{}\\
+    \getat{P}{(\vloc{u}{Q})} & u \qquad \text{where }Q \vdash P\\
+    \getat{P}{v} & v \qquad \text{for all other $v$ syntactic forms}\\
   \end{array}
 \]
-\caption{Values}
-\label{fig:val}
+\caption{Semantics auxiliaries}
+\label{fig:auxsem}
+\end{figure}
+
+\begin{figure}
+$$
+\begin{array}{c}
+    \inferrule*[lab=E-Nat]
+    {
+    }
+    {
+    \eval{\env}{m}{n}{n}
+    }
+    \qquad
+
+    \inferrule*[lab=E-Read]
+    {
+  m\text{ is a singleton}
+    }
+    {
+    \eval{\env}{m}{\eread}{n}
+    }
+    \qquad
+
+    \inferrule*[lab=E-Pair]
+    {
+    \eval{\env}{m}{e_1}{v_1}\\\\
+    \eval{\env}{m}{e_2}{v_2}
+    }
+    {
+    \eval{\env}{m}{\epair{e_1}{e_2}}{\epair{v_1}{v_2}}
+    }\qquad
+    
+    \inferrule*[lab=E-Access]
+    {
+    \eval{\env}{m}{e}{v}\\\\
+    \getat{m}{v} = \epair{v_1}{v_2}
+    }
+    {
+    \eval{\env}{m}{\eproj{i}{e}}{v_i}
+    }\\\\
+
+    \inferrule*[lab=E-inj]
+    {
+    \eval{\env}{m}{e}{v}
+    }
+    {
+    \eval{\env}{m}{\einj{i}{e}}{\einj{i}{v}}
+    } \qquad
+    
+    \inferrule*[lab=E-Match]
+    {
+    \eval{\env}{m}{e}{v_0}\\
+    \getat{m}{v_0} = \einj{i}{v_i}\\\\
+    \eval{\env[x\mapsto v_i]}{m}{e_i}{v}
+    }
+    {
+      \eval{\env}{m}{\econd{e}{e_1}{e_2}}{v}
+    }\\ \\
+
+    \inferrule*[lab=E-Fold]
+    {
+    \eval{\env}{m}{e}{v}
+    }
+    {
+    \eval{\env}{m}{\efold{\trec{\alpha}{\tau}}{e}}{\efold{\trec{\alpha}{\tau}}{v}}
+    } \qquad
+
+    \inferrule*[lab=E-Unfold]
+    {
+    \eval{\env}{m}{e}{v_0}\\\\
+    \getat{m}{v_0} = \efold{\trec{\alpha}{\tau}}{v}
+    }
+    {
+    \eval{\env}{m}{\eunfold{e}}{v}
+    } \qquad
+
+    \inferrule*[lab=E-Share]
+    {
+    P\text{ is a singleton}    \\\\
+    \eval{\env}{m}{e}{v}\\\\
+    \getat{P}{v} = n  
+    }
+    {
+    \eval{\env}{m}{\eshare{\psi}{P}{Q}{e}}{\vshare{Q}{\psi}{n}}
+    }\\ \\
+    
+    \inferrule*[lab=E-BinopNat]
+    {
+  \eval{\env}{m}{e_1}{v_1}\\
+  \getat{m}{v_1} = n_1\\\\
+    \eval{\env}{m}{e_2}{v_2}\\
+  \getat{m}{v_2} = n_2\\\\
+  n = n_1 + n_2\\
+    }
+    {
+    \eval{\env}{m}{\ebinop{e_1}{e_2}}{n}
+    }\qquad
+
+      
+    \inferrule*[lab=E-BinopShare]
+    {
+  \eval{\env}{m}{e_1}{v_1}\\
+  \getat{m}{v_1} = \vshare{m}{\psi}{e'_1} \\\\
+    \eval{\env}{m}{e_2}{v_2}\\
+  \getat{m}{v_2} = \vshare{m}{\psi}{e'_2} \\\\
+  v = \vshare{m}{\psi}{\ebinop{e'_1}{e'_2}}
+    }
+    {
+    \eval{\env}{m}{\ebinop{e_1}{e_2}}{v}
+    }\\\\
+
+    \inferrule*[lab=E-Mux]
+    {
+  \eval{\env}{m}{e}{v}\\
+  \getat{m}{v} = \vshare{m}{\psi}{e'} \\\\
+  \eval{\env}{m}{e_1}{v_1}\\
+  \getat{m}{v_1} = \vshare{m}{\psi}{e'_1} \\\\
+    \eval{\env}{m}{e_2}{v_2}\\
+  \getat{m}{v_2} = \vshare{m}{\psi}{e'_2} \\\\
+  v = \vshare{m}{\psi}{\emux{e'}{e_1'}{e_2'}}
+    }
+    {
+    \eval{\env}{m}{\emux{e}{e_1}{e_2}}{v}
+    }\qquad
+
+    \inferrule*[lab=E-Reveal]
+    {
+    \eval{\env}{m}{e}{v_0}\\
+    \getat{m}{v_0} = \vshare{m}{\psi}{e_0}\\\\
+    \eval{\env}{m}{e_0}{v_0}\\
+    n = \getat{P}{v_0} 
+    } 
+    {
+    \eval{\env}{m}{\ereveal{P}{Q}{e}{\psi}}{\vloc{n}{Q}}
+    }\\\\
+    
+    \inferrule*[lab=E-Var]
+    {
+    \env(x) = v
+    }
+    {
+    \eval{\env}{m}{x}{v}
+    }\qquad
+
+    \inferrule*[lab=E-Let]
+    {
+    \eval{\env}{m}{e_1}{v_1}\\\\
+    \eval{\env[x\mapsto v_1]}{m}{e_2}{v_2}
+    }
+    {
+    \eval{\env}{m}{\elet{x}{e_1}{e_2}}{v_2}
+    }\\ \\
+
+
+   \inferrule*[lab=E-Abs]
+    {
+    }
+    {
+    \eval{\env}{m}{\elam{x}{e}}{\vclos{\env}{\elam{x}{e}}}
+    }\qquad
+   
+    \inferrule*[lab=E-App]
+    {
+  \eval{\env}{m}{e}{v'}\\
+    \getat{m}{v'} = \vclos{\env'}{\elam{x}{e'}}\\\\
+  \eval{\env}{m}{e_1}{v_1}\\
+  \eval{\env'[x \mapsto v_1]}{m}{e'}{v}\\
+    }
+    {
+    \eval{\env}{m}{\eapp{e}{e_1}}{v}
+    }\\ \\
+
+    % \inferrule*[lab=E-Fix]
+    % {
+    % \eval{\env,f\!:\! \tfun{\tau_1}{\tau_2}{m}}{m}{\elam{x}{e}}{\tfun{\tau_1}{\tau_2}{m}}
+    % }
+    % {
+    % \eval{\env}{m}{\efix{f}{x}{e}}{\tfun{\tau_1}{\tau_2}{m}}
+    % }\qquad
+
+    \inferrule*[lab=E-Par]
+    {
+    \env' = \locof{P}{\env}\\
+    \eval{\env'}{{P}}{e}{v_0}\\
+    v = \locof{P}{v_0}
+    }
+    {
+    \eval{\env}{m}{\epar{P}{e}}{v}
+    } \qquad
+\end{array}
+    $$
+\caption{Operational Semantics}
+\label{fig:sem}
 \end{figure}
 
 We define a big-step operational semantics. The judgment
-$\config{\env}{e} \longrightarrow^m v$ states that program $e$ evaluates
-under mode $m$ and store $\env$ to a value $v$. Values are defined in
-Figure~\ref{fig:val}. Looking at the figure, the first five forms are
-standard. The interesting ones are (1) $\epar{P}{v}$, which is a value
-only visible to principals $p \in P$, and (2) $\vshare{Q}{\psi}{n}$
-which is a natural number $n$ but encrypted under scheme $\psi$ shared
-with the principals in $q \in Q$. 
+$\eval{\env}{m}{e}{v}$ states that program
+$e$ evaluates under mode $m$ and store $\env$ to a value
+$v$. The rules are given in Figure~\ref{fig:sem}.  This is the
+``single threaded semantics'' in that we don't have independently
+executing parties; rather, we simulate the group of principals
+$m$ executing in lockstep.
 
-\mwh{Finish up: Some key rules. I'm now thinking I might want a
-  different syntactic form for value visible somewhere, rather than
-  reusing $\kw{par}$.}
+To be clear about which values reside on which parties' hosts, we have
+a special value form to indicates this. Values are defined in
+Figure~\ref{fig:auxsem}. The form $\vloc{u}{P}$ indicates that $u$ is
+only visible to principals $p \in P$. Since not all valuables need to
+be explicitly located (if they are in scope, they implicitly
+accessible), we distinguish locatable values $u$ vs. others
+$v$. Values for numbers, sums, and closures are standard (closures
+have an explicit environment---we don't use substitution), as are
+(locatable) values for pairs and recursive types. The value
+$\vshare{Q}{\psi}{e}$ represents a circuit for a secure computation
+under scheme $\psi$ to be performed by principals in $q \in Q$. Notice
+that it contains an expression $e$, not a value $v$; it represents a
+``suspended'' computation.
 
-$$
-\begin{array}{lcll}
-\config{\env}{\epar{P}{(\epar{Q}{v}})} &
-  \longrightarrow^m & \epar{R}{v} & \text{where }R = P \cap Q\\
- %%
-\config{\env}{\eshare{\phi}{\{p\}}{Q}{n}} &
-  \longrightarrow^m & \vshare{Q}{\psi}{v} & \text{when }m \vdash Q \cup \{p\}\\
-\end{array}
-$$
+In the same figure are two functions over values: $\locof{P}{v}$ and
+$\getat{v}{P}$. The first is a transformation of $v$ that
+``relocates'' it to $P$. For locatable, but not located, values $u$,
+we annotate them with $P$. For compound forms we recurse inside them
+(sums, pairs, closure environments). Locating an environment locates
+its mapped-to values pointwise.  For located values $\vloc{u}{Q}$ we
+relocate $u$'s contents and update its location to be $P$ intersected
+with $Q$. Note that this intersection could be the $\emptyset$ which
+indicates an inaccessible value.
 
-\mwh{OLD:}
+The function $\getat{v}{P}$ attempts to strip off the outermost
+location designator so the value $v$ can be computed on. For all
+values other than $\vloc{Q}{u}$ this is a no-op. For these, we confirm
+that the location $Q$ is compatible with the accessing
+environment. This is never true if the value's location $Q$ is
+$\emptyset$; it will be true if $Q$ contains all principals in the
+requested mode $P$.
 
-The semantics is inspired by that of Wysteria, in there being a single
-program involving multiple, lock-step principals. However, the notion
-of secure mode has disappeared. We just have a mode $m$ which is
-either $\top$, meaning all principals are conceptually executing the
-present expression, or $P$ indicating that the principals
-$p \in P$ are executing it, but other principals $q \not\in P$ are not
-(they skip it). The computation always starts in mode $\top$, i.e.,
-with all principals. Thus, each principal is running the same program,
-but it will skip those blocks of code that don't apply to it.  A key
-goal of the system is that all parties are ``present'' to perform
-joint-secure operations when they need to be.
+Now we turn to the rules. Many of them are essentially standard, in
+particular \rulelab{E-Nat}, \rulelab{E-Pair}, \rulelab{E-Inj},
+\rulelab{E-Var}, \rulelab{E-Let}, and \rulelab{E-Abs}. Many others are
+\emph{almost} standard, including \rulelab{E-Access},
+\rulelab{E-Match}, \rulelab{E-Unfold}, \rulelab{E-BinopNat}, and
+\rulelab{E-App}. These differ from their standard counterparts in that
+that refer to $\getat{m}{v}$ in the premise---as elimination forms,
+they have to have to strip off any location information to use the
+value. This operation will fail if the value is not available to
+(located at) all principals in the current mode $m$; the type system
+aims to rule out this sort of problem.
+\mwh{E-Fix is missing; not sure how to do this one!}
 
-\mwh{The following is not quite true anymore: The ``spine'' of pairs
-  and lists has to be maintained at all parties, I think.}
-Our hoped-for invariant of the semantics is that all parties $p \in P$
-will execute $e$ in $\epar{P}{e}$. Within $e$, there may be variables
-$x$ that are only visible to some set $Q \subseteq P$. For those
-$p \not\in Q$, it should be sufficient to store $\langle \rangle$
-(unit) in this variable---it will never be ``destructed'' and is just
-a placeholder.
+Skipping ahead, consider \rulelab{E-Par}, which evaluates
+$\epar{P}{e}$. It evaluates $e$ is mode $P$ to produce $v_0$, but does
+so in an environment $\sigma'$, which is the current environment
+located at $P$ (which is constructed by intersecting mapped-to values'
+locations with $P$). Similarly, the final result $v_0$ must also be
+located at $P$ before it can be returned; this ensures that principals
+in $m$ other than those in $P$ will not be able to access it. This
+rule maintains an important invariant: \emph{the current environment $\sigma$ is
+always compatible (located at) the current mode $m$.} This is needed,
+for example, for \rulelab{E-Abs} to make sense, since it captures the
+current environment to store in the produced closure.
 
-Cryptographic computations are over natural numbers and sums. Whenever
-something of this type ends up in destruct position (e.g.,
-$\ebinop{e_1}{e_2}$) instead of actually doing the computation, we can
-think of the operation as being made into a thunk.\footnote{Behind the
-  scenes the operation might actually take place, e.g., when adding
-  shares or communicating to multiply them. Or the frozen operation
-  might result in a circuit being constructed.} For example, if we do
-$\ebinop{e_1}{e_2}$ and $e_1$ and $e_2$ are both $\psi$ shares (i.e.,
-of type $\tnat^m_\psi$ for a set of parties $m$), then we can imagine
-that all parties will construct a circuit over those shares,
-locally. The $\ereveal{P}{Q}{e}{\psi}$ construct takes as its argument
-a share encoded using $\psi$ and forces the computation to
-happen. That is, at that moment the secure computation will be forced
-to completion, and the result revealed to the involved principals $Q$.
+Let's consider the remaining rules, which focus on multiparty
+computation. \rulelab{E-Share} models principal $p \in P$
+``encrypting'' an integer, sharing it with principals $Q$. Expression
+$e$ is evaluated in the current mode $m$, but the direction is that
+just $P$ is doing the sharing; hence we only check that $v$ is located
+on $P$. We then encapsulate the extracted number $n$ in a share value,
+split between principals at $Q$. \mwh{Should I also locate this at
+  $Q$? I am assuming that $Q$ is already indicating the
+  location. Revisit.}
 
-% Sum types can also be encrypted. The way we think about representing
-% something of type $\tsum{\tau_1}{\tau_2}{m}{\psi}$ is that $\tau_1$
-% and $\tau_2$ are stored in a pair $\tprod{\tau_1}{\tau_2}$, while
-% location $m$ has access to an encrypted boolean (under $\psi$) which
-% indicates whether the left or right element of the pair is valid. When
-% computing on such a sum with $\emux{e}{e_1}{e_2}$, we feed the lhs
-% into $e_1$ and compute it, feed the rhs into $e_2$ and compute that,
-% and then select one output or the other based on the encrypted
-% boolean.
+\rulelab{E-BinopShare} permits multiparty computation on shares. It
+makes sure both arguments are available to exactly the executing hosts
+and the encapsulates the ``suspended'' computation in a share
+itself. \rulelab{E-Mux} produces a multiplexor on shares. It evaluates
+its arguments $e$, $e_1$, and $e_2$ to shares, and then constructs a
+circuit involving all three.
+
+\rulelab{E-Reveal} eliminates shares by ``forcing'' the suspended
+computation in the given share. \mwh{Not sure if the mode here should
+  be $m$ or $P$. Does it matter? Will the type system catch the
+  mistakes in any case?} The final result is located at the designated
+principals $Q$. 
 
 \section{Typing}
 
 \begin{figure}
 \[\begin{array}{c}
 
-    \inferrule*[lab=E-Nat]
+    \inferrule*[lab=T-Nat]
     {
     }
     {
@@ -313,7 +558,7 @@ to completion, and the result revealed to the involved principals $Q$.
     }
     \qquad
 
-    \inferrule*[lab=E-Read]
+    \inferrule*[lab=T-Read]
     {
     m\text{ is a singleton}
     }
@@ -322,7 +567,7 @@ to completion, and the result revealed to the involved principals $Q$.
     }
     \qquad
 
-    \inferrule*[lab=E-Pair]
+    \inferrule*[lab=T-Pair]
     {
     \hastyp{\Gamma}{m}{e_1}{\tau_1}\\\\
     \hastyp{\Gamma}{m}{e_2}{\tau_2}
@@ -331,7 +576,7 @@ to completion, and the result revealed to the involved principals $Q$.
     \hastyp{\Gamma}{m}{\epair{e_1}{e_2}}{\tau_1 \times \tau_2}
     }\qquad
     
-    \inferrule*[lab=E-Access]
+    \inferrule*[lab=T-Access]
     {
     m \vdash \tau_i \\\\
     \hastyp{\Gamma}{m}{e}{\tau_1 \times \tau_2}\\
@@ -340,7 +585,7 @@ to completion, and the result revealed to the involved principals $Q$.
     \hastyp{\Gamma}{m}{\eproj{i}{e}}{\tau_i}
     }\\\\
 
-    \inferrule*[lab=E-inj]
+    \inferrule*[lab=T-inj]
     {
     \hastyp{\Gamma}{m}{e}{\tau}
     }
@@ -349,7 +594,7 @@ to completion, and the result revealed to the involved principals $Q$.
     \hastyp{\Gamma}{m}{\einj{2}{e}}{\tsum{\tau_0}{\tau}{m}}
     } \qquad
     
-    \inferrule*[lab=E-Match]
+    \inferrule*[lab=T-Match]
     {
     \hastyp{\Gamma}{m}{e}{\tau_0 +^m \tau_1}\\\\
     m \vdash \tau_0 \\
@@ -361,7 +606,7 @@ to completion, and the result revealed to the involved principals $Q$.
       \hastyp{\Gamma}{m}{\econd{e}{e_1}{e_2}}{\tau}
     }\\ \\
 
-    \inferrule*[lab=E-Fold]
+    \inferrule*[lab=T-Fold]
     {
     \hastyp{\Gamma}{m}{e}{\tau[\trec{\alpha}{\tau}\setminus\alpha]}
     }
@@ -369,7 +614,7 @@ to completion, and the result revealed to the involved principals $Q$.
     \hastyp{\Gamma}{m}{\efold{\trec{\alpha}{\tau}}{e}}{\trec{\alpha}{\tau}}
     } \qquad
 
-    \inferrule*[lab=E-Unfold]
+    \inferrule*[lab=T-Unfold]
     {
     \hastyp{\Gamma}{m}{e}{\trec{\alpha}{\tau}}
     }
@@ -377,7 +622,7 @@ to completion, and the result revealed to the involved principals $Q$.
     \hastyp{\Gamma}{m}{\eunfold{e}}{\tau[\trec{\alpha}{\tau}\setminus\alpha]}
     } \\ \\
 
-    \inferrule*[lab=E-Share]
+    \inferrule*[lab=T-Share]
     {
     P\text{ is a singleton}    \\\\
     m \vdash P\\
@@ -387,19 +632,8 @@ to completion, and the result revealed to the involved principals $Q$.
     {
     \hastyp{\Gamma}{m}{\eshare{\psi}{P}{Q}{e}}{\tnat^Q_\psi}
     }\qquad
-
-    % \inferrule*[lab=E-Sharesum]
-    % {
-    % P\text{ is a singleton}    \\\\
-    % m \vdash P\\
-    % m \vdash Q\\\\
-    % \hastyp{\Gamma}{m}{e}{\tsum{\tau_0}{\tau_1}{P}{}}
-    % }
-    % {
-    % \hastyp{\Gamma}{m}{\esharesum{\psi}{P}{Q}{e}}{\tsum{\tau_0}{\tau_1}{Q}{\psi}}
-    % } \\ \\
     
-    \inferrule*[lab=E-Binop]
+    \inferrule*[lab=T-Binop]
     {
     \tau = \tnat^m_\psi\\\\
     \hastyp{\Gamma}{m}{e_1}{\tau}\\\\
@@ -409,20 +643,7 @@ to completion, and the result revealed to the involved principals $Q$.
     \hastyp{\Gamma}{m}{\ebinop{e_1}{e_2}}{\tau}
     }\qquad
 
-    % \inferrule*[lab=E-Mux]
-    % {
-    % \hastyp{\Gamma}{m}{e}{\tau_0 +^m_\psi \tau_1}\\\\
-    % m \vdash \tau_0 \\
-    % m \vdash \tau_1 \\\\
-    % \tau = \tnat^m_\psi \vee \tau = \tsum{\tau_2}{\tau_3}{m}{\psi}\\\\
-    % \hastyp{\Gamma,x\!:\!\tau_0}{m}{e_1}{\tau}\\
-    % \hastyp{\Gamma,x\!:\!\tau_1}{m}{e_2}{\tau}\\
-    % }
-    % {
-    % \hastyp{\Gamma}{m}{\emux{e}{e_1}{e_2}}{\tau}
-    % }\\ \\
-
-    \inferrule*[lab=E-Mux]
+    \inferrule*[lab=T-Mux]
     {
     \tau = \tnat^m_\psi\\\\
     \hastyp{\Gamma}{m}{e}{\tau}\\\\
@@ -433,7 +654,7 @@ to completion, and the result revealed to the involved principals $Q$.
     \hastyp{\Gamma}{m}{\emux{e}{e_1}{e_2}}{\tau}
     }\\ \\
 
-    \inferrule*[lab=E-Reveal]
+    \inferrule*[lab=T-Reveal]
     {
     m \vdash P\\
     m \vdash Q\\\\
@@ -443,7 +664,7 @@ to completion, and the result revealed to the involved principals $Q$.
     \hastyp{\Gamma}{m}{\ereveal{P}{Q}{e}{\psi}}{\tnat^Q}
     }\qquad
     
-    \inferrule*[lab=E-Var]
+    \inferrule*[lab=T-Var]
     {
     x\!:\!\tau \in \Gamma
     }
@@ -451,7 +672,7 @@ to completion, and the result revealed to the involved principals $Q$.
     \hastyp{\Gamma}{m}{x}{\tau}
     }\qquad
 
-    \inferrule*[lab=E-Let]
+    \inferrule*[lab=T-Let]
     {
     \hastyp{\Gamma}{m}{e_1}{\tau_1}\\\\
     \hastyp{\Gamma, x\!:\!\tau_1}{m}{e_2}{\tau}
@@ -461,7 +682,7 @@ to completion, and the result revealed to the involved principals $Q$.
     }\\ \\
 
 
-   \inferrule*[lab=E-Abs]
+   \inferrule*[lab=T-Abs]
     {
     m \vdash m'\\\\
     \hastyp{\Gamma, x\!:\!\tau_1}{m'}{e}{\tau_2}
@@ -470,7 +691,7 @@ to completion, and the result revealed to the involved principals $Q$.
     \hastyp{\Gamma}{m}{\elam{x}{e}}{\tfun{\tau_1}{\tau_2}{m'}}
     }\qquad
    
-    \inferrule*[lab=E-App]
+    \inferrule*[lab=T-App]
     {
     \hastyp{\Gamma}{m}{e}{\tfun{\tau_1}{\tau}{m}}\\\\
     \hastyp{\Gamma}{m}{e_1}{\tau_1}\\
@@ -479,7 +700,7 @@ to completion, and the result revealed to the involved principals $Q$.
     \hastyp{\Gamma}{m}{\eapp{e}{e_1}}{\tau}
     }\qquad
 
-    \inferrule*[lab=E-Fix]
+    \inferrule*[lab=T-Fix]
     {
     \hastyp{\Gamma,f\!:\! \tfun{\tau_1}{\tau_2}{m}}{m}{\elam{x}{e}}{\tfun{\tau_1}{\tau_2}{m}}
     }
@@ -487,7 +708,7 @@ to completion, and the result revealed to the involved principals $Q$.
     \hastyp{\Gamma}{m}{\efix{f}{x}{e}}{\tfun{\tau_1}{\tau_2}{m}}
     }\\ \\
 
-    \inferrule*[lab=E-Par]
+    \inferrule*[lab=T-Par]
     {
     m \vdash P \\
     P \vdash \tau\\
@@ -497,7 +718,7 @@ to completion, and the result revealed to the involved principals $Q$.
     \hastyp{\Gamma}{m}{\epar{P}{e}}{\tau}
     } \qquad
 
-    \inferrule*[lab=E-Sub]
+    \inferrule*[lab=T-Sub]
     {
     \hastyp{\Gamma}{m}{e}{\tau_1}\\
     \issub{\tau_1}{\tau_2}
@@ -521,13 +742,13 @@ principals designated in $m'$ are \emph{present} when executing in
 mode $m$. $m \vdash m'$ holds when $m = \top$ or $m = Q$ and $m' = P$
 and $P \subseteq Q$.
 
-Rule~\rulelab{E-Nat} types a (cleartext) constant; it inherits the
-visibility of the current mode. Rule~\rulelab{E-Read} types the
+Rule~\rulelab{T-Nat} types a (cleartext) constant; it inherits the
+visibility of the current mode. Rule~\rulelab{T-Read} types the
 \kw{read} command; since it will produce a different value at each
 location, it must be run in the visibility of a single principal ($m$
 must be a singleton set).
 
-Jumping ahead, rule~\rulelab{E-Par} runs its expression $e$ in par
+Jumping ahead, rule~\rulelab{T-Par} runs its expression $e$ in par
 mode involving principals $P$; these principals must be compatible
 with the current mode $m$ (i.e., they must be a subset of them). This
 coercion is useful for making the requirements of other rules match
@@ -541,22 +762,22 @@ $q$. If we did, then subsequent access in mode $\{q\}$ would be
 allowed by the type system but would fail at run-time as that location
 did not perform the extraction (only $p$ did).
 
-Rule~\rulelab{E-Sub} is also useful for making type requirements match
+Rule~\rulelab{T-Sub} is also useful for making type requirements match
 up. The subtyping judgment is given in Figure~\ref{fig:sub}. Simply
 put, a cleartext value located at $m$ can be located at a compatible
 location instead. When the value is encrypted, the location is
 invariant. 
 
-Rule~\rulelab{E-Pair} types the introduction of pairs. A pair's
+Rule~\rulelab{T-Pair} types the introduction of pairs. A pair's
 components must be typeable in the current mode, but they do not
 necessarily need to have the same visibility; e.g., in mode $\{p,q\}$
 a pair could have one component at $p$ and the other at
-$q$. Rule~\rulelab{E-Access} types the elimination of pairs. Here we
+$q$. Rule~\rulelab{T-Access} types the elimination of pairs. Here we
 require that the visibility of the element of type $\tau_i$ being
 removed from the pair is compatible with the current mode $m$, per the
 judgment $m \vdash \tau$.
 
-Rule~\rulelab{E-Share} types encrypting a $\tnat$ (via secret
+Rule~\rulelab{T-Share} types encrypting a $\tnat$ (via secret
 sharing). The $P$ argument indicates the principal doing the sharing,
 and it must be a singleton. The $Q$ argument indicates the principals
 to which to share $e$ (which must be a normal (non-share) value). This
@@ -564,26 +785,14 @@ value of $e$ must be visible in the current mode ($m \vdash P$) and
 the principals $Q$ must be present as well. Finally, the value must be
 a number; neither pairs nor functions can be shares.
 
-% Rule~\rulelab{E-Sharesum} types encrypting a sum type. The $P$ and $Q$
-% arguments are as with \rulelab{E-Share}. No requirements are made
-% about $\tau_0$ and $\tau_1$; their location is enforced when the pair
-% is used in a $\kw{mux}$; see below.
-
-Rule~\rulelab{E-Binop} types arithmetic computations on both shares
+Rule~\rulelab{T-Binop} types arithmetic computations on both shares
 and normal values---both arguments must have the same type (i.e., both
 shares or both normal values, with the same visibility), and match the
 current mode. Note that this rule precludes adding a 
 share and a normal value; you can always do this by converting the
 latter to a share (the compiler can be smart about this).
 
-% Rule~\rulelab{E-Mux} types multiplexing. The semantics is to evaluate
-% both branches (second and third arguments), binding $x$ to the left
-% and right-hand sides of the sum, respectively. The $\kw{mux}$ chooses
-% the result to return based on the first argument's ultimate
-% result. These are all (compatible) shares (under protocol $\psi$), so
-% we can think of this as making a multiplexor circuit.
-
-Rule~\rulelab{E-Mux} types multiplexing. The semantics is to evaluate
+Rule~\rulelab{T-Mux} types multiplexing. The semantics is to evaluate
 both branches (second and third arguments), binding $x$ to the left
 and right-hand sides of the sum, respectively. The $\kw{mux}$ chooses
 the result to return based on the first argument's ultimate
@@ -592,7 +801,7 @@ we can think of this as making a multiplexor circuit. The rule
 restrict the results to be $\tnat$s, but this is easily generalized
 via encoding (Section~\ref{sec:derived}).
 
-Rule~\rulelab{E-Reveal} types share elimination, i.e., converting a
+Rule~\rulelab{T-Reveal} types share elimination, i.e., converting a
 share of a $\tnat$ to a normal value. In essence, it forces the secure
 computation (which we are thinking of as a thunk) to produce a result,
 and reveals that result held by principals $P$ to the specified
@@ -600,11 +809,11 @@ principals $Q$. The rule requires that the current mode includes those
 in $Q$, and those $P$ who hold the shares. (We do not allow revealing
 encrypted sums, directly---we require destructing them first.)
 
-Rule~\rulelab{E-Match} types conditionals on normal sums, i.e., the
+Rule~\rulelab{T-Match} types conditionals on normal sums, i.e., the
 conditional will run on each principal in mode $m$. It can return
 shares or normal values, as desired. 
 
-Unlike the elimination rules for pairs and sums, the \rulelab{E-Var}
+Unlike the elimination rules for pairs and sums, the \rulelab{T-Var}
 does not mandate ``presence'' of its contents. So the following
 program would typecheck: $\elet{x0}{\epar{b}0}{\epar{a}{x0}}$. When
 checking the second $\kw{par}$ block, the type of $x0$ is $\tnat^{b}$,
@@ -618,32 +827,9 @@ the contents of that variable.
   needs to think about variables added in the closure. The app rule
   takes this into account.}
 
-Rule~\rulelab{E-Sub} defines subsumption, using subtyping.  The
+Rule~\rulelab{T-Sub} defines subsumption, using subtyping.  The
 definition of subtyping $\issub{\tau_1}{\tau_2}$, which indicates when
 $\tau_1$ can be used as $\tau_2$ is given in Figure~\ref{fig:sub}.
-
-% The type of $\epar{P}{e} $ is $\sectyp{\omega}{\isec}{P}$
-% type. This is because $e$ is executed independently by each principal
-% $p \in P$. There are constraints on the type of $e$. Off the top of my
-% head:
-% \begin{itemize}
-% \item All types with visibility $P$ are allowed. We can use subtyping
-%   (to $Q \subset P$) as needed.
-%   \item We can insert nested Par blocks, with a subset of principals,
-%     I think. However, their results will only be visible to subsequent
-%     par blocks with the same principal set (not the parent).
-%   \item Conditional execution $\econd{e_1}{e_2}{e_3}$ when $e_1$ could
-%     contain an $\isec$ needs to be limited. The issue will be if $e_2$
-%     has a secure computation inside it; not all parties $P$ will
-%     necessarily reach this point, because their values may differ in
-%     $e_1$. Remedies:
-%     \begin{itemize}
-%       \item Only allow conditionals in Par blocks when $P$ is a singleton, or
-%       \item Forbid computations on shares inside the branches of a
-%         conditional when the guard involves an \isec.
-%       \end{itemize}
-% \end{itemize}
-
 
 \begin{figure}
 \[\begin{array}{c}
@@ -671,15 +857,6 @@ $\tau_1$ can be used as $\tau_2$ is given in Figure~\ref{fig:sub}.
     {
     m \vdash \tnat^n_\psi
     } \\ \\
-
-    % \inferrule*[lab=M-Sum]
-    % {
-    % m = n \vee
-    % (\psi = \cdot \Rightarrow m \vdash n)
-    % }
-    % {
-    % m \vdash \tsum{\tau_1}{\tau_2}{m}{\psi}
-    % } \\ \\
 
     \inferrule*[lab=M-Sum]
     {
@@ -721,16 +898,6 @@ $\tau_1$ can be used as $\tau_2$ is given in Figure~\ref{fig:sub}.
     \issub{\tnat^m_\psi}{\tnat^n_\psi}
     } \qquad
 
-    % \inferrule*[lab=S-Sum]
-    % {
-    % m \vdash \tsum{\tau_1'}{\tau_2'}{n}{\psi}\\\\
-    % \psi = \cdot \Rightarrow \issub{\tau_1}{\tau_1'} \land \issub{\tau_2}{\tau_2'}\\\\
-    % \psi \not= \cdot \Rightarrow \tau_1 = \tau_1' \land \tau_2 = \tau_2'\\
-    % }
-    % {
-    % \issub{\tsum{\tau_1}{\tau_2}{m}{\psi}}{\tsum{\tau_1'}{\tau_2'}{n}{\psi}}
-    % }
-
     \inferrule*[lab=S-Sum]
     {
     m \vdash \tsum{\tau_1'}{\tau_2'}{n}\\\\
@@ -765,6 +932,10 @@ $\tau_1$ can be used as $\tau_2$ is given in Figure~\ref{fig:sub}.
 \label{fig:sub}
 \end{figure}
 
+\mwh{I think that $m \vdash \tau$ might be backwards: for values of
+  type $\tau$ to be accessible under $m$, the type $\tau$ should have
+  more principals in it than $m$, but I think this is doing the opposite.}
+  
 \section{Derived Forms}
 \label{sec:derived}
 
