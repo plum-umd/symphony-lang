@@ -39,10 +39,6 @@ principal Out
 -- def out_sec : type
 -- def out_sec = real{ ssec : Out }
 
--- shr_w_comp: 
-def shr_w_comp : real{ ssec : Cost } -> comp_shr
-def shr_w_comp x = share{ spdz : Ctr, Cost } x
-
 -- public_bool: booleans known to everyone
 -- def public_bool : type
 -- def public_bool = bool{ ssec: Ctr, Cost, Out }
@@ -91,6 +87,12 @@ def swap f y x = f x y
 
 def uncurry : (a -> b -> c) -> (a * b -> c)
 def uncurry f (a, b) = f a b
+
+-- shr_spdz: a first-order operation that shares over SPDZ
+def shr_spdz P x = share{ spdz : P } x
+
+-- shr_w_comp: 
+def shr_w_comp = shr_spdz set(Ctr,Cost)
 
 -- library for types with equality:
 
@@ -445,6 +447,7 @@ def karmarkar_loop a cost =
              ({ Ctr } nzFltProd a) )
           ) ) ) ) ) +
          n * (log_2_ceil n) ) ) in
+  let bound = 8n in
   (elim_nats bound
     id
     (compose (karmarkar_iter shr0 a cost)) )
