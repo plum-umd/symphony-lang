@@ -103,7 +103,13 @@ restrictValP ṽ = do
         ]
 
 restrictValPRecVal ∷ (STACK) ⇒ Val → IM Val
-restrictValPRecVal = \case
+restrictValPRecVal v = case v of
+  BoolV _ → return v
+  StrV _ → return v
+  NatV _ _ → return v
+  IntV _ _ → return v
+  FltV _ _ → return v
+  BulV → return v
   LV ṽ → do
     v ← restrictValP ṽ
     return $ LV v
@@ -114,11 +120,16 @@ restrictValPRecVal = \case
     v₁ ← restrictValP ṽ₁
     v₂ ← restrictValP ṽ₂
     return $ PairV v₁ v₂
+  NilV → return v
   ConsV ṽ₁ ṽ₂ → do
     v₁ ← restrictValP ṽ₁
     v₂ ← restrictValP ṽ₂
     return $ ConsV v₁ v₂
-  v → return v
+  ConsV _ _ → return v
+  CloV _ _ _ _  → return v
+  TCloV _ _ _ → return v
+  PrinV _ → return v
+  PrinSetV _ → return v
 
 unShareValPsMode ∷ Mode → 𝐿 ValP → 𝑂 (𝐿 Val ∧ 𝑂 (Prot ∧ 𝑃 PrinVal ∧ ℕ))
 unShareValPsMode m ṽs = case ṽs of
