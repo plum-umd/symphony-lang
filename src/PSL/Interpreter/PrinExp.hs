@@ -35,6 +35,14 @@ interpPrinExp ρe = case ρe of
       _ → throwIErrorCxt TypeIError "interpPrinExp: ρev ≢ SetPEV _ _" $ frhs
         [ ("ρev",pretty ρev)
         ]
+  ThisPE → do
+    m ← askL iCxtModeL
+    case m of
+      SecM ρv → return $ ValPEV $ ρv
+      PSecM ρvs → return $ PowPEV $ ρvs
+      TopM → throwIErrorCxt NotImplementedIError "Use of 'this' keyword in TopM not implemented" $ frhs
+        [ ("m",pretty m)
+        ]
 
 interpPrinExpSingle ∷ (STACK) ⇒ PrinExp → IM PrinVal
 interpPrinExpSingle ρe = do

@@ -68,6 +68,7 @@ lexer = lexerBasic puns kws prim ops
       , "share"
       , "trace"
       , "set"
+      , "this"
       ]
     prim = list
       [ "yao","gmw","bgw","bgv","spdz"
@@ -145,13 +146,17 @@ pPrin = cpNewContext "prin" cpName
 
 pPrinExp ∷ CParser TokenBasic PrinExp
 pPrinExp = cpNewContext "prin-exp" $ do
-  ρ ← pPrin
-  nO ← cpOptional $ do
-    cpSyntax "."
-    natΩ ^$ cpInteger
-  return $ case nO of
-    None → VarPE ρ
-    Some n → AccessPE ρ n
+  concat
+    [ do cpSyntax "this"
+         return ThisPE
+    , do ρ ← pPrin
+         nO ← cpOptional $ do
+           cpSyntax "."
+           natΩ ^$ cpInteger
+         return $ case nO of
+           None → VarPE ρ
+           Some n → AccessPE ρ n
+    ]
 
 --------------
 -- Prin-set --

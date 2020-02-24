@@ -38,6 +38,7 @@ makePrettySum ''PrinExpVal
 data PrinExp =
     VarPE 𝕏
   | AccessPE 𝕏 ℕ
+  | ThisPE
   deriving (Eq,Ord,Show)
 makePrettySum ''PrinExp
 
