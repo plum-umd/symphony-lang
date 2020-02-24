@@ -1,70 +1,3 @@
--- m : user parameter: number of constraint parties
-def m : nat
-def m = 2n
-
--- n : user parameter: dimension of the constraint system
-def n : nat
-def n = 2n
-
--- Ctr: parties that bring the constraints
-principal Ctr[2]
-
--- party that provides the cost vector:
-principal Cost
-
--- party that gets the output:
-principal Out
-
--- reals: IEEE64
--- def real : type
--- def real = flt[64]
--- PSL: support type definitions
-
--- ctr: the type of constraints. An independent secret vector.
--- def ctr : type
--- def ctr = list (real{ isec : Ctr })
-
--- costs: the type of cost vectors:
--- def costs : type
--- def costs = list (real{ ssec : Cost })
-
--- comp_shr: a real secret-shared between all compute parties
--- def comp_shr : type
--- def comp_shr = real{ spdz : Ctr, Cost }
-
--- def comp_shr_bool : type
--- def comp_shr_bool = bool{ spdz: Ctr, Cost }
-
--- out_sec: a secret known only to the output party
--- def out_sec : type
--- def out_sec = real{ ssec : Out }
-
--- public_bool: booleans known to everyone
--- def public_bool : type
--- def public_bool = bool{ ssec: Ctr, Cost, Out }
-
--- public_nat: nats known to everyone
--- def public_nat : type 
--- def public_nat = nat{ ssec: Ctr, Cost, Out }
-
--- point: a point the comp_shrensional space of a constraint
--- def point : type 
--- def point = list comp_shr
-
--- secretMat: a matrix of additive shares of reals
--- def secretMat : type
--- def secretMat = list point
-
--- ltMat: a lower-trignular matrix of additive shares of reals in
--- row-major order
--- def ltMat : type
--- def ltMat = list ((list comp_shr) * comp_shr)
-
--- ltMat: a lower-triangular matrix of additive shares in column-major
--- order
--- def colLtMat : type
--- def colLtMat = list (comp_shr * (list comp_shr))
-
 -- err msg: throw an error message
 def err msg = msg + 0
 
@@ -88,11 +21,21 @@ def swap f y x = f x y
 def uncurry : (a -> b -> c) -> (a * b -> c)
 def uncurry f (a, b) = f a b
 
+-- library for operating on principals:
+
+def pdecons a f xy = case xy
+  { ⟪⟫ → a
+  ; ⟪Q.x⟫⧺xy′ → f Q x 
+  }
+
+def pfold : ∀ A:☆,P:ℙ. A → ((Q:ℙ | Q⊆P) → ℤ{Q} → A → A) → ℤ{isec:P} →{sec:P} A
+def pfold i f xy = case xy
+  { ⟪⟫ → i
+  ; ⟪Q.x⟫⧺xy′ → f Q x (pfold i f xy′)
+  }
+
 -- shr_spdz: a first-order operation that shares over SPDZ
 def shr_spdz P x = share{ spdz : P } x
-
--- shr_w_comp: 
-def shr_w_comp = shr_spdz set(Ctr,Cost)
 
 -- library for types with equality:
 
@@ -265,9 +208,85 @@ def all_true l = foldr l true and
 def max : comp_shr -> comp_shr -> comp_shr_bool
 def max m n = if m <= n then n else m
 
--- is_zero_vec v: test if v is the vector of shares of 0
+-- is_const_vec c v: test if v is the vector of c's
 def is_const_vec : point -> public_bool
 def is_const_vec c v = all_true (map (eq c) v)
+
+-- END: library-candidate code
+
+-- BEGIN: application-specific code
+
+-- m : user parameter: number of constraint parties
+def m : nat
+def m = 2n
+
+-- n : user parameter: dimension of the constraint system
+def n : nat
+def n = 2n
+
+-- Ctr[m]: parties that bring the constraints
+principal Ctr[2]
+
+-- party that provides the cost vector:
+principal Cost
+
+-- party that gets the output:
+principal Out
+
+-- bitrotted type definitions that could be useful to revive
+
+-- reals: IEEE64
+-- def real : type
+-- def real = flt[64]
+-- PSL: support type definitions
+
+-- ctr: the type of constraints. An independent secret vector.
+-- def ctr : type
+-- def ctr = list (real{ isec : Ctr })
+
+-- costs: the type of cost vectors:
+-- def costs : type
+-- def costs = list (real{ ssec : Cost })
+
+-- comp_shr: a real secret-shared between all compute parties
+-- def comp_shr : type
+-- def comp_shr = real{ spdz : Ctr, Cost }
+
+-- def comp_shr_bool : type
+-- def comp_shr_bool = bool{ spdz: Ctr, Cost }
+
+-- out_sec: a secret known only to the output party
+-- def out_sec : type
+-- def out_sec = real{ ssec : Out }
+
+-- public_bool: booleans known to everyone
+-- def public_bool : type
+-- def public_bool = bool{ ssec: Ctr, Cost, Out }
+
+-- public_nat: nats known to everyone
+-- def public_nat : type 
+-- def public_nat = nat{ ssec: Ctr, Cost, Out }
+
+-- point: a point the comp_shrensional space of a constraint
+-- def point : type 
+-- def point = list comp_shr
+
+-- secretMat: a matrix of additive shares of reals
+-- def secretMat : type
+-- def secretMat = list point
+
+-- ltMat: a lower-trignular matrix of additive shares of reals in
+-- row-major order
+-- def ltMat : type
+-- def ltMat = list ((list comp_shr) * comp_shr)
+
+-- ltMat: a lower-triangular matrix of additive shares in column-major
+-- order
+-- def colLtMat : type
+-- def colLtMat = list (comp_shr * (list comp_shr))
+
+-- shr_w_comp: 
+def shr_w_comp = shr_spdz set(Ctr,Cost)
 
 -- sqMat: square matrix: a matrix with explicit diagonal elements
 -- def sqMat : type
@@ -282,10 +301,10 @@ def part_ith a i l =
     eliml_nat i
       ([ ], l)
       (fun (front, tl) -> decons_ls tl
-        (front, tl) -- shouldn't happen
+        (front, tl) -- should never be used
         (fun hd tl' -> (hd :: front, tl)) ) in
   let (ith, tl) = decons_ls rem
-    (a, rem) -- shoudln't happen
+    (a, rem) -- should never be used
     (fun b rem' -> (b, rem')) in
   (first_i, ith, tl)
 
@@ -363,17 +382,6 @@ def inverse z m =
 def mult_diag_vec : point -> point -> point
 def mult_diag_vec = zip_map mult 
 
-def pdecons a f xy = case xy
-  { ⟪⟫ → a
-  ; ⟪Q.x⟫⧺xy′ → f Q x 
-  }
-
-def pfold : ∀ A:☆,P:ℙ. A → ((Q:ℙ | Q⊆P) → ℤ{Q} → A → A) → ℤ{isec:P} →{sec:P} A
-def pfold i f xy = case xy
-  { ⟪⟫ → i
-  ; ⟪Q.x⟫⧺xy′ → f Q x (pfold i f xy′)
-  }
-
 def nOnes : list flt
 def nOnes = onesVec n 
 
@@ -447,7 +455,7 @@ def karmarkar_loop a cost =
              ({ Ctr } nzFltProd a) )
           ) ) ) ) ) +
          n * (log_2_ceil n) ) ) in
-  let bound = 8n in
+  let bound = 4n in
   (elim_nats bound
     id
     (compose (karmarkar_iter shr0 a cost)) )
