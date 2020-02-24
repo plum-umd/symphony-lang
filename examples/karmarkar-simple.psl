@@ -92,31 +92,37 @@ def swap f y x = f x y
 def uncurry : (a -> b -> c) -> (a * b -> c)
 def uncurry f (a, b) = f a b
 
--- library functions for types with equality:
+-- library for types with equality:
 
+-- eq: non-infix equality test
 def eq x y = x == y
 
--- library functions for numeric types
+-- library for numeric types:
 
 -- plus: non-infix sum
 def plus m n = m + n
 
--- minus: non-infix substraction
+-- minus: non-infix subtraction
 def minus m n = m - n
 
--- inc n: increment of n
-def inc : nat -> nat
-def inc = plus 1n
-
--- dec n: decrement of n
-def dec : nat -> nat
-def dec n = n - 1n
-
--- mult: infix multiplication of nats
+-- mult: non-infix multiplication 
 def mult m n = m * n
+
+-- exp: non-infix exponentiation
+def exp m n = m ^ n
 
 -- square: multiple a number with itself:
 def square a = a * a
+
+-- library for nats:
+
+-- inc n: increment of nat n
+def inc : nat -> nat
+def inc = plus 1n
+
+-- dec n: decrement of nat n
+def dec : nat -> nat
+def dec n = n - 1n
 
 -- elim_nats: form for eliminating (folding over) nats
 def elim_nats : nat -> t -> (t -> t) -> t
@@ -128,6 +134,12 @@ def elim_nats m z s =
 def eliml_nat : nat -> t -> (t -> t) -> t
 def eliml_nat n z s = 
   (elim_nats n id (compose s)) z
+
+-- nat_log: logarithm over nats. Diverges at 0n.
+def nat_log : nat -> nat -> nat
+def nat_log b n =
+  if n == 1n then 0n
+  else inc (nat_log b (n / 2n))
 
 -- library functions for lists:
 
@@ -173,7 +185,7 @@ def len l = foldr l 0n (const inc)
 def map : (t -> u) -> list t -> list u
 def map f l = foldr l [ ] (compose f cons)
 
--- rev l: the reverse of list l
+-- rev_ls l: the reverse of list l
 def rev_ls : list t -> list t
 def rev_ls l = foldl l [ ] cons
 
@@ -217,7 +229,7 @@ def vec_div a = map (fun x -> x / a)
 -- dot_prod: take the dot product of two points
 def dot_prod z p0 p1 = sum (zip_map mult p0 p1) z
 
--- l2norm v: the L2 norm of a vector of shares
+-- l2norm z v: the L2 norm of a vector of numerics with zero element z
 def l2norm : point -> comp_shr
 def l2norm z v = sqrt (sum (map square v) z)
 
@@ -279,8 +291,7 @@ def part_ith a i l =
     (fun b rem' -> (b, rem')) in
   (first_i, ith, tl)
 
--- square m: matrix m coerced into a square matrix
-def square : secretMat -> sqMat
+-- squareMat m: matrix m coerced into a square matrix
 def squareMat m =
   let (_, m') = foldl m
     (0n, [ ])
@@ -312,19 +323,7 @@ def cholesky z m =
       (tri', base'')) in
   m'
 
-def ne_single : t -> (t * list t)
-def ne_single x = (x, [ ])
-
-def ne_cons : t -> (t * list t) -> (t * list t)
-def ne_cons x (y, l) = (x, y :: l)
-
-def ne_to_list : (t * list t) -> list t
-def ne_to_list = uncurry cons
-
-def shr_add_inv : comp_shr -> comp_shr
-def shr_add_inv x = (shr_w_comp 0.0) - x
-
--- col_lt_to_row m: converstion of LT matrix in col-major form to
+-- col_lt_to_row m: LT matrix m in col-major form, converted to
 -- row-major form
 def col_lt_to_row m = foldr m
   [ ]
@@ -333,15 +332,17 @@ def col_lt_to_row m = foldr m
 
 -- lt_inverse m: the inverse of LT matrix m:
 def lt_inverse : ltMat -> ltMat
-def lt_inverse z l = foldr_tl l -- fold over the LT matrix
-  [ ]
-  (fun (d, cv) tl -> snoc
-    -- fold over the tail of the current column and the rest of the matrix
-    (foldl (zip_lists cv (col_lt_to_row tl))
-      (d, [ ])
-      (fun (x, (rv, y)) (hd', tl') ->
-        let dprod = dot_prod z (snoc y rv) (hd' :: tl') in
-        (hd', snoc ((shr_add_inv dprod) / y) tl') ) ) )
+def lt_inverse z l =
+  let add_inv = fun x -> z - x in
+  foldr_tl l -- fold over the LT matrix
+    [ ]
+    (fun (d, cv) tl -> snoc
+      -- fold over the tail of the current column and the rest of the matrix
+      (foldl (zip_lists cv (col_lt_to_row tl))
+        (d, [ ])
+        (fun (x, (rv, y)) (hd', tl') ->
+          let dprod = dot_prod z (snoc y rv) (hd' :: tl') in
+          (hd', snoc ((add_inv dprod) / y) tl') ) ) )
 
 -- lt_lift d l: LT matrix l, lifted into a matrix by padding copies of
 -- default element d
@@ -360,7 +361,7 @@ def inverse z m =
     (lt_inverse z (cholesky z (squareMat (shift_major m)))) in
   mult_mat z (transpose l_inv) l_inv
 
--- mult_diag_vec d p: product of diagonal matrix over vector d, and v
+-- mult_diag_vec d v: product of diagonal matrix over vector d, and v
 def mult_diag_vec : point -> point -> point
 def mult_diag_vec = zip_map mult 
 
@@ -423,18 +424,11 @@ def karmarkar_iter a cost pt =
   let db' = mult_diag_vec pt b' in
   vec_div (dot_prod shr0 (map shr_w_comp nOnes) db') db'
 
--- BILL: cleanup inlined one-off bindings
+def ceil_fn f f_inv n =
+  let n' = f n in
+  n' + (if n == f_inv n' then 0n else 1n)
 
--- nat_log: logarithm over nats. Diverges at 0n.
-def nat_log : nat -> nat -> nat
-def nat_log b n =
-  if n == 1n then 0n
-  else inc (nat_log b (n / 2n))
-
-def log_2_ceil : nat -> nat
-def log_2_ceil n = 
-  let n' = nat_log 2n n in
-  n' + (if n == (2n ^ n') then 0n else 1n)
+def log_2_ceil = ceil_fn (nat_log 2n) (exp 2n)
 
 -- Karmarkar's algorithm, main loop:
 
