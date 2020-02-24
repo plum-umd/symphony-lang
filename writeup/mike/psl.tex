@@ -78,25 +78,20 @@
 
 Soon:
 \begin{itemize}
-\item I think that $m \vdash \tau$ is backwards. Fix this, and then
-  fix the definition of subtyping, which relies on it being
-  backwards. I also wonder if \rulelab{M-Sum} etc. are wrong because
-  they are not ``deep''. They don't seem to match up with
-  $\locof{P}{e}$ but maybe they should?
-\item Add text to go with sums (no longer encrypted, directly),
-  recursive types, fixpoint functions. Work out some questions:
-  \begin{itemize}
-    \item Fixpoints now have the mode $m$ in the context and on the
-      arrow as the same. In normal abstractions this doesn't need to
-      be. Not sure if I'm being too restrictive.
-    \item Sum construction doesn't require its components to be
-      present, but deconstruction does. Is the latter required? It
-      should be if it's the same as pair access; is it?
-    \item No subtyping at present for recursive types. Should we add
-      it?
-    \end{itemize}
-  \item Prove type soundness for single-threaded semantics
-  \item Develop multi-party operational semantics.
+\item Think about fixpoint types. Don't have an operational rule
+  (normally, I'd use substitution, but we are using environments in
+  closures). Fixpoints now have the mode $m$ in the context and on the
+  arrow as the same. In normal abstractions this doesn't need to
+  be. Not sure if I'm being too restrictive.
+\item Is there any benefit to the $m \vdash m'$ in T-Abs? Not
+  convinced. Reconsider function types --- see DavidH's note below.
+\item Sum construction doesn't require its components to be
+  present, but deconstruction does. Is the latter required? It
+  should be if it's the same as pair access; is it?
+\item No subtyping at present for recursive types. Should we add
+  it?
+\item Prove type soundness for single-threaded semantics
+\item Develop multi-party operational semantics.
 \end{itemize}
 
 % Next: Look at \texttt{writeup/spdz.md} and think about language
@@ -106,7 +101,7 @@ Later:
 \begin{itemize}
 \item Contemplate Muxable t psi, which denotes that there must be some
   way to combine two different values of type t according to a mux
-  under protocol psi. From David D: \emph{Regarding muxable: I still see $A +^P_psi B$ as a sum type where psi only describes the encryption of the "sum bit", and $A$ and $B$ should either be shared base types, tuples, or shared sums (arbitrarily nested). This is the muxable constraint, and I think what David H had in mind.}
+  under protocol psi. From David D: \emph{Regarding muxable: I still see $A +^P_{\psi} B$ as a sum type where psi only describes the encryption of the "sum bit", and $A$ and $B$ should either be shared base types, tuples, or shared sums (arbitrarily nested). This is the muxable constraint, and I think what David H had in mind.}
 \item Contemplate generalized ``reveal'' operation, which works on all
   datatypes by recursing into their contents and revealing
   those. E.g., you could reveal a list of shares all at once.
@@ -206,12 +201,13 @@ gamma |-^m_(n \cup m') par m' e : t
 
 \section{Syntax}
   
-The syntax of core PSL is in Figure~\ref{fig:syntax}.
+The syntax of core PSL is in Figure~\ref{fig:syntax}. Some derived
+constructs (syntactic sugar) are given in Section~\ref{sec:derived}
 
 There are two key concepts in types. First is their \emph{location},
 designated $m$. Natural numbers, sums, and functions are located at
 particular places; only here can they be computed on. Second (and in
-addition), natural numbers and sums can be \emph{encrypted} as secret
+addition), natural numbers can be \emph{encrypted} as secret
 shares (with a different share at each party among the locations
 $m$). We annotate the sharing protocol (GMW, Yao, etc.) as $\psi$; the
 ``cleartext'' protocol is $\cdot$ (or simply elided, to reduce
@@ -468,15 +464,15 @@ $m$ executing in lockstep.
 To be clear about which values reside on which parties' hosts, we have
 a special value form to indicates this. Values are defined in
 Figure~\ref{fig:auxsem}. The form $\vloc{u}{P}$ indicates that $u$ is
-only visible to principals $p \in P$. Since not all valuables need to
+only visible to principals $p \in P$. Since not all values need to
 be explicitly located (if they are in scope, they implicitly
-accessible), we distinguish locatable values $u$ vs. others
-$v$. Values for numbers, sums, and closures are standard (closures
+are accessible), we distinguish \emph{locatable} values $u$.
+Values for numbers, sums, and closures are standard (closures
 have an explicit environment---we don't use substitution), as are
 (locatable) values for pairs and recursive types. The value
 $\vshare{Q}{\psi}{e}$ represents a circuit for a secure computation
 under scheme $\psi$ to be performed by principals in $q \in Q$. Notice
-that it contains an expression $e$, not a value $v$; it represents a
+that it contains an expression $e$, not a value $v$; this represents a
 ``suspended'' computation.
 
 In the same figure are two functions over values: $\locof{P}{v}$ and
@@ -740,7 +736,7 @@ evaluating in mode $m$. These rules reference the judgment
 $m \vdash m'$ which is given in Figure~\ref{fig:aux}. It says that
 principals designated in $m'$ are \emph{present} when executing in
 mode $m$. $m \vdash m'$ holds when $m = \top$ or $m = Q$ and $m' = P$
-and $P \subseteq Q$.
+with $P \subseteq Q$.
 
 Rule~\rulelab{T-Nat} types a (cleartext) constant; it inherits the
 visibility of the current mode. Rule~\rulelab{T-Read} types the
@@ -755,18 +751,26 @@ coercion is useful for making the requirements of other rules match
 the expected mode; the rule is also an important hint to the execution
 engine about which parties will run a particular block. This rule
 requires that the returned result be compatible with current mode $P$;
-i.e., it should not be ``located'' at principals $q \not\in P$.
-Compatibility $m \vdash \tau$ is given in Figure~\ref{fig:aux}. For
-example, in mode $\{p\}$ we don't want to return a value located at
-$q$. If we did, then subsequent access in mode $\{q\}$ would be
-allowed by the type system but would fail at run-time as that location
-did not perform the extraction (only $p$ did).
+i.e., it should be ``located'' at all principals $q \in P$.  For
+example, in mode $\{p,q\}$ we don't want to return a value located
+(only) at $q$. If we did, then subsequent access by $p$ would fail at
+run-time, since the value is not actually present there.
+%
+Compatibility $m \vdash \tau$ is given in Figure~\ref{fig:aux}. We can
+think of it as related to the semantic function $\getat{m}{v}$: If $v$
+has type $\tau$ and $m \vdash \tau$ (with the expected extensions to
+typing for new value forms), then $\getat{m}{v}$ should succeed.
 
 Rule~\rulelab{T-Sub} is also useful for making type requirements match
-up. The subtyping judgment is given in Figure~\ref{fig:sub}. Simply
-put, a cleartext value located at $m$ can be located at a compatible
-location instead. When the value is encrypted, the location is
-invariant. 
+up. The subtyping judgment is given in
+Figure~\ref{fig:sub}. Intuitively, $\issub{\tau_1}{\tau_2}$ holds when
+$\tau_1$ is compatible with the maximal mode that $\tau_2$ is
+compatible with; i.e., it's OK to treat a value as being available at
+fewer locations than it actually is. We can think of subtyping as
+being related to semantic function $\locof{P}{v}$: if $v$ has type
+$\tau_1$ and $\locof{P}{v}$ has type $\tau_2$, then assuming the
+latter has no bogusly located values ($\vloc{v}{\emptyset}$), then we
+want $\issub{\tau_1}{\tau_2}$. \mwh{Need to think through this}
 
 Rule~\rulelab{T-Pair} types the introduction of pairs. A pair's
 components must be typeable in the current mode, but they do not
@@ -776,6 +780,12 @@ $q$. Rule~\rulelab{T-Access} types the elimination of pairs. Here we
 require that the visibility of the element of type $\tau_i$ being
 removed from the pair is compatible with the current mode $m$, per the
 judgment $m \vdash \tau$.
+
+Rules~\rulelab{T-Inj} and \rulelab{T-Match} are standard; as with the
+elimination form for pairs, the latter rule requires both of the
+to-be-accessed types to be compatible with the current mode. The rules
+\rulelab{T-Fold} and \rulelab{T-Unfold} for recursive types are
+standard.
 
 Rule~\rulelab{T-Share} types encrypting a $\tnat$ (via secret
 sharing). The $P$ argument indicates the principal doing the sharing,
@@ -821,15 +831,16 @@ and this variable is occurring with a $\kw{par}$ block with only $a$
 present. But this is not prevented because nothing actually done with
 the contents of that variable.
 
-\mwh{Say more about the let, abs, app rules. The let rule is
-  unsurprising. Maybe point out that all hosts in $m$ must create the
-  variable $x$, no matter the visibility of $\tau_1$. The abs rule
-  needs to think about variables added in the closure. The app rule
-  takes this into account.}
+\rulelab{T-Let} is standard.
 
-Rule~\rulelab{T-Sub} defines subsumption, using subtyping.  The
-definition of subtyping $\issub{\tau_1}{\tau_2}$, which indicates when
-$\tau_1$ can be used as $\tau_2$ is given in Figure~\ref{fig:sub}.
+\rulelab{T-Abs} allows the body of a function to require a strictly
+smaller mode than the defining context. \mwh{Why? Can't we just wrap
+  in par mode? Rethink} \rulelab{T-App} requires the caller's mode to
+match the mode annotation on the function; this ensures that all
+principals that must be present in the function body will indeed be
+running the function.
+
+\mwh{Talk about T-Fix, which I don't have an operational rule for ...}
 
 \begin{figure}
 \[\begin{array}{c}
@@ -852,7 +863,7 @@ $\tau_1$ can be used as $\tau_2$ is given in Figure~\ref{fig:sub}.
     \inferrule*[lab=M-Nat]
     {
     m = n \vee
-    (\psi = \cdot \Rightarrow m \vdash n)
+    (\psi = \cdot \Rightarrow n \vdash m)
     }
     {
     m \vdash \tnat^n_\psi
@@ -860,18 +871,17 @@ $\tau_1$ can be used as $\tau_2$ is given in Figure~\ref{fig:sub}.
 
     \inferrule*[lab=M-Sum]
     {
-    m \vdash n
+    n \vdash m
     }
     {
-    m \vdash \tsum{\tau_1}{\tau_2}{m}
+    m \vdash \tsum{\tau_1}{\tau_2}{n}
     } \qquad
 
     \inferrule*[lab=M-Fun]
     {
-    m \vdash n
     }
     {
-    m \vdash \tfun{\tau_1}{\tau_2}{n}
+    m \vdash \tfun{\tau_1}{\tau_2}{m}
     }\qquad
 
     \inferrule*[lab=M-Prod]
@@ -892,7 +902,7 @@ $\tau_1$ can be used as $\tau_2$ is given in Figure~\ref{fig:sub}.
 
     \inferrule*[lab=S-Nat]
     {
-    m \vdash \tnat^n_\psi
+    n \vdash \tnat^m_\psi
     }
     {
     \issub{\tnat^m_\psi}{\tnat^n_\psi}
@@ -900,7 +910,7 @@ $\tau_1$ can be used as $\tau_2$ is given in Figure~\ref{fig:sub}.
 
     \inferrule*[lab=S-Sum]
     {
-    m \vdash \tsum{\tau_1'}{\tau_2'}{n}\\\\
+    n \vdash \tsum{\tau_1'}{\tau_2'}{m}\\\\
     \issub{\tau_1}{\tau_1'} \land \issub{\tau_2}{\tau_2'}
     }
     {
@@ -932,10 +942,6 @@ $\tau_1$ can be used as $\tau_2$ is given in Figure~\ref{fig:sub}.
 \label{fig:sub}
 \end{figure}
 
-\mwh{I think that $m \vdash \tau$ might be backwards: for values of
-  type $\tau$ to be accessible under $m$, the type $\tau$ should have
-  more principals in it than $m$, but I think this is doing the opposite.}
-  
 \section{Derived Forms}
 \label{sec:derived}
 
