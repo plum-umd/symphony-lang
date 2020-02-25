@@ -328,59 +328,7 @@ principal Cost
 -- party that gets the output:
 principal Out
 
--- bitrotted type definitions that could be useful to revive
-
--- reals: IEEE64
--- def real : type
--- def real = flt[64]
--- PSL: support type definitions
-
--- ctr: the type of constraints. An independent secret vector.
--- def ctr : type
--- def ctr = list (real{ isec : Ctr })
-
--- costs: the type of cost vectors:
--- def costs : type
--- def costs = list (real{ ssec : Cost })
-
--- comp_shr: a real secret-shared between all compute parties
--- def comp_shr : type
--- def comp_shr = real{ spdz : Ctr, Cost }
-
--- def comp_shr_bool : type
--- def comp_shr_bool = bool{ spdz: Ctr, Cost }
-
--- out_sec: a secret known only to the output party
--- def out_sec : type
--- def out_sec = real{ ssec : Out }
-
--- public_bool: booleans known to everyone
--- def public_bool : type
--- def public_bool = bool{ ssec: Ctr, Cost, Out }
-
--- public_nat: nats known to everyone
--- def public_nat : type 
--- def public_nat = nat{ ssec: Ctr, Cost, Out }
-
--- point: a point the comp_shrensional space of a constraint
--- def point : type 
--- def point = list comp_shr
-
--- secretMat: a matrix of additive shares of reals
--- def secretMat : type
--- def secretMat = list point
-
--- ltMat: a lower-trignular matrix of additive shares of reals in
--- row-major order
--- def ltMat : type
--- def ltMat = list ((list comp_shr) * comp_shr)
-
--- ltMat: a lower-triangular matrix of additive shares in column-major
--- order
--- def colLtMat : type
--- def colLtMat = list (comp_shr * (list comp_shr))
-
--- shr_w_comp: share something with the parties performing computation
+-- shr_w_comp: share data with the parties performing computation
 def shr_w_comp = shr_spdz set(Ctr,Cost)
 
 def nOnes : list flt
