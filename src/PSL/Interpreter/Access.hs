@@ -69,12 +69,8 @@ restrictValP ṽ = do
   m ← askL iCxtModeL
   case (m,ṽ) of
     (SecM ρ, SSecVP ρs v) → do
-      -- guardErr (ρ ∈ ρs) (throwIErrorCxt TypeIError "restrictValP: ρ ∉ ρs" $ frhs
-      --                    [ ("ρ",pretty ρ)
-      --                    , ("ρs",pretty ρs)
-      --                    ])
-      -- return $ SSecVP (single ρ) v
-      return $ SSecVP (single ρ ∩ ρs) v
+      v' ← restrictValPRecVal v
+      return $ SSecVP (single ρ ∩ ρs) v'
     (SecM ρ, ISecVP ρvs) → do
       v ← error𝑂 (ρvs ⋕? ρ) (throwIErrorCxt TypeIError "restrictValP: ρ not in ρvs" $ frhs
                              [ ("ρvs",pretty ρvs)
@@ -82,19 +78,14 @@ restrictValP ṽ = do
                              ])
       return $ SSecVP (single ρ) v
     (SecM ρ, AllVP v) → do
-      return $ SSecVP (single ρ) v
+      v' ← restrictValPRecVal v
+      return $ SSecVP (single ρ) v'
     (PSecM ρs₁, SSecVP ρs₂ v) → do
+      v' ← restrictValPRecVal v
       let ρs = ρs₁ ∩ ρs₂
-      -- guardErr (ρs ≢ pø) (throwIErrorCxt TypeIError "restrictValP: ρs ∉ pø" $ frhs
-      --                     [ ("ρs",pretty ρs)
-      --                     ])
-      -- return $ SSecVP ρs v
-      return $ SSecVP ρs v
+      return $ SSecVP ρs v'
     (PSecM ρs, ISecVP ρvs) → do
       let ρvs' = restrict ρs ρvs
-      -- guardErr (count ρvs' ≢ 0) (throwIErrorCxt TypeIError "restrictValP: count ρvs' ≢ 0" $ frhs
-      --                         [ ("ρvs'",pretty ρvs')
-      --                         ])
       return $ ISecVP ρvs'
     (PSecM ρs₁, ShareVP φ ρs₂ v md) → do
       guardErr (ρs₂ ⊆ ρs₁) (throwIErrorCxt TypeIError "restrictValP: ρs₁ ⊈ ρs₂" $ frhs
@@ -103,12 +94,42 @@ restrictValP ṽ = do
                             ])
       return $ ShareVP φ ρs₂ v md
     (PSecM ρs, AllVP v) → do
-      return $ SSecVP ρs v
+      v' ← restrictValPRecVal v
+      return $ SSecVP ρs v'
     (TopM,_) → return ṽ
     _ → throwIErrorCxt TypeIError "restrictValP: Pattern match fail on (m,ṽ)" $ frhs
         [ ("m",pretty m)
         , ("ṽ",pretty ṽ)
         ]
+
+restrictValPRecVal ∷ (STACK) ⇒ Val → IM Val
+restrictValPRecVal v = case v of
+  BoolV _ → return v
+  StrV _ → return v
+  NatV _ _ → return v
+  IntV _ _ → return v
+  FltV _ _ → return v
+  BulV → return v
+  LV ṽ → do
+    v ← restrictValP ṽ
+    return $ LV v
+  RV ṽ → do
+    v ← restrictValP ṽ
+    return $ RV v
+  PairV ṽ₁ ṽ₂ → do
+    v₁ ← restrictValP ṽ₁
+    v₂ ← restrictValP ṽ₂
+    return $ PairV v₁ v₂
+  NilV → return v
+  ConsV ṽ₁ ṽ₂ → do
+    v₁ ← restrictValP ṽ₁
+    v₂ ← restrictValP ṽ₂
+    return $ ConsV v₁ v₂
+  ConsV _ _ → return v
+  CloV _ _ _ _  → return v
+  TCloV _ _ _ → return v
+  PrinV _ → return v
+  PrinSetV _ → return v
 
 unShareValPsMode ∷ Mode → 𝐿 ValP → 𝑂 (𝐿 Val ∧ 𝑂 (Prot ∧ 𝑃 PrinVal ∧ ℕ))
 unShareValPsMode m ṽs = case ṽs of

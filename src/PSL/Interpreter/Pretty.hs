@@ -1,9 +1,9 @@
 module PSL.Interpreter.Pretty where
 
-import UVMHS
+-- import UVMHS
 
-import PSL.Parser
-import PSL.Interpreter.Types
+-- import PSL.Parser
+-- import PSL.Interpreter.Types
 
 -- instance Pretty Val where
 --   pretty = \case

@@ -1,0 +1,8 @@
+principal A[2]
+principal B
+principal C
+
+def main • =
+  {par:A.1,B} set(this)
+
+def expected = {par:A.1,B} set(A.1,B)
