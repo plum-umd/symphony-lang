@@ -17,7 +17,7 @@ def id x = x
 def uncurry : (a -> b -> c) -> (a * b -> c)
 def uncurry f (a, b) = f a b
 
--- BEGIN library for operating on principals:
+-- BEGIN library for security-sensitive operations:
 
 def mux guard tc fc = guard ? tc ◇ fc
 
@@ -37,6 +37,8 @@ def reveal_ls P l =
   { [ ] -> [ ]
   ; x :: l' -> x :: (reveal_ls P l') 
   }
+
+def reveal_prins P x = reveal{ P } x
 
 -- shr_spdz: a first-order operation that shares over SPDZ
 def shr_spdz P x = share{ spdz : P } x
@@ -332,8 +334,11 @@ principal Cost
 -- party that gets the output:
 principal Out
 
+-- comps: the parties that do computation, Ctr and Cost
+def comps = set(Ctr,Cost)
+
 -- shr_w_comp: share data with the parties performing computation
-def shr_w_comp = shr_spdz set(Ctr,Cost)
+def shr_w_comp = shr_spdz comps
 
 def nOnes : list flt
 def nOnes = onesVec n 
@@ -357,7 +362,7 @@ def karmarkar_iter shr0 a cost pt =
         [ nOnes ]
         (fun Q ctr -> cons
           (mult_diag_vec pt
-            (map shr_w_comp (reveal_ls set(Cost,Ctr) ctr)) ) )
+            (map shr_w_comp (reveal_ls comps ctr)) ) )
         a in
       vec_diff
         c'
@@ -412,20 +417,21 @@ def main : unit ->{ inp : Ctr, Cost; rev : Out } (list out_sec)
 def main () =
   let read_vec = fun () -> read (list flt) "in.txt" in
   
-  -- FANCY MPC:
-  -- Ctr and Cost send the data in the list to Out:
+  -- FANCY MPC: Ctr and Cost send the data in the list to Out. This
+  -- may change if the PSL model of isec's changes as a result of
+  -- issue #31
   let soln = { par : Ctr, Cost, Out } (map
-    (fun x -> reveal{ Out } x)
+    (reveal_prins set(Out))
     -- Ctr and Cost reveal the list structure of the point to Out:
     (reveal_ls set(Ctr,Cost,Out)
       -- Ctr and Cost compute the solution point:
       ({ par : Ctr, Cost } karmarkar_loop
         -- Ctr reads inputs constraints,
         ({ par : Ctr } read_vec ())
-        -- Cost shares the list structure of the cost vector with Ctr,
+        -- Cost shares the shape of the cost vector with Ctr,
         ({ par : Ctr, Cost } pdecons 
           [ ]
-          (fun Q c -> reveal_ls set(Cost,Ctr) (reveal{ Cost, Ctr } c))
+          (const (compose (reveal_prins comps) (reveal_ls comps)))
           -- Cost reads the cost vector,
           ({ par : Cost } read_vec ())
         ) ) ) ) in
