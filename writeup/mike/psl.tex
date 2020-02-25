@@ -541,6 +541,16 @@ computation in the given share. \mwh{Not sure if the mode here should
   mistakes in any case?} The final result is located at the designated
 principals $Q$. 
 
+\section{Examples}
+
+\mwh{TODO}.
+\mwh{Good one from Bill:} 
+
+\begin{verbatim}
+(fun x -> { par : C } x) 
+  ({ par : A, B, C } reveal{ C } (share{ yao : A, B } 0)
+\end{verbatim}
+
 \section{Typing}
 
 \begin{figure}
