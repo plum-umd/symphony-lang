@@ -470,7 +470,7 @@ testInterpreter = do
   -- testInterpreterExample "empty-par-diverge"
   -- testInterpreterExample "euclid"
   -- testInterpreterExample "pfold"
-  -- testInterpreterExample "karmarkar-simple"
+  testInterpreterExample "karmarkar-simple"
   -- testInterpreterExample "msort"
   -- testInterpreterExample "partial-diverge"
   -- testInterpreterExample "reshare"

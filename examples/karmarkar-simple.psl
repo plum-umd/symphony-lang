@@ -19,6 +19,8 @@ def uncurry f (a, b) = f a b
 
 -- BEGIN library for operating on principals:
 
+def mux guard tc fc = guard ? tc ◇ fc
+
 def pdecons a f xy = case xy
   { ⟪⟫ → a
   ; ⟪Q.x⟫⧺xy′ → f Q x 
@@ -72,7 +74,9 @@ def square a = a * a
 
 -- inc n: increment of nat n
 def inc : nat -> nat
-def inc n = 1n + n
+def inc = plus 1n
+
+-- def inc n = 1n + n
 
 -- dec n: decrement of nat n
 def dec : nat -> nat
@@ -347,6 +351,8 @@ def karmarkar_iter shr0 a cost pt =
     let cp =
       -- c': product of diagonal of point and cost vector
       let c' = mult_diag_vec pt (map shr_w_comp cost) in
+      -- FANCY MPC:
+      -- b: matrix of shares of constraint coefficients
       let b = pfold 
         [ nOnes ]
         (fun Q ctr -> cons
@@ -359,9 +365,9 @@ def karmarkar_iter shr0 a cost pt =
           (mult_spdz_mat_vec (invert_spdz (mult_spdz_mats b b))
             (mult_spdz_mat_vec b c') ) ) in
 
-    -- test if the projection is the 0 vector:
+    -- FANCY MPC: compute list of shares from shared Boolean
     let is_const = is_const_vec shr0 cp in
-    zip_map (fun c n -> is_const ? c ◇ n)
+    zip_map (mux is_const)
       (const_vec shr0 n) (vec_div (l2norm shr0 cp) cp)
 
   -- take a step of 1/3 n in the direction of cp
@@ -376,11 +382,12 @@ def karmarkar_iter shr0 a cost pt =
 -- algorithm up to some bound computed from private inputs
 def karmarkar_loop : ctr -> costs -> point
 def karmarkar_loop a cost =
-  -- bound: upper bound on the required number of iterations, based on
-  -- product of non-zero constraint and cost coeffs:
   let shr0 = share{ spdz : Ctr, Cost } 0.0 in
   let nzProd = fun l ->
     prod (filter (compose (eq 0.0) not) l) 1.0 in
+  -- FANCY MPC:
+  -- bound: upper bound on the required number of iterations, based on
+  -- product of non-zero constraint and cost coeffs:
   let bound = 
         (12n * n *
          ((inc m) * n +
@@ -405,6 +412,7 @@ def main : unit ->{ inp : Ctr, Cost; rev : Out } (list out_sec)
 def main () =
   let read_vec = fun () -> read (list flt) "in.txt" in
   
+  -- FANCY MPC:
   -- Ctr and Cost send the data in the list to Out:
   let soln = { par : Ctr, Cost, Out } (map
     (fun x -> reveal{ Out } x)
