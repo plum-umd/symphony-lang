@@ -1,0 +1,8 @@
+principal A
+principal B
+principal C
+
+def main () =
+  let _ = (fun x -> { par : A } x) ({ par : A, B } 0) in
+  let _ = { par : A } ({ par : A, B } 0) in
+  ()
