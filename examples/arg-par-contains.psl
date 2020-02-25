@@ -3,6 +3,8 @@ principal B
 principal C
 
 def main () =
-  let _ = (fun x -> { par : A } x) ({ par : A, B } 0) in
-  let _ = { par : A } ({ par : A, B } 0) in
+  let _ = (fun x -> { par : C } x)
+    ({ par : A, B, C } reveal{ C } (share{ yao : A, B } 0)) in
+  let _ = { par : C } ({ par : A, B, C } (
+    reveal{ C } (share{ yao : A, B } 0))) in
   ()

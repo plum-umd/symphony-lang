@@ -459,7 +459,7 @@ testInterpreter = do
         ]
       ]
   -- testInterpreterExample "add"
-  -- testInterpreterExample "arg-par-contains"
+  testInterpreterExample "arg-par-contains"
   -- testInterpreterExample "atq"
   -- testInterpreterExample "bind-fp-const"
   -- testInterpreterExample "bind-shares"
@@ -470,7 +470,7 @@ testInterpreter = do
   -- testInterpreterExample "elim-sec-ls"
   -- testInterpreterExample "empty-par-diverge"
   -- testInterpreterExample "euclid"
-  testInterpreterExample "indy-pars"
+  -- testInterpreterExample "indy-pars"
   -- testInterpreterExample "pfold"
   -- testInterpreterExample "karmarkar-simple"
   -- testInterpreterExample "msort"
