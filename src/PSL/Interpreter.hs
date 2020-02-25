@@ -459,7 +459,7 @@ testInterpreter = do
         ]
       ]
   -- testInterpreterExample "add"
-  testInterpreterExample "arg-par-contains"
+  -- testInterpreterExample "arg-par-contains"
   -- testInterpreterExample "atq"
   -- testInterpreterExample "bind-fp-const"
   -- testInterpreterExample "bind-shares"
