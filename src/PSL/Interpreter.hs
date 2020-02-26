@@ -481,6 +481,6 @@ testInterpreter = do
   -- testInterpreterExample "ssec-other-ssec"
   -- testInterpreterExample "ssec-shr"
   -- testInterpreterExample "sumprod"
-  -- testInterpreterExample "test"
+  testInterpreterExample "test"
   -- testInterpreterExample "uninspecting-par"
   -- testInterpreterExample "rand"
