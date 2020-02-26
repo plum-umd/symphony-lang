@@ -85,9 +85,6 @@ Soon:
   be. Not sure if I'm being too restrictive.
 \item Is there any benefit to the $m \vdash m'$ in T-Abs? Not
   convinced. Reconsider function types --- see DavidH's note below.
-\item Sum construction doesn't require its components to be
-  present, but deconstruction does. Is the latter required? It
-  should be if it's the same as pair access; is it?
 \item No subtyping at present for recursive types. Should we add
   it?
 \item Prove type soundness for single-threaded semantics
@@ -543,13 +540,15 @@ principals $Q$.
 
 \section{Examples}
 
-\mwh{TODO}.
-\mwh{Good one from Bill:} 
+\mwh{More}
 
 \begin{verbatim}
 (fun x -> { par : C } x) 
   ({ par : A, B, C } reveal{ C } (share{ yao : A, B } 0)
 \end{verbatim}
+This is allowed by the type system. The $\kw{reveal}$ produces a value
+at $C$, which may be ``passed through'' the par block at \verb+{A, B,C}+. 
+This is then passed in and used in the function.
 
 \section{Typing}
 
@@ -584,7 +583,6 @@ principals $Q$.
     
     \inferrule*[lab=T-Access]
     {
-    m \vdash \tau_i \\\\
     \hastyp{\Gamma}{m}{e}{\tau_1 \times \tau_2}\\
     }
     {
@@ -603,8 +601,8 @@ principals $Q$.
     \inferrule*[lab=T-Match]
     {
     \hastyp{\Gamma}{m}{e}{\tau_0 +^m \tau_1}\\\\
-    m \vdash \tau_0 \\
-    m \vdash \tau_1 \\\\
+    m \dashv \tau_0 \\
+    m \dashv \tau_1 \\\\
     \hastyp{\Gamma,x\!:\!\tau_0}{m}{e_1}{\tau}\\
     \hastyp{\Gamma,x\!:\!\tau_1}{m}{e_2}{\tau}\\
     }
@@ -744,9 +742,10 @@ The typing judgment has form $\hastyp{\Gamma}{m}{e}{\tau}$. It states
 that under context $\Gamma$, expression $e$ has type $\tau$ when
 evaluating in mode $m$. These rules reference the judgment
 $m \vdash m'$ which is given in Figure~\ref{fig:aux}. It says that
-principals designated in $m'$ are \emph{present} when executing in
-mode $m$. $m \vdash m'$ holds when $m = \top$ or $m = Q$ and $m' = P$
-with $P \subseteq Q$.
+that principals in $m'$ are present in mode $m$. The rules also refer
+to judgment $m \vdash \tau$, which says that $\tau$ is located at
+one or more principals in $m$; and $m \dashv \tau$, which says it is
+located at \emph{all} principals in $m$. 
 
 Rule~\rulelab{T-Nat} types a (cleartext) constant; it inherits the
 visibility of the current mode. Rule~\rulelab{T-Read} types the
@@ -761,41 +760,43 @@ coercion is useful for making the requirements of other rules match
 the expected mode; the rule is also an important hint to the execution
 engine about which parties will run a particular block. This rule
 requires that the returned result be compatible with current mode $P$;
-i.e., it should be ``located'' at all principals $q \in P$.  For
-example, in mode $\{p,q\}$ we don't want to return a value located
+i.e., it should be ``located'' at least some principals $q \in P$.  For
+example, in mode $\{p\}$ we don't want to return a value located
 (only) at $q$. If we did, then subsequent access by $p$ would fail at
 run-time, since the value is not actually present there.
 %
 Compatibility $m \vdash \tau$ is given in Figure~\ref{fig:aux}. We can
-think of it as related to the semantic function $\getat{m}{v}$: If $v$
-has type $\tau$ and $m \vdash \tau$ (with the expected extensions to
-typing for new value forms), then $\getat{m}{v}$ should succeed.
-
-Rule~\rulelab{T-Sub} is also useful for making type requirements match
-up. The subtyping judgment is given in
-Figure~\ref{fig:sub}. Intuitively, $\issub{\tau_1}{\tau_2}$ holds when
-$\tau_1$ is compatible with the maximal mode that $\tau_2$ is
-compatible with; i.e., it's OK to treat a value as being available at
-fewer locations than it actually is. We can think of subtyping as
-being related to semantic function $\locof{P}{v}$: if $v$ has type
-$\tau_1$ and $\locof{P}{v}$ has type $\tau_2$, then assuming the
-latter has no bogusly located values ($\vloc{v}{\emptyset}$), then we
-want $\issub{\tau_1}{\tau_2}$. \mwh{Need to think through this}
+think of it as related to the semantic function $\locof{m}{v}$. This
+function takes $v$ and ``locates'' it at principals in $m$, filtering
+out principals not present in $P$. The judgment $m \vdash \tau$
+ensures that $\locof{m}{v}$ will be a no-op.
 
 Rule~\rulelab{T-Pair} types the introduction of pairs. A pair's
 components must be typeable in the current mode, but they do not
 necessarily need to have the same visibility; e.g., in mode $\{p,q\}$
 a pair could have one component at $p$ and the other at
-$q$. Rule~\rulelab{T-Access} types the elimination of pairs. Here we
-require that the visibility of the element of type $\tau_i$ being
-removed from the pair is compatible with the current mode $m$, per the
-judgment $m \vdash \tau$.
+$q$. Rule~\rulelab{T-Access} types the elimination of pairs. This rule
+is standard.
 
-Rules~\rulelab{T-Inj} and \rulelab{T-Match} are standard; as with the
-elimination form for pairs, the latter rule requires both of the
-to-be-accessed types to be compatible with the current mode. The rules
-\rulelab{T-Fold} and \rulelab{T-Unfold} for recursive types are
-standard.
+Rules~\rulelab{T-Inj} is standard. Rule~\rulelab{T-Match} requires
+that both of the to-be-accessed types are \emph{located} at all of the
+principals in the current mode, per the judgment $m \dashv \tau$. This
+judgment is a sort of dual to $m \vdash \tau$; it requires that all
+components of $\tau$ are present to principals in $m$. We can think of
+this judgment as being related to semantic function $\getat{m}{v}$: If $v$
+has type $\tau$ and $m \dashv \tau$ (with the expected extensions to
+typing for new value forms), then $\getat{m}{v}$ should succeed.
+
+Intuitively, a $\tnat$ located at $\{p,q\}$ is also located at
+$p$. Rule~\rulelab{T-Sub} can be used to apply this kind of
+reasoning. The subtyping judgment is given in
+Figure~\ref{fig:sub}. Intuitively, $\issub{\tau_1}{\tau_2}$ holds when
+$\tau_1$ is compatible with the maximal mode that $\tau_2$ is
+compatible with; i.e., it's OK to treat a value as being available at
+fewer locations than it actually is.
+
+The rules \rulelab{T-Fold} and \rulelab{T-Unfold} for recursive types
+are standard.
 
 Rule~\rulelab{T-Share} types encrypting a $\tnat$ (via secret
 sharing). The $P$ argument indicates the principal doing the sharing,
@@ -868,20 +869,21 @@ running the function.
     }
     {
     Q \vdash P
-    } \qquad
+    } \\ \\
     
     \inferrule*[lab=M-Nat]
     {
     m = n \vee
-    (\psi = \cdot \Rightarrow n \vdash m)
+    (\psi = \cdot \Rightarrow m \vdash n)
     }
     {
     m \vdash \tnat^n_\psi
-    } \\ \\
+    } \qquad
 
     \inferrule*[lab=M-Sum]
     {
-    n \vdash m
+    m \vdash n\\\\
+    m \vdash \tau_1 \\ m \vdash \tau_2
     }
     {
     m \vdash \tsum{\tau_1}{\tau_2}{n}
@@ -895,15 +897,52 @@ running the function.
     }\qquad
 
     \inferrule*[lab=M-Prod]
-    { }
+    {
+    m \vdash \tau_1 \\ m \vdash \tau_2
+    }
     {m \vdash \tprod{\tau_1}{\tau_2}}
     \qquad
 
     \inferrule*[lab=M-Rec]
-    { }
+    {m \vdash \tau}
     {m \vdash \trec{\alpha}{\tau}}
+    \\ \\
+
+    \inferrule*[lab=L-Nat]
+    {  }
+    {
+    m \dashv \tnat^m_\psi
+    } \qquad
+
+    \inferrule*[lab=L-Sum]
+    {
+    m \dashv \tau_1 \\ m \dashv \tau_2
+    }
+    {
+    m \dashv \tsum{\tau_1}{\tau_2}{m}
+    } \qquad
+
+    \inferrule*[lab=L-Fun]
+    {
+    }
+    {
+    m \dashv \tfun{\tau_1}{\tau_2}{m}
+    }\qquad
+
+    \inferrule*[lab=L-Prod]
+    {
+    m \dashv \tau_1 \\ m \dashv \tau_2
+    }
+    {m \dashv \tprod{\tau_1}{\tau_2}}
+    \qquad
+
+    \inferrule*[lab=L-Rec]
+    {m \dashv \tau}
+    {m \dashv \trec{\alpha}{\tau}}
+    \\ \\
+    
   \end{array}\]
-\caption{Mode well-formedness}
+\caption{Locatedness and Presence}
 \label{fig:aux}
 \end{figure}
     
@@ -912,7 +951,7 @@ running the function.
 
     \inferrule*[lab=S-Nat]
     {
-    n \vdash \tnat^m_\psi
+    m \vdash \tnat^n_\psi
     }
     {
     \issub{\tnat^m_\psi}{\tnat^n_\psi}
@@ -920,7 +959,7 @@ running the function.
 
     \inferrule*[lab=S-Sum]
     {
-    n \vdash \tsum{\tau_1'}{\tau_2'}{m}\\\\
+    m \vdash \tsum{\tau_1'}{\tau_2'}{n}\\\\
     \issub{\tau_1}{\tau_1'} \land \issub{\tau_2}{\tau_2'}
     }
     {
