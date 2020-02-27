@@ -78,6 +78,15 @@
 
 Soon:
 \begin{itemize}
+\item Example should typecheck, as should the version that substitutes the
+par block inside the function. The new par block rule should be you
+run in a mode whose principals are intersected with those in the current
+mode.
+\begin{verbatim}
+principal A
+principal B
+(fun x -> { par : B } ((), x)) ({ par : A } 0)
+\end{verbatim}
 \item Think about fixpoint types. Don't have an operational rule
   (normally, I'd use substitution, but we are using environments in
   closures). Fixpoints now have the mode $m$ in the context and on the
@@ -549,6 +558,15 @@ principals $Q$.
 This is allowed by the type system. The $\kw{reveal}$ produces a value
 at $C$, which may be ``passed through'' the par block at \verb+{A, B,C}+. 
 This is then passed in and used in the function.
+
+\begin{verbatim}
+par(A,B) 
+  let x = par(A) 0 in
+  let y = par(B) 1 in
+  par(A) 
+    let z = (x,y) in #1 z
+\end{verbatim}
+Should work.
 
 \section{Typing}
 
