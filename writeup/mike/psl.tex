@@ -440,9 +440,9 @@ $$
 
     \inferrule*[lab=E-Par]
     {
-    \env' = \locof{P}{\env}\\
-    \eval{\env'}{{m \cap P}}{e}{v_0}\\
-    v = \locof{m \cap P}{v_0}
+    \env' = \locof{P}{\env}\\ Q = m \cap P\\\\
+    \eval{\env'}{{Q}}{e}{v_0}\\
+    v = \locof{Q}{v_0}
     }
     {
     \eval{\env}{m}{\epar{P}{e}}{v}
@@ -507,21 +507,21 @@ aims to rule out this sort of problem.
 \mwh{E-Fix is missing; not sure how to do this one!}
 
 Skipping ahead, consider \rulelab{E-Par}, which evaluates
-$\epar{P}{e}$. It evaluates $e$ in mode $m \cap P$ to produce $v_0$;
-i.e., only those principals in $P$ \emph{also} present $m$ will run
-$e$. Evaluation takes place in environment $\sigma'$, which is the
-current environment located at $P$, which is constructed by
-intersecting mapped-to values' locations with $P$. This rule maintains
-and relies on an important invariant: \emph{the current environment
-  $\sigma$ is always compatible (located at) the current mode $m$.} As
-such, since $\sigma$ is compatible with $m$ already, it just needs to
-also be located at $P$, and the result will be compatible with
-$m \cap P$. This invariant is also needed, for example, for
-\rulelab{E-Abs} to make sense, since it captures the current
-environment to store in the produced closure. Finally, note that the
-result $v_0$ must also be located at $m \cap P$ before it can be
-returned; this ensures that principals in other than those in $P$ and
-$m$, both, will not be able to access it.
+$\epar{P}{e}$. It evaluates $e$ in mode  $Q = m \cap P$ 
+to produce $v_0$; i.e., only those principals in $P$ \emph{also}
+present $m$ will run $e$. Evaluation takes place in environment
+$\sigma'$, which is the current environment located at $P$, which is
+constructed by intersecting mapped-to values' locations with $P$. This
+rule maintains and relies on an important invariant: \emph{the current
+  environment $\sigma$ is always compatible (located at) the current
+  mode $m$.} As such, since $\sigma$ is compatible with $m$ already,
+it just needs to also be located at $P$, and the result will be
+compatible with $Q$. This invariant is also needed, for
+example, for \rulelab{E-Abs} to make sense, since it captures the
+current environment to store in the produced closure. Finally, note
+that the result $v_0$ must also be located at $Q$ before it can
+be returned; this ensures that principals in other than those in $P$
+and $m$, both, will not be able to access it.
 
 Let's consider the remaining rules, which focus on multiparty
 computation. \rulelab{E-Share} models principal $p \in P$
