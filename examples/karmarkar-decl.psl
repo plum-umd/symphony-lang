@@ -41,7 +41,10 @@ def reveal_ls P l =
 def reveal_prins P x = reveal{ P } x
 
 -- shr_spdz: a first-order operation that shares over SPDZ
--- SPDZ proposal:
+
+-- SPDZ proposal: now takes a SPDZ protocol session, which corresponds
+-- directly to a set of principals, but has to be declared somewhere
+-- for the program to be well-typed.
 def shr_spdz S x = share{ spdz : S } x
 
 -- BEGIN library for Boolean
@@ -336,13 +339,13 @@ principal Cost
 principal Out
 
 -- SPDZ proposal:
-session spdz set(Ctr, Cost) comp_sesh
+spdz_session set(Ctr, Cost) comp_sesh
 
 -- comps: the parties that do computation, Ctr and Cost
 def comps = set(Ctr,Cost)
 
 -- shr_w_comp: share data with the parties performing computation
--- SPDZ proposal: now passes a protocol session 
+-- SPDZ proposal: now passes a protocol session
 def shr_w_comp = shr_spdz comp_sesh
 
 def nOnes : list flt

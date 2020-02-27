@@ -43,8 +43,10 @@ def reveal_ls P l =
 def reveal_prins P x = reveal{ P } x
 
 -- shr_spdz: a first-order operation that shares over SPDZ
--- SPDZ proposal:
-def shr_spdz : (P : ℙ) -> session{ spdz : P } -> t -> t{ spdz : P }
+
+-- SPDZ proposal: sharing is now done with respect to a protocol
+-- session that was created as a value (presumably by running setup)
+def shr_spdz : (P : ℙ) -> s : session{ spdz : P } -> t -> t{ spdz : s }
 def shr_spdz P s x = sesh_share{ spdz : P } s x
 
 -- BEGIN library for Boolean

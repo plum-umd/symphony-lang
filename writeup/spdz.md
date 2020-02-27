@@ -43,10 +43,12 @@ the parties.
 
 In the online phase, shares contain both shares of a plain value and
 shares of the MAC key used to sign Beaver triples. Shares can be added
-efficiently and locally (as usual). Parties multiple shares by opening
+efficiently and locally (as usual). Parties multiply shares by opening
 a Beaver triple and using it to evaluate the desired multiplication as
 a sequence of linear operations (an old, but still amazing, idea that
 dates back to the original paper by Beaver).
+
+# The problem #
 
 The main challenges from the perspective of PSL design are to
 determine:
@@ -58,7 +60,32 @@ determine:
    and multiplying shares?
 2. If not, how does PSL need to be extended in order to support a SPDZ
    crypto backend?
+
+In particular, there seems to be a notable limitation in PSL's current
+support for SPDZ, and offline protocols in general (at the level of
+language design, not just what's in the interpreter): someone can
+write a program that uses SPDZ, but has no way of confirming that SPDZ
+operations that need to be executed in the online phase will be
+supported by triples pre-computed in an offline phase.
+
+Addressing this definitely doesn't seem to be intractable, and in fact
+a few reasonable ideas have already been proposed:
+
+1. Ben has basically been assuming that pools of Beaver triples will
+   be pre-computed and their presence will be denoted in the resource
+   specification file. Verona seems to be planning something
+   similar. In this case, we would just need to extend PSL to have
+   types that correspond to parties that may carry out a SPDZ session
+   together, then check that every session declared as a type
+   corresponds to some pool of triples declared in the resource file.
    
+2. We could have something more flexible, where PSL's execution model
+   is extended so that every program has two entry points: a setup
+   function that the parties run offline and returns state that's
+   given to a main function, which is run online (as usual).
+
+Both of these ideas are explored below under "Strawman 2."
+
 # Strawman 0: try to do all "offline" computation online # 
 
 We might hope that, in the spirit of getting some working
@@ -134,21 +161,49 @@ Maybe the biggest wrinkle to PSL that this would introduce is that the
 types of shares would need to be indexed on protocol instances. There
 are a few feasible extensions to PSL that would accommodate this:
 
-* The simplest extension to PSL that should work for the challenge
-  problems (and thus arguably the first one that we should try to code
-  up) would be to have protocol instances declared similarly to how
-  principals are declared currently, then extend the language so that
-  declared protocol instances can be passed around analogously to how
-  principals are passed currently.
+1. The simplest extension to PSL that should work for the challenge
+   problems (and thus arguably the first one that we should try to
+   code up) would be to have protocol instances declared similarly to
+   how principals are declared currently, then extend the language so
+   that declared protocol instances can be passed around analogously
+   to how principals are passed currently.
+  
+   A mock-up of Karmarkar using this extension is given in
+   `examples/karmarkar-decl.psl`. The only lines that require changes
+   to PSL in order to support are commented with "SPDZ propsal."
 
-* A more complicated extension would require each crypto backend `B`
-  to a program operation that looks something like:
+2. A more complicated extension would require a SPDZ backend to
+   implement a type of protocol sessions `spdz_session` indexed on
+   finite sets of principals and an operation for creating protocol
+   sessions as values, which might look something like:
 
   ```
-  mk_instance : (P : Principals) -> B.share P
+  mk_spdz_sesh : (P : Principals) -> spdz_session P
   ```
 
   I don't know enough about dependent types to know how hard this
   would be to support, although it seems relatively tractable, given
-  that the instances would only be subject to some simple laws
-  governing their equality.
+  that the instances would only be indexed by finite sets of
+  principals, which are obviously much simpler to reason about than
+  other richer sets of values that are commonly considered.
+
+  A mock-up of Karmarkar using this extension is given in
+  `examples/karmarkar-setup.psl`. The only lines that require changes
+  to PSL in order to support are commented with "SPDZ propsal."
+
+# Proposed design #
+
+My (Bill's) current view is that we should go with option (2), at
+least for the short term. It's just refined enough to give us the
+property that we need (roughly, that a PSL program that typechecks and
+is consistent with its resource file won't fail at runtime).
+
+Having a `setup` entry point could be interesting. The main drawbacks
+at the moment seem to be:
+
+* We don't yet have a example where it can do something that type
+  declarations can't.
+* It would likely be more complicated to ensure that well-typed PSL
+  programs don't fail, given that SPDZ session types are now indexed
+  on session values that are created by evaluating program terms (in
+  `setup`).
