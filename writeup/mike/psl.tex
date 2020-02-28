@@ -78,15 +78,9 @@
 
 Soon:
 \begin{itemize}
-\item Example should typecheck, as should the version that substitutes the
-par block inside the function. The new par block rule should be you
-run in a mode whose principals are intersected with those in the current
-mode.
-\begin{verbatim}
-principal A
-principal B
-(fun x -> { par : B } ((), x)) ({ par : A } 0)
-\end{verbatim}
+\item Rule \rulelab{T-Par} uses set intersection explicitly, rather
+  than appealing to $m \vdash n$ etc. Maybe we don't need the latter
+  and should switch to that consistently.
 \item Think about fixpoint types. Don't have an operational rule
   (normally, I'd use substitution, but we are using environments in
   closures). Fixpoints now have the mode $m$ in the context and on the
@@ -446,9 +440,9 @@ $$
 
     \inferrule*[lab=E-Par]
     {
-    \env' = \locof{P}{\env}\\
-    \eval{\env'}{{P}}{e}{v_0}\\
-    v = \locof{P}{v_0}
+    \env' = \locof{P}{\env}\\ Q = m \cap P\\\\
+    \eval{\env'}{{Q}}{e}{v_0}\\
+    v = \locof{Q}{v_0}
     }
     {
     \eval{\env}{m}{\epar{P}{e}}{v}
@@ -513,16 +507,21 @@ aims to rule out this sort of problem.
 \mwh{E-Fix is missing; not sure how to do this one!}
 
 Skipping ahead, consider \rulelab{E-Par}, which evaluates
-$\epar{P}{e}$. It evaluates $e$ is mode $P$ to produce $v_0$, but does
-so in an environment $\sigma'$, which is the current environment
-located at $P$ (which is constructed by intersecting mapped-to values'
-locations with $P$). Similarly, the final result $v_0$ must also be
-located at $P$ before it can be returned; this ensures that principals
-in $m$ other than those in $P$ will not be able to access it. This
-rule maintains an important invariant: \emph{the current environment $\sigma$ is
-always compatible (located at) the current mode $m$.} This is needed,
-for example, for \rulelab{E-Abs} to make sense, since it captures the
-current environment to store in the produced closure.
+$\epar{P}{e}$. It evaluates $e$ in mode  $Q = m \cap P$ 
+to produce $v_0$; i.e., only those principals in $P$ \emph{also}
+present $m$ will run $e$. Evaluation takes place in environment
+$\sigma'$, which is the current environment located at $P$, which is
+constructed by intersecting mapped-to values' locations with $P$. This
+rule maintains and relies on an important invariant: \emph{the current
+  environment $\sigma$ is always compatible (located at) the current
+  mode $m$.} As such, since $\sigma$ is compatible with $m$ already,
+it just needs to also be located at $P$, and the result will be
+compatible with $Q$. This invariant is also needed, for
+example, for \rulelab{E-Abs} to make sense, since it captures the
+current environment to store in the produced closure. Finally, note
+that the result $v_0$ must also be located at $Q$ before it can
+be returned; this ensures that principals in other than those in $P$
+and $m$, both, will not be able to access it.
 
 Let's consider the remaining rules, which focus on multiparty
 computation. \rulelab{E-Share} models principal $p \in P$
@@ -553,7 +552,7 @@ principals $Q$.
 
 \begin{verbatim}
 (fun x -> { par : C } x) 
-  ({ par : A, B, C } reveal{ C } (share{ yao : A, B } 0)
+  ({ par : A, B, C } reveal{ C } (share{ yao : A, B } 0))
 \end{verbatim}
 This is allowed by the type system. The $\kw{reveal}$ produces a value
 at $C$, which may be ``passed through'' the par block at \verb+{A, B,C}+. 
@@ -567,6 +566,15 @@ par(A,B)
     let z = (x,y) in #1 z
 \end{verbatim}
 Should work.
+
+\begin{verbatim}
+(fun x -> { par : B } ((), x)) ({ par : A } 0)
+\end{verbatim}
+The above is allowed. And equivalently, so is this (which in a
+previous incarnation would have been rejected):
+\begin{verbatim}
+{ par : B } ((), ({ par : A } 0))
+\end{verbatim}
 
 \section{Typing}
 
@@ -732,9 +740,9 @@ Should work.
 
     \inferrule*[lab=T-Par]
     {
-    m \vdash P \\
-    P \vdash \tau\\
-    \hastyp{\Gamma}{{P}}{e}{\tau}
+    Q = m \cap P\\
+    Q \vdash \tau\\\\
+    \hastyp{\Gamma}{{Q}}{e}{\tau}
     }
     {
     \hastyp{\Gamma}{m}{\epar{P}{e}}{\tau}
@@ -772,14 +780,13 @@ location, it must be run in the visibility of a single principal ($m$
 must be a singleton set).
 
 Jumping ahead, rule~\rulelab{T-Par} runs its expression $e$ in par
-mode involving principals $P$; these principals must be compatible
-with the current mode $m$ (i.e., they must be a subset of them). This
-coercion is useful for making the requirements of other rules match
-the expected mode; the rule is also an important hint to the execution
-engine about which parties will run a particular block. This rule
-requires that the returned result be compatible with current mode $P$;
-i.e., it should be ``located'' at least some principals $q \in P$.  For
-example, in mode $\{p\}$ we don't want to return a value located
+mode involving principals $P$. At run-time, only $m \cap P$ principals
+will actually execute $e$, and so $e$ is checked in this mode, which
+we name $Q$.\footnote{Wysteria requires $P \subseteq m$, which is
+  always OK in \rulelab{T-Par}, too, but it's strictly more flexible.}
+Likewise, the returned value must be compatible with $Q$;
+i.e., it should be ``located'' at least some principals $q \in Q$.
+For example, in mode $\{p\}$ we don't want to return a value located
 (only) at $q$. If we did, then subsequent access by $p$ would fail at
 run-time, since the value is not actually present there.
 %
