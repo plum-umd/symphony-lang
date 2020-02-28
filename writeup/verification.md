@@ -293,19 +293,21 @@ Why can such a family of operations actually be implemented?
    `nizk_and`) are just building circuits that will eventually get
    verified, so nothing changes at all with them, really.
 
-2. `commit c` basically has three obligations:
+2. `commit c` basically has two obligations:
    1. Compute a cryptographic fingerprint of `c`'s input `X`. This
       seems like it can be done by converting the `p` shares into
       additive Boolean shares and then executing the fingerprinting
       function in, say, GMW.
    2. Construct a NIZK proof of knowledge of a witness that `c`
-      evaluates to `C(X)`. MPC-in-the-head works by running an MPC
+      evaluates to `c(X)`. MPC-in-the-head works by running an MPC
       protocol multiple times and having some randomly chosen parties
       reveal their views---which include their shares---each time, so
-      we can't just run it directly. But it seems like we can easily
-      adapt it by just having each party first share a random mask of
-      their share and then running MPC-(not)-in-the-head on the masked
-      shares (this last part is obviously the biggest stretch and we'd
-      want to talk with a crypto person about it, but I'm also willing
-      to bet that the crypto community has some solution to this
-      problem, even if this exact one is broken or just silly.)
+      we can't just run it directly on the (converted) shares that the
+      parties have in hand. But it seems like we can easily adapt it
+      by just having each party first share a random mask of their
+      share, masking their share, and then running
+      MPC-(not)-in-the-head on the masked shares (this last part is
+      obviously the biggest stretch and we'd want to talk with a
+      crypto person about it, but I'm also willing to bet that the
+      crypto community has some solution to this problem, even if this
+      exact one is broken or just silly.)
