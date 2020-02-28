@@ -3,15 +3,16 @@
 One of the HECTOR requirements that PSL doesn't currently address is
 verification: a programmer should be able to write a PSL program that
 generates proofs that various parts of the computation were performed
-correctly. Or maybe to be more precise, that the parties have computed
-values that satisfy various properties.
+correctly. Or to be more precise, that the parties know values that
+satisfy various properties.
 
 In the interest of (1) imposing as little burden as possible on the
 PSL programmer and (2) being lazy language designers, the first
 question we could ask is if forms and operations for verification need
 to be represented explicitly in PSL programs at all: instead, can it
-all just be done "under the hood" without any guidance in the program?
-Unfortunately, the answer seems to be "no" for a few reasons:
+all just be done "under the hood" without any explicit guidance in the
+program?  Unfortunately, the answer seems to be "no" for a few
+reasons:
 
 1. Verification isn't required for all problems (e.g., the merge sort
    specification explicitly calls for no verification). So in general,
@@ -19,18 +20,19 @@ Unfortunately, the answer seems to be "no" for a few reasons:
    don't want it. And in the closer term, a resource estimate that
    includes the cost of operations for verification wouldn't be
    well-justified.
-
 2. For most problems, the property to be verified is really that the
    parties have computed a partially "correct" value, not that the
    parties have run a particular algorithm. E.g., the property for
    quicksort is that the parties have computed a sorted list, not that
    they necessarily ran quicksort to get it. This is even more
    exaggerated in Karmarkar, where each party should get a NIZK proof
-   of a different fact about the output.
+   of a different fact about the output. It also speaks directly to
+   why, HECTOR aside, having this in the language would be pretty
+   conceptually unappealing.
 
 So we'll probably need to make verification explicit in PSL to at
-least some extent. To get an idea of how exactly we'll do ti, let's
-try to mock-up an example program.
+least some extent. To get an idea of how exactly we'll do it, let's
+try to mock-up a solution to one of the challenge problems.
 
 # Verification for Quick Sort #
 
@@ -53,21 +55,21 @@ to have a contradiction: according to it, the output sorted list
 (sensibly) should not contain signed inputs, but also the MPC should
 generate a fingerprint of an output that is the sorted list of signed
 inputs. One apparent way to fix the spec is to require that the MPC
-should generate a fingerprint of the sorted list `l` of *un*signed
-inputs and prove knowledge of signings of each of its elements, with
-element signed by one of the parties.
+should generate a fingerprint of the sorted list `l` of signed inputs
+and prove that each party has signed some value (and that the list is
+sorted).
 
 The deeper issue is that the spec throws a fair amount of crypto
 mechanism in our laps (PKI's and signing, fingerprints and Merkle
 trees): we have to figure out how concretely these really need to be
-represented in the language. Let's consider them in turn.
+represented in PSL. Let's consider them in turn.
 
 ## PKI's and signing ##
 
-The verification spec states (and is in fact the only point that ever
-acknowledges) that in fact all of the inputs that our program is
-sorting are really signed by the input parties, but the elements in
-the final sorted list distributed to all parties are unsigned (which
+The verification spec states (and is in fact the only point in the
+problem statement that acknowledge) that in fact all of the inputs are
+really signed by the input parties, but the elements in the final
+sorted list distributed to all parties are definitely unsigned (which
 certainly makes sense).
 
 Given that one of the goals for PSL is to make crypto code as
@@ -94,27 +96,27 @@ have signed the value.
 3. Provide an `unsign` operation that removes signatures from values.
 
 One variation that's arguably a bit more flexible and decoupled is to
-keep `read` the same (i.e., still returning unsigned values) and
-providing a `sign` operation in addition to `unsign` (which respects
-some natural laws that require the signing parties all know the
-value).
+keep `read` the same as it is (i.e., still returning unsigned values)
+and providing a `sign` operation in addition to `unsign` (which
+respects some natural laws that require the signing parties all know
+the value).
 
 ## Fingerprints ##
 
-Read literally, the spec calls for programs to generate fingerprints
-of values of interest. A first try at supporting this might be to
-introduce a type of fingerprints and a fingerprinting operation and
-use them explicitly in PSL code. This would work, but it arguably
-exposes a lot of detail about a crypto mechanism that's difficult to
-tie to the ultimate intent of verifying that principals know a value
-that satisfies some property, without additionally enabling us to
-express some kind of computation that we particularly care to
-do. I.e., it's not like we need PSL programs to compute fingerprints
-and then add them, compare them for equality, or share them,
-independent of the values that they're being used to verify. The
-fingerprint is really just an artifact that's ultimately exported by
-the program in order to prove that the parties have computed a value
-that satisfies some desired property.
+Read literally, the spec calls for programs to generate a fingerprint
+of a sorted list. A first try at supporting this might be to introduce
+a type of fingerprints and a fingerprinting operation and use them
+explicitly in PSL code. This would work, but it arguably exposes a lot
+of detail about a crypto mechanism that's difficult to connect to the
+ultimate intent of verifying that principals know a value that
+satisfies some property, without additionally enabling us to express
+some kind of computation that we particularly care to do. I.e., it's
+not like we need PSL programs to compute fingerprints and then add
+them, compare them for equality, or share them independent of the
+values that they're being used to verify. The fingerprint is really
+just an artifact that's ultimately exported by the program in order to
+prove that the parties have computed a value that satisfies some
+desired property.
 
 Here's an alternative that hopefully abstracts the details of
 fingerprinting a bit better. The basic idea is that we'll introduce
@@ -126,7 +128,7 @@ the following into PSL:
 2. A family of types `t{ nizk : P }` for various base types `t` (in
    the case of Quick Sort, `flt`), each of which will denote a
    computation of a type of value `t` whose "shape" or "topology"
-   (i.e., circuit structure) is know to all principals in `P`. These
+   (i.e., circuit structure) is known to all principals in `P`. These
    will be analogous to the families of types for the other various
    protocols supported in PSL (e.g., `flt{ bgw : P }`).
 3. Operations for building `nizk` computations: i.e., values of types
@@ -140,13 +142,13 @@ the following into PSL:
 ## Operations for building verifiable computations ##
 
 The operations for building verifiable computations over floats (to
-take one example base type) would include the following:
+take one relevant base type) would include the following:
 
 1. Build "input wires" that hold some common secret value, denoted
-   `nizk_flt_in : flt{ ssec : P } -> flt{ nizk : P }`. For now we'll
-   consider the simple case where the Prover is some collection of
-   parties holding a common secret (which unfortunately isn't really
-   the case in Quick Sort).
+   `nizk_flt_in : flt{ signed, ssec : P } -> flt{ nizk : P }`. For now
+   we'll consider the simple case where the Prover is some collection
+   of parties holding a common secret (which unfortunately isn't
+   really the case in Quick Sort).
 2. Build a computation of `<=` comparison over floats:
    `nizk_flt_leq : flt{ nizk : P } -> flt{ nizk : P } -> bool{ nizk :
    P }`;
@@ -173,16 +175,16 @@ namely `nat`s and `int`s, along with appropriate `commit` operations.
 
 As an example of how these operations would get used, consider a
 simplified version of Quick Sort where one principal `A` wants to just
-commit to a list `ls` that is a sorted list of values signed by `A`,
+commit to a list `l` that is a sorted list of values signed by `A`,
 with a proof that
 
 1. `A` has signed each value in `l`;
-3. `l` is sorted.
+2. `l` is sorted.
 
 We'd achieve this by having `A`:
 
 1. Build input wires `wsort : list flt{signed, nizk : A}` for each
-   element in `ls`;
+   element in `l`;
 2. Building a circuit `all_signed lwires`, where
 ```
 signed : list flt{ signed, nizk : A } -> bool{ nizk : A }
@@ -201,17 +203,16 @@ is_sorted : list flt{ signed, nizk : A } -> bool{ nizk : A }
 
 ## An operation for building commitments ##
 
-The final values that will be produced for verification will values of
-type `t{ committed : P }`. Under the hood, each value of such a type
-really denotes a triple:
+The final values that will be produced for verification will be values
+of type `t{ committed : P }`. Under the hood, each value of such a
+type really denotes a pair:
 
 1. A cryptographic fingerprint of values `X` held by `P`, denoted
    `F(P)`;
-2. The value `C(X)`;
-3. A NIZK proof that the proving parties know some values `Y` that `C`
-   evaluates to `C(X)` and whose fingerprint is `F(X)` (I'm guessing
-   that the laws of fingerprinting schemes ensure that this implies
-   that `X = Y` with overwhelming probability).
+2. A NIZK proof that the proving parties know some values `Y` that
+   some circuit `C` evaluates to `C(X)` and whose fingerprint is
+   `F(X)` (I'm guessing that the laws of fingerprinting schemes ensure
+   that this implies that `X = Y` with overwhelming probability).
    
 At the PSL level, these would all be bundled together in the opaque
 type `t{ proto : committed }` that can only be built and passed
@@ -244,9 +245,7 @@ nizk_commit (nizk_and (all_signed wsort) (is_sorted wsort))
 to obtain a value of type `bool{ committed : A }` that denotes
 
 1. A cryptographic fingerprint of `l`, `F(l)`;
-2. The value `true` (assuming that `l` actually contained only floats
-   signed by `A` and was sorted);
-3. A NIZK proof that `A` knows some sorted list `l'` with fingerprint
+2. A NIZK proof that `A` knows some sorted list `l'` with fingerprint
    `F(l)`, in which each element is signed by `A`.
 
 # Requirements for resource estimation #
@@ -256,8 +255,8 @@ construction of a NIZK proof, it emits resource requirements that
 match what the crypto team is expecting. Our interpreter would
 basically need to:
 
-1. Implement each circuit builder by explicitly building an actual
-   circuit;
+1. Implement each circuit-building operation by just explicitly
+   building an actual circuit;
 2. Implement `commit c` by emitting the circuit `c`, for which the
    resource estimator would estimate the cost of building a NIZK proof
    of commitment.
@@ -271,14 +270,14 @@ this information.
 
 Unfortunately, our running example of Quick Sort has been a fiction:
 at no point does any one party know the sorted list of signed inputs:
-only the "third party" simulated by an MPC ever "knows" that. So what
+only the "third party" simulated by an MPC ever knows that. So what
 further extensions to PSL are needed in order to support this
 properly?
 
 I'm going to make a claim which is either obvious or obviously wrong,
 which is that for each protocol `p` with shares that we can convert to
 additive Boolean shares (which should include at least BGW and SPDZ,
-the only two protocols that we have to support alongside verification
+the only two protocols that we need to support alongside verification
 anyways), we can introduce an operation
 
 ```
@@ -295,14 +294,12 @@ Why can such a family of operations actually be implemented?
    verified, so nothing changes at all with them, really.
 
 2. `commit c` basically has three obligations:
-   1. Compute a cryptographic fingerprint of `c`'s input. This seems
-      like it can be done by converting the `p` shares into additive
-      Boolean shares and then executing the fingerprinting function
-      in, say, GMW.
-   2. Compute the value `v` of circuit `c`. This can be done by
-      evaluating `c` itself under GMW.
-   3. Construct a NIZK proof of knowledge of a witness that `c`
-      evaluates to `v`. MPC-in-the-head works by running an MPC
+   1. Compute a cryptographic fingerprint of `c`'s input `X`. This
+      seems like it can be done by converting the `p` shares into
+      additive Boolean shares and then executing the fingerprinting
+      function in, say, GMW.
+   2. Construct a NIZK proof of knowledge of a witness that `c`
+      evaluates to `C(X)`. MPC-in-the-head works by running an MPC
       protocol multiple times and having some randomly chosen parties
       reveal their views---which include their shares---each time, so
       we can't just run it directly. But it seems like we can easily
