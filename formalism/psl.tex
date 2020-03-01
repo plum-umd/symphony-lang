@@ -575,13 +575,57 @@ $Q$ to whom the final result is sent.
 
 \mwh{TODO. Thoughts follow.}
 
-I think we need some kind of ``slice'' of a program, for each of the
-involved hosts. At present, I think this slice can be static---you
-take the program, create a slice of it, and then run each slice. When
-we have dependent types, that may not be true anymore.
+Each party $p$ has its own store $\env_p$ and program $e_p$, rather
+than there being a global program. Evaluating these is equivalent to
+running with $m = \{ p \}$, i.e., for a single party, roughly
+speaking.
 
-When performing share-based computation, you need a way for these
-slices to communicate/coordinate. 
+A key change in the design of ST mode would be to make it that if you
+start the same program, meant to be run by $p$ and $q$ together, with
+just $p$ or just $q$, it will do so correctly. This will happen as
+long as the $\kw{par}$ mode rule is correct: It will just subset the
+annotation $P$ on the $\kw{par}$ with the current mode---a
+singleton---and then that single party will continue on and do the
+right thing. 
+
+Computations that require coordination will be done in a mode that
+contains the coordinating parties. The single-mode parties must
+synchronize before carrying out the computation. They will wait for
+each party to reach the same spot, carry out the computation, and
+continue on with whatever their local result should be. The type
+system should ensure things line up.
+
+More details:
+\begin{itemize}
+\item $\eshare{P}{\psi}{Q}{e}$ requires coordination among $P \cup Q$,
+  where $P$ is a singleton. Somehow, the result of this computation
+  will be $\vshare{Q}{\psi}{n}$ and given to each party $q \in Q$,
+whereas $P$ gets $0$ (if he is not in $Q$).
+\item $\ebinop{e_1}{e_2}$ is just as in the ST mode---each party in
+  the share will have the full copy of it. Same with $\kw{mux}$.
+\item $\ereveal{P}{\psi}{Q}{e}$ requires coordination among $P \cup
+  Q$, where $e$ is a $\vshare{Q}{\psi}{e'}$---i.e., the $Q$ parties
+match up. Each of the parties $q \in Q$ should reach this redex
+\emph{and have the same $e'$}. The type system should ensure they
+agree on this, the circuit that's been created. Moreover, $e'$ should
+only consist of numbers, binops, and muxes. This means you can just
+\emph{run it without an environment, in an empty mode}. We let every
+$q \in Q$ do that, and thus they will agree on the result $n$. Parties
+$p \in P$ then receive this result, while any other parties $q \not\in
+P$ receive $0$.
+\end{itemize}
+
+I'm a little unsure about the communication between parties. How
+should this be encoded? Is there a generic way to do it? This will
+happen at $\kw{share}$ and $\kw{reveal}$. I'm also unsure that the
+``just intersect the principals at par mode at will work'' jives with
+the handling of these constructs. Need to mentally work through.
+
+To prove that this semantics matches the ST one, I think we need some
+kind of ``slice'' of a program, for each of the involved hosts. At
+present, I think this slice can be static---you take the program,
+create a slice of it, and then run each slice. When we have dependent
+types, that may not be true anymore.
 
 \section{Examples}
 
