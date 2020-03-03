@@ -174,9 +174,10 @@ def zip_lists : list t -> list u -> list (t * u)
 def zip_lists l0 l1 =
   (foldr l0
     (const [ ])
-    (fun x z0 l -> decons_ls l
-       [ ]
-       (fun y l' -> (x, y) :: z0 l') ) )
+    (fun x z0 l -> case l
+      { [ ] -> [ ]
+      ; y :: l' -> (x, y) :: z0 l'
+      }) )
     l1
 
 def zip_map : (t -> u -> v) -> list t -> list u -> list v
@@ -403,7 +404,7 @@ def karmarkar_loop a cost =
   (elim_nat iters
     id
     (compose (karmarkar_iter shr0 a cost)) )
-    (vec_div (to_flt n) nOnes)
+    (map shr_w_comp (vec_div (to_flt n) nOnes))
 
 -- main: entry point; Ctr, Cost read inputs and run the algorithm,
 -- distributes results to Out
