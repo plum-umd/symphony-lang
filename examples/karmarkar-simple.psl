@@ -333,6 +333,9 @@ def m = 2n
 def n : nat
 def n = 2n
 
+-- iters : user parameter: the number of iterations
+def iters = 5n
+
 -- Ctr[m]: parties that bring the constraints
 principal Ctr[2]
 
@@ -396,25 +399,7 @@ def karmarkar_iter shr0 a cost pt =
 def karmarkar_loop : ctr -> costs -> point
 def karmarkar_loop a cost =
   let shr0 = share{ spdz : Ctr, Cost } 0.0 in
-  let nzProd = fun l ->
-    prod (filter (compose (eq 0.0) not) l) 1.0 in
-  -- FANCY MPC:
-  -- bound: upper bound on the required number of iterations, based on
-  -- product of non-zero constraint and cost coeffs:
-  let bound = 
-        (12n * n *
-         ((inc m) * n +
-          (log_2_ceil (abs_val (ceil (reveal{ Cost, Ctr } ( 
-           (pfold
-             -- multiply non-zero cost coeffs,
-             (shr_w_comp ({ par : Cost } nzProd cost))
-             -- multiply non-zero constraint coeffs,
-             (fun Q pnzs -> mult (shr_w_comp pnzs))
-             ({ Ctr } nzProd a) )
-          ) ) ) ) ) +
-         n * (log_2_ceil n) ) ) in
-  let bound = 4n in -- cheat to get it to halt in a convenient time
-  (elim_nat bound
+  (elim_nat iters
     id
     (compose (karmarkar_iter shr0 a cost)) )
     (vec_div (to_flt n) nOnes)
