@@ -5,17 +5,32 @@ def err msg = msg + 0
 
 -- BEGIN library for general functions:
 
+def apply f a = f a
+
 def compose : (t0 -> t1) -> (t1 -> t2) -> (t0 -> t2)
 def compose f g x = g (f x)
 
 def const : t -> u -> t
 def const x y = x
 
+def flip f x y = f y x
+
 def id : t -> t
 def id x = x
 
 def uncurry : (a -> b -> c) -> (a * b -> c)
 def uncurry f (a, b) = f a b
+
+def pair x y = (x, y)
+
+def fst (x, y) = x
+
+def snd (x, y) = y
+
+def elim_sum f g x = case x
+  { L x' -> f x'
+  ; R y' -> g y'
+  }
 
 -- BEGIN library for security-sensitive operations:
 
@@ -139,9 +154,8 @@ def filter test l = foldr l
 
 -- foldr_tl: right fold with access to the tail of the list
 def foldr_tl : list t -> acc -> (t -> list t -> acc -> acc) -> acc
-def foldr_tl l i f =
-  let (_, a) = foldr l ([ ], i) (fun x (l', b) -> (x :: l', f x l' b)) in
-  a
+def foldr_tl l i f = snd
+  (foldr l ([ ], i) (fun x (l', b) -> (x :: l', f x l' b)))
 
 -- decons_ls: first-order syntax for list deconstruction
 def decons_ls : list t -> u -> (t -> list t -> u) -> u
@@ -261,17 +275,16 @@ def part_ith a i l =
   (first_i, ith, tl)
 
 -- squareMat m: matrix m coerced into a square matrix
-def squareMat d m =
-  let (_, m') = foldl m
+def squareMat d m = rev_ls (snd
+  (foldl m
     (0n, [ ])
-    (fun rv (i, acc) -> (inc i, (part_ith d i rv) :: acc)) in
-  rev_ls m'
+    (fun rv (i, acc) -> (inc i, (part_ith d i rv) :: acc)) ) )
 
 -- cholesky m: the Cholesky decomposition of matrix m, in column-major
 -- order, computed using the Cholesky-Crout algorithm
 def cholesky : sqMat -> ltMat
-def cholesky z m =
-  let (m', _) = foldl m -- fold over each column in the matrix,
+def cholesky z m = fst
+  (foldl m -- fold over each column in the matrix,
     ([ ], [ ])
     (fun (top, diag, bot) (tri, base) ->
       -- deconstruct the maintained base box 
@@ -290,8 +303,7 @@ def cholesky z m =
         (fun (rv', elt) ->
           snoc ((diag - (dot_prod z rv' jth_row')) / diag') rv')
         (zip_lists base' bot) in
-      (tri', base'')) in
-  m'
+      (tri', base'')) )
 
 -- col_lt_to_row m: LT matrix m in col-major form, converted to
 -- row-major form
@@ -317,11 +329,10 @@ def lt_inverse z l =
 -- lt_lift d l: LT matrix l, lifted into a matrix by padding copies of
 -- default element d
 def lt_lift : t -> list (t * (list t)) -> list (list t)
-def lt_lift d l =
-  let (_, m) = foldl l
+def lt_lift d l = rev_ls (snd
+  (foldl l
     ([ ], [ ])
-    (fun (hd, tl) (buf, m) -> (d :: buf, (concat buf (hd :: tl)) :: m) ) in
-  rev_ls m
+    (fun (hd, tl) (buf, m) -> (d :: buf, (concat buf (hd :: tl)) :: m) ) ) )
 
 -- inverse z m: the inverse matrix of m over numeric type with zero
 -- element z
