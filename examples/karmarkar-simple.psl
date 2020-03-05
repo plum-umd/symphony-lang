@@ -143,8 +143,12 @@ def foldr_tl l i f =
   let (_, a) = foldr l ([ ], i) (fun x (l', b) -> (x :: l', f x l' b)) in
   a
 
+-- decons_ls: first-order syntax for list deconstruction
 def decons_ls : list t -> u -> (t -> list t -> u) -> u
-def decons_ls l a0 f = foldr_tl l a0 (fun x ls -> const (f x ls))
+def decons_ls l a0 f = case l
+  { [ ] -> a0
+  ; x :: l' -> f x l'
+  }
   
 -- foldl: left fold
 def foldl : list t -> acc -> (t -> acc -> acc) -> acc
@@ -186,7 +190,11 @@ def zip_map f l0 l1 = map (uncurry f) (zip_lists l0 l1)
 -- transpose: shift matrix between row major and column major order
 def transpose : list (list t) -> list (list t)
 def transpose m = foldr m
-  (const_vec [ ] (decons_ls m 0n (compose len const)) )
+  (const_vec [ ]
+    (case m
+     { [ ] -> 0n
+     ; v :: m' -> len v
+     }) )
   (zip_map cons)
 
 def all_true : list bool -> bool
@@ -242,12 +250,14 @@ def part_ith a i l =
   let (first_i, rem) =
     eliml_nat i
       ([ ], l)
-      (fun (front, tl) -> decons_ls tl
-        (front, tl) -- should never be used
-        (fun hd tl' -> (hd :: front, tl)) ) in
-  let (ith, tl) = decons_ls rem
-    (a, rem) -- should never be used
-    (fun b rem' -> (b, rem')) in
+      (fun (front, tl) -> case tl
+        { [ ] -> (front, tl) -- should never be used
+        ; hd :: tl' -> (hd :: front, tl)
+        }) in
+  let (ith, tl) = case rem
+    { [ ] -> (a, rem) -- should never be used
+    ; b :: rem' -> (b, rem')
+    } in
   (first_i, ith, tl)
 
 -- squareMat m: matrix m coerced into a square matrix
@@ -265,9 +275,10 @@ def cholesky z m =
     ([ ], [ ])
     (fun (top, diag, bot) (tri, base) ->
       -- deconstruct the maintained base box 
-      let (jth_row', base') = decons_ls base
-        ([ ], const_vec [ ] (len bot))
-        (fun x tl -> (x, tl)) in
+      let (jth_row', base') = case base
+        { [ ] -> ([ ], const_vec [ ] (len bot))
+        ; x :: tl -> (x, tl)
+        } in
       -- diag': the diagonal elt of the solution
       let diag' = babylonian_sqrt (diag - (dot_prod z jth_row' jth_row')) in
       -- tri': the upper triangle, extended
@@ -400,11 +411,9 @@ def karmarkar_iter shr0 a cost pt =
 -- algorithm up to some bound computed from private inputs
 def karmarkar_loop : ctr -> costs -> point
 def karmarkar_loop a cost =
-  let shr0 = share{ spdz : Ctr, Cost } 0.0 in
-  (elim_nat iters
-    id
-    (compose (karmarkar_iter shr0 a cost)) )
+  (eliml_nat iters
     (map shr_w_comp (vec_div (to_flt n) nOnes))
+    (karmarkar_iter (share{ spdz : Ctr, Cost } 0.0) a cost) )
 
 -- main: entry point; Ctr, Cost read inputs and run the algorithm,
 -- distributes results to Out
