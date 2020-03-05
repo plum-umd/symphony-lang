@@ -81,6 +81,9 @@ def minus m n = m - n
 -- mult: non-infix multiplication 
 def mult m n = m * n
 
+-- div: non-infix division
+def div m n = m / n
+
 -- exp: non-infix exponentiation
 def exp m n = m ^ n
 
@@ -235,7 +238,7 @@ def vec_diff v0 v1 = zip_map minus v0 v1
 
 -- vec_div: divide a vector of reals by a constant
 def vec_div : real -> list real -> list real
-def vec_div a = map (fun x -> x / a)
+def vec_div a = map (flip div a)
 
 -- l2norm z v: the L2 norm of a vector of numerics with zero element z
 def l2norm : point -> comp_shr

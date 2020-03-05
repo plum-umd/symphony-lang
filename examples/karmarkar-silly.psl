@@ -83,6 +83,9 @@ def minus m n = m - n
 -- mult: non-infix multiplication 
 def mult m n = m * n
 
+-- div: non-infix division
+def div m n = m / n
+
 -- exp: non-infix exponentiation
 def exp m n = m ^ n
 
@@ -110,6 +113,7 @@ def elim_nat m z s =
   else s (elim_nat (dec m) z s)
 
 -- eliml_nat: analog of fold right, for nats
+-- PSL: add syntactic sugar for this?
 def eliml_nat : nat -> t -> (t -> t) -> t
 def eliml_nat n z s = (elim_nat n id (compose s)) z
 
@@ -168,6 +172,7 @@ def decons_ls l a0 f = case l
   }
 
 -- foldl: left fold
+-- PSL: add syntactic sugar for this?
 def foldl : list t -> acc -> (t -> acc -> acc) -> acc
 def foldl l acc0 f = (foldr l id (fun x acc -> compose acc (f x))) acc0
 
@@ -253,6 +258,7 @@ def repeat_until muxer n a0 f = loop_cont n
     (muxer done a', a') )
 
 -- repeat_until_ls: repeat-until, multiplexing over a list
+-- PSL: add syntactic sugar for this?
 def repeat_until_ls = repeat_until mux_ls
 
 -- prod: the product over a list of numerics
@@ -270,7 +276,7 @@ def vec_diff v0 v1 = zip_map minus v0 v1
 
 -- vec_div: divide a vector of reals by a constant
 def vec_div : real -> list real -> list real
-def vec_div a = map (fun x -> x / a)
+def vec_div a = map (flip div a)
 
 -- l2norm z v: the L2 norm of a vector of numerics with zero element z
 def l2norm : point -> comp_shr
