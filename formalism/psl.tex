@@ -37,6 +37,7 @@
 %\newcommand{\esharesum}[4]{\ensuremath{\kw{sharesum}^{#2}_{#1}~{#3}~{#4}}}
 \newcommand{\einj}[2]{\ensuremath{\kw{inj}_{#1}~{#2}}}
 \newcommand{\eread}{\ensuremath{\kw{read}}}
+\newcommand{\ewrite}[1]{\ensuremath{\kw{write}~{#1}}}
 \newcommand{\epair}[2]{\ensuremath{\langle {#1}, {#2} \rangle}}
 \newcommand{\eproj}[2]{\ensuremath{\kw{\#}}_{#1}~{#2}}
 \newcommand{\elam}[2]{\ensuremath{\lambda {#1}.{#2}}}
@@ -78,31 +79,27 @@
 
 Soon:
 \begin{itemize}
-\item Think about fixpoint types. Don't have an operational rule
-  (normally, I'd use substitution, but we are using environments in
-  closures). Fixpoints now have the mode $m$ in the context and on the
-  arrow as the same. In normal abstractions this doesn't need to
-  be. Not sure if I'm being too restrictive.
-\item Is there any benefit to the $m \vdash m'$ in T-Abs? Not
-  convinced. Reconsider function types --- see DavidH's note below.
-\item No subtyping at present for recursive types. Should we add
-  it?
-\item Prove type soundness for single-threaded semantics
 \item Develop multi-party operational semantics.
+\item Prove relationship between single- and multi-threaded semantics
+\item Prove type soundness for single-threaded semantics
 \end{itemize}
 
 % Next: Look at \texttt{writeup/spdz.md} and think about language
 % changes to support verification.
 
+\noindent
 Later:
 \begin{itemize}
+\item Is there any benefit to the $m \vdash m'$ in T-Abs? Not
+  convinced. Reconsider function types --- see DavidH's note below.
+\item No subtyping at present for recursive types. Should we add
+  it?
 \item Contemplate Muxable t psi, which denotes that there must be some
   way to combine two different values of type t according to a mux
   under protocol psi. From David D: \emph{Regarding muxable: I still see $A +^P_{\psi} B$ as a sum type where psi only describes the encryption of the "sum bit", and $A$ and $B$ should either be shared base types, tuples, or shared sums (arbitrarily nested). This is the muxable constraint, and I think what David H had in mind.}
 \item Contemplate generalized ``reveal'' operation, which works on all
   datatypes by recursing into their contents and revealing
   those. E.g., you could reveal a list of shares all at once.
-\item drop $\top$ ?
 \item First-class principal sets, as data,
   \begin{itemize}
     \item Add to syntactic forms (e.g., $\ereveal{P}{Q}{e}{\psi}$ should be
@@ -159,8 +156,7 @@ gamma |-^m_(n \cup m') par m' e : t
   \[\begin{array}{rlcll}
       \text{Principal} & p, q \\
       \text{Principal set} & P, Q \\
-    \text{Execution modes} & m  & ::=  & \top & \text{par mode with all principals}\\
-                       && \mid & P & \text{par mode with principals $P$} \\
+    \text{Execution modes} & m  & ::=  & \text{par mode with principal set $P$ (could be $\emptyset$)} \\
       \text{Protocol} & \psi & ::= & \cdot & \text{cleartext} \\
                        && \mid & \phi & \text{encryption format} \\
       \text{Types} & \tau & ::=  & \tnat^m_\psi & \text{a base type} \\
@@ -173,6 +169,7 @@ gamma |-^m_(n \cup m') par m' e : t
       \text{Expressions} & e & ::= & n & \text{naturals} \\
                        && \mid & x & \text{variables} \\
                        && \mid & \eread & \text{read from terminal}\\
+                       && \mid & \ewrite{e} & \text{write to terminal}\\
                        && \mid & \epair{e_1}{e_2} & \text{pair construction}\\
                        && \mid & \eproj{i}{e} & \text{pair elem, }i \in \{1,2\}\\
                        && \mid & \eshare{\psi}{P}{Q}{e} & \text{$\psi$ shares of {\tnat} at $P$ to $Q$} \\
@@ -214,14 +211,14 @@ pair or list is created can see its structure. They may not, however,
 be able to access its values, as these could be located at particular
 locations.
 
-\section{Semantics}
+\section{Semantics (Single Threaded)}
 
 \begin{figure}
   \[\begin{array}{rlcll}
       \text{Store} & \sigma & \in & \mathbf{Var} \rightharpoonup \mathbf{Val}\\
       \text{Locatable value} & u & ::=  & n & \text{numbers} \\
                              && \mid & \einj{i}{v} & \text{sum elem, }i \in \{1,2\}\\
-                             && \mid & \vclos{\env}{\elam{x}{e}}  & \text{closure} \\
+                             && \mid & \vclos{\env}{e}  & \text{closure} \\
                              && \mid & \vshare{Q}{\psi}{e} & \text{$\psi$-$Q$ share of evaluating $e$} \\
       \text{Value} & v  \in \mathbf{Val} & ::=  & u & \text{locatable value}\\
                        && \mid & \epair{v_1}{v_2} & \text{pair value}\\
@@ -269,7 +266,15 @@ $$
     }
     \qquad
 
-    \inferrule*[lab=E-Read]
+    \inferrule*[lab=E-Var]
+    {
+    \env(x) = v
+    }
+    {
+    \eval{\env}{m}{x}{v}
+  }\qquad
+
+  \inferrule*[lab=E-Read]
     {
   m\text{ is a singleton}
     }
@@ -278,6 +283,26 @@ $$
     }
     \qquad
 
+      \inferrule*[lab=E-Write]
+      {
+      m\text{ is a singleton}\\\\
+      \eval{\env}{m}{e}{v}\\
+  \getat{m}{v} = n
+    }
+    {
+    \eval{\env}{m}{\ewrite{e}}{n}
+    }
+    \\ \\
+
+    \inferrule*[lab=E-Let]
+    {
+    \eval{\env}{m}{e_1}{v_1}\\\\
+    \eval{\env[x\mapsto v_1]}{m}{e_2}{v_2}
+    }
+    {
+    \eval{\env}{m}{\elet{x}{e_1}{e_2}}{v_2}
+    }\qquad
+  
     \inferrule*[lab=E-Pair]
     {
     \eval{\env}{m}{e_1}{v_1}\\\\
@@ -333,8 +358,9 @@ $$
 
     \inferrule*[lab=E-Share]
     {
-    P\text{ is a singleton}    \\\\
-    \eval{\env}{m}{e}{v}\\\\
+    m \vdash P\\ m \vdash Q\\\\
+    P\text{ is a singleton}  \\\\
+    \eval{\env}{m}{e}{v}\\
     \getat{P}{v} = n  
     }
     {
@@ -347,7 +373,7 @@ $$
   \getat{m}{v_1} = n_1\\\\
     \eval{\env}{m}{e_2}{v_2}\\
   \getat{m}{v_2} = n_2\\\\
-  n = n_1 + n_2\\
+  n = n_1 \oplus n_2\\
     }
     {
     \eval{\env}{m}{\ebinop{e_1}{e_2}}{n}
@@ -381,9 +407,10 @@ $$
     }\qquad
 
     \inferrule*[lab=E-Reveal]
-    {
+  {
+    m \vdash P\\ m \vdash Q\\\\
     \eval{\env}{m}{e}{v_0}\\
-    \getat{m}{v_0} = \vshare{m}{\psi}{e_0}\\\\
+    \getat{P}{v_0} = \vshare{P}{\psi}{e_0}\\\\
     \eval{\env}{m}{e_0}{v}\\
     n = \getat{P}{v} 
     } 
@@ -391,24 +418,6 @@ $$
     \eval{\env}{m}{\ereveal{P}{Q}{e}{\psi}}{\vloc{n}{Q}}
     }\\\\
     
-    \inferrule*[lab=E-Var]
-    {
-    \env(x) = v
-    }
-    {
-    \eval{\env}{m}{x}{v}
-    }\qquad
-
-    \inferrule*[lab=E-Let]
-    {
-    \eval{\env}{m}{e_1}{v_1}\\\\
-    \eval{\env[x\mapsto v_1]}{m}{e_2}{v_2}
-    }
-    {
-    \eval{\env}{m}{\elet{x}{e_1}{e_2}}{v_2}
-    }\\ \\
-
-
    \inferrule*[lab=E-Abs]
     {
     }
@@ -416,6 +425,13 @@ $$
     \eval{\env}{m}{\elam{x}{e}}{\vclos{\env}{\elam{x}{e}}}
     }\qquad
    
+    \inferrule*[lab=E-Fix]
+    {
+    }
+    {
+    \eval{\env}{m}{\efix{f}{x}{e}}{\vclos{\env}{\efix{f}{x}{e}}}
+    }\\\\
+
     \inferrule*[lab=E-App]
     {
   \eval{\env}{m}{e}{v'}\\
@@ -425,21 +441,28 @@ $$
     }
     {
     \eval{\env}{m}{\eapp{e}{e_1}}{v}
-    }\\ \\
+    }\qquad
 
-    % \inferrule*[lab=E-Fix]
-    % {
-    % \eval{\env,f\!:\! \tfun{\tau_1}{\tau_2}{m}}{m}{\elam{x}{e}}{\tfun{\tau_1}{\tau_2}{m}}
-    % }
-    % {
-    % \eval{\env}{m}{\efix{f}{x}{e}}{\tfun{\tau_1}{\tau_2}{m}}
-    % }\qquad
+  
+    \inferrule*[lab=E-FixApp]
+    {
+  \eval{\env}{m}{e}{v'}\\
+    \getat{m}{v'} = \vclos{\env'}{\efix{f}{x}{e'}}\\\\
+ \eval{\env}{m}{e_1}{v_1}\\
+ \eval{\env'[f \mapsto v'][x \mapsto v_1]}{m}{e'}{v}\\
+    }
+    {
+    \eval{\env}{m}{\eapp{e}{e_1}}{v}
+    }\\ \\
 
     \inferrule*[lab=E-Par]
     {
-    \env' = \locof{P}{\env}\\
-    \eval{\env'}{{P}}{e}{v_0}\\
-    v = \locof{P}{v_0}
+  Q = m \cap P\\\\
+  Q = \emptyset \Rightarrow v = 0\\\\
+    Q \not= \emptyset \Rightarrow
+    \env' = \locof{P}{\env} \land
+    \eval{\env'}{{Q}}{e}{v_0} \land
+  v = \locof{Q}{v_0}
     }
     {
     \eval{\env}{m}{\epar{P}{e}}{v}
@@ -470,7 +493,7 @@ have an explicit environment---we don't use substitution), as are
 $\vshare{Q}{\psi}{e}$ represents a circuit for a secure computation
 under scheme $\psi$ to be performed by principals in $q \in Q$. Notice
 that it contains an expression $e$, not a value $v$; this represents a
-``suspended'' computation.
+``suspended'' computation. 
 
 In the same figure are two functions over values: $\locof{P}{v}$ and
 $\getat{v}{P}$. The first is a transformation of $v$ that
@@ -492,38 +515,49 @@ requested mode $P$.
 
 Now we turn to the rules. Many of them are essentially standard, in
 particular \rulelab{E-Nat}, \rulelab{E-Pair}, \rulelab{E-Inj},
-\rulelab{E-Var}, \rulelab{E-Let}, and \rulelab{E-Abs}. Many others are
-\emph{almost} standard, including \rulelab{E-Access},
-\rulelab{E-Match}, \rulelab{E-Unfold}, \rulelab{E-BinopNat}, and
-\rulelab{E-App}. These differ from their standard counterparts in that
+\rulelab{E-Var}, \rulelab{E-Let}, \rulelab{E-Abs}, and \rulelab{E-Fix}. Many others are
+\emph{almost} standard, including \rulelab{E-Write}, \rulelab{E-Access},
+\rulelab{E-Match}, \rulelab{E-Unfold}, \rulelab{E-BinopNat}, 
+\rulelab{E-App}, and \rulelab{E-FixApp}. These differ from their
+standard counterparts in that 
 that refer to $\getat{m}{v}$ in the premise---as elimination forms,
 they have to have to strip off any location information to use the
 value. This operation will fail if the value is not available to
 (located at) all principals in the current mode $m$; the type system
-aims to rule out this sort of problem.
-\mwh{E-Fix is missing; not sure how to do this one!}
+aims to rule out this sort of problem. \rulelab{E-Read} and
+\rulelab{E-Write} are unsurprising; notably, they only work in a
+singleton context---we need to know 
+which principal is reading from/writing to their terminal. 
 
 Skipping ahead, consider \rulelab{E-Par}, which evaluates
-$\epar{P}{e}$. It evaluates $e$ is mode $P$ to produce $v_0$, but does
-so in an environment $\sigma'$, which is the current environment
-located at $P$ (which is constructed by intersecting mapped-to values'
-locations with $P$). Similarly, the final result $v_0$ must also be
-located at $P$ before it can be returned; this ensures that principals
-in $m$ other than those in $P$ will not be able to access it. This
-rule maintains an important invariant: \emph{the current environment $\sigma$ is
-always compatible (located at) the current mode $m$.} This is needed,
-for example, for \rulelab{E-Abs} to make sense, since it captures the
-current environment to store in the produced closure.
+$\epar{P}{e}$. It evaluates $e$ in mode $Q = m \cap P$ to produce
+$v_0$; i.e., only those principals in $P$ \emph{also} present $m$ will
+run $e$. If $Q$ is empty, then no evaluation takes place, and $0$ is
+returned. (The alternative of running $e$ with $\emptyset$ as the mode
+is not equivalent: Skipping evaluation means avoiding the possibility
+of non-termination or getting stuck on other rules due to inaccessible
+values.) Otherwise, evaluation takes place in environment $\sigma'$,
+which is the current environment located at $P$, which is constructed
+by intersecting mapped-to values' locations with $P$. This rule
+maintains and relies on an important invariant: \emph{the current
+  environment $\sigma$ is always compatible (located at) the current
+  mode $m$.} As such, since $\sigma$ is compatible with $m$ already,
+it just needs to also be located at $P$, and the result will be
+compatible with $Q$. This invariant is also needed, for example, for
+\rulelab{E-Abs} to make sense, since it captures the current
+environment to store in the produced closure. Finally, the result
+$v_0$ must also be located at $Q$ before it can be returned; this
+ensures that principals in other than those in $P$ and $m$, both, will
+not be able to access it.
 
 Let's consider the remaining rules, which focus on multiparty
 computation. \rulelab{E-Share} models principal $p \in P$
 ``encrypting'' an integer, sharing it with principals $Q$. Expression
 $e$ is evaluated in the current mode $m$, but the direction is that
-just $P$ is doing the sharing; hence we only check that $v$ is located
+just $P$ is doing the sharing; hence we check that $P$ is present in
+$m$, and $v$ is located
 on $P$. We then encapsulate the extracted number $n$ in a share value,
-split between principals at $Q$. \mwh{Should I also locate this at
-  $Q$? I am assuming that $Q$ is already indicating the
-  location. Revisit.}
+split between principals at $Q$, which must be present in $m$.
 
 \rulelab{E-BinopShare} permits multiparty computation on shares. It
 makes sure both arguments are available to exactly the executing hosts
@@ -533,10 +567,65 @@ its arguments $e$, $e_1$, and $e_2$ to shares, and then constructs a
 circuit involving all three.
 
 \rulelab{E-Reveal} eliminates shares by ``forcing'' the suspended
-computation in the given share. \mwh{Not sure if the mode here should
-  be $m$ or $P$. Does it matter? Will the type system catch the
-  mistakes in any case?} The final result is located at the designated
-principals $Q$. 
+computation in the given share. We require that the principals $P$ who
+each have a share are present in $m$, and likewise the principals in
+$Q$ to whom the final result is sent.
+
+\section{Semantics (Multi-threaded)}
+
+\mwh{TODO. Thoughts follow.}
+
+Each party $p$ has its own store $\env_p$ and program $e_p$, rather
+than there being a global program. Evaluating these is equivalent to
+running with $m = \{ p \}$, i.e., for a single party, roughly
+speaking.
+
+A key change in the design of ST mode would be to make it that if you
+start the same program, meant to be run by $p$ and $q$ together, with
+just $p$ or just $q$, it will do so correctly. This will happen as
+long as the $\kw{par}$ mode rule is correct: It will just subset the
+annotation $P$ on the $\kw{par}$ with the current mode---a
+singleton---and then that single party will continue on and do the
+right thing. 
+
+Computations that require coordination will be done in a mode that
+contains the coordinating parties. The single-mode parties must
+synchronize before carrying out the computation. They will wait for
+each party to reach the same spot, carry out the computation, and
+continue on with whatever their local result should be. The type
+system should ensure things line up.
+
+More details:
+\begin{itemize}
+\item $\eshare{P}{\psi}{Q}{e}$ requires coordination among $P \cup Q$,
+  where $P$ is a singleton. Somehow, the result of this computation
+  will be $\vshare{Q}{\psi}{n}$ and given to each party $q \in Q$,
+whereas $P$ gets $0$ (if he is not in $Q$).
+\item $\ebinop{e_1}{e_2}$ is just as in the ST mode---each party in
+  the share will have the full copy of it. Same with $\kw{mux}$.
+\item $\ereveal{P}{\psi}{Q}{e}$ requires coordination among $P \cup
+  Q$, where $e$ is a $\vshare{Q}{\psi}{e'}$---i.e., the $Q$ parties
+match up. Each of the parties $q \in Q$ should reach this redex
+\emph{and have the same $e'$}. The type system should ensure they
+agree on this, the circuit that's been created. Moreover, $e'$ should
+only consist of numbers, binops, and muxes. This means you can just
+\emph{run it without an environment, in an empty mode}. We let every
+$q \in Q$ do that, and thus they will agree on the result $n$. Parties
+$p \in P$ then receive this result, while any other parties $q \not\in
+P$ receive $0$.
+\end{itemize}
+
+I'm a little unsure about the communication between parties. How
+should this be encoded? Is there a generic way to do it? This will
+happen at $\kw{share}$ and $\kw{reveal}$. I'm also unsure that the
+``just intersect the principals at par mode at will work'' jives with
+the handling of these constructs. Need to mentally work through.
+
+To prove that this semantics matches the ST one, I think we need some
+kind of ``slice'' of a program, for each of the involved hosts. At
+present, I think this slice can be static---you take the program,
+create a slice of it, and then run each slice. When we have dependent
+types, that may not be true anymore.
 
 \section{Examples}
 
@@ -544,11 +633,29 @@ principals $Q$.
 
 \begin{verbatim}
 (fun x -> { par : C } x) 
-  ({ par : A, B, C } reveal{ C } (share{ yao : A, B } 0)
+  ({ par : A, B, C } reveal{ C } (share{ yao : A, B } 0))
 \end{verbatim}
 This is allowed by the type system. The $\kw{reveal}$ produces a value
 at $C$, which may be ``passed through'' the par block at \verb+{A, B,C}+. 
 This is then passed in and used in the function.
+
+\begin{verbatim}
+par(A,B) 
+  let x = par(A) 0 in
+  let y = par(B) 1 in
+  par(A) 
+    let z = (x,y) in #1 z
+\end{verbatim}
+Should work.
+
+\begin{verbatim}
+(fun x -> { par : B } ((), x)) ({ par : A } 0)
+\end{verbatim}
+The above is allowed. And equivalently, so is this (which in a
+previous incarnation would have been rejected):
+\begin{verbatim}
+{ par : B } ((), ({ par : A } 0))
+\end{verbatim}
 
 \section{Typing}
 
@@ -560,8 +667,15 @@ This is then passed in and used in the function.
     }
     {
     \hastyp{\Gamma}{m}{n}{\tnat^{m}}
+    } \qquad
+
+    \inferrule*[lab=T-Var]
+    {
+    x\!:\!\tau \in \Gamma
     }
-    \qquad
+    {
+    \hastyp{\Gamma}{m}{x}{\tau}
+    }\qquad
 
     \inferrule*[lab=T-Read]
     {
@@ -571,6 +685,25 @@ This is then passed in and used in the function.
     \hastyp{\Gamma}{m}{\eread}{\tnat^{m}}
     }
     \qquad
+
+    \inferrule*[lab=T-Write]
+    {
+    m\text{ is a singleton}\\\\
+    \hastyp{\Gamma}{m}{e}{\tnat^{m}}
+    }
+    {
+    \hastyp{\Gamma}{m}{\ewrite{e}}{\tnat^{m}}
+    }
+
+    \\ \\
+    \inferrule*[lab=T-Let]
+    {
+    \hastyp{\Gamma}{m}{e_1}{\tau_1}\\\\
+    \hastyp{\Gamma, x\!:\!\tau_1}{m}{e_2}{\tau}
+    }
+    {
+    \hastyp{\Gamma}{m}{\elet{x}{e_1}{e_2}}{\tau}
+    }\qquad
 
     \inferrule*[lab=T-Pair]
     {
@@ -624,18 +757,18 @@ This is then passed in and used in the function.
     }
     {
     \hastyp{\Gamma}{m}{\eunfold{e}}{\tau[\trec{\alpha}{\tau}\setminus\alpha]}
-    } \\ \\
+    } \qquad
 
     \inferrule*[lab=T-Share]
     {
-    P\text{ is a singleton}    \\\\
-    m \vdash P\\
-    m \vdash Q\\\\
+    P\text{ is a singleton}    \\
+    m \vdash P\\\\
     \hastyp{\Gamma}{m}{e}{\tnat^P}\\
+    m \vdash Q\\
     }
     {
     \hastyp{\Gamma}{m}{\eshare{\psi}{P}{Q}{e}}{\tnat^Q_\psi}
-    }\qquad
+    }\\ \\
     
     \inferrule*[lab=T-Binop]
     {
@@ -656,7 +789,7 @@ This is then passed in and used in the function.
     }
     {
     \hastyp{\Gamma}{m}{\emux{e}{e_1}{e_2}}{\tau}
-    }\\ \\
+    }\qquad
 
     \inferrule*[lab=T-Reveal]
     {
@@ -666,25 +799,8 @@ This is then passed in and used in the function.
     }
     {
     \hastyp{\Gamma}{m}{\ereveal{P}{Q}{e}{\psi}}{\tnat^Q}
-    }\qquad
-    
-    \inferrule*[lab=T-Var]
-    {
-    x\!:\!\tau \in \Gamma
-    }
-    {
-    \hastyp{\Gamma}{m}{x}{\tau}
-    }\qquad
-
-    \inferrule*[lab=T-Let]
-    {
-    \hastyp{\Gamma}{m}{e_1}{\tau_1}\\\\
-    \hastyp{\Gamma, x\!:\!\tau_1}{m}{e_2}{\tau}
-    }
-    {
-    \hastyp{\Gamma}{m}{\elet{x}{e_1}{e_2}}{\tau}
     }\\ \\
-
+   
 
    \inferrule*[lab=T-Abs]
     {
@@ -714,9 +830,9 @@ This is then passed in and used in the function.
 
     \inferrule*[lab=T-Par]
     {
-    m \vdash P \\
-    P \vdash \tau\\
-    \hastyp{\Gamma}{{P}}{e}{\tau}
+    Q = m \cap P\\
+    Q \vdash \tau\\\\
+    \hastyp{\Gamma}{{Q}}{e}{\tau}
     }
     {
     \hastyp{\Gamma}{m}{\epar{P}{e}}{\tau}
@@ -751,17 +867,17 @@ Rule~\rulelab{T-Nat} types a (cleartext) constant; it inherits the
 visibility of the current mode. Rule~\rulelab{T-Read} types the
 \kw{read} command; since it will produce a different value at each
 location, it must be run in the visibility of a single principal ($m$
-must be a singleton set).
+must be a singleton set). Rule~\rulelab{T-Write} is
+similar. Rules~\rulelab{T-Var} and \rulelab{T-Let} are standard.
 
 Jumping ahead, rule~\rulelab{T-Par} runs its expression $e$ in par
-mode involving principals $P$; these principals must be compatible
-with the current mode $m$ (i.e., they must be a subset of them). This
-coercion is useful for making the requirements of other rules match
-the expected mode; the rule is also an important hint to the execution
-engine about which parties will run a particular block. This rule
-requires that the returned result be compatible with current mode $P$;
-i.e., it should be ``located'' at least some principals $q \in P$.  For
-example, in mode $\{p\}$ we don't want to return a value located
+mode involving principals $P$. At run-time, only $m \cap P$ principals
+will actually execute $e$, and so $e$ is checked in this mode, which
+we name $Q$.\footnote{Wysteria requires $P \subseteq m$, which is
+  always OK in \rulelab{T-Par}, too, but it's strictly more flexible.}
+Likewise, the returned value must be compatible with $Q$;
+i.e., it should be ``located'' at least some principals $q \in Q$.
+For example, in mode $\{p\}$ we don't want to return a value located
 (only) at $q$. If we did, then subsequent access by $p$ would fail at
 run-time, since the value is not actually present there.
 %
@@ -834,34 +950,24 @@ Rule~\rulelab{T-Match} types conditionals on normal sums, i.e., the
 conditional will run on each principal in mode $m$. It can return
 shares or normal values, as desired. 
 
-Unlike the elimination rules for pairs and sums, the \rulelab{T-Var}
-does not mandate ``presence'' of its contents. So the following
-program would typecheck: $\elet{x0}{\epar{b}0}{\epar{a}{x0}}$. When
-checking the second $\kw{par}$ block, the type of $x0$ is $\tnat^{b}$,
-and this variable is occurring with a $\kw{par}$ block with only $a$
-present. But this is not prevented because nothing actually done with
-the contents of that variable.
-
-\rulelab{T-Let} is standard.
+% Unlike the elimination rules for pairs and sums, the \rulelab{T-Var}
+% does not mandate ``presence'' of its contents. So the following
+% program would typecheck: $\elet{x0}{\epar{b}0}{\epar{a}{x0}}$. When
+% checking the second $\kw{par}$ block, the type of $x0$ is $\tnat^{b}$,
+% and this variable is occurring with a $\kw{par}$ block with only $a$
+% present. But this is not prevented because nothing actually done with
+% the contents of that variable.
 
 \rulelab{T-Abs} allows the body of a function to require a strictly
 smaller mode than the defining context. \mwh{Why? Can't we just wrap
   in par mode? Rethink} \rulelab{T-App} requires the caller's mode to
 match the mode annotation on the function; this ensures that all
 principals that must be present in the function body will indeed be
-running the function.
-
-\mwh{Talk about T-Fix, which I don't have an operational rule for ...}
+running the function. \rulelab{T-Fix} is essentially a combination of
+these two, allowing $f$ to be referred to recursively in $e$.
 
 \begin{figure}
 \[\begin{array}{c}
-
-    \inferrule*[lab=M-top]
-    {
-    }
-    {
-    \top \vdash m
-    } \qquad
 
     \inferrule*[lab=M-sub]
     {
@@ -869,7 +975,7 @@ running the function.
     }
     {
     Q \vdash P
-    } \\ \\
+    } \qquad
     
     \inferrule*[lab=M-Nat]
     {
@@ -882,12 +988,12 @@ running the function.
 
     \inferrule*[lab=M-Sum]
     {
-    m \vdash n\\\\
+    m \vdash n\\
     m \vdash \tau_1 \\ m \vdash \tau_2
     }
     {
     m \vdash \tsum{\tau_1}{\tau_2}{n}
-    } \qquad
+    } \\ \\
 
     \inferrule*[lab=M-Fun]
     {

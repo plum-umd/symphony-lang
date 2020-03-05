@@ -84,16 +84,16 @@ def inc = plus 1n
 def dec : nat -> nat
 def dec n = n - 1n
 
--- elim_nats: form for eliminating (folding over) nats
-def elim_nats : nat -> t -> (t -> t) -> t
-def elim_nats m z s = 
+-- elim_nat: form for eliminating (folding over) nats
+def elim_nat : nat -> t -> (t -> t) -> t
+def elim_nat m z s = 
   if m ≡ 0n then z
-  else s (elim_nats (dec m) z s)
+  else s (elim_nat (dec m) z s)
 
--- elim_natsl: analog of fold right, for nats
+-- eliml_natsl: analog of fold right, for nats
 def eliml_nat : nat -> t -> (t -> t) -> t
 def eliml_nat n z s = 
-  (elim_nats n id (compose s)) z
+  (elim_nat n id (compose s)) z
 
 -- nat_log: logarithm over nats. Diverges at 0n.
 def nat_log : nat -> nat -> nat
@@ -107,6 +107,14 @@ def ceil_fn f f_inv n =
 
 def log_2_ceil = ceil_fn (nat_log 2n) (exp 2n)
 
+-- BEGIN library for floats:
+
+-- sqrt: implementation of the Babylonian method for computing sqrt
+def sqrt_steps = 5n
+def babylonian_sqrt x = eliml_nat sqrt_steps
+  1.0
+  (fun s -> (s + x / s) / 2.0)
+
 -- BEGIN library for list:
 
 -- cons: non-infix list cons
@@ -115,7 +123,7 @@ def cons x l = x :: l
 
 -- const_vec t a n: a vector of constant a of size n
 def const_vec : t -> nat -> list t
-def const_vec c n = elim_nats n [ ] (cons c)
+def const_vec c n = elim_nat n [ ] (cons c)
 
 -- foldr: right fold, the list eliminator
 def foldr : list t -> acc -> (t -> acc -> acc) -> acc
@@ -206,7 +214,7 @@ def vec_div a = map (fun x -> x / a)
 
 -- l2norm z v: the L2 norm of a vector of numerics with zero element z
 def l2norm : point -> comp_shr
-def l2norm z v = sqrt (sum (map square v) z)
+def l2norm z v = babylonian_sqrt (sum (map square v) z)
 
 -- zeros_vec: a vector of floating-point zeroes
 def zeros_vec : nat -> list real
@@ -258,7 +266,7 @@ def cholesky z m =
         ([ ], const_vec [ ] (len bot))
         (fun x tl -> (x, tl)) in
       -- diag': the diagonal elt of the solution
-      let diag' = sqrt (diag - (dot_prod z jth_row' jth_row')) in
+      let diag' = babylonian_sqrt (diag - (dot_prod z jth_row' jth_row')) in
       -- tri': the upper triangle, extended
       let tri' = snoc (diag', [ ])
         (map (fun ((d, tl), jth_elt) -> (d, snoc jth_elt tl))
@@ -325,6 +333,9 @@ def m = 2n
 def n : nat
 def n = 2n
 
+-- iters : user parameter: the number of iterations
+def iters = 5n
+
 -- Ctr[m]: parties that bring the constraints
 principal Ctr[2]
 
@@ -388,25 +399,7 @@ def karmarkar_iter shr0 a cost pt =
 def karmarkar_loop : ctr -> costs -> point
 def karmarkar_loop a cost =
   let shr0 = share{ spdz : Ctr, Cost } 0.0 in
-  let nzProd = fun l ->
-    prod (filter (compose (eq 0.0) not) l) 1.0 in
-  -- FANCY MPC:
-  -- bound: upper bound on the required number of iterations, based on
-  -- product of non-zero constraint and cost coeffs:
-  let bound = 
-        (12n * n *
-         ((inc m) * n +
-          (log_2_ceil (abs_val (ceil (reveal{ Cost, Ctr } ( 
-           (pfold
-             -- multiply non-zero cost coeffs,
-             (shr_w_comp ({ par : Cost } nzProd cost))
-             -- multiply non-zero constraint coeffs,
-             (fun Q pnzs -> mult (shr_w_comp pnzs))
-             ({ Ctr } nzProd a) )
-          ) ) ) ) ) +
-         n * (log_2_ceil n) ) ) in
-  let bound = 4n in -- cheat to get it to halt in a convenient time
-  (elim_nats bound
+  (elim_nat iters
     id
     (compose (karmarkar_iter shr0 a cost)) )
     (vec_div (to_flt n) nOnes)
