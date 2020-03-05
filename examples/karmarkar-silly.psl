@@ -243,23 +243,16 @@ def cont_bind (f, a) g =
 -- cont_run : cont a a -> a: get an a value:
 def cont_run = uncurry apply
 
--- loop_cont: loop while building a continuation, then apply 
+-- loop_cont: loop while building a continuation monad, then run it
 def loop_cont n a0 f = cont_run
   (eliml_nat n
     (cont_return a0)
-    ((flip cont_bind) f) )
+    (flip cont_bind f) )
 
--- repeat_until: repeat a computation n times or halt if the condition
--- is satisfied
-def repeat_until muxer n a0 f = loop_cont n
-  a0
-  (fun a ->
-    let (a', done) = f a in
-    (muxer done a', a') )
-
--- repeat_until_ls: repeat-until, multiplexing over a list
 -- PSL: add syntactic sugar for this?
-def repeat_until_ls = repeat_until mux_ls
+def return_if muxer guard v = (muxer guard v, v)
+
+def return_ls_if = return_if mux_ls
 
 -- prod: the product over a list of numerics
 def prod v one = foldr v one mult
@@ -480,13 +473,15 @@ def karmarkar_loop a cost =
     (let shr0 = shr_w_comp 0.0 in
      let shr1 = shr_w_comp 1.0 in
      let eval_cost = dot_prod shr0 (map shr_w_comp cost) in
-     repeat_until_ls iters
+     loop_cont iters
        init_shrs
-       (fun pt ->
+       (fun pt -> 
          let pt' = karmarkar_iter shr0 a cost pt in
          let cur_cost = eval_cost pt in
          let new_cost = eval_cost pt' in
-         (pt', ((cur_cost - new_cost) / (max mux shr1 cur_cost)) < eps) ) )
+         return_ls_if
+           (((cur_cost - new_cost) / (max mux shr1 cur_cost)) < eps)
+           pt' ) )
 
 -- main: entry point; Ctr, Cost read inputs and run the algorithm,
 -- distributes results to Out
