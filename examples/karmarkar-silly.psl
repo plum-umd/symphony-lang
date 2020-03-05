@@ -157,9 +157,8 @@ def filter test l = foldr l
 
 -- foldr_tl: right fold with access to the tail of the list
 def foldr_tl : list t -> acc -> (t -> list t -> acc -> acc) -> acc
-def foldr_tl l i f =
-  let (_, a) = foldr l ([ ], i) (fun x (l', b) -> (x :: l', f x l' b)) in
-  a
+def foldr_tl l i f = snd
+  (foldr l ([ ], i) (fun x (l', b) -> (x :: l', f x l' b)))
 
 -- decons_ls: first-order case syntax 
 def decons_ls : list t -> u -> (t -> list t -> u) -> u
@@ -196,9 +195,10 @@ def zip_lists : list t -> list u -> list (t * u)
 def zip_lists l0 l1 =
   (foldr l0
     (const [ ])
-    (fun x z0 l -> decons_ls l
-       [ ]
-       (fun y l' -> (x, y) :: z0 l') ) )
+    (fun x z0 l -> case l
+      { [ ] -> [ ]
+      ; y :: l' -> (x, y) :: z0 l'
+      }) )
     l1
 
 def zip_map : (t -> u -> v) -> list t -> list u -> list v
@@ -207,7 +207,11 @@ def zip_map f l0 l1 = map (uncurry f) (zip_lists l0 l1)
 -- transpose: shift matrix between row major and column major order
 def transpose : list (list t) -> list (list t)
 def transpose m = foldr m
-  (const_vec [ ] (decons_ls m 0n (compose len const)) )
+  (const_vec [ ]
+    (case m
+     { [ ] -> 0n
+     ; v :: m' -> len v
+     }) )
   (zip_map cons)
 
 def all_true : list bool -> bool
@@ -295,32 +299,34 @@ def part_ith a i l =
   let (first_i, rem) =
     eliml_nat i
       ([ ], l)
-      (fun (front, tl) -> decons_ls tl
-        (front, tl) -- should never be used
-        (fun hd tl' -> (hd :: front, tl)) ) in
-  let (ith, tl) = decons_ls rem
-    (a, rem) -- should never be used
-    (fun b rem' -> (b, rem')) in
+      (fun (front, tl) -> case tl
+        { [ ] -> (front, tl) -- should never be used
+        ; hd :: tl' -> (hd :: front, tl)
+        }) in
+  let (ith, tl) = case rem
+    { [ ] -> (a, rem) -- should never be used
+    ; b :: rem' -> (b, rem')
+    } in
   (first_i, ith, tl)
 
 -- squareMat m: matrix m coerced into a square matrix
-def squareMat d m =
-  let (_, m') = foldl m
+def squareMat d m = rev_ls (snd
+  (foldl m
     (0n, [ ])
-    (fun rv (i, acc) -> (inc i, (part_ith d i rv) :: acc)) in
-  rev_ls m'
+    (fun rv (i, acc) -> (inc i, (part_ith d i rv) :: acc)) ) )
 
 -- cholesky m: the Cholesky decomposition of matrix m, in column-major
 -- order, computed using the Cholesky-Crout algorithm
 def cholesky : sqMat -> ltMat
-def cholesky z m =
-  let (m', _) = foldl m -- fold over each column in the matrix,
+def cholesky z m = fst
+  (foldl m -- fold over each column in the matrix,
     ([ ], [ ])
     (fun (top, diag, bot) (tri, base) ->
       -- deconstruct the maintained base box 
-      let (jth_row', base') = decons_ls base
-        ([ ], const_vec [ ] (len bot))
-        (fun x tl -> (x, tl)) in
+      let (jth_row', base') = case base
+        { [ ] -> ([ ], const_vec [ ] (len bot))
+        ; x :: tl -> (x, tl)
+        } in
       -- diag': the diagonal elt of the solution
       let diag' = babylonian_sqrt (diag - (dot_prod z jth_row' jth_row')) in
       -- tri': the upper triangle, extended
@@ -332,8 +338,7 @@ def cholesky z m =
         (fun (rv', elt) ->
           snoc ((diag - (dot_prod z rv' jth_row')) / diag') rv')
         (zip_lists base' bot) in
-      (tri', base'')) in
-  m'
+      (tri', base'')) )
 
 -- col_lt_to_row m: LT matrix m in col-major form, converted to
 -- row-major form
@@ -359,11 +364,10 @@ def lt_inverse z l =
 -- lt_lift d l: LT matrix l, lifted into a matrix by padding copies of
 -- default element d
 def lt_lift : t -> list (t * (list t)) -> list (list t)
-def lt_lift d l =
-  let (_, m) = foldl l
+def lt_lift d l = rev_ls (snd
+  (foldl l
     ([ ], [ ])
-    (fun (hd, tl) (buf, m) -> (d :: buf, (concat buf (hd :: tl)) :: m) ) in
-  rev_ls m
+    (fun (hd, tl) (buf, m) -> (d :: buf, (concat buf (hd :: tl)) :: m) ) ) )
 
 -- inverse z m: the inverse matrix of m over numeric type with zero
 -- element z
