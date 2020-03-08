@@ -368,7 +368,7 @@ $$
     \getat{P}{v} = n  
     }
     {
-    \eval{\env}{m}{\eshare{\psi}{P}{Q}{e}}{\vshare{Q}{\psi}{n}}
+  \eval{\env}{m}{\eshare{\psi}{P}{Q}{e}}{\vloc{\vshare{Q}{\psi}{n}}{Q}}
     }\\ \\
     
     \inferrule*[lab=E-BinopNat]
@@ -465,8 +465,7 @@ $$
   Q = \emptyset \Rightarrow v = \locof{Q}{0}\\\\
     Q \not= \emptyset \Rightarrow
     \env' = \locof{P}{\env} \land
-    \eval{\env'}{{Q}}{e}{v_0} \land
-  v = \locof{Q}{v_0}
+    \eval{\env'}{{Q}}{e}{v}
     }
     {
     \eval{\env}{m}{\epar{P}{e}}{v}
@@ -511,7 +510,7 @@ indicates an inaccessible value.
 
 The function $\getat{v}{P}$ attempts to strip off the outermost
 location designator so the value $v$ can be computed on. For all
-values other than $\vloc{Q}{u}$ this is a no-op. For these, we confirm
+values other than $\vloc{u}{Q}$ this is a no-op. For these, we confirm
 that the location $Q$ is compatible with the accessing
 environment. This is never true if the value's location $Q$ is
 $\emptyset$; it will be true if $Q$ contains all principals in the
@@ -550,10 +549,11 @@ maintains and relies on an important invariant: \emph{the current
 it just needs to also be located at $P$, and the result will be
 compatible with $Q$. This invariant is also needed, for example, for
 \rulelab{E-Abs} to make sense, since it captures the current
-environment to store in the produced closure. Finally, the result
-$v_0$ must also be located at $Q$ before it can be returned; this
-ensures that principals in other than those in $P$ and $m$, both, will
-not be able to access it.
+environment to store in the produced closure. Note that the result
+$v$ need not be explicitly located at $Q$ before it can be returned;
+this is another invariant---any value returned from executing in mode
+$m$ is compatible with $m$ (i.e., it will not be located at any
+principal $p \not\in m$).
 
 Let's consider the remaining rules, which focus on multiparty
 computation. \rulelab{E-Share} models principal $p \in P$
@@ -562,7 +562,8 @@ $e$ is evaluated in the current mode $m$, but the direction is that
 just $P$ is doing the sharing; hence we check that $P$ is present in
 $m$, and $v$ is located
 on $P$. We then encapsulate the extracted number $n$ in a share value,
-split between principals at $Q$, which must be present in $m$.
+split between principals at $Q$, which must be present in $m$
+(ensuring our invariant on the location of final values).
 
 \rulelab{E-BinopShare} permits multiparty computation on shares. It
 makes sure both arguments are available to exactly the executing hosts
