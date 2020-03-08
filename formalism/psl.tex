@@ -546,17 +546,15 @@ Skipping ahead, consider \rulelab{E-Par}, which evaluates
 $\epar{P}{e}$. It evaluates $e$ in mode $Q = m \cap P$ to produce
 $v_0$; i.e., only those principals in $P$ \emph{also} present $m$ will
 run $e$. If $Q$ is empty, then no evaluation takes place, and $0$
-(located at $Q = \emptyset$) is returned. (The alternative of running
-$e$ with $\emptyset$ as the mode is not equivalent: Skipping
-evaluation means avoiding the possibility of non-termination or
-getting stuck on other rules due to inaccessible values.) Otherwise,
-evaluation takes place in environment $\sigma'$, which is the current
-environment located at $P$, which is constructed by intersecting
-mapped-to values' locations with $P$. Assuming $\sigma$ is compatible
-with $m$ already, it just needs to also be located at $P$, and the
-result will be compatible with $Q$. On the other hand the result $v$
-need not be explicitly located at $Q$ before it can be returned, per
-our invariant.
+(located at $Q = \emptyset$) is returned.\footnote{The alternative of running
+$e$ with $\emptyset$ as the mode is not equivalent; see discussion
+below.} Otherwise, evaluation takes place in environment $\sigma'$,
+which is the current environment located at $P$, which is constructed
+by intersecting mapped-to values' locations with $P$. Assuming
+$\sigma$ is compatible with $m$ already, it just needs to also be
+located at $P$, and the result will be compatible with $Q$. On the
+other hand the result $v$ need not be explicitly located at $Q$ before
+it can be returned, per our invariant.
 
 Let's consider the remaining rules, which focus on multiparty
 computation. \rulelab{E-Share} models principal $p \in P$
@@ -580,6 +578,33 @@ computation in the given share. We require that the principals $P$ who
 each have a share are present in $m$, and likewise the principals in
 $Q$ to whom the final result is sent.
 
+\paragraph{Discussion}
+
+Rule~\rulelab{E-Par} indicates that if the ``present'' set of
+principals $Q$ is $\emptyset$ then $e$ should be skipped, and an
+(inaccessible) value returned instead. The alternative is to ``run''
+$e$ despite having no principals present.
+
+Here is an argument in favor of running $e$:
+\begin{itemize}
+\item Running $e$ could have failures or non-termination. For the
+  former, it could reach a $\kw{reveal}$, $\kw{share}$, $\kw{read}$,
+  or $\kw{write}$, each of which require certain principals to be
+  present. Since no principals are present, evaluation will get stuck
+  at these constructs. Non-termination could happen by an infinite
+  $\kw{fix}$. For both failures and non-termination, and code after
+  the $\kw{par}$ block will not be reached, whereas for the present
+  \rulelab{E-Par} rule, which skips $e$, it will. 
+\item Running $e$ has no reasonable analogue in the multi-threaded
+  semantics world (see next section). If there are no principals to
+  run the code, then ``slicing'' $e$ to run at principals in
+  $\emptyset$ will have no effect. This is what justifies the skipping
+  behavior. The alternative would be to have every principal in $m$
+  run $e$ and fail on any operation that requires principals to be
+  present. 
+\end{itemize}
+\mwh{MORE LATER}
+  
 \section{Semantics (Multi-threaded)}
 
 \mwh{TODO. Thoughts follow.}
