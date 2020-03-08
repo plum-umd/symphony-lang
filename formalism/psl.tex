@@ -79,9 +79,6 @@
 
 Soon:
 \begin{itemize}
-\item David D says: ``This looks good to me, but the last $v = loc_{m
-    \cap P} v_0$ premise on \rulelab{E-Par} may not be necessary. (It may be a lemma that is
-  true about any $e \longrightarrow_m v$.)
 \item Develop multi-party operational semantics.
 \item Prove relationship between single- and multi-threaded semantics
 \item Prove type soundness for single-threaded semantics
@@ -484,6 +481,8 @@ $v$. The rules are given in Figure~\ref{fig:sem}.  This is the
 executing parties; rather, we simulate the group of principals
 $m$ executing in lockstep.
 
+\subsection{Located values}
+
 To be clear about which values reside on which parties' hosts, we have
 a special value form to indicates this. Values are defined in
 Figure~\ref{fig:auxsem}. The form $\vloc{u}{P}$ indicates that $u$ is
@@ -511,49 +510,53 @@ indicates an inaccessible value.
 The function $\getat{v}{P}$ attempts to strip off the outermost
 location designator so the value $v$ can be computed on. For all
 values other than $\vloc{u}{Q}$ this is a no-op. For these, we confirm
-that the location $Q$ is compatible with the accessing
-environment. This is never true if the value's location $Q$ is
-$\emptyset$; it will be true if $Q$ contains all principals in the
-requested mode $P$.
+that the location $Q$ is compatible with the accessing environment,
+written $P \vdash Q$, and given in Figure~\ref{fig:aux} (there it says
+$m \vdash m'$). Extrapolating: $Q \vdash P$ is never true if the value's
+location $Q$ is $\emptyset$; it will be true if $Q$ contains all
+principals in the requested mode $P$.
 
-Now we turn to the rules. Many of them are essentially standard, in
+\subsection{Operational rules}
+
+Now we turn to the rules. Many rules are essentially standard, in
 particular \rulelab{E-Nat}, \rulelab{E-Pair}, \rulelab{E-Inj},
 \rulelab{E-Var}, \rulelab{E-Let}, \rulelab{E-Abs}, and \rulelab{E-Fix}. Many others are
 \emph{almost} standard, including \rulelab{E-Write}, \rulelab{E-Access},
 \rulelab{E-Match}, \rulelab{E-Unfold}, \rulelab{E-BinopNat}, 
 \rulelab{E-App}, and \rulelab{E-FixApp}. These differ from their
 standard counterparts in that 
-that refer to $\getat{m}{v}$ in the premise---as elimination forms,
+they refer to $\getat{m}{v}$ in the premise---as elimination forms,
 they have to have to strip off any location information to use the
 value. This operation will fail if the value is not available to
-(located at) all principals in the current mode $m$; the type system
+(located at) \emph{all} principals in the required mode $m$; the type system
 aims to rule out this sort of problem. \rulelab{E-Read} and
 \rulelab{E-Write} are unsurprising; notably, they only work in a
 singleton context---we need to know 
 which principal is reading from/writing to their terminal. 
 
+A key invariant of the semantics is the following: \emph{Assuming the
+  current environment $\sigma$ is compatible with (located at) mode
+  $m$ and $\eval{\env}{m}{e}{v}$ then $v$ is also compatible with $m$}. By
+"compatible with $m$," recall that we mean that values are located at
+principal set(s) $P \subseteq m$. The rules preserve the assumption of
+environment compatibility (in the premises) and ensure compatibility
+in the conclusion.
+
 Skipping ahead, consider \rulelab{E-Par}, which evaluates
 $\epar{P}{e}$. It evaluates $e$ in mode $Q = m \cap P$ to produce
 $v_0$; i.e., only those principals in $P$ \emph{also} present $m$ will
 run $e$. If $Q$ is empty, then no evaluation takes place, and $0$
-(located at $Q = \emptyset$) is
-returned. (The alternative of running $e$ with $\emptyset$ as the mode
-is not equivalent: Skipping evaluation means avoiding the possibility
-of non-termination or getting stuck on other rules due to inaccessible
-values.) Otherwise, evaluation takes place in environment $\sigma'$,
-which is the current environment located at $P$, which is constructed
-by intersecting mapped-to values' locations with $P$. This rule
-maintains and relies on an important invariant: \emph{the current
-  environment $\sigma$ is always compatible (located at) the current
-  mode $m$.} As such, since $\sigma$ is compatible with $m$ already,
-it just needs to also be located at $P$, and the result will be
-compatible with $Q$. This invariant is also needed, for example, for
-\rulelab{E-Abs} to make sense, since it captures the current
-environment to store in the produced closure. Note that the result
-$v$ need not be explicitly located at $Q$ before it can be returned;
-this is another invariant---any value returned from executing in mode
-$m$ is compatible with $m$ (i.e., it will not be located at any
-principal $p \not\in m$).
+(located at $Q = \emptyset$) is returned. (The alternative of running
+$e$ with $\emptyset$ as the mode is not equivalent: Skipping
+evaluation means avoiding the possibility of non-termination or
+getting stuck on other rules due to inaccessible values.) Otherwise,
+evaluation takes place in environment $\sigma'$, which is the current
+environment located at $P$, which is constructed by intersecting
+mapped-to values' locations with $P$. Assuming $\sigma$ is compatible
+with $m$ already, it just needs to also be located at $P$, and the
+result will be compatible with $Q$. On the other hand the result $v$
+need not be explicitly located at $Q$ before it can be returned, per
+our invariant.
 
 Let's consider the remaining rules, which focus on multiparty
 computation. \rulelab{E-Share} models principal $p \in P$
@@ -862,10 +865,9 @@ previous incarnation would have been rejected):
 The typing judgment's rules are defined in Figure~\ref{fig:typing}.
 The typing judgment has form $\hastyp{\Gamma}{m}{e}{\tau}$. It states
 that under context $\Gamma$, expression $e$ has type $\tau$ when
-evaluating in mode $m$. These rules reference the judgment
-$m \vdash m'$ which is given in Figure~\ref{fig:aux}. It says that
-that principals in $m'$ are present in mode $m$. The rules also refer
-to judgment $m \vdash \tau$, which says that $\tau$ is located at
+evaluating in mode $m$. The rules reference judgment $m \vdash m'$,
+discussed earlier, in Figure~\ref{fig:aux}. They also reference
+judgment $m \vdash \tau$, which says that $\tau$ is located at 
 one or more principals in $m$; and $m \dashv \tau$, which says it is
 located at \emph{all} principals in $m$. 
 
