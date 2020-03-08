@@ -79,6 +79,9 @@
 
 Soon:
 \begin{itemize}
+\item David D says: ``This looks good to me, but the last $v = loc_{m
+    \cap P} v_0$ premise on \rulelab{E-Par} may not be necessary. (It may be a lemma that is
+  true about any $e \longrightarrow_m v$.)
 \item Develop multi-party operational semantics.
 \item Prove relationship between single- and multi-threaded semantics
 \item Prove type soundness for single-threaded semantics
@@ -156,7 +159,7 @@ gamma |-^m_(n \cup m') par m' e : t
   \[\begin{array}{rlcll}
       \text{Principal} & p, q \\
       \text{Principal set} & P, Q \\
-    \text{Execution modes} & m  & ::=  & \text{par mode with principal set $P$ (could be $\emptyset$)} \\
+    \text{Execution modes} & m  & ::=  & $P$ & \text{par mode with principal set $P$ (could be $\emptyset$)} \\
       \text{Protocol} & \psi & ::= & \cdot & \text{cleartext} \\
                        && \mid & \phi & \text{encryption format} \\
       \text{Types} & \tau & ::=  & \tnat^m_\psi & \text{a base type} \\
@@ -164,6 +167,7 @@ gamma |-^m_(n \cup m') par m' e : t
 %                       && \mid & \tsum{\tau}{\tau}{m}{\psi} & \text{sums} \\
                        && \mid & \tsum{\tau}{\tau}{m} & \text{sums} \\
                        && \mid & \trec{\alpha}{\tau} & \text{(iso)recursive types} \\
+                       && \mid & \alpha & \text{type variables (for recursive types)} \\
                        && \mid & \tfun{\tau}{\tau}{m} & \text{functions} \\
       \text{Protocol} & \psi & ::= & ... & \text{MPC type} \\
       \text{Expressions} & e & ::= & n & \text{naturals} \\
@@ -458,7 +462,7 @@ $$
     \inferrule*[lab=E-Par]
     {
   Q = m \cap P\\\\
-  Q = \emptyset \Rightarrow v = 0\\\\
+  Q = \emptyset \Rightarrow v = \locof{Q}{0}\\\\
     Q \not= \emptyset \Rightarrow
     \env' = \locof{P}{\env} \land
     \eval{\env'}{{Q}}{e}{v_0} \land
@@ -532,7 +536,8 @@ which principal is reading from/writing to their terminal.
 Skipping ahead, consider \rulelab{E-Par}, which evaluates
 $\epar{P}{e}$. It evaluates $e$ in mode $Q = m \cap P$ to produce
 $v_0$; i.e., only those principals in $P$ \emph{also} present $m$ will
-run $e$. If $Q$ is empty, then no evaluation takes place, and $0$ is
+run $e$. If $Q$ is empty, then no evaluation takes place, and $0$
+(located at $Q = \emptyset$) is
 returned. (The alternative of running $e$ with $\emptyset$ as the mode
 is not equivalent: Skipping evaluation means avoiding the possibility
 of non-termination or getting stuck on other rules due to inaccessible
@@ -1012,6 +1017,11 @@ these two, allowing $f$ to be referred to recursively in $e$.
     \inferrule*[lab=M-Rec]
     {m \vdash \tau}
     {m \vdash \trec{\alpha}{\tau}}
+    \qquad
+    
+    \inferrule*[lab=m-Alpha]
+    { }
+    {m \vdash \alpha}
     \\ \\
 
     \inferrule*[lab=L-Nat]
@@ -1022,7 +1032,7 @@ these two, allowing $f$ to be referred to recursively in $e$.
 
     \inferrule*[lab=L-Sum]
     {
-    m \dashv \tau_1 \\ m \dashv \tau_2
+    m \dashv \tau_1 \\\\ m \dashv \tau_2
     }
     {
     m \dashv \tsum{\tau_1}{\tau_2}{m}
@@ -1037,7 +1047,7 @@ these two, allowing $f$ to be referred to recursively in $e$.
 
     \inferrule*[lab=L-Prod]
     {
-    m \dashv \tau_1 \\ m \dashv \tau_2
+    m \dashv \tau_1 \\\\ m \dashv \tau_2
     }
     {m \dashv \tprod{\tau_1}{\tau_2}}
     \qquad
@@ -1045,6 +1055,11 @@ these two, allowing $f$ to be referred to recursively in $e$.
     \inferrule*[lab=L-Rec]
     {m \dashv \tau}
     {m \dashv \trec{\alpha}{\tau}}
+    \qquad
+    
+    \inferrule*[lab=L-Alpha]
+    { }
+    {m \dashv \alpha}
     \\ \\
     
   \end{array}\]
@@ -1118,10 +1133,8 @@ muxtopair e e1 e2 =
 With this encoding, we can likewise support encrypted sums, which are
 encoded as pairs of encrypted nats (see below).
 
-\begin{itemize}
-\item It seems evident we can work this out for equal-sized lists
-  too. Generalized encoding for (non-encrypted) sums?
-\end{itemize}
+\mwh{It seems evident we can work this out for equal-sized lists
+  too. Generalized encoding for (non-encrypted) sums?}
 
 \subsection{Encrypted sums}
 
@@ -1139,10 +1152,9 @@ let sharesum e def_lhs def_rhs =
 We can eliminate an encrypted sum by using $\kw{mux}$, which forces us
 to produce a $\tnat^m_\psi$, to ensure obliviousness:
 \begin{verbatim}
-let muxshare e t f =
-  let x = #1 e in
-  let bs = #2 e in
-  mux x ? t (#1 bs) : f (#2 bs)
+let muxshare e t_fun f_fun =
+  let (x,(l,r)) = e in
+  mux x ? t_fun l : f_fun r
 \end{verbatim}
 
 \mwh{TO DO}:
