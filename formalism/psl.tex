@@ -6,6 +6,7 @@
 \usepackage{amssymb}
 \usepackage{mathpartir}
 \usepackage{color}
+\usepackage{xspace}
 
 %%%%% DEFS %%%%%%
 
@@ -63,13 +64,15 @@
 \newcommand{\getat}[2]{\ensuremath{\mathit{on}_{#1}~{#2}}}
 % \newcommand{\ctxt}{\ensuremath{\mathcal{E}}}
 % \newcommand{\pctxt}{\ensuremath{\mathcal{P}}}
-  
+
+\newcommand{\lang}{\textsc{corePSL}\xspace}
+
 %%%%%%%%%%
 
 \newcommand{\mwh}[1]{\textcolor{red}{Mike: #1}}
 
-\title{PANTHEON Source Language}
-\author{PANTHEON Team}
+\title{\lang: A core formalism for the PANTHEON Source Language}
+\author{Michael Hicks and the PANTHEON Team}
 
 \begin{document}
 
@@ -77,16 +80,37 @@
 
 \section{Introduction}
 
-This document defines a core calculus modeling PSL, the \emph{Pantheon
-  Source Language}.
+This document defines \lang, a core calculus modeling PSL, the
+\emph{Pantheon Source Language} for programming secure multiparty
+computations (MPCs). The \lang core calculus consists of the key features of PSL,
+leaving out features that can be encoded in terms of the core. 
 
-\mwh{TODO}
-\begin{itemize}
-\item Give it a name; fix title to match
-\item How it differs from the real language, and why that's OK
-\item That it was inspired by Wysteria, but generalizes it
-\item The outline of the document
-\end{itemize}
+PSL (and \lang) was inspired by the MPC programming language
+Wysteria. Like Wysteria, MPCs are written as a single program to be
+executed by multiple parties. Like Wysteria, PSL programs have
+\emph{par blocks} that define code to be executed at (a subset of)
+each of the principals' local hosts. Wysteria also defined \emph{sec
+  blocks} to be executed by a set of parties, jointly, as an
+MPC\@. PSL generalizes Wysteria's notion of sec blocks by separating
+the notions of secret sharing, circuit construction (over shares), and
+computation of the final result, all of which were combined to define
+the essence of a sec block. This decomposition adds important
+flexibility, particularly when computations can vary with input size,
+and/or need to be carried out in multiple rounds and/or at multiple
+parties' hosts. As a formalism, \lang is also somewhat better
+engineered, and is pleasantly simple.
+
+The rest of this document is organized as follows. In
+Section~\ref{sec:syntax} we present the syntax of \lang, along
+discussion of how other features available in PSL can be encoded in
+terms of the core syntax. Section~\ref{sec:examples} presents a series
+of example programs written \lang. Section~\ref{sec:STsemantics}
+presents the single-threaded semantics of \lang, while
+Section~\ref{sec:MTsemantics} presents the distributed
+semantics. Section~\ref{sec:typing} presents the \lang type system and
+states our core theoretical result, which is that for type-correct
+programs, the single-threaded semantics simulates the distributed
+semantics. 
 
 \begin{figure}[h]
   \centering
@@ -126,16 +150,17 @@ This document defines a core calculus modeling PSL, the \emph{Pantheon
                        && \mid & \elet{x}{e_1}{e_2}  & \text{sequencing} \\
   \end{array}
   \]
-  \caption{Syntax}
+  \caption{Syntax of \lang}
   \label{fig:syntax}
 \end{figure}
 
 \newpage
 
 \section{Syntax}
-  
-The syntax of core PSL is in Figure~\ref{fig:syntax}. Some derived
-constructs (syntactic sugar) are given below.
+\label{sec:syntax}
+
+The syntax of \lang is in Figure~\ref{fig:syntax}. Some derived
+constructs (syntactic sugar) are given in Section~\ref{sec:derived}.
 
 \subsection{Types}
 
@@ -156,7 +181,7 @@ locations.
 
 \subsection{Expressions}
 
-Many of the language's expression forms are standard, including
+Many of \lang's expression forms are standard, including
 variables $x$; integers $n$; pair introduction $\epair{e_1}{e_2}$ and
 elimination (projection) $\eproj{i}{e}$; sum introduction
 $\einj{i}{e}$ and elimination $\econd{e}{e_1}{e_2}$ (where $x$ binds
@@ -191,7 +216,7 @@ $p$ but have a value only accessible to $q$ in it. Principal $p$ can
 still manipulate a placeholder for $x$ but should never look at its
 contents (i.e., to operate on it).
 
-We conclude with the MPC-specific constructs in the language.
+We conclude with the MPC-specific constructs in \lang.
 
 Expression $\eshare{\psi}{P}{Q}{e}$ evaluates $e$ to a natural number,
 and then $P$ secret-shares this number with the principals in $Q$. All
@@ -221,9 +246,10 @@ current mode so that the shareholders can agree to send the value and
 the result-receivers are there to receive it.
 
 \subsection{Derived Expressions}
+\label{sec:derived}
 
-Rather than put every useful construct in the language, we can defined
-some in terms of others.
+Some useful constructs can be encoded using \lang features (or via
+obvious language extensions). 
 
 \subsubsection{Encrypted Sums}
 
@@ -246,10 +272,11 @@ let muxshare e t_fun f_fun =
   mux x ? t_fun l : f_fun r
 \end{verbatim}
 While \verb+t_fun+ and \verb+f_fun+ are notated as functions, instead
-it makes sense to make these proper syntax in the language, with a
+it makes sense to make these proper syntax in \lang, with a
 binding form like $\kw{match}$.
 
 \subsubsection{Generalized Mux and Reveal}
+\label{sec:generalmux}
 
  The $\kw{mux}$ construct is restricted to returning encrypted
 $\tnat$s. We can generalize this to returning pairs of encrypted
@@ -291,7 +318,7 @@ let wmap (x:W {p,q} t) (f:t -> t0) =
 This runs the function $f$ on each element of the wire bundle, on its
 respective host, and packages the results in another wire bundle. Note
 that $f$ would need to be inlined at each call site because we don't
-support polymorphism in the language. Moreover, $f$ might contain
+support polymorphism in \lang. Moreover, $f$ might contain
 occurrences of $\alpha$ which would  be substituted with
 \texttt{\{p\}} in the first half of the pair, and \texttt{\{q\}} in
 the second.
@@ -317,17 +344,13 @@ You can imagine generalizing this to wire bundles of arbitrary (but
 fixed) size. You can also easily imagine converting this pair to a
 list, and then supporting equivalent constructs like \texttt{wfold}.
 
-\mwh{TO DO}
-\begin{itemize}
-  \item Do we want a way to run code over a wire bundle in which
-    parties are not in solo mode? For example, they could run in full
-    par mode (with both principals) but then accesses to the
-    individual elements could be dropped to a single mode, for those
-    accesses. For this, you need a map from principal $\alpha$ to
-    index in the pair for $\alpha$'s value. For the accessor in the
-    code, you use the map to extra from the pair. Maybe use ``self''
-    and not $\alpha$. 
-  \end{itemize}
+We might want a way to run code over a wire bundle in which parties
+are not in solo mode. For example, they could run in full par mode
+(with multiple principals) but then accesses to the individual elements
+could be dropped to a single mode, for those accesses. For this, you
+need a map from principal $\alpha$ to index in the pair for $\alpha$'s
+value. For the accessor in the code, you use the map to extra from the
+pair. Maybe use ``self'' and not $\alpha$.
 
 \subsection{Future work: First-class principals and dependent types}
 
@@ -358,6 +381,7 @@ generalized the fixed-size notion of wire bundles given above.
 We leave it to future work to flesh out the details. 
 
 \section{Examples}
+\label{sec:examples}
 
 \subsection{Encoding lists of shares}
 
@@ -478,6 +502,7 @@ previous incarnation would have been rejected):
 \end{verbatim}
 
 \section{Semantics (Single Threaded)}
+\label{sec:STsemantics}
 
 \begin{figure}
   \[\begin{array}{rlcll}
@@ -560,14 +585,17 @@ $$
     }
     \\ \\
 
-    \inferrule*[lab=E-Let]
+      \inferrule*[lab=E-Par]
     {
-    \eval{\env}{m}{e_1}{v_1}\\\\
-    \eval{\env[x\mapsto v_1]}{m}{e_2}{v_2}
+  Q = m \cap P\\\\
+  Q = \emptyset \Rightarrow v = \locof{Q}{0}\\\\
+    Q \not= \emptyset \Rightarrow
+    \env' = \locof{P}{\env} \land
+    \eval{\env'}{{Q}}{e}{v}
     }
     {
-    \eval{\env}{m}{\elet{x}{e_1}{e_2}}{v_2}
-    }\qquad
+    \eval{\env}{m}{\epar{P}{e}}{v}
+    } \qquad
   
     \inferrule*[lab=E-Pair]
     {
@@ -721,17 +749,14 @@ $$
     \eval{\env}{m}{\eapp{e}{e_1}}{v}
     }\\ \\
 
-    \inferrule*[lab=E-Par]
+    \inferrule*[lab=E-Let]
     {
-  Q = m \cap P\\\\
-  Q = \emptyset \Rightarrow v = \locof{Q}{0}\\\\
-    Q \not= \emptyset \Rightarrow
-    \env' = \locof{P}{\env} \land
-    \eval{\env'}{{Q}}{e}{v}
+    \eval{\env}{m}{e_1}{v_1}\\\\
+    \eval{\env[x\mapsto v_1]}{m}{e_2}{v_2}
     }
     {
-    \eval{\env}{m}{\epar{P}{e}}{v}
-    } \qquad
+    \eval{\env}{m}{\elet{x}{e_1}{e_2}}{v_2}
+    }
 \end{array}
     $$
 \caption{Operational Semantics}
@@ -807,7 +832,7 @@ principal set(s) $P \subseteq m$. The rules preserve the assumption of
 environment compatibility (in the premises) and ensure compatibility
 in the conclusion.
 
-Skipping ahead, consider \rulelab{E-Par}, which evaluates
+Now consider \rulelab{E-Par}, which evaluates
 $\epar{P}{e}$. It evaluates $e$ in mode $Q = m \cap P$ to produce
 $v_0$; i.e., only those principals in $P$ \emph{also} present $m$ will
 run $e$. If $Q$ is empty, then no evaluation takes place, and $0$
@@ -890,6 +915,7 @@ programs. And in any case it's about ``real'' computations; not ones
 that are contrived.
 
 \section{Semantics (Multi-threaded)}
+\label{sec:MTsemantics}
 
 \mwh{TODO. Thoughts follow.}
 
@@ -946,7 +972,8 @@ present, I think this slice can be static---you take the program,
 create a slice of it, and then run each slice. When we have dependent
 types, that may not be true anymore.
 
-\section{Typing}
+\section{Type System}
+\label{sec:typing}
 
 \begin{figure}
 \[\begin{array}{c}
@@ -983,16 +1010,17 @@ types, that may not be true anymore.
     {
     \hastyp{\Gamma}{m}{\ewrite{e}}{\tnat^{m}}
     }
-
     \\ \\
-    \inferrule*[lab=T-Let]
+    
+    \inferrule*[lab=T-Par]
     {
-    \hastyp{\Gamma}{m}{e_1}{\tau_1}\\\\
-    \hastyp{\Gamma, x\!:\!\tau_1}{m}{e_2}{\tau}
+    Q = m \cap P\\
+    Q \vdash \tau\\\\
+    \hastyp{\Gamma}{{Q}}{e}{\tau}
     }
     {
-    \hastyp{\Gamma}{m}{\elet{x}{e_1}{e_2}}{\tau}
-    }\qquad
+    \hastyp{\Gamma}{m}{\epar{P}{e}}{\tau}
+    } \qquad
 
     \inferrule*[lab=T-Pair]
     {
@@ -1117,15 +1145,14 @@ types, that may not be true anymore.
     \hastyp{\Gamma}{m}{\efix{f}{x}{e}}{\tfun{\tau_1}{\tau_2}{m}}
     }\\ \\
 
-    \inferrule*[lab=T-Par]
+    \inferrule*[lab=T-Let]
     {
-    Q = m \cap P\\
-    Q \vdash \tau\\\\
-    \hastyp{\Gamma}{{Q}}{e}{\tau}
+    \hastyp{\Gamma}{m}{e_1}{\tau_1}\\\\
+    \hastyp{\Gamma, x\!:\!\tau_1}{m}{e_2}{\tau}
     }
     {
-    \hastyp{\Gamma}{m}{\epar{P}{e}}{\tau}
-    } \qquad
+    \hastyp{\Gamma}{m}{\elet{x}{e_1}{e_2}}{\tau}
+    }\qquad
 
     \inferrule*[lab=T-Sub]
     {
@@ -1156,9 +1183,9 @@ visibility of the current mode. Rule~\rulelab{T-Read} types the
 \kw{read} command; since it will produce a different value at each
 location, it must be run in the visibility of a single principal ($m$
 must be a singleton set). Rule~\rulelab{T-Write} is
-similar. Rules~\rulelab{T-Var} and \rulelab{T-Let} are standard.
+similar. Rules~\rulelab{T-Var} and \rulelab{T-Let} (at the bottom) are standard.
 
-Jumping ahead, rule~\rulelab{T-Par} runs its expression $e$ in par
+Rule~\rulelab{T-Par} runs its expression $e$ in par
 mode involving principals $P$. At run-time, only $m \cap P$ principals
 will actually execute $e$, and so $e$ is checked in this mode, which
 we name $Q$.\footnote{Wysteria requires $P \subseteq m$, which is
@@ -1224,7 +1251,7 @@ the result to return based on the first argument's ultimate
 result. These are all (compatible) shares (under protocol $\psi$), so
 we can think of this as making a multiplexor circuit. The rule
 restrict the results to be $\tnat$s, but this is easily generalized
-via encoding (Section~\ref{sec:derived}).
+via encoding (Section~\ref{sec:generalmux}).
 
 Rule~\rulelab{T-Reveal} types share elimination, i.e., converting a
 share of a $\tnat$ to a normal value. In essence, it forces the secure
@@ -1253,54 +1280,6 @@ match the mode annotation on the function; this ensures that all
 principals that must be present in the function body will indeed be
 running the function. \rulelab{T-Fix} is essentially a combination of
 these two, allowing $f$ to be referred to recursively in $e$.
-
-\mwh{TODO}
-\begin{itemize}
-\item Is there any benefit to the $m \vdash m'$ in T-Abs? Not
-  convinced. Reconsider function types --- see DavidH's note below.
-\item No subtyping at present for recursive types. Should we add it?
-\item Function types preclude top-level functions? See note below.
-\end{itemize}
-
-\begin{verbatim}
-By the way, I don't know if this will overcomplicate everything, but
-I've been thinking about how to get back the notion of applying a
-function with fewer parties than were there when the closure was
-made. (Which if I understand correctly is not possible in the current
-version since function sub-typing is invariant in the knownness of the
-function arrow). 
-
-It seems that you can view the annotation ^m (on both values and
-contexts) as a sort of upper bound on the parties who know some
-information (which you can subtype to include fewer parties). 
-Analogously you could imagine adding an annotation _n to represent a
-lower bound on the parties who know information (conceptually, the
-parties whose presence is mandatory to use a value). 
-Then you could give function arrows this subtype rule:
-
-t1' <: t1
-t2 <: t2'
-m >= m'
-n' >= n
--------------------
-t1 ->^m_n t2    <:    t1' ->^m'_n' t2'
-
-The application rule would require the upper and lower bound to match: 
-
-gamma |-^m_n e : t1 ->^m_m t2
-gamma |-^m_n e1 : t1
-------------------
-gamma |-^m_n (e e1) : t2
-
-par blocks would constrain the lower bound: By including a par block
-as a subexpression you indicating that the containing expression must
-involve the par block parties: 
-
-m >= m'
-gamma |-^m'_n e : t
---------------
-gamma |-^m_(n \cup m') par m' e : t
-\end{verbatim}
 
 \begin{figure}
 \[\begin{array}{c}
@@ -1451,6 +1430,53 @@ Soon:
 \item Prove relationship between single- and multi-threaded semantics
 \item Prove type soundness for single-threaded semantics
 \end{itemize}
+\mwh{TODO}
+\begin{itemize}
+\item Reconsider function types --- see DavidH's note below.
+\item No subtyping at present for recursive types. Should we add it?
+\item Function types preclude top-level functions? See note below.
+\end{itemize}
+
+\begin{verbatim}
+By the way, I don't know if this will overcomplicate everything, but
+I've been thinking about how to get back the notion of applying a
+function with fewer parties than were there when the closure was
+made. (Which if I understand correctly is not possible in the current
+version since function sub-typing is invariant in the knownness of the
+function arrow). 
+
+It seems that you can view the annotation ^m (on both values and
+contexts) as a sort of upper bound on the parties who know some
+information (which you can subtype to include fewer parties). 
+Analogously you could imagine adding an annotation _n to represent a
+lower bound on the parties who know information (conceptually, the
+parties whose presence is mandatory to use a value). 
+Then you could give function arrows this subtype rule:
+
+t1' <: t1
+t2 <: t2'
+m >= m'
+n' >= n
+-------------------
+t1 ->^m_n t2    <:    t1' ->^m'_n' t2'
+
+The application rule would require the upper and lower bound to match: 
+
+gamma |-^m_n e : t1 ->^m_m t2
+gamma |-^m_n e1 : t1
+------------------
+gamma |-^m_n (e e1) : t2
+
+par blocks would constrain the lower bound: By including a par block
+as a subexpression you indicating that the containing expression must
+involve the par block parties: 
+
+m >= m'
+gamma |-^m'_n e : t
+--------------
+gamma |-^m_(n \cup m') par m' e : t
+\end{verbatim}
+
 
 % Next: Look at \texttt{writeup/spdz.md} and think about language
 % changes to support verification.
