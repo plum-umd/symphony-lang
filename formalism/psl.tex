@@ -535,7 +535,7 @@ singleton context---we need to know
 which principal is reading from/writing to their terminal. 
 
 A key invariant of the semantics is the following: \emph{Assuming the
-  current environment $\sigma$ is compatible with (located at) mode
+  current environment $\sigma$ is compatible with mode
   $m$ and $\eval{\env}{m}{e}{v}$ then $v$ is also compatible with $m$}. By
 "compatible with $m$," recall that we mean that values are located at
 principal set(s) $P \subseteq m$. The rules preserve the assumption of
@@ -546,9 +546,9 @@ Skipping ahead, consider \rulelab{E-Par}, which evaluates
 $\epar{P}{e}$. It evaluates $e$ in mode $Q = m \cap P$ to produce
 $v_0$; i.e., only those principals in $P$ \emph{also} present $m$ will
 run $e$. If $Q$ is empty, then no evaluation takes place, and $0$
-(located at $Q = \emptyset$) is returned.\footnote{The alternative of running
+(located at $Q = \emptyset$) is returned. (The alternative of running
 $e$ with $\emptyset$ as the mode is not equivalent; see discussion
-below.} Otherwise, evaluation takes place in environment $\sigma'$,
+below.) Otherwise, evaluation takes place in environment $\sigma'$,
 which is the current environment located at $P$, which is constructed
 by intersecting mapped-to values' locations with $P$. Assuming
 $\sigma$ is compatible with $m$ already, it just needs to also be
@@ -585,26 +585,45 @@ principals $Q$ is $\emptyset$ then $e$ should be skipped, and an
 (inaccessible) value returned instead. The alternative is to ``run''
 $e$ despite having no principals present.
 
-Here is an argument in favor of running $e$:
-\begin{itemize}
-\item Running $e$ could have failures or non-termination. For the
-  former, it could reach a $\kw{reveal}$, $\kw{share}$, $\kw{read}$,
-  or $\kw{write}$, each of which require certain principals to be
-  present. Since no principals are present, evaluation will get stuck
-  at these constructs. Non-termination could happen by an infinite
-  $\kw{fix}$. For both failures and non-termination, and code after
-  the $\kw{par}$ block will not be reached, whereas for the present
-  \rulelab{E-Par} rule, which skips $e$, it will. 
-\item Running $e$ has no reasonable analogue in the multi-threaded
-  semantics world (see next section). If there are no principals to
-  run the code, then ``slicing'' $e$ to run at principals in
-  $\emptyset$ will have no effect. This is what justifies the skipping
-  behavior. The alternative would be to have every principal in $m$
-  run $e$ and fail on any operation that requires principals to be
-  present. 
-\end{itemize}
-\mwh{MORE LATER}
-  
+One important justification for skipping $e$ is that this is what the
+distributed semantics will do, in a general sense (see the next
+section for more on this). In particular, if
+we have $\epar{\{a,b\}}{e}$ running in mode $m = \{ a, b, c \}$ then
+what should $c$ do while $a$ and $b$ are each running $e$? The
+assumption is that it will skip it. Another way to put this: We can
+think of a principal's ``slice'' of an expression as that expression
+with $\kw{par}$ sets intersected with that principal. So on $c$ it
+would be $\epar{\{a,b\} \cap \{c\}}{e}$ or in other words the
+principal set is empty---no relevant principals are ``here''---and we
+don't run it. This implies that a $\kw{par}$ block with an empty
+principal set should be skipped. 
+
+The alternative is weird. If no-principal blocks should be executed,
+how should that be done? The meaning is that no principal sets are
+``here'' to run the block, so who exactly is doing the running? 
+
+Suppose we choose to run $e$ with an empty set, say on each principal
+$a$, $b$, and $c$. Doing so could have failures or non-termination. For the
+former, it could reach a $\kw{reveal}$, $\kw{share}$, $\kw{read}$,
+or $\kw{write}$, each of which require certain principals to be
+present. Since no principals are present, evaluation will get stuck
+at these constructs. This is odd, once again, from the perspective of
+the distributed semantics: We would not expect to run $a$'s blocks on
+$b$ with an empty principal set because doing so will fail.
+
+You might argue that somehow a $\kw{par}$ block should be run, even
+with no principals (somewhere) for its termination behavior. The
+analogy would be that you have $\epar{a}{...}$ followed by
+  $\epar{b}{...}$ and the first doesn't terminate in the ST semantics,
+  precluding running the second block there, whereas in the MT the
+  second will run. The argument is somehow that if you don't ``run''
+  $\epar{\emptyset}{...}$ blocks, you won't match this kind of
+    behavior, if the $...$ would fail to terminate. But I don't think this
+is either here nor there; the simulation theorem is about computations
+that terminate; we are not obligated to reason about non-terminating
+programs. And in any case it's about ``real'' computations; not ones
+that are contrived.
+
 \section{Semantics (Multi-threaded)}
 
 \mwh{TODO. Thoughts follow.}
@@ -617,7 +636,7 @@ speaking.
 A key change in the design of ST mode would be to make it that if you
 start the same program, meant to be run by $p$ and $q$ together, with
 just $p$ or just $q$, it will do so correctly. This will happen as
-long as the $\kw{par}$ mode rule is correct: It will just subset the
+long as the $\kw{par}$ mode rule is correct: It will just intersect the
 annotation $P$ on the $\kw{par}$ with the current mode---a
 singleton---and then that single party will continue on and do the
 right thing. 
@@ -636,7 +655,8 @@ More details:
   will be $\vshare{Q}{\psi}{n}$ and given to each party $q \in Q$,
 whereas $P$ gets $0$ (if he is not in $Q$).
 \item $\ebinop{e_1}{e_2}$ is just as in the ST mode---each party in
-  the share will have the full copy of it. Same with $\kw{mux}$.
+  the share will have the full copy of it. Same with $\kw{mux}$. Key
+  question: How to prove these end up in the same place?
 \item $\ereveal{P}{\psi}{Q}{e}$ requires coordination among $P \cup
   Q$, where $e$ is a $\vshare{Q}{\psi}{e'}$---i.e., the $Q$ parties
 match up. Each of the parties $q \in Q$ should reach this redex
