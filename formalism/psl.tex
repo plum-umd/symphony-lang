@@ -144,12 +144,12 @@ locations.
 \subsection{Expressions}
 
 Many of the language's expression forms are standard, including
-variables $x$, integers $n$, pair introduction $\epair{e_1}{e_2}$ and
-elimination (projection) $\eproj{i}{e}$, sum introduction
+variables $x$; integers $n$; pair introduction $\epair{e_1}{e_2}$ and
+elimination (projection) $\eproj{i}{e}$; sum introduction
 $\einj{i}{e}$ and elimination $\econd{e}{e_1}{e_2}$ (where $x$ binds
-in $e_1$ and $e_2$, only one of which is evaluated), recursive type
+in $e_1$ and $e_2$, only one of which is evaluated); recursive type
 introduction $\efold{\trec{\alpha}{\tau}}{e}$ and elimination
-$\eunfold{e}$, and abstraction $\elam{x}{e}$ (and recursive
+$\eunfold{e}$; and abstraction $\elam{x}{e}$ (and recursive
 abstraction $\efix{f}{x}{e}$), application $\eapp{e_1}{e_2}$, and
 local variable binding $\elet{x}{e_1}{e_2}$. Some of these expressions
 are located at $m$, per the discussion on types, above.
@@ -164,16 +164,19 @@ otherwise odd behaviors that could arise.
 
 We call the set of principals $P$ computing an expression in parallel
 the \emph{mode} $m$. The semantics of many constructs depends on the
-mode. A number $n$ created in mode $m$ (having type $\tnat^m$ can only
-be computed on by principals $p \in m$; other principals do not have
-access to it. The same goes for functions and sums. The $\eread$ and
-$\ewrite{e}$ expressions read from and write to the console. To be
-clear about \emph{which} console, the mode should be a singleton
-principal. On the other hand, it's possible that a variable $x$ will
-be bound at $p$ but have a value only accessible to $q$ in
-it. Principal $p$ can still manipulate a placeholder for $x$ but
-should never look at its contents (this is important for the encoding
-of wire bundles, see below).
+mode. A number $n$ created in mode $m$ (having type $\tnat^m$) can
+only be computed on by principals $p \in m$; other principals do not
+have access to it. This means that adding two numbers located at $m$
+can only be done if principals $P \subseteq m$ are present; additional
+principals wouldn't know what to do. The same goes for functions and
+sums. The $\eread$ and $\ewrite{e}$ expressions read from and write to
+the console. To be clear about \emph{which} console, the mode should
+be a singleton principal.
+
+On the other hand, it's possible that a variable $x$ will be bound at
+$p$ but have a value only accessible to $q$ in it. Principal $p$ can
+still manipulate a placeholder for $x$ but should never look at its
+contents (i.e., to operate on it).
 
 We conclude with the MPC-specific constructs in the language.
 
@@ -248,7 +251,7 @@ muxtopair e e1 e2 =
 With this encoding, we can likewise support multiplexing on encrypted
 sums and likewise encrypted recursive types.
 
-We can similarly general the $\kw{reveal}$ construct to work on types
+We can similarly generalize the $\kw{reveal}$ construct to work on types
 that are not numbers, but pairs, sums, or recursive types---just as we
 \kw{mux} on the elements of a pair here, we can \kw{reveal} elements
 of a pair, too, with a single construct.
