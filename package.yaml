@@ -50,6 +50,9 @@ library:
     - base
     - directory
     - uvmhs
+    - aeson
+    - bytestring
+    - random
 
 executable:
   source-dirs: main

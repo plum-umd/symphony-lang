@@ -1,0 +1,27 @@
+#! /bin/bash -
+
+set -euo pipefail
+
+(
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get -qy update
+  apt-get -qy install git make
+)
+
+docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY <<EOF
+$CI_REGISTRY_PASSWORD
+EOF
+
+image=$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG/psl
+
+tag=$(git log -1 --pretty=%ct)
+tag=$(date -ud @$tag +%Y-%m-%d-%H%M%S)
+tag=$tag-g$(git rev-parse --short HEAD)
+
+make docker
+
+docker tag psl:latest $image:$tag
+docker tag psl:latest $image:latest
+
+docker push $image:$tag
+docker push $image:latest

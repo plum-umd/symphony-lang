@@ -56,3 +56,7 @@ hoogle:
 	stack hoogle -- generate --local
 	(sleep 1 && open http://localhost:8080/?scope=package%3A$(NAME)) &
 	stack hoogle -- server --local --port=8080
+
+.PHONY: docker
+docker:
+	docker build -t psl .

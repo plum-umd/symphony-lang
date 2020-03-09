@@ -1,0 +1,8 @@
+stages:
+  - stage1
+
+docker:
+  image: ubuntu
+  script: [gitlab-ci/docker]
+  stage: stage1
+  tags: [shared]
