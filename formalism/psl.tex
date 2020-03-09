@@ -75,6 +75,19 @@
 
 \maketitle
 
+\section{Introduction}
+
+This document defines a core calculus modeling PSL, the \emph{Pantheon
+  Source Language}.
+
+\mwh{TODO}
+\begin{itemize}
+\item Give it a name; fix title to match
+\item How it differs from the real language, and why that's OK
+\item That it was inspired by Wysteria, but generalizes it
+\item The outline of the document
+\end{itemize}
+
 \begin{figure}[h]
   \centering
   \[\begin{array}{rlcll}
@@ -300,9 +313,9 @@ The \texttt{wmap} will produce a pair of shares. Notice the
 $\alpha$ annotation on the $\kw{share}$---this will match the (solo)
 mode of the principal doing the sharing, after substitution.
 
-You can imagine generalizing this to wire bundles of arbitrary
-size. You can also easily imagine converting this pair to a list, and
-then supporting equivalent constructs like \texttt{wfold}.
+You can imagine generalizing this to wire bundles of arbitrary (but
+fixed) size. You can also easily imagine converting this pair to a
+list, and then supporting equivalent constructs like \texttt{wfold}.
 
 \mwh{TO DO}
 \begin{itemize}
@@ -316,17 +329,125 @@ then supporting equivalent constructs like \texttt{wfold}.
     and not $\alpha$. 
   \end{itemize}
 
-\subsection{Future work: First-class principal sets and dependent types}
+\subsection{Future work: First-class principals and dependent types}
 
-\mwh{TODO}
-\begin{itemize}
-\item Add to syntactic forms (e.g., $\ereveal{P}{Q}{e}{\psi}$ should be
-  $\ereveal{e_q}{e_q}{e}{\psi}$ where $e_P$ and $e_q$ are principal
-  sets).
-\item Generalize wire bundles.
-\end{itemize}
+One aspect of Wysteria not encoded here is the idea of
+\emph{principals as data}, and more generally, having a first-class
+representation of a set of principals. Run-time principal sets are
+useful for writing computations that are generic over the identity and
+number of principals involved in a computation. For example, you could
+make a generic function that computes the maximum of any number of
+parties' input values.
+
+For principal sets to work, we must generalize constructs in the
+language that are currently operating over sets of principals $P$. At
+present, the typing and compatibility judgments rely on knowing the
+precise makeup of a principal set. This would have to change to permit
+unknown principal sets whose contents are governed by set
+constraints. A simple manifestation of this point is that
+$\ereveal{P}{Q}{e}{\psi}$ should be $\ereveal{e_q}{e_q}{e}{\psi}$
+where $e_P$ and $e_q$ are principal sets; likewise for $\kw{share}$
+and $\kw{par}$. We would also need dependent types; for example if we
+had a run-time principal set stored in variable $s$, then we need to
+express types like $\tnat^s$, which indicates a type compatible with
+all principals in $s$. One interesting point is that we would like
+set-indexed recursive datastrutures like lists, e.g., so that each
+element of a list could belong to a different principal. This
+generalized the fixed-size notion of wire bundles given above.
+
+We leave it to future work to flesh out the details. 
 
 \section{Examples}
+
+\subsection{Encoding lists of shares}
+
+\newcommand{\twoprins}{\ensuremath{\{a,b\}}}
+
+A list of shares between $a$ and $b$ would have type
+$\trec{\alpha}{\tsum{(\tprod{\tnat^{\twoprins}_\psi}{\alpha})}{\tnat^{\twoprins}}{\twoprins}}$. In
+short, a list of shares is either a pair, where the first element is a
+\twoprins-share and the second is a list, or it's a normal integer
+(i.e., the NULL terminator). Notice that neither the recursive type
+nor the sum itself are encrypted---this means that the list's size
+(and the fact that's a list) is known and evident to both $a$ and $b$.
+
+Here's an example of how $a$ and $b$ could create a list with a share
+originating from each of them:
+\begin{verbatim}
+let l = par {a,b}
+  let x = par {a} read in
+  let y = par {b} read in
+  let xs = share{a} {a,b} x in
+  let ys = share{b} {a,b} y in
+  fold (inl (xs, fold (inl (ys, fold (inr 0)))))
+\end{verbatim}
+Here's a function that sums the elements in the list:
+\begin{verbatim}
+let sum = par {a,b}
+  fix f.lam y.
+    match (unfold y) with x.
+      let (x1,x2) = x in
+      x1 + (f x2)
+    | share{a} {a,b} 0
+\end{verbatim}
+Notice that we have to explicitly share constants. In this case, the
+\verb+0+ is shared by $a$ to $a$ and $b$.
+
+Finally, we could apply \verb+sum+ to \verb+l+ and reveal the result
+to both $a$ and $b$:
+\begin{verbatim}
+par{a,b}
+  reveal{a,b} {a,b} (sum l)
+\end{verbatim}
+
+Suppose we tried to run \verb+sum+ just in \verb+par{a}+---what would
+happen? It will fail because we require all parties having a share to
+be present when the share is computed on (here, by
+\verb!+!). Conversely, if we tried to run in mode \verb+par{a,b,c}+ it
+would also fail: parties \emph{without} a share cannot carry out
+computations on it.
+
+Another question: What if we ``encrypted'' the sum type that defines
+the list (per the above encoding)? This would imply that both the left
+and right side of the sum are always possible, so both would be
+maintained. However, since this is a recursive type and we cannot
+support infinitely sized data structures, we could not actually
+construct elements of this type! The reason you can construct
+recursive data structures at all is that there is eventually a base
+case, i.e., just one side of the sum, here the $\tnat^{\{a,b\}}_\psi$
+part. But when you are required provide \emph{both} sides, you never
+get to the base case (only). You could do a constant-length list, but
+not using a recursive type; you'd have to do a finite (by hand)
+unrolling.
+
+\subsection{Lists of private multi-party values}
+
+As another thought experiment, suppose we have a list with values from
+both $a$ and $b$, but unencrypted?
+
+A list of shares between $a$ and $b$ would have type
+$\trec{\alpha}{\tsum{(\tprod{(\tprod{\tnat^{\{a\}}}{\tnat^{\{b\}}})}{\alpha})}{\tnat^{\twoprins}}{\twoprins}}$.
+This list is like the earlier one, but instead of shared numbers as
+its contents, it has a pair of normal numbers, with the left as
+visible only to $a$ and the right visible only to $b$.
+
+Summing each principal's components would look like this:
+\begin{verbatim}
+let sum2 = par {a,b}
+  fix f.lam y.
+    match (unfold y) with x.
+      let ((xa,xb),x2) = x in
+      let (sa,sb) = f x2 in
+      let l = par{a} sa+xa in
+      let r = par{b} sb+xb in
+      (l,r)
+    | (par{a} 0,par{b} 0)
+\end{verbatim}
+This example makes evident that each party needs to maintain the
+complete structure of the list, but only has actual values for its own
+parts of it; the other party's values will just be placeholders.
+
+\subsection{Other examples}
 
 \mwh{More}
 
