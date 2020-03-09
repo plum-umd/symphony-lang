@@ -136,6 +136,8 @@ def cont_bind (f, a) g =
   let (f0, b) = g a in
   (compose f0 f, b)
 
+def cont_seq (f, a) v = cont_bind (f, a) (const v)
+
 -- cont_run : cont a a -> a: get an a value:
 def cont_run = uncurry apply
 
@@ -424,7 +426,7 @@ principal Out
 -- comps: the parties that do computation, Ctr and Cost
 def comps = set(Ctr,Cost)
 
--- shr_w_comp: share data with the parties performing computation
+-- shr_w_ctrs: share data with the parties performing computation
 def shr_w_ctrs = shr_spdz set(Ctr)
 
 -- shr_w_comp: share data with the parties performing computation
@@ -479,11 +481,18 @@ def nz_prod z one l = prod (filter (eq z) l) one
 
 def nz_prod_reals = nz_prod 0.0 1.0
 
+-- dimensions_of m: the number of rows and vectors in m
+def dimensions_of m = case m
+  { [ ] -> (0, 0)
+  ; rv :: m' -> (inc (len m'), len rv)
+  }
+
 -- karmarkar_loop: Karmarkar's algorithm, main loop: runs an iterative
 -- algorithm up to some bound computed from private inputs
 def karmarkar_loop : ctr -> costs -> point
 def karmarkar_loop a cost =
   -- init_pt: the initial point:
+  let (m, n) = dimensions_of a in
   let init_pt = vec_div (to_flt n) nOnes in
   let init_shrs = map shr_w_comp init_pt in
   let epsilon = 10.0 ^ -8.0 in
