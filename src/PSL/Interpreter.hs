@@ -458,6 +458,7 @@ testInterpreter = do
                 ]
         ]
       ]
+  testInterpreterExample "msort"
   -- testInterpreterExample "add"
   -- testInterpreterExample "arg-par-contains"
   -- testInterpreterExample "atq"
@@ -474,7 +475,6 @@ testInterpreter = do
   -- testInterpreterExample "pfold"
   -- testInterpreterExample "karmarkar-simple"
   -- testInterpreterExample "karmarkar-silly"
-  -- testInterpreterExample "msort"
   -- testInterpreterExample "partial-diverge"
   -- testInterpreterExample "reshare"
   -- testInterpreterExample "share-ls"

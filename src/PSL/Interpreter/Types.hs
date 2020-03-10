@@ -242,7 +242,7 @@ evalITLMIO σ xM =
         [ single𝐼 $ ppHeader $ show𝕊 rc
         , elim𝑂 empty𝐼 (single𝐼 ∘ pretty) rsO
         -- UNCOMMENT TO SEE DUMPED VALUES
-        , single𝐼 $ rm
+        -- , single𝐼 $ rm
         , single𝐼 $ pretty cs
         ]
       abortIO
