@@ -49,6 +49,7 @@
 \newcommand{\vshare}[3]{\ensuremath{\{{#3}\}^{#1}_{#2}}}
 \newcommand{\vloc}[2]{\ensuremath{{#1}\kw{@}{#2}}}
 \newcommand{\vclos}[2]{\ensuremath{\mathbf{clos}~({#1},{#2})}}
+\newcommand{\vcrash}{\ensuremath{\bullet}}
 
 % Judgments
 \newcommand{\hastyp}[4]{\ensuremath{{#1} \vdash_{#2} {#3} : {#4}}}
@@ -514,7 +515,8 @@ previous incarnation would have been rejected):
       \text{Value} & v  \in \mathbf{Val} & ::=  & u & \text{locatable value}\\
                        && \mid & \epair{v_1}{v_2} & \text{pair value}\\
                        && \mid & \efold{\trec{\alpha}{\tau}}{v} & \text{rectype value}\\
-                       && \mid & \vloc{u}{P} & \text{located value}\\
+                   && \mid & \vloc{u}{P} & \text{located value}\\
+                   && \mid & \vcrash & \text{bogus ``crash" value}\\
       % \text{Eval Context} & \ctxt & ::= & \multicolumn{2}{l}{\bullet \mid\epair{\ctxt}{e} \mid
       %                        \epair{v}{\ctxt} \mid \eproj{i}{\ctxt}}  \\
       %          && \mid & \multicolumn{2}{l}{\eshare{\psi}{P}{Q}{\ctxt} \mid
@@ -536,6 +538,7 @@ previous incarnation would have been rejected):
     \locof{P}{\epair{v_1}{v_2}} & \epair{\locof{P}{v_1}}{\locof{P}{v_2}}\\
     \locof{P}{ \efold{\trec{\alpha}{\tau}}{v}} &  \efold{\trec{\alpha}{\tau}}{\locof{P}{v}}\\
     \locof{P}{\vloc{u}{Q}} & \vloc{(\locof{P}{u})}{R} \qquad\text{where }R = P \cap Q\\
+    \locof{P}{\vcrash} & \vcrash\\
     \locof{P}{\sigma} & \{ x \mapsto v' \mid \sigma(x) = v \land \locof{P}{v} = v' \}\\
     \multicolumn{2}{c}{}\\
     \getat{P}{(\vloc{u}{Q})} & u \qquad \text{where }Q \vdash P\\
@@ -588,7 +591,7 @@ $$
       \inferrule*[lab=E-Par]
     {
   Q = m \cap P\\\\
-  Q = \emptyset \Rightarrow v = \locof{Q}{0}\\\\
+  Q = \emptyset \Rightarrow v = \vcrash\\\\
     Q \not= \emptyset \Rightarrow
     \env' = \locof{P}{\env} \land
     \eval{\env'}{{Q}}{e}{v}
@@ -756,7 +759,19 @@ $$
     }
     {
     \eval{\env}{m}{\elet{x}{e_1}{e_2}}{v_2}
+  } \qquad
+
+
+  \inferrule*[lab=E-CrashOK]
+    {
+    \eval{\env}{m}{e}{v}\\
+  \getat{m}{v} = \vcrash
     }
+    {
+    \eval{\env}{m}{\eproj{i}{e}}{\vcrash}\\\\
+    \eval{\env}{m}{\eunfold{e}}{\vcrash}
+    }\\\\
+
 \end{array}
     $$
 \caption{Operational Semantics}
@@ -786,6 +801,15 @@ $\vshare{Q}{\psi}{e}$ represents a circuit for a secure computation
 under scheme $\psi$ to be performed by principals in $q \in Q$. Notice
 that it contains an expression $e$, not a value $v$; this represents a
 ``suspended'' computation. 
+
+We also have a special value $\vcrash$ that stand in for values
+present at other hosts. This is particularly important, when we get to
+the distributed semantics, for container values (pairs and recursive
+types). Such values are not ``located'' so all hosts must be able to
+``access'' them. Non-containers, however, cannot be eliminated if they
+are not present at the host. The $\vcrash$ value does not appear in
+source programs and arises when computing a $\epar{Q}{e}$ such that
+$Q$ is empty; we see this in the next subsection.
 
 In the same figure are two functions over values: $\locof{P}{v}$ and
 $\getat{v}{P}$. The first is a transformation of $v$ that
@@ -832,22 +856,19 @@ principal set(s) $P \subseteq m$. The rules preserve the assumption of
 environment compatibility (in the premises) and ensure compatibility
 in the conclusion.
 
-Now consider \rulelab{E-Par}, which evaluates
-$\epar{P}{e}$. It evaluates $e$ in mode $Q = m \cap P$ to produce
-$v_0$; i.e., only those principals in $P$ \emph{also} present $m$ will
-run $e$. If $Q$ is empty, then no evaluation takes place, and $0$
-(located at $Q = \emptyset$) is returned. \mwh{Fix: We should have a
-  ``crash'' value that can be given any type, but should never be
-  accessed because it will always have $\emptyset$ as its locator}
-(The alternative of running 
-$e$ with $\emptyset$ as the mode is not equivalent; see discussion
-below.) Otherwise, evaluation takes place in environment $\sigma'$,
-which is the current environment located at $P$, which is constructed
-by intersecting mapped-to values' locations with $P$. Assuming
-$\sigma$ is compatible with $m$ already, it just needs to also be
-located at $P$, and the result will be compatible with $Q$. On the
-other hand the result $v$ need not be explicitly located at $Q$ before
-it can be returned, per our invariant.
+Now consider \rulelab{E-Par}, which evaluates $\epar{P}{e}$. It
+evaluates $e$ in mode $Q = m \cap P$ to produce $v$; i.e., only those
+principals in $P$ \emph{also} present $m$ will run $e$. If $Q$ is
+empty, then no evaluation takes place, and $\vcrash$ is returned.
+(The alternative of running $e$ with $\emptyset$ as the mode is not
+equivalent; see discussion below.)  Otherwise, evaluation takes place
+in environment $\sigma'$, which is the current environment (already
+located at $P$ by assumption), which is constructed by intersecting
+mapped-to values' locations with $P$. Assuming $\sigma$ is compatible
+with $m$ already, it just needs to also be located at $P$, and the
+result will be compatible with $Q$. On the other hand the result $v$
+need not be explicitly located at $Q$ before it can be returned, per
+our invariant.
 
 Let's consider the remaining rules, which focus on multiparty
 computation. \rulelab{E-Share} models principal $p \in P$
@@ -871,6 +892,13 @@ computation in the given share. We require that the principals $P$ who
 each have a share are present in $m$, and likewise the principals in
 $Q$ to whom the final result is sent.
 
+Lastly, \rulelab{E-CrashOK} is an elimination rule for $\vcrash$
+values. This rule permits converting non-located containers---pairs
+and recursive types---into $\vcrash$ values. However, there are no
+elimination rules for $\vcrash$ values having located types, i.e.,
+numbers, sums, or functions. A program that tries to use a crash value
+as one of these will be stuck.
+
 \paragraph{Discussion}
 
 Rule~\rulelab{E-Par} indicates that if the ``present'' set of
@@ -889,7 +917,8 @@ with $\kw{par}$ sets intersected with that principal. So on $c$ it
 would be $\epar{\{a,b\} \cap \{c\}}{e}$ or in other words the
 principal set is empty---no relevant principals are ``here''---and we
 don't run it. This implies that a $\kw{par}$ block with an empty
-principal set should be skipped. 
+principal set should be skipped (and the $\vcrash$ value returned as a
+placeholder). 
 
 The alternative is weird. If no-principal blocks should be executed,
 how should that be done? The meaning is that no principal sets are
@@ -925,7 +954,7 @@ one in mind. Here's how it will work.
 
 Each party $p$ has its own store $\env_p$ and program $e_p$, rather
 than there being a global program $e$. These programs are the same as
-$e$ except they are wrapped in a $\epar{\{p\}}{...}$ for each
+$e$ except they start out as wrapped in a $\epar{\{p\}}{...}$ for each
 principal $p$ that is participating in the MPC\@. To be concrete:
 Suppose you are given a program $e$
 meant to be run by both $p$ and $q$. At host $p$ you just run
@@ -934,7 +963,7 @@ the program $e$ with a $\kw{par}$ annotation of the host running
 it. Doing will have the effect of intersecting the set $P$ of any
 $\epar{P}{...}$ within $e$ that is reached by $p$ or $q$, singly. If
 doing so causes the $\kw{par}$ expression's principal set to be empty,
-the expression will be skipped (and an inaccessible value
+the expression will be skipped (and a $\vcrash$ value
 returned). Otherwise it will be run by that single principal.
 
 By inspection of the evaluation rules (Figure~\ref{fig:sem}), we can
@@ -1359,6 +1388,11 @@ principals that must be present in the function body will indeed be
 running the function. \rulelab{T-Fix} is essentially a combination of
 these two, allowing $f$ to be referred to recursively in $e$.
 
+Note that when we develop a small-step operational semantics we'll
+have to develop type rules for special value forms too. Crash values
+$\vcrash$ can be given any type. Located values $\vloc{u}{P}$ will
+have the type of $u$ annotated with location $P$.
+
 \begin{figure}
 \[\begin{array}{c}
 
@@ -1504,7 +1538,6 @@ these two, allowing $f$ to be referred to recursively in $e$.
 
 Soon:
 \begin{itemize}
-\item Create a crash value
 \item Develop small-step ST semantics
 \item Develop small-step MT semantics fleshed out from discussion
 \item Prove relationship between single- and multi-threaded semantics
