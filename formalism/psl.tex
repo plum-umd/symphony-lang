@@ -917,60 +917,135 @@ that are contrived.
 \section{Semantics (Multi-threaded)}
 \label{sec:MTsemantics}
 
-\mwh{TODO. Thoughts follow.}
+We have not developed a multi-threaded semantics as yet, but we have
+one in mind. Here's how it will work.
 
 Each party $p$ has its own store $\env_p$ and program $e_p$, rather
-than there being a global program. Evaluating these is equivalent to
-running with $m = \{ p \}$, i.e., for a single party, roughly
-speaking.
+than there being a global program $e$. These programs are the same as
+$e$ except they are wrapped in a $\epar{\{p\}}{...}$ for each
+principal $p$ that is participating in the MPC\@. To be concrete:
+Suppose you are given a program $e$
+meant to be run by both $p$ and $q$. At host $p$ you just run
+$\epar{\{p\}}{e}$ and at $q$ you run $\epar{\{q\}}{e}$; i.e., you wrap
+the program $e$ with a $\kw{par}$ annotation of the host running
+it. Doing will have the effect of intersecting the set $P$ of any
+$\epar{P}{...}$ within $e$ that is reached by $p$ or $q$, singly. If
+doing so causes the $\kw{par}$ expression's principal set to be empty,
+the expression will be skipped (and an inaccessible value
+returned). Otherwise it will be run by that single principal.
 
-A key change in the design of ST mode would be to make it that if you
-start the same program, meant to be run by $p$ and $q$ together, with
-just $p$ or just $q$, it will do so correctly. This will happen as
-long as the $\kw{par}$ mode rule is correct: It will just intersect the
-annotation $P$ on the $\kw{par}$ with the current mode---a
-singleton---and then that single party will continue on and do the
-right thing. 
+By inspection of the evaluation rules (Figure~\ref{fig:sem}), we can
+see that programs without $\kw{share}$ and $\kw{reveal}$ operations
+should work out fine---if the program would have run correctly as a
+single-threaded program, it should run correctly in this
+multi-threaded manner, too. The trick is that programs that don't do
+$\kw{share}$ and $\kw{reveal}$ don't communicate between
+principals. Those that do require coordination, so they won't work in
+the above approach. For example, if we had
+$\eshare{\psi}{\{p\}}{\{p,q\}}{e}$, then rule \rulelab{E-Share} will
+get stuck: the annotation $\{p,q\}$ requires both $p$ and $q$ to be
+present, but only one of them will be when running in
+$\epar{\{p\}}{...}$ or $\epar{\{q\}}{...}$ (which would also get stuck
+because the annotation $p$ would be invalid in mode $\{q\}$).
 
-Computations that require coordination will be done in a mode that
-contains the coordinating parties. The single-mode parties must
+To support MPCs, we need to introduce additional rules that allow
+single principals that reach MPC constructs to make progress as long
+as they all make progress. That is, the single-mode parties must
 synchronize before carrying out the computation. They will wait for
 each party to reach the same spot, carry out the computation, and
 continue on with whatever their local result should be. The type
 system should ensure things line up.
 
-More details:
-\begin{itemize}
-\item $\eshare{P}{\psi}{Q}{e}$ requires coordination among $P \cup Q$,
-  where $P$ is a singleton. Somehow, the result of this computation
-  will be $\vshare{Q}{\psi}{n}$ and given to each party $q \in Q$,
-whereas $P$ gets $0$ (if he is not in $Q$).
-\item $\ebinop{e_1}{e_2}$ is just as in the ST mode---each party in
-  the share will have the full copy of it. Same with $\kw{mux}$. Key
-  question: How to prove these end up in the same place?
-\item $\ereveal{P}{\psi}{Q}{e}$ requires coordination among $P \cup
-  Q$, where $e$ is a $\vshare{Q}{\psi}{e'}$---i.e., the $Q$ parties
-match up. Each of the parties $q \in Q$ should reach this redex
-\emph{and have the same $e'$}. The type system should ensure they
-agree on this, the circuit that's been created. Moreover, $e'$ should
-only consist of numbers, binops, and muxes. This means you can just
-\emph{run it without an environment, in an empty mode}. We let every
-$q \in Q$ do that, and thus they will agree on the result $n$. Parties
-$p \in P$ then receive this result, while any other parties $q \not\in
-P$ receive $0$.
-\end{itemize}
+We will need to make a small-step version of the ST semantics for this
+all to work. Assuming that we have it, I imagine a MT judgment of the
+form $\mathcal{CS} \longrightarrow \mathcal{CS'}$ where $\mathcal{CS}$
+represents a set of configurations, one per active principal. Here's
+the basic way a principal takes a step:
+$$
+\begin{array}{c}
+    \inferrule*[lab=M-Step]
+    {
+  \mathcal{CS} = \mathcal{CS}_0 :: (p,\config{\env_p}{e_p}) ::
+  \mathcal{CS}_1\\
+  \eval{\env_p}{\{p\}}{e_p}{\config{\env_p'}{e'_p}}\\
+  \mathcal{CS}' = \mathcal{CS}_0 :: (p,\config{\env_p'}{e_p'}) ::
+  \mathcal{CS}_1\\
+  }
+  {
+  \mathcal{CS} \longrightarrow \mathcal{CS'}
+  }
+\end{array}
+$$
+The issue is what happens when principals need to perform a
+coordinated MPC\@. Here's the form of the rule I have in mind for
+shares, specialized to two parties $p$ and $q$:
+$$
+\begin{array}{c}
+    \inferrule*[lab=M-Share]
+    {
+  \mathcal{CS} = \mathcal{CS}_0 ::
+  (p,\config{\env_p}{\eshare{\psi}{\{p\}}{\{p,q\}}{n}}) ::
+  (q,\config{\env_q}{\eshare{\psi}{\{p\}}{\{p,q\}}{v}}) ::
+  \mathcal{CS}_1\\\\
+  \mathcal{CS}' = \mathcal{CS}_0 ::
+  (p,\config{\env_p}{\vloc{\vshare{\{p,q\}}{\psi}{n}}{\{p\}}}) ::
+  (q,\config{\env_q}{\vloc{\vshare{\{p,q\}}{\psi}{n}}{\{q\}}}) ::
+  \mathcal{CS}_1\\
+  }
+  {
+  \mathcal{CS} \longrightarrow \mathcal{CS'}
+  }
+\end{array}
+$$
+The rule requires both $p$ and $q$ to arrive at a redex in which the
+share can be shared.\footnote{We may need a kind of fresh
+  identifier to make sure we are lining up the same redexes, and they
+  are not ``accidentally'' the same in appearance.} Since $p$ is doing
+the sharing, its value is sure to be an integer $n$; the value at $q$
+is immaterial (probably something inaccessible, since it was computed
+only at $p$), so we just write $v$. The rule takes a step by
+communicating the share value $\vshare{\{p,q\}}{\psi}{n}$ to each
+party $p$ and $q$ (and the share is specifically located there).
 
-I'm a little unsure about the communication between parties. How
-should this be encoded? Is there a generic way to do it? This will
-happen at $\kw{share}$ and $\kw{reveal}$. I'm also unsure that the
-``just intersect the principals at par mode at will work'' jives with
-the handling of these constructs. Need to mentally work through.
+We likewise coordinate progress on shared values on the rules
+equivalent to \rulelab{E-BinopShare} and \rulelab{E-Mux}, but for
+these, both parties should take identical steps on identical share
+values. We also coordinate on a rule equivalent to \rulelab{E-Reveal}
+(where each party has the identical share value again), sending the
+unencrypted result to the desired party.
 
-To prove that this semantics matches the ST one, I think we need some
-kind of ``slice'' of a program, for each of the involved hosts. At
-present, I think this slice can be static---you take the program,
-create a slice of it, and then run each slice. When we have dependent
-types, that may not be true anymore.
+That coordination is always possible is guaranteed by the type system,
+and the simulation theorem. To prove this, we'll need some kind of
+``slicing'' judgment that splits up the environment $\env$ for the ST
+case into the smaller environments in the MT case. See the Wysteria
+paper for approach and inspiration!
+
+% More details:
+% \begin{itemize}
+% \item $\eshare{P}{\psi}{Q}{e}$ requires coordination among $P \cup Q$,
+%   where $P$ is a singleton. Somehow, the result of this computation
+%   will be $\vshare{Q}{\psi}{n}$ and given to each party $q \in Q$,
+% whereas $P$ gets $0$ (if he is not in $Q$).
+% \item $\ebinop{e_1}{e_2}$ is just as in the ST mode---each party in
+%   the share will have the full copy of it. Same with $\kw{mux}$. Key
+%   question: How to prove these end up in the same place?
+% \item $\ereveal{P}{\psi}{Q}{e}$ requires coordination among $P \cup
+%   Q$, where $e$ is a $\vshare{Q}{\psi}{e'}$---i.e., the $Q$ parties
+% match up. Each of the parties $q \in Q$ should reach this redex
+% \emph{and have the same $e'$}. The type system should ensure they
+% agree on this, the circuit that's been created. Moreover, $e'$ should
+% only consist of numbers, binops, and muxes. This means you can just
+% \emph{run it without an environment, in an empty mode}. We let every
+% $q \in Q$ do that, and thus they will agree on the result $n$. Parties
+% $p \in P$ then receive this result, while any other parties $q \not\in
+% P$ receive $0$.
+% \end{itemize}
+
+% To prove that this semantics matches the ST one, I think we need some
+% kind of ``slice'' of a program, for each of the involved hosts. At
+% present, I think this slice can be static---you take the program,
+% create a slice of it, and then run each slice. When we have dependent
+% types, that may not be true anymore.
 
 \section{Type System}
 \label{sec:typing}
