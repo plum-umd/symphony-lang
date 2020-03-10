@@ -5,7 +5,7 @@ WORKDIR /psl
 RUN : \
   && export DEBIAN_FRONTEND=noninteractive \
   && apt-get -qy update \
-  && apt-get -qy install curl \
+  && apt-get -qy install curl make \
   && curl -sSL -o install_stack https://get.haskellstack.org/ \
   && sh install_stack \
   && stack install ghcid \
