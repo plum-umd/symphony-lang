@@ -588,7 +588,7 @@ $$
       \inferrule*[lab=E-Par]
     {
   Q = m \cap P\\\\
-  Q = \emptyset \Rightarrow v = \locof{Q}{0}\\\\
+  Q = \emptyset \Rightarrow v = \locof{\emptyset}{0}\\\\
     Q \not= \emptyset \Rightarrow
     \env' = \locof{P}{\env} \land
     \eval{\env'}{{Q}}{e}{v}
@@ -776,16 +776,16 @@ $m$ executing in lockstep.
 To be clear about which values reside on which parties' hosts, we have
 a special value form to indicates this. Values are defined in
 Figure~\ref{fig:auxsem}. The form $\vloc{u}{P}$ indicates that $u$ is
-only visible to principals $p \in P$. Since not all values need to
-be explicitly located (if they are in scope, they implicitly
-are accessible), we distinguish \emph{locatable} values $u$.
-Values for numbers, sums, and closures are standard (closures
-have an explicit environment---we don't use substitution), as are
-(locatable) values for pairs and recursive types. The value
-$\vshare{Q}{\psi}{e}$ represents a circuit for a secure computation
-under scheme $\psi$ to be performed by principals in $q \in Q$. Notice
-that it contains an expression $e$, not a value $v$; this represents a
-``suspended'' computation. 
+only visible to principals $p \in P$. Since not all values need to be
+explicitly located (if they are in scope, they implicitly are
+accessible), we distinguish \emph{locatable} values $u$.  Values for
+numbers, sums, and closures are located, and otherwise standard
+(closures have an explicit environment---we don't use
+substitution). Values for pairs and recursive types are not located,
+but are also standard. The value $\vshare{Q}{\psi}{e}$ represents a
+circuit for a secure computation under scheme $\psi$ to be performed
+by principals in $q \in Q$. Notice that it contains an expression $e$,
+not a value $v$; this represents a ``suspended'' computation.
 
 In the same figure are two functions over values: $\locof{P}{v}$ and
 $\getat{v}{P}$. The first is a transformation of $v$ that
@@ -836,10 +836,8 @@ Now consider \rulelab{E-Par}, which evaluates
 $\epar{P}{e}$. It evaluates $e$ in mode $Q = m \cap P$ to produce
 $v_0$; i.e., only those principals in $P$ \emph{also} present $m$ will
 run $e$. If $Q$ is empty, then no evaluation takes place, and $0$
-(located at $Q = \emptyset$) is returned. \mwh{Fix: We should have a
-  ``crash'' value that can be given any type, but should never be
-  accessed because it will always have $\emptyset$ as its locator}
-(The alternative of running 
+(located at $Q = \emptyset$) is returned. \mwh{Fix: The previous is
+  not correct. See discussion below.} (The alternative of running 
 $e$ with $\emptyset$ as the mode is not equivalent; see discussion
 below.) Otherwise, evaluation takes place in environment $\sigma'$,
 which is the current environment located at $P$, which is constructed
@@ -916,6 +914,29 @@ is either here nor there; the simulation theorem is about computations
 that terminate; we are not obligated to reason about non-terminating
 programs. And in any case it's about ``real'' computations; not ones
 that are contrived.
+
+\mwh{TODO:}
+The $\kw{par}$ block returning a $\locof{\emptyset}{0}$ when $Q =
+\emptyset$ is not right. This is because the block could be returning
+a pair, and a pair is not specifically located (same goes with
+recursive types). I can see two ways to solve this problem, and I
+slightly favor the second:
+\begin{itemize}
+\item Annotate $\kw{par}$ with the expected type of what's returned,
+  and then have the semantics generate the properly-typed shell value
+  for it. The tricky thing here is how to interpret the current mode
+  when type checking the annotation; if this block of code is within a
+  function, its mode might be smaller at run-time than it appears at
+  compile-time.
+\item Create a special ``crash'' value $\bullet$ which can be given
+  any type. Evaluation gets stuck when used as a located value
+  (number, sum, function), but just expands when used as a non-located
+  one (pair, recursive type); e.g.,
+  $\eval{\env}{m}{\eproj{i}{\bullet}}{\bullet}$ but trying to
+  evaluate $\ebinop{\bullet}{n}$ is a stuck program. I don't think
+  this approach harms soundness, but it might allow some ill-typed programs
+  you'd expect to get stuck to not do so.
+\end{itemize}
 
 \section{Semantics (Multi-threaded)}
 \label{sec:MTsemantics}
@@ -1504,7 +1525,11 @@ these two, allowing $f$ to be referred to recursively in $e$.
 
 Soon:
 \begin{itemize}
-\item Create a crash value
+\item Revisit rules for typechecking functions. What if the function
+  has a mode A but is called from a caller in mode B? How will that
+  affect the type of what's returned? Not sure we are accounting for
+  that? 
+\item Create a crash value (not easy!)
 \item Develop small-step ST semantics
 \item Develop small-step MT semantics fleshed out from discussion
 \item Prove relationship between single- and multi-threaded semantics
