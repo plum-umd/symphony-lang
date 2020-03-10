@@ -94,6 +94,13 @@ def square a = a * a
 
 def max muxer a b = muxer (a <= b) b a
 
+def abs_val_real a = max mux a (-1.0 * a)
+
+-- TODO: define these properly
+def log_2_real = id
+
+def magn x = 1n
+
 -- BEGIN library for nats:
 
 -- inc n: increment of nat n
@@ -116,6 +123,42 @@ def elim_nat m z s =
 -- PSL: add syntactic sugar for this?
 def eliml_nat : nat -> t -> (t -> t) -> t
 def eliml_nat n z s = (elim_nat n id (compose s)) z
+
+-- monad for building a value and a continuation. Type is
+-- cont a b = (a -> a, b)
+-- where cont a is a monad.
+
+-- monadic return:
+def cont_return a = (id, a)
+
+-- monadic bind:
+def cont_bind (f, a) g =
+  let (f0, b) = g a in
+  (compose f0 f, b)
+
+def cont_seq (f, a) v = cont_bind (f, a) (const v)
+
+-- cont_run : cont a a -> a: get an a value:
+def cont_run = uncurry apply
+
+-- loop_cont: loop while building a continuation monad, then run it
+def loop_cont finalize n a0 f = cont_run
+  (cont_bind 
+    (eliml_nat n
+      (cont_return a0)
+      (flip cont_bind f) )
+    (fun a -> (id, finalize a)) )
+
+-- PSL: add syntactic sugar for this?
+def return_if muxer guard v = (muxer guard v, v)
+
+-- eliml_sec_nat: eliminate a secure nat. Just does this by iterating
+-- up to some bound.
+-- TODO: figure out how to use return_if, if at all
+def max_nat = 0n
+def eliml_sec_nat muxer encz encone n z s = loop_cont snd max_nat
+    (n, z)
+    (fun (n', a) -> (muxer (n' == encz) a, (n' - encone, s a)))
 
 -- nat_log: logarithm over nats. Diverges at 0n.
 def nat_log : nat -> nat -> nat
@@ -228,31 +271,9 @@ def is_const_vec c v = all_true (map (eq c) v)
 -- mux_ls: multiplex over a pair of lists:
 def mux_ls guard l0 l1 = zip_map (mux guard) l0 l1
 
--- monad for building a value and a continuation. Type is
--- cont a b = (a -> a, b)
--- where cont a is a monad.
-
--- monadic return:
-def cont_return a = (id, a)
-
--- monadic bind:
-def cont_bind (f, a) g =
-  let (f0, b) = g a in
-  (compose f0 f, b)
-
--- cont_run : cont a a -> a: get an a value:
-def cont_run = uncurry apply
-
--- loop_cont: loop while building a continuation monad, then run it
-def loop_cont n a0 f = cont_run
-  (eliml_nat n
-    (cont_return a0)
-    (flip cont_bind f) )
-
--- PSL: add syntactic sugar for this?
-def return_if muxer guard v = (muxer guard v, v)
-
 def return_ls_if = return_if mux_ls
+
+def eliml_sec_nat_ls = eliml_sec_nat mux_ls
 
 -- prod: the product over a list of numerics
 def prod v one = foldr v one mult
@@ -262,6 +283,7 @@ def sum v z = foldr v z plus
 
 -- dot_prod: take the dot product of two points
 def dot_prod z p0 p1 = sum (zip_map mult p0 p1) z
+def dot_prod_reals = dot_prod 0.0
 
 -- pt_diff: subtract one point from another
 def vec_diff : point -> point -> point
@@ -392,9 +414,6 @@ def m = 2n
 def n : nat
 def n = 2n
 
--- iters : user parameter: the number of iterations
-def iters = 5n
-
 -- Ctr[m]: parties that bring the constraints
 principal Ctr[2]
 
@@ -406,6 +425,9 @@ principal Out
 
 -- comps: the parties that do computation, Ctr and Cost
 def comps = set(Ctr,Cost)
+
+-- shr_w_ctrs: share data with the parties performing computation
+def shr_w_ctrs = shr_spdz set(Ctr)
 
 -- shr_w_comp: share data with the parties performing computation
 def shr_w_comp = shr_spdz comps
@@ -453,34 +475,62 @@ def karmarkar_iter shr0 a cost pt =
   let db' = mult_diag_vec pt b' in
   vec_div (dot_prod shr0 (map shr_w_comp nOnes) db') db'
 
+-- nzProd a: the product of all non-zero entries in a vector:
+def nz_prod : list (real{ ssec : p }) -> real{ ssec : p }
+def nz_prod z one l = prod (filter (eq z) l) one
+
+def nz_prod_reals = nz_prod 0.0 1.0
+
+-- dimensions_of m: the number of rows and vectors in m
+def dimensions_of m = case m
+  { [ ] -> (0, 0)
+  ; rv :: m' -> (inc (len m'), len rv)
+  }
+
 -- karmarkar_loop: Karmarkar's algorithm, main loop: runs an iterative
 -- algorithm up to some bound computed from private inputs
 def karmarkar_loop : ctr -> costs -> point
 def karmarkar_loop a cost =
   -- init_pt: the initial point:
+  let (m, n) = dimensions_of a in
   let init_pt = vec_div (to_flt n) nOnes in
   let init_shrs = map shr_w_comp init_pt in
-  let eps = shr_w_comp (10.0 ^ -8.0) in
+  let epsilon = 10.0 ^ -8.0 in
+
+  -- max_iterations: number of iterations of the algorithm to perform
+  let max_iterations = 
+    -- p: the product of non-zero entries in c and A
+    let p = pfold
+      -- multiply non-zero cost coeffs,
+      (shr_w_comp ({ par : Cost } nz_prod_reals cost))
+      -- multiply non-zero constraint coeffs,
+      (fun Q pnzs -> mult (shr_w_comp pnzs))
+      ({ Ctr } nz_prod_reals a) in
+    let p = shr_w_comp 1.0 in
+    let l = (m + 1n) * n +
+      (magn (ceil (log_2_real (abs_val_real p)))) +
+      n * (magn (ceil (log_2_real (to_flt n)))) in
+    12n * n * l in
+  let max_iterations = shr_w_comp 1n in -- TODO: remove, used for debugging
+
+  -- if this initial point is an optimal solution, return
   mux_ls
-    -- if the initial point is optimal,
-    (share{ spdz : Ctr, Cost } ({ par : Cost }
-      -- TODO: this matches the pseudocode, but seems like it should
-      -- be replaced with a check against tolerance (eps)
-      ((dot_prod 0.0 cost init_pt) == 0.0) ) )
+    (shr_w_comp ({ par : Cost }
+      ((dot_prod_reals cost init_pt) < epsilon) ) )
     -- then return shares of it,
     init_shrs
     -- otherwise, evaluate to the result of the iterative algorithm
     (let shr0 = shr_w_comp 0.0 in
      let shr1 = shr_w_comp 1.0 in
      let eval_cost = dot_prod shr0 (map shr_w_comp cost) in
-     loop_cont iters
+     eliml_sec_nat_ls (shr_w_comp 0n) (shr_w_comp 1n) max_iterations
        init_shrs
        (fun pt -> 
          let pt' = karmarkar_iter shr0 a cost pt in
          let cur_cost = eval_cost pt in
          let new_cost = eval_cost pt' in
          return_ls_if
-           (((cur_cost - new_cost) / (max mux shr1 cur_cost)) < eps)
+           (((cur_cost - new_cost) / (max mux shr1 cur_cost)) < epsilon)
            pt' ) )
 
 -- main: entry point; Ctr, Cost read inputs and run the algorithm,
