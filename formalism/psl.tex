@@ -836,7 +836,10 @@ Now consider \rulelab{E-Par}, which evaluates
 $\epar{P}{e}$. It evaluates $e$ in mode $Q = m \cap P$ to produce
 $v_0$; i.e., only those principals in $P$ \emph{also} present $m$ will
 run $e$. If $Q$ is empty, then no evaluation takes place, and $0$
-(located at $Q = \emptyset$) is returned. (The alternative of running
+(located at $Q = \emptyset$) is returned. \mwh{Fix: We should have a
+  ``crash'' value that can be given any type, but should never be
+  accessed because it will always have $\emptyset$ as its locator}
+(The alternative of running 
 $e$ with $\emptyset$ as the mode is not equivalent; see discussion
 below.) Otherwise, evaluation takes place in environment $\sigma'$,
 which is the current environment located at $P$, which is constructed
@@ -1501,7 +1504,9 @@ these two, allowing $f$ to be referred to recursively in $e$.
 
 Soon:
 \begin{itemize}
-\item Develop multi-party operational semantics.
+\item Create a crash value
+\item Develop small-step ST semantics
+\item Develop small-step MT semantics fleshed out from discussion
 \item Prove relationship between single- and multi-threaded semantics
 \item Prove type soundness for single-threaded semantics
 \end{itemize}
