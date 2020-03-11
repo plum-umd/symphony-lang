@@ -85,7 +85,9 @@
 This document defines \lang, a core calculus modeling PSL, the
 \emph{Pantheon Source Language} for programming secure multiparty
 computations (MPCs). The \lang core calculus consists of the key features of PSL,
-leaving out features that can be encoded in terms of the core. 
+leaving out features that can be encoded in terms of the core. Indeed,
+we expect the PANTHEON intermediate language (PIL) to look closer to
+\lang, once it's fully developed.
 
 \subsection{Related Work}
 
@@ -696,8 +698,8 @@ $$
 
     \inferrule*[lab=E-Mux]
     {
-  \eval{\env}{m}{e}{v}\\
-  \getat{m}{v} = \vshare{m}{\psi}{e'} \\\\
+  \eval{\env}{m}{e}{v_0}\\
+  \getat{m}{v_0} = \vshare{m}{\psi}{e'} \\\\
   \eval{\env}{m}{e_1}{v_1}\\
   \getat{m}{v_1} = \vshare{m}{\psi}{e'_1} \\\\
     \eval{\env}{m}{e_2}{v_2}\\
@@ -1023,184 +1025,127 @@ $$
  %    \eval{\env}{m}{\epar{P}{e}}{v}
  %    } \qquad
   
- %    \inferrule*[lab=E-Pair]
- %    {
- %    \eval{\env}{m}{e_1}{v_1}\\\\
- %    \eval{\env}{m}{e_2}{v_2}
- %    }
- %    {
- %    \eval{\env}{m}{\epair{e_1}{e_2}}{\epair{v_1}{v_2}}
- %    }\qquad
+    \inferrule*[lab=S-Access]
+    {
+    \getat{m}{v} = \epair{v_1}{v_2}
+    }
+    {
+    \seval{\env}{m}{\eproj{i}{v}}{\env}{v_i}
+    }\qquad
+
+    \inferrule*[lab=S-Match]
+    {
+    \getat{m}{v} = \einj{i}{v_i}
+    }
+    {
+      \seval{\env}{m}{\econd{v}{e_1}{e_2}}{\env[x\mapsto v_i]}{e_i}
+    }\\ \\
+
+    \inferrule*[lab=S-Unfold]
+    {
+    \getat{m}{v_0} = \efold{\trec{\alpha}{\tau}}{v}
+    }
+    {
+    \seval{\env}{m}{\eunfold{v_0}}{\env}{v}
+    } \qquad
+
+    \inferrule*[lab=S-Share]
+    {
+    m \vdash P\\ m \vdash Q\\\\
+    P\text{ is a singleton}  \\
+    \getat{P}{v} = n  
+    }
+    {
+  \seval{\env}{m}{\eshare{\psi}{P}{Q}{v}}{\env}{\vloc{\vshare{Q}{\psi}{n}}{Q}}
+    }\\ \\
     
- %    \inferrule*[lab=E-Access]
- %    {
- %    \eval{\env}{m}{e}{v}\\\\
- %    \getat{m}{v} = \epair{v_1}{v_2}
- %    }
- %    {
- %    \eval{\env}{m}{\eproj{i}{e}}{v_i}
- %    }\\\\
-
- %    \inferrule*[lab=E-inj]
- %    {
- %    \eval{\env}{m}{e}{v}
- %    }
- %    {
- %    \eval{\env}{m}{\einj{i}{e}}{\einj{i}{v}}
- %    } \qquad
+    \inferrule*[lab=S-BinopNat]
+    {
+  \getat{m}{v_1} = n_1\\
+  \getat{m}{v_2} = n_2\\\\
+  n = n_1 \oplus n_2\\
+    }
+    {
+    \seval{\env}{m}{\ebinop{v_1}{v_2}}{\env}{n}
+    }\qquad
     
- %    \inferrule*[lab=E-Match]
- %    {
- %    \eval{\env}{m}{e}{v_0}\\
- %    \getat{m}{v_0} = \einj{i}{v_i}\\\\
- %    \eval{\env[x\mapsto v_i]}{m}{e_i}{v}
- %    }
- %    {
- %      \eval{\env}{m}{\econd{e}{e_1}{e_2}}{v}
- %    }\\ \\
+    \inferrule*[lab=S-BinopShare]
+    {
+  \getat{m}{v_1} = \vshare{m}{\psi}{e_1} \\
+  \getat{m}{v_2} = \vshare{m}{\psi}{e_2} \\\\
+  v = \vshare{m}{\psi}{\ebinop{e_1}{e_2}}
+    }
+    {
+    \seval{\env}{m}{\ebinop{v_1}{v_2}}{\env}{v}
+    }\\\\
 
- %    \inferrule*[lab=E-Fold]
- %    {
- %    \eval{\env}{m}{e}{v}
- %    }
- %    {
- %    \eval{\env}{m}{\efold{\trec{\alpha}{\tau}}{e}}{\efold{\trec{\alpha}{\tau}}{v}}
- %    } \qquad
+    \inferrule*[lab=S-Mux]
+    {
+  \getat{m}{v_0} = \vshare{m}{\psi}{e'} \\\\
+  \getat{m}{v_1} = \vshare{m}{\psi}{e'_1} \\
+  \getat{m}{v_2} = \vshare{m}{\psi}{e'_2} \\\\
+  v = \vshare{m}{\psi}{\emux{e'}{e_1'}{e_2'}}
+    }
+    {
+    \seval{\env}{m}{\emux{v_0}{v_1}{v_2}}{\env}{v}
+    }\qquad
 
- %    \inferrule*[lab=E-Unfold]
- %    {
- %    \eval{\env}{m}{e}{v_0}\\\\
- %    \getat{m}{v_0} = \efold{\trec{\alpha}{\tau}}{v}
- %    }
- %    {
- %    \eval{\env}{m}{\eunfold{e}}{v}
- %    } \qquad
-
- %    \inferrule*[lab=E-Share]
- %    {
- %    m \vdash P\\ m \vdash Q\\\\
- %    P\text{ is a singleton}  \\\\
- %    \eval{\env}{m}{e}{v}\\
- %    \getat{P}{v} = n  
- %    }
- %    {
- %  \eval{\env}{m}{\eshare{\psi}{P}{Q}{e}}{\vloc{\vshare{Q}{\psi}{n}}{Q}}
- %    }\\ \\
+    \inferrule*[lab=S-Reveal]
+  {
+    m \vdash P\\ m \vdash Q\\\\
+    \getat{P}{v_0} = \vshare{P}{\psi}{e_0}\\\\
+    \eval{\env}{m}{e_0}{v}\\
+    n = \getat{P}{v} 
+    } 
+    {
+    \seval{\env}{m}{\ereveal{P}{Q}{v_0}{\psi}}{\env}{\vloc{n}{Q}}
+    }\\\\
     
- %    \inferrule*[lab=E-BinopNat]
- %    {
- %  \eval{\env}{m}{e_1}{v_1}\\
- %  \getat{m}{v_1} = n_1\\\\
- %    \eval{\env}{m}{e_2}{v_2}\\
- %  \getat{m}{v_2} = n_2\\\\
- %  n = n_1 \oplus n_2\\
- %    }
- %    {
- %    \eval{\env}{m}{\ebinop{e_1}{e_2}}{n}
- %    }\qquad
+    \inferrule*[lab=S-Fix]
+    {
+    }
+    {
+    \seval{\env}{m}{\efix{f}{x}{e}}{\env}{\vclos{\env}{\efix{f}{x}{e}}}
+    }\\\\
 
-      
- %    \inferrule*[lab=E-BinopShare]
- %    {
- %  \eval{\env}{m}{e_1}{v_1}\\
- %  \getat{m}{v_1} = \vshare{m}{\psi}{e'_1} \\\\
- %    \eval{\env}{m}{e_2}{v_2}\\
- %  \getat{m}{v_2} = \vshare{m}{\psi}{e'_2} \\\\
- %  v = \vshare{m}{\psi}{\ebinop{e'_1}{e'_2}}
- %    }
- %    {
- %    \eval{\env}{m}{\ebinop{e_1}{e_2}}{v}
- %    }\\\\
-
- %    \inferrule*[lab=E-Mux]
- %    {
- %  \eval{\env}{m}{e}{v}\\
- %  \getat{m}{v} = \vshare{m}{\psi}{e'} \\\\
- %  \eval{\env}{m}{e_1}{v_1}\\
- %  \getat{m}{v_1} = \vshare{m}{\psi}{e'_1} \\\\
- %    \eval{\env}{m}{e_2}{v_2}\\
- %  \getat{m}{v_2} = \vshare{m}{\psi}{e'_2} \\\\
- %  v = \vshare{m}{\psi}{\emux{e'}{e_1'}{e_2'}}
- %    }
- %    {
- %    \eval{\env}{m}{\emux{e}{e_1}{e_2}}{v}
- %    }\qquad
-
- %    \inferrule*[lab=E-Reveal]
- %  {
- %    m \vdash P\\ m \vdash Q\\\\
- %    \eval{\env}{m}{e}{v_0}\\
- %    \getat{P}{v_0} = \vshare{P}{\psi}{e_0}\\\\
- %    \eval{\env}{m}{e_0}{v}\\
- %    n = \getat{P}{v} 
- %    } 
- %    {
- %    \eval{\env}{m}{\ereveal{P}{Q}{e}{\psi}}{\vloc{n}{Q}}
- %    }\\\\
-    
- %   \inferrule*[lab=E-Abs]
- %    {
- %    }
- %    {
- %    \eval{\env}{m}{\elam{x}{e}}{\vclos{\env}{\elam{x}{e}}}
- %    }\qquad
-   
- %    \inferrule*[lab=E-Fix]
- %    {
- %    }
- %    {
- %    \eval{\env}{m}{\efix{f}{x}{e}}{\vclos{\env}{\efix{f}{x}{e}}}
- %    }\\\\
-
- %    \inferrule*[lab=E-App]
- %    {
- %  \eval{\env}{m}{e}{v'}\\
- %    \getat{m}{v'} = \vclos{\env'}{\elam{x}{e'}}\\\\
- %  \eval{\env}{m}{e_1}{v_1}\\
- %  \eval{\env'[x \mapsto v_1]}{m}{e'}{v}\\
- %    }
- %    {
- %    \eval{\env}{m}{\eapp{e}{e_1}}{v}
- %    }\qquad
+    \inferrule*[lab=S-App]
+    {
+    \getat{m}{v_0} = \vclos{\env'}{\elam{x}{e'}}
+    }
+    {
+    \seval{\env}{m}{\eapp{v_0}{v_1}}{\env'[x \mapsto v_1]}{e'}
+    }\qquad
 
   
- %    \inferrule*[lab=E-FixApp]
- %    {
- %  \eval{\env}{m}{e}{v'}\\
- %    \getat{m}{v'} = \vclos{\env'}{\efix{f}{x}{e'}}\\\\
- % \eval{\env}{m}{e_1}{v_1}\\
- % \eval{\env'[f \mapsto v'][x \mapsto v_1]}{m}{e'}{v}\\
- %    }
- %    {
- %    \eval{\env}{m}{\eapp{e}{e_1}}{v}
- %    }\\ \\
+    \inferrule*[lab=S-FixApp]
+    {
+    \getat{m}{v_0} = \vclos{\env'}{\efix{f}{x}{e'}}
+    }
+    {
+    \seval{\env}{m}{\eapp{v_0}{v_1}}{\env'[f \mapsto v'][x \mapsto v_1]}{e'}
+    }\\ \\
 
- %    \inferrule*[lab=E-Let]
- %    {
- %    \eval{\env}{m}{e_1}{v_1}\\\\
- %    \eval{\env[x\mapsto v_1]}{m}{e_2}{v_2}
- %    }
- %    {
- %    \eval{\env}{m}{\elet{x}{e_1}{e_2}}{v_2}
- %  } \qquad
+    \inferrule*[lab=S-Let]
+    {
+    }
+    {
+    \seval{\env}{m}{\elet{x}{v_1}{e_2}}{\env[x\mapsto v_1]}{e_2}
+  } \qquad
 
-
- %  \inferrule*[lab=E-CrashOK]
- %    {
- %    \eval{\env}{m}{e}{v}\\
- %  \getat{m}{v} = \vcrash
- %    }
- %    {
- %    \eval{\env}{m}{\eproj{i}{e}}{\vcrash}\\\\
- %    \eval{\env}{m}{\eunfold{e}}{\vcrash}
- %    }\\\\
+  \inferrule*[lab=S-CrashOK]
+    {
+  \getat{m}{v} = \vcrash
+    }
+    {
+    \eval{\env}{m}{\eproj{i}{v}}{\vcrash}\\\\
+    \eval{\env}{m}{\eunfold{v}}{\vcrash}
+    }\\\\
 
 \end{array}
     $$
 \caption{Operational Semantics (Single threaded, small step)}
 \label{fig:small-sem}
 \end{figure}
->>>>>>> 12ed70788503aa62170b097fda686976258fd0a8
 
 \section{Semantics (Multi-threaded)}
 \label{sec:MTsemantics}
@@ -1286,9 +1231,7 @@ $$
 \end{array}
 $$
 The rule requires both $p$ and $q$ to arrive at a redex in which the
-share can be shared.\footnote{We may need a kind of fresh
-  identifier to make sure we are lining up the same redexes, and they
-  are not ``accidentally'' the same in appearance.} Since $p$ is doing
+share can be shared. Since $p$ is doing
 the sharing, its value is sure to be an integer $n$; the value at $q$
 is immaterial (probably something inaccessible, since it was computed
 only at $p$), so we just write $v$. The rule takes a step by
@@ -1305,8 +1248,15 @@ unencrypted result to the desired party.
 That coordination is always possible is guaranteed by the type system,
 and the simulation theorem. To prove this, we'll need some kind of
 ``slicing'' judgment that splits up the environment $\env$ for the ST
-case into the smaller environments in the MT case. See the Wysteria
-paper for approach and inspiration!
+case into the smaller environments in the MT case. Put another way,
+environments may disagree on particular values, e.g., party $p$'s
+environment $\env_p$ might map $x$ to $\vcrash$ while party $q$'s
+environment $\env_q$ maps it to $\vloc{n}{\{q\}}$. We may also need to
+define a notion of party-equivalence for contexts $\ctxt$, so that we
+can properly match up two parties' programs that have reached the same
+point. If we are lucky, these differences will all be localized in
+environments, and contexts can be the same. See the Wysteria paper for
+approach and inspiration!
 
 % More details:
 % \begin{itemize}
