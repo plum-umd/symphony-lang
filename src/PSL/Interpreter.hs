@@ -474,7 +474,7 @@ testInterpreter = do
   -- testInterpreterExample "indy-pars"
   -- testInterpreterExample "pfold"
   -- testInterpreterExample "karmarkar-simple"
-  testInterpreterExample "karmarkar-silly"
+  -- testInterpreterExample "karmarkar-silly"
   -- testInterpreterExample "msort"
   -- testInterpreterExample "partial-diverge"
   -- testInterpreterExample "reshare"
