@@ -6,6 +6,7 @@
 \usepackage{amssymb}
 \usepackage{mathpartir}
 \usepackage{color}
+\usepackage{xspace}
 
 %%%%% DEFS %%%%%%
 
@@ -48,6 +49,7 @@
 \newcommand{\vshare}[3]{\ensuremath{\{{#3}\}^{#1}_{#2}}}
 \newcommand{\vloc}[2]{\ensuremath{{#1}\kw{@}{#2}}}
 \newcommand{\vclos}[2]{\ensuremath{\mathbf{clos}~({#1},{#2})}}
+\newcommand{\vcrash}{\ensuremath{\bullet}}
 
 % Judgments
 \newcommand{\hastyp}[4]{\ensuremath{{#1} \vdash_{#2} {#3} : {#4}}}
@@ -55,21 +57,24 @@
 \newcommand{\subtype}{\ensuremath{<:}}
 \newcommand{\issub}[2]{{#1} \subtype {#2}}
 \newcommand{\eval}[4]{\ensuremath{\config{#1}{#3} \longrightarrow_{#2} {#4}}}
+\newcommand{\seval}[5]{\ensuremath{\config{#1}{#3} \rightsquigarrow_{#2} \config{#4}{#5}}}
 
 % Aux
 \newcommand{\env}{\ensuremath{\sigma}}
 \newcommand{\config}[2]{\ensuremath{\langle{#1},{#2}\rangle}}
 \newcommand{\locof}[2]{\ensuremath{\mathit{loc}_{#1}~{#2}}}
 \newcommand{\getat}[2]{\ensuremath{\mathit{on}_{#1}~{#2}}}
-% \newcommand{\ctxt}{\ensuremath{\mathcal{E}}}
+ \newcommand{\ctxt}{\ensuremath{\mathcal{E}}}
 % \newcommand{\pctxt}{\ensuremath{\mathcal{P}}}
-  
+
+\newcommand{\lang}{\textsc{corePSL}\xspace}
+
 %%%%%%%%%%
 
 \newcommand{\mwh}[1]{\textcolor{red}{Mike: #1}}
 
-\title{PANTHEON Source Language}
-\author{PANTHEON Team}
+\title{\lang: A core formalism for the PANTHEON Source Language}
+\author{Michael Hicks and the PANTHEON Team}
 
 \begin{document}
 
@@ -77,16 +82,43 @@
 
 \section{Introduction}
 
-This document defines a core calculus modeling PSL, the \emph{Pantheon
-  Source Language}.
+This document defines \lang, a core calculus modeling PSL, the
+\emph{Pantheon Source Language} for programming secure multiparty
+computations (MPCs). The \lang core calculus consists of the key features of PSL,
+leaving out features that can be encoded in terms of the core. Indeed,
+we expect the PANTHEON intermediate language (PIL) to look closer to
+\lang, once it's fully developed.
 
-\mwh{TODO}
-\begin{itemize}
-\item Give it a name; fix title to match
-\item How it differs from the real language, and why that's OK
-\item That it was inspired by Wysteria, but generalizes it
-\item The outline of the document
-\end{itemize}
+\subsection{Related Work}
+
+PSL (and \lang) was inspired by the MPC programming language
+Wysteria. Like Wysteria, MPCs are written as a single program to be
+executed by multiple parties. Like Wysteria, PSL programs have
+\emph{par blocks} that define code to be executed at (a subset of)
+each of the principals' local hosts. Wysteria also defined \emph{sec
+  blocks} to be executed by a set of parties, jointly, as an
+MPC\@. PSL generalizes Wysteria's notion of sec blocks by separating
+the notions of secret sharing, circuit construction (over shares), and
+computation of the final result, all of which were combined to define
+the essence of a sec block. This decomposition adds important
+flexibility, particularly when computations can vary with input size,
+and/or need to be carried out in multiple rounds and/or at multiple
+parties' hosts. As a formalism, \lang is also somewhat better
+engineered, and is pleasantly simple.
+
+\subsection{Outline}
+
+The rest of this document is organized as follows. In
+Section~\ref{sec:syntax} we present the syntax of \lang, along
+discussion of how other features available in PSL can be encoded in
+terms of the core syntax. Section~\ref{sec:examples} presents a series
+of example programs written \lang. Section~\ref{sec:STsemantics}
+presents the single-threaded semantics of \lang, while
+Section~\ref{sec:MTsemantics} presents the distributed
+semantics. Section~\ref{sec:typing} presents the \lang type system and
+states our core theoretical result, which is that for type-correct
+programs, the single-threaded semantics simulates the distributed
+semantics.
 
 \begin{figure}[h]
   \centering
@@ -126,16 +158,17 @@ This document defines a core calculus modeling PSL, the \emph{Pantheon
                        && \mid & \elet{x}{e_1}{e_2}  & \text{sequencing} \\
   \end{array}
   \]
-  \caption{Syntax}
+  \caption{Syntax of \lang}
   \label{fig:syntax}
 \end{figure}
 
 \newpage
 
 \section{Syntax}
-  
-The syntax of core PSL is in Figure~\ref{fig:syntax}. Some derived
-constructs (syntactic sugar) are given below.
+\label{sec:syntax}
+
+The syntax of \lang is in Figure~\ref{fig:syntax}. Some derived
+constructs (syntactic sugar) are given in Section~\ref{sec:derived}.
 
 \subsection{Types}
 
@@ -156,7 +189,7 @@ locations.
 
 \subsection{Expressions}
 
-Many of the language's expression forms are standard, including
+Many of \lang's expression forms are standard, including
 variables $x$; integers $n$; pair introduction $\epair{e_1}{e_2}$ and
 elimination (projection) $\eproj{i}{e}$; sum introduction
 $\einj{i}{e}$ and elimination $\econd{e}{e_1}{e_2}$ (where $x$ binds
@@ -191,7 +224,7 @@ $p$ but have a value only accessible to $q$ in it. Principal $p$ can
 still manipulate a placeholder for $x$ but should never look at its
 contents (i.e., to operate on it).
 
-We conclude with the MPC-specific constructs in the language.
+We conclude with the MPC-specific constructs in \lang.
 
 Expression $\eshare{\psi}{P}{Q}{e}$ evaluates $e$ to a natural number,
 and then $P$ secret-shares this number with the principals in $Q$. All
@@ -221,9 +254,10 @@ current mode so that the shareholders can agree to send the value and
 the result-receivers are there to receive it.
 
 \subsection{Derived Expressions}
+\label{sec:derived}
 
-Rather than put every useful construct in the language, we can defined
-some in terms of others.
+Some useful constructs can be encoded using \lang features (or via
+obvious language extensions). 
 
 \subsubsection{Encrypted Sums}
 
@@ -246,10 +280,11 @@ let muxshare e t_fun f_fun =
   mux x ? t_fun l : f_fun r
 \end{verbatim}
 While \verb+t_fun+ and \verb+f_fun+ are notated as functions, instead
-it makes sense to make these proper syntax in the language, with a
+it makes sense to make these proper syntax in \lang, with a
 binding form like $\kw{match}$.
 
 \subsubsection{Generalized Mux and Reveal}
+\label{sec:generalmux}
 
  The $\kw{mux}$ construct is restricted to returning encrypted
 $\tnat$s. We can generalize this to returning pairs of encrypted
@@ -291,7 +326,7 @@ let wmap (x:W {p,q} t) (f:t -> t0) =
 This runs the function $f$ on each element of the wire bundle, on its
 respective host, and packages the results in another wire bundle. Note
 that $f$ would need to be inlined at each call site because we don't
-support polymorphism in the language. Moreover, $f$ might contain
+support polymorphism in \lang. Moreover, $f$ might contain
 occurrences of $\alpha$ which would  be substituted with
 \texttt{\{p\}} in the first half of the pair, and \texttt{\{q\}} in
 the second.
@@ -317,17 +352,13 @@ You can imagine generalizing this to wire bundles of arbitrary (but
 fixed) size. You can also easily imagine converting this pair to a
 list, and then supporting equivalent constructs like \texttt{wfold}.
 
-\mwh{TO DO}
-\begin{itemize}
-  \item Do we want a way to run code over a wire bundle in which
-    parties are not in solo mode? For example, they could run in full
-    par mode (with both principals) but then accesses to the
-    individual elements could be dropped to a single mode, for those
-    accesses. For this, you need a map from principal $\alpha$ to
-    index in the pair for $\alpha$'s value. For the accessor in the
-    code, you use the map to extra from the pair. Maybe use ``self''
-    and not $\alpha$. 
-  \end{itemize}
+We might want a way to run code over a wire bundle in which parties
+are not in solo mode. For example, they could run in full par mode
+(with multiple principals) but then accesses to the individual elements
+could be dropped to a single mode, for those accesses. For this, you
+need a map from principal $\alpha$ to index in the pair for $\alpha$'s
+value. For the accessor in the code, you use the map to extra from the
+pair. Maybe use ``self'' and not $\alpha$.
 
 \subsection{Future work: First-class principals and dependent types}
 
@@ -358,6 +389,7 @@ generalized the fixed-size notion of wire bundles given above.
 We leave it to future work to flesh out the details. 
 
 \section{Examples}
+\label{sec:examples}
 
 \subsection{Encoding lists of shares}
 
@@ -478,6 +510,7 @@ previous incarnation would have been rejected):
 \end{verbatim}
 
 \section{Semantics (Single Threaded)}
+\label{sec:STsemantics}
 
 \begin{figure}
   \[\begin{array}{rlcll}
@@ -489,7 +522,8 @@ previous incarnation would have been rejected):
       \text{Value} & v  \in \mathbf{Val} & ::=  & u & \text{locatable value}\\
                        && \mid & \epair{v_1}{v_2} & \text{pair value}\\
                        && \mid & \efold{\trec{\alpha}{\tau}}{v} & \text{rectype value}\\
-                       && \mid & \vloc{u}{P} & \text{located value}\\
+                   && \mid & \vloc{u}{P} & \text{located value}\\
+                   && \mid & \vcrash & \text{bogus ``crash" value}\\
       % \text{Eval Context} & \ctxt & ::= & \multicolumn{2}{l}{\bullet \mid\epair{\ctxt}{e} \mid
       %                        \epair{v}{\ctxt} \mid \eproj{i}{\ctxt}}  \\
       %          && \mid & \multicolumn{2}{l}{\eshare{\psi}{P}{Q}{\ctxt} \mid
@@ -511,6 +545,7 @@ previous incarnation would have been rejected):
     \locof{P}{\epair{v_1}{v_2}} & \epair{\locof{P}{v_1}}{\locof{P}{v_2}}\\
     \locof{P}{ \efold{\trec{\alpha}{\tau}}{v}} &  \efold{\trec{\alpha}{\tau}}{\locof{P}{v}}\\
     \locof{P}{\vloc{u}{Q}} & \vloc{(\locof{P}{u})}{R} \qquad\text{where }R = P \cap Q\\
+    \locof{P}{\vcrash} & \vcrash\\
     \locof{P}{\sigma} & \{ x \mapsto v' \mid \sigma(x) = v \land \locof{P}{v} = v' \}\\
     \multicolumn{2}{c}{}\\
     \getat{P}{(\vloc{u}{Q})} & u \qquad \text{where }Q \vdash P\\
@@ -560,14 +595,17 @@ $$
     }
     \\ \\
 
-    \inferrule*[lab=E-Let]
+      \inferrule*[lab=E-Par]
     {
-    \eval{\env}{m}{e_1}{v_1}\\\\
-    \eval{\env[x\mapsto v_1]}{m}{e_2}{v_2}
+  Q = m \cap P\\\\
+  Q = \emptyset \Rightarrow v = \vcrash\\\\
+    Q \not= \emptyset \Rightarrow
+    \env' = \locof{P}{\env} \land
+    \eval{\env'}{{Q}}{e}{v}
     }
     {
-    \eval{\env}{m}{\elet{x}{e_1}{e_2}}{v_2}
-    }\qquad
+    \eval{\env}{m}{\epar{P}{e}}{v}
+    } \qquad
   
     \inferrule*[lab=E-Pair]
     {
@@ -660,8 +698,8 @@ $$
 
     \inferrule*[lab=E-Mux]
     {
-  \eval{\env}{m}{e}{v}\\
-  \getat{m}{v} = \vshare{m}{\psi}{e'} \\\\
+  \eval{\env}{m}{e}{v_0}\\
+  \getat{m}{v_0} = \vshare{m}{\psi}{e'} \\\\
   \eval{\env}{m}{e_1}{v_1}\\
   \getat{m}{v_1} = \vshare{m}{\psi}{e'_1} \\\\
     \eval{\env}{m}{e_2}{v_2}\\
@@ -721,20 +759,29 @@ $$
     \eval{\env}{m}{\eapp{e}{e_1}}{v}
     }\\ \\
 
-    \inferrule*[lab=E-Par]
+    \inferrule*[lab=E-Let]
     {
-  Q = m \cap P\\\\
-  Q = \emptyset \Rightarrow v = \locof{Q}{0}\\\\
-    Q \not= \emptyset \Rightarrow
-    \env' = \locof{P}{\env} \land
-    \eval{\env'}{{Q}}{e}{v}
+    \eval{\env}{m}{e_1}{v_1}\\\\
+    \eval{\env[x\mapsto v_1]}{m}{e_2}{v_2}
     }
     {
-    \eval{\env}{m}{\epar{P}{e}}{v}
-    } \qquad
+    \eval{\env}{m}{\elet{x}{e_1}{e_2}}{v_2}
+  } \qquad
+
+
+  \inferrule*[lab=E-CrashOK]
+    {
+    \eval{\env}{m}{e}{v}\\
+  \getat{m}{v} = \vcrash
+    }
+    {
+    \eval{\env}{m}{\eproj{i}{e}}{\vcrash}\\\\
+    \eval{\env}{m}{\eunfold{e}}{\vcrash}
+    }\\\\
+
 \end{array}
     $$
-\caption{Operational Semantics}
+\caption{Operational Semantics (Single threaded, big step)}
 \label{fig:sem}
 \end{figure}
 
@@ -751,16 +798,25 @@ $m$ executing in lockstep.
 To be clear about which values reside on which parties' hosts, we have
 a special value form to indicates this. Values are defined in
 Figure~\ref{fig:auxsem}. The form $\vloc{u}{P}$ indicates that $u$ is
-only visible to principals $p \in P$. Since not all values need to
-be explicitly located (if they are in scope, they implicitly
-are accessible), we distinguish \emph{locatable} values $u$.
-Values for numbers, sums, and closures are standard (closures
-have an explicit environment---we don't use substitution), as are
-(locatable) values for pairs and recursive types. The value
-$\vshare{Q}{\psi}{e}$ represents a circuit for a secure computation
-under scheme $\psi$ to be performed by principals in $q \in Q$. Notice
-that it contains an expression $e$, not a value $v$; this represents a
-``suspended'' computation. 
+only visible to principals $p \in P$. Since not all values need to be
+explicitly located (if they are in scope, they implicitly are
+accessible), we distinguish \emph{locatable} values $u$.  Values for
+numbers, sums, and closures are located, and otherwise standard
+(closures have an explicit environment---we don't use
+substitution). Values for pairs and recursive types are not located,
+but are also standard. The value $\vshare{Q}{\psi}{e}$ represents a
+circuit for a secure computation under scheme $\psi$ to be performed
+by principals in $q \in Q$. Notice that it contains an expression $e$,
+not a value $v$; this represents a ``suspended'' computation.
+
+We also have a special value $\vcrash$ that stand in for values
+present at other hosts. This is particularly important, when we get to
+the distributed semantics, for container values (pairs and recursive
+types). Such values are not ``located'' so all hosts must be able to
+``access'' them. Non-containers, however, cannot be eliminated if they
+are not present at the host. The $\vcrash$ value does not appear in
+source programs and arises when computing a $\epar{Q}{e}$ such that
+$Q$ is empty; we see this in the next subsection.
 
 In the same figure are two functions over values: $\locof{P}{v}$ and
 $\getat{v}{P}$. The first is a transformation of $v$ that
@@ -807,19 +863,19 @@ principal set(s) $P \subseteq m$. The rules preserve the assumption of
 environment compatibility (in the premises) and ensure compatibility
 in the conclusion.
 
-Skipping ahead, consider \rulelab{E-Par}, which evaluates
-$\epar{P}{e}$. It evaluates $e$ in mode $Q = m \cap P$ to produce
-$v_0$; i.e., only those principals in $P$ \emph{also} present $m$ will
-run $e$. If $Q$ is empty, then no evaluation takes place, and $0$
-(located at $Q = \emptyset$) is returned. (The alternative of running
-$e$ with $\emptyset$ as the mode is not equivalent; see discussion
-below.) Otherwise, evaluation takes place in environment $\sigma'$,
-which is the current environment located at $P$, which is constructed
-by intersecting mapped-to values' locations with $P$. Assuming
-$\sigma$ is compatible with $m$ already, it just needs to also be
-located at $P$, and the result will be compatible with $Q$. On the
-other hand the result $v$ need not be explicitly located at $Q$ before
-it can be returned, per our invariant.
+Now consider \rulelab{E-Par}, which evaluates $\epar{P}{e}$. It
+evaluates $e$ in mode $Q = m \cap P$ to produce $v$; i.e., only those
+principals in $P$ \emph{also} present $m$ will run $e$. If $Q$ is
+empty, then no evaluation takes place, and $\vcrash$ is returned.
+(The alternative of running $e$ with $\emptyset$ as the mode is not
+equivalent; see discussion below.)  Otherwise, evaluation takes place
+in environment $\sigma'$, which is the current environment (already
+located at $P$ by assumption), which is constructed by intersecting
+mapped-to values' locations with $P$. Assuming $\sigma$ is compatible
+with $m$ already, it just needs to also be located at $P$, and the
+result will be compatible with $Q$. On the other hand the result $v$
+need not be explicitly located at $Q$ before it can be returned, per
+our invariant.
 
 Let's consider the remaining rules, which focus on multiparty
 computation. \rulelab{E-Share} models principal $p \in P$
@@ -843,6 +899,13 @@ computation in the given share. We require that the principals $P$ who
 each have a share are present in $m$, and likewise the principals in
 $Q$ to whom the final result is sent.
 
+Lastly, \rulelab{E-CrashOK} is an elimination rule for $\vcrash$
+values. This rule permits converting non-located containers---pairs
+and recursive types---into $\vcrash$ values. However, there are no
+elimination rules for $\vcrash$ values having located types, i.e.,
+numbers, sums, or functions. A program that tries to use a crash value
+as one of these will be stuck.
+
 \paragraph{Discussion}
 
 Rule~\rulelab{E-Par} indicates that if the ``present'' set of
@@ -861,7 +924,8 @@ with $\kw{par}$ sets intersected with that principal. So on $c$ it
 would be $\epar{\{a,b\} \cap \{c\}}{e}$ or in other words the
 principal set is empty---no relevant principals are ``here''---and we
 don't run it. This implies that a $\kw{par}$ block with an empty
-principal set should be skipped. 
+principal set should be skipped (and the $\vcrash$ value returned as a
+placeholder). 
 
 The alternative is weird. If no-principal blocks should be executed,
 how should that be done? The meaning is that no principal sets are
@@ -889,64 +953,340 @@ that terminate; we are not obligated to reason about non-terminating
 programs. And in any case it's about ``real'' computations; not ones
 that are contrived.
 
-\section{Semantics (Multi-threaded)}
+\subsection{Small-step Semantics}
 
-\mwh{TODO. Thoughts follow.}
+\begin{figure}
+  \[\begin{array}{rlcl}
+      \text{Eval Context} & \ctxt & ::= & \bullet \mid \ewrite{\ctxt} \mid
+                                          \epair{\ctxt}{e} \mid
+                             \epair{v}{\ctxt} \mid \eproj{i}{\ctxt}  \\
+               && \mid & \eshare{\psi}{P}{Q}{\ctxt} \mid
+                             \ereveal{P}{Q}{\ctxt}{\psi} \mid \ebinop{\ctxt}{e_2} \mid \ebinop{v}{\ctxt}   \\
+               && \mid & \emux{\ctxt}{e_1}{e_2}
+                         \mid \emux{v}{\ctxt}{e_2} \mid \emux{v}{v_1}{\ctxt}    \\
+               && \mid & \einj{i}{\ctxt} \mid \econd{\ctxt}{e_1}{e_2}   \\
+               && \mid & \efold{\trec{\alpha}{\tau}}{\ctxt} \mid \eunfold{\ctxt}  \\
+                          && \mid & \eapp{\ctxt}{e} \mid
+                         \eapp{v}{\ctxt} \mid \elet{x}{\ctxt}{e_2} \\
+    \end{array}
+  \]
+  \caption{Small-step semantics: Evaluation contexts}
+  \label{fig:ctxts}
+\end{figure}
+
+In preparation for the multi-threaded semantics, we need a small-step
+version of the big-step semantics presented above. Judgment
+$\seval{\env}{e}{m}{\env'}{e'}$ states that in mode $m$ and
+environment $\env$, expression $e$ steps to expression $e'$ and
+environment $\env'$. We define \emph{evaluation contexts} $\ctxt$ in
+Figure~\ref{fig:ctxts}. The rules are defined in
+Figure~\ref{fig:small-sem}. \mwh{TODO}
+
+
+\begin{figure}
+$$
+\begin{array}{c}
+    \inferrule*[lab=S-Var]
+    {
+    \env(x) = v
+    }
+    {
+    \seval{\env}{m}{x}{\env}{v}
+  }\qquad
+
+  \inferrule*[lab=S-Read]
+    {
+  m\text{ is a singleton}
+    }
+    {
+    \seval{\env}{m}{\eread}{\env}{n}
+    }
+    \qquad
+
+      \inferrule*[lab=S-Write]
+      {
+      m\text{ is a singleton}\\\\
+  \getat{m}{v} = n
+    }
+    {
+    \seval{\env}{m}{\ewrite{v}}{\env}{n}
+    }
+    \\ \\
+
+ %      \inferrule*[lab=E-Par]
+ %    {
+ %  Q = m \cap P\\\\
+ %  Q = \emptyset \Rightarrow v = \vcrash\\\\
+ %    Q \not= \emptyset \Rightarrow
+ %    \env' = \locof{P}{\env} \land
+ %    \eval{\env'}{{Q}}{e}{v}
+ %    }
+ %    {
+ %    \eval{\env}{m}{\epar{P}{e}}{v}
+ %    } \qquad
+  
+    \inferrule*[lab=S-Access]
+    {
+    \getat{m}{v} = \epair{v_1}{v_2}
+    }
+    {
+    \seval{\env}{m}{\eproj{i}{v}}{\env}{v_i}
+    }\qquad
+
+    \inferrule*[lab=S-Match]
+    {
+    \getat{m}{v} = \einj{i}{v_i}
+    }
+    {
+      \seval{\env}{m}{\econd{v}{e_1}{e_2}}{\env[x\mapsto v_i]}{e_i}
+    }\\ \\
+
+    \inferrule*[lab=S-Unfold]
+    {
+    \getat{m}{v_0} = \efold{\trec{\alpha}{\tau}}{v}
+    }
+    {
+    \seval{\env}{m}{\eunfold{v_0}}{\env}{v}
+    } \qquad
+
+    \inferrule*[lab=S-Share]
+    {
+    m \vdash P\\ m \vdash Q\\\\
+    P\text{ is a singleton}  \\
+    \getat{P}{v} = n  
+    }
+    {
+  \seval{\env}{m}{\eshare{\psi}{P}{Q}{v}}{\env}{\vloc{\vshare{Q}{\psi}{n}}{Q}}
+    }\\ \\
+    
+    \inferrule*[lab=S-BinopNat]
+    {
+  \getat{m}{v_1} = n_1\\
+  \getat{m}{v_2} = n_2\\\\
+  n = n_1 \oplus n_2\\
+    }
+    {
+    \seval{\env}{m}{\ebinop{v_1}{v_2}}{\env}{n}
+    }\qquad
+    
+    \inferrule*[lab=S-BinopShare]
+    {
+  \getat{m}{v_1} = \vshare{m}{\psi}{e_1} \\
+  \getat{m}{v_2} = \vshare{m}{\psi}{e_2} \\\\
+  v = \vshare{m}{\psi}{\ebinop{e_1}{e_2}}
+    }
+    {
+    \seval{\env}{m}{\ebinop{v_1}{v_2}}{\env}{v}
+    }\\\\
+
+    \inferrule*[lab=S-Mux]
+    {
+  \getat{m}{v_0} = \vshare{m}{\psi}{e'} \\\\
+  \getat{m}{v_1} = \vshare{m}{\psi}{e'_1} \\
+  \getat{m}{v_2} = \vshare{m}{\psi}{e'_2} \\\\
+  v = \vshare{m}{\psi}{\emux{e'}{e_1'}{e_2'}}
+    }
+    {
+    \seval{\env}{m}{\emux{v_0}{v_1}{v_2}}{\env}{v}
+    }\qquad
+
+    \inferrule*[lab=S-Reveal]
+  {
+    m \vdash P\\ m \vdash Q\\\\
+    \getat{P}{v_0} = \vshare{P}{\psi}{e_0}\\\\
+    \eval{\env}{m}{e_0}{v}\\
+    n = \getat{P}{v} 
+    } 
+    {
+    \seval{\env}{m}{\ereveal{P}{Q}{v_0}{\psi}}{\env}{\vloc{n}{Q}}
+    }\\\\
+    
+    \inferrule*[lab=S-Fix]
+    {
+    }
+    {
+    \seval{\env}{m}{\efix{f}{x}{e}}{\env}{\vclos{\env}{\efix{f}{x}{e}}}
+    }\\\\
+
+    \inferrule*[lab=S-App]
+    {
+    \getat{m}{v_0} = \vclos{\env'}{\elam{x}{e'}}
+    }
+    {
+    \seval{\env}{m}{\eapp{v_0}{v_1}}{\env'[x \mapsto v_1]}{e'}
+    }\qquad
+
+  
+    \inferrule*[lab=S-FixApp]
+    {
+    \getat{m}{v_0} = \vclos{\env'}{\efix{f}{x}{e'}}
+    }
+    {
+    \seval{\env}{m}{\eapp{v_0}{v_1}}{\env'[f \mapsto v'][x \mapsto v_1]}{e'}
+    }\\ \\
+
+    \inferrule*[lab=S-Let]
+    {
+    }
+    {
+    \seval{\env}{m}{\elet{x}{v_1}{e_2}}{\env[x\mapsto v_1]}{e_2}
+  } \qquad
+
+  \inferrule*[lab=S-CrashOK]
+    {
+  \getat{m}{v} = \vcrash
+    }
+    {
+    \eval{\env}{m}{\eproj{i}{v}}{\vcrash}\\\\
+    \eval{\env}{m}{\eunfold{v}}{\vcrash}
+    }\\\\
+
+\end{array}
+    $$
+\caption{Operational Semantics (Single threaded, small step)}
+\label{fig:small-sem}
+\end{figure}
+
+\section{Semantics (Multi-threaded)}
+\label{sec:MTsemantics}
+
+We have not developed a multi-threaded semantics as yet, but we have
+one in mind. Here's how it will work.
 
 Each party $p$ has its own store $\env_p$ and program $e_p$, rather
-than there being a global program. Evaluating these is equivalent to
-running with $m = \{ p \}$, i.e., for a single party, roughly
-speaking.
+than there being a global program $e$. These programs are the same as
+$e$ except they start out as wrapped in a $\epar{\{p\}}{...}$ for each
+principal $p$ that is participating in the MPC\@. To be concrete:
+Suppose you are given a program $e$
+meant to be run by both $p$ and $q$. At host $p$ you just run
+$\epar{\{p\}}{e}$ and at $q$ you run $\epar{\{q\}}{e}$; i.e., you wrap
+the program $e$ with a $\kw{par}$ annotation of the host running
+it. Doing will have the effect of intersecting the set $P$ of any
+$\epar{P}{...}$ within $e$ that is reached by $p$ or $q$, singly. If
+doing so causes the $\kw{par}$ expression's principal set to be empty,
+the expression will be skipped (and a $\vcrash$ value
+returned). Otherwise it will be run by that single principal.
 
-A key change in the design of ST mode would be to make it that if you
-start the same program, meant to be run by $p$ and $q$ together, with
-just $p$ or just $q$, it will do so correctly. This will happen as
-long as the $\kw{par}$ mode rule is correct: It will just intersect the
-annotation $P$ on the $\kw{par}$ with the current mode---a
-singleton---and then that single party will continue on and do the
-right thing. 
+By inspection of the evaluation rules (Figure~\ref{fig:sem}), we can
+see that programs without $\kw{share}$ and $\kw{reveal}$ operations
+should work out fine---if the program would have run correctly as a
+single-threaded program, it should run correctly in this
+multi-threaded manner, too. The trick is that programs that don't do
+$\kw{share}$ and $\kw{reveal}$ don't communicate between
+principals. Those that do require coordination, so they won't work in
+the above approach. For example, if we had
+$\eshare{\psi}{\{p\}}{\{p,q\}}{e}$, then rule \rulelab{E-Share} will
+get stuck: the annotation $\{p,q\}$ requires both $p$ and $q$ to be
+present, but only one of them will be when running in
+$\epar{\{p\}}{...}$ or $\epar{\{q\}}{...}$ (which would also get stuck
+because the annotation $p$ would be invalid in mode $\{q\}$).
 
-Computations that require coordination will be done in a mode that
-contains the coordinating parties. The single-mode parties must
+To support MPCs, we need to introduce additional rules that allow
+single principals that reach MPC constructs to make progress as long
+as they all make progress. That is, the single-mode parties must
 synchronize before carrying out the computation. They will wait for
 each party to reach the same spot, carry out the computation, and
 continue on with whatever their local result should be. The type
 system should ensure things line up.
 
-More details:
-\begin{itemize}
-\item $\eshare{P}{\psi}{Q}{e}$ requires coordination among $P \cup Q$,
-  where $P$ is a singleton. Somehow, the result of this computation
-  will be $\vshare{Q}{\psi}{n}$ and given to each party $q \in Q$,
-whereas $P$ gets $0$ (if he is not in $Q$).
-\item $\ebinop{e_1}{e_2}$ is just as in the ST mode---each party in
-  the share will have the full copy of it. Same with $\kw{mux}$. Key
-  question: How to prove these end up in the same place?
-\item $\ereveal{P}{\psi}{Q}{e}$ requires coordination among $P \cup
-  Q$, where $e$ is a $\vshare{Q}{\psi}{e'}$---i.e., the $Q$ parties
-match up. Each of the parties $q \in Q$ should reach this redex
-\emph{and have the same $e'$}. The type system should ensure they
-agree on this, the circuit that's been created. Moreover, $e'$ should
-only consist of numbers, binops, and muxes. This means you can just
-\emph{run it without an environment, in an empty mode}. We let every
-$q \in Q$ do that, and thus they will agree on the result $n$. Parties
-$p \in P$ then receive this result, while any other parties $q \not\in
-P$ receive $0$.
-\end{itemize}
+We will need to make a small-step version of the ST semantics for this
+all to work. Assuming that we have it, I imagine a MT judgment of the
+form $\mathcal{CS} \longrightarrow \mathcal{CS'}$ where $\mathcal{CS}$
+represents a set of configurations, one per active principal. Here's
+the basic way a principal takes a step:
+$$
+\begin{array}{c}
+    \inferrule*[lab=M-Step]
+    {
+  \mathcal{CS} = \mathcal{CS}_0 :: (p,\config{\env_p}{e_p}) ::
+  \mathcal{CS}_1\\
+  \eval{\env_p}{\{p\}}{e_p}{\config{\env_p'}{e'_p}}\\
+  \mathcal{CS}' = \mathcal{CS}_0 :: (p,\config{\env_p'}{e_p'}) ::
+  \mathcal{CS}_1\\
+  }
+  {
+  \mathcal{CS} \longrightarrow \mathcal{CS'}
+  }
+\end{array}
+$$
+The issue is what happens when principals need to perform a
+coordinated MPC\@. Here's the form of the rule I have in mind for
+shares, specialized to two parties $p$ and $q$:
+$$
+\begin{array}{c}
+    \inferrule*[lab=M-Share]
+    {
+  \mathcal{CS} = \mathcal{CS}_0 ::
+  (p,\config{\env_p}{\eshare{\psi}{\{p\}}{\{p,q\}}{n}}) ::
+  (q,\config{\env_q}{\eshare{\psi}{\{p\}}{\{p,q\}}{v}}) ::
+  \mathcal{CS}_1\\\\
+  \mathcal{CS}' = \mathcal{CS}_0 ::
+  (p,\config{\env_p}{\vloc{\vshare{\{p,q\}}{\psi}{n}}{\{p\}}}) ::
+  (q,\config{\env_q}{\vloc{\vshare{\{p,q\}}{\psi}{n}}{\{q\}}}) ::
+  \mathcal{CS}_1\\
+  }
+  {
+  \mathcal{CS} \longrightarrow \mathcal{CS'}
+  }
+\end{array}
+$$
+The rule requires both $p$ and $q$ to arrive at a redex in which the
+share can be shared. Since $p$ is doing
+the sharing, its value is sure to be an integer $n$; the value at $q$
+is immaterial (probably something inaccessible, since it was computed
+only at $p$), so we just write $v$. The rule takes a step by
+communicating the share value $\vshare{\{p,q\}}{\psi}{n}$ to each
+party $p$ and $q$ (and the share is specifically located there).
 
-I'm a little unsure about the communication between parties. How
-should this be encoded? Is there a generic way to do it? This will
-happen at $\kw{share}$ and $\kw{reveal}$. I'm also unsure that the
-``just intersect the principals at par mode at will work'' jives with
-the handling of these constructs. Need to mentally work through.
+We likewise coordinate progress on shared values on the rules
+equivalent to \rulelab{E-BinopShare} and \rulelab{E-Mux}, but for
+these, both parties should take identical steps on identical share
+values. We also coordinate on a rule equivalent to \rulelab{E-Reveal}
+(where each party has the identical share value again), sending the
+unencrypted result to the desired party.
 
-To prove that this semantics matches the ST one, I think we need some
-kind of ``slice'' of a program, for each of the involved hosts. At
-present, I think this slice can be static---you take the program,
-create a slice of it, and then run each slice. When we have dependent
-types, that may not be true anymore.
+That coordination is always possible is guaranteed by the type system,
+and the simulation theorem. To prove this, we'll need some kind of
+``slicing'' judgment that splits up the environment $\env$ for the ST
+case into the smaller environments in the MT case. Put another way,
+environments may disagree on particular values, e.g., party $p$'s
+environment $\env_p$ might map $x$ to $\vcrash$ while party $q$'s
+environment $\env_q$ maps it to $\vloc{n}{\{q\}}$. We may also need to
+define a notion of party-equivalence for contexts $\ctxt$, so that we
+can properly match up two parties' programs that have reached the same
+point. If we are lucky, these differences will all be localized in
+environments, and contexts can be the same. See the Wysteria paper for
+approach and inspiration!
 
-\section{Typing}
+% More details:
+% \begin{itemize}
+% \item $\eshare{P}{\psi}{Q}{e}$ requires coordination among $P \cup Q$,
+%   where $P$ is a singleton. Somehow, the result of this computation
+%   will be $\vshare{Q}{\psi}{n}$ and given to each party $q \in Q$,
+% whereas $P$ gets $0$ (if he is not in $Q$).
+% \item $\ebinop{e_1}{e_2}$ is just as in the ST mode---each party in
+%   the share will have the full copy of it. Same with $\kw{mux}$. Key
+%   question: How to prove these end up in the same place?
+% \item $\ereveal{P}{\psi}{Q}{e}$ requires coordination among $P \cup
+%   Q$, where $e$ is a $\vshare{Q}{\psi}{e'}$---i.e., the $Q$ parties
+% match up. Each of the parties $q \in Q$ should reach this redex
+% \emph{and have the same $e'$}. The type system should ensure they
+% agree on this, the circuit that's been created. Moreover, $e'$ should
+% only consist of numbers, binops, and muxes. This means you can just
+% \emph{run it without an environment, in an empty mode}. We let every
+% $q \in Q$ do that, and thus they will agree on the result $n$. Parties
+% $p \in P$ then receive this result, while any other parties $q \not\in
+% P$ receive $0$.
+% \end{itemize}
+
+% To prove that this semantics matches the ST one, I think we need some
+% kind of ``slice'' of a program, for each of the involved hosts. At
+% present, I think this slice can be static---you take the program,
+% create a slice of it, and then run each slice. When we have dependent
+% types, that may not be true anymore.
+
+\section{Type System}
+\label{sec:typing}
 
 \begin{figure}
 \[\begin{array}{c}
@@ -983,16 +1323,17 @@ types, that may not be true anymore.
     {
     \hastyp{\Gamma}{m}{\ewrite{e}}{\tnat^{m}}
     }
-
     \\ \\
-    \inferrule*[lab=T-Let]
+    
+    \inferrule*[lab=T-Par]
     {
-    \hastyp{\Gamma}{m}{e_1}{\tau_1}\\\\
-    \hastyp{\Gamma, x\!:\!\tau_1}{m}{e_2}{\tau}
+    Q = m \cap P\\
+    Q \vdash \tau\\\\
+    \hastyp{\Gamma}{{Q}}{e}{\tau}
     }
     {
-    \hastyp{\Gamma}{m}{\elet{x}{e_1}{e_2}}{\tau}
-    }\qquad
+    \hastyp{\Gamma}{m}{\epar{P}{e}}{\tau}
+    } \qquad
 
     \inferrule*[lab=T-Pair]
     {
@@ -1117,15 +1458,14 @@ types, that may not be true anymore.
     \hastyp{\Gamma}{m}{\efix{f}{x}{e}}{\tfun{\tau_1}{\tau_2}{m}}
     }\\ \\
 
-    \inferrule*[lab=T-Par]
+    \inferrule*[lab=T-Let]
     {
-    Q = m \cap P\\
-    Q \vdash \tau\\\\
-    \hastyp{\Gamma}{{Q}}{e}{\tau}
+    \hastyp{\Gamma}{m}{e_1}{\tau_1}\\\\
+    \hastyp{\Gamma, x\!:\!\tau_1}{m}{e_2}{\tau}
     }
     {
-    \hastyp{\Gamma}{m}{\epar{P}{e}}{\tau}
-    } \qquad
+    \hastyp{\Gamma}{m}{\elet{x}{e_1}{e_2}}{\tau}
+    }\qquad
 
     \inferrule*[lab=T-Sub]
     {
@@ -1156,9 +1496,9 @@ visibility of the current mode. Rule~\rulelab{T-Read} types the
 \kw{read} command; since it will produce a different value at each
 location, it must be run in the visibility of a single principal ($m$
 must be a singleton set). Rule~\rulelab{T-Write} is
-similar. Rules~\rulelab{T-Var} and \rulelab{T-Let} are standard.
+similar. Rules~\rulelab{T-Var} and \rulelab{T-Let} (at the bottom) are standard.
 
-Jumping ahead, rule~\rulelab{T-Par} runs its expression $e$ in par
+Rule~\rulelab{T-Par} runs its expression $e$ in par
 mode involving principals $P$. At run-time, only $m \cap P$ principals
 will actually execute $e$, and so $e$ is checked in this mode, which
 we name $Q$.\footnote{Wysteria requires $P \subseteq m$, which is
@@ -1224,7 +1564,7 @@ the result to return based on the first argument's ultimate
 result. These are all (compatible) shares (under protocol $\psi$), so
 we can think of this as making a multiplexor circuit. The rule
 restrict the results to be $\tnat$s, but this is easily generalized
-via encoding (Section~\ref{sec:derived}).
+via encoding (Section~\ref{sec:generalmux}).
 
 Rule~\rulelab{T-Reveal} types share elimination, i.e., converting a
 share of a $\tnat$ to a normal value. In essence, it forces the secure
@@ -1254,53 +1594,10 @@ principals that must be present in the function body will indeed be
 running the function. \rulelab{T-Fix} is essentially a combination of
 these two, allowing $f$ to be referred to recursively in $e$.
 
-\mwh{TODO}
-\begin{itemize}
-\item Is there any benefit to the $m \vdash m'$ in T-Abs? Not
-  convinced. Reconsider function types --- see DavidH's note below.
-\item No subtyping at present for recursive types. Should we add it?
-\item Function types preclude top-level functions? See note below.
-\end{itemize}
-
-\begin{verbatim}
-By the way, I don't know if this will overcomplicate everything, but
-I've been thinking about how to get back the notion of applying a
-function with fewer parties than were there when the closure was
-made. (Which if I understand correctly is not possible in the current
-version since function sub-typing is invariant in the knownness of the
-function arrow). 
-
-It seems that you can view the annotation ^m (on both values and
-contexts) as a sort of upper bound on the parties who know some
-information (which you can subtype to include fewer parties). 
-Analogously you could imagine adding an annotation _n to represent a
-lower bound on the parties who know information (conceptually, the
-parties whose presence is mandatory to use a value). 
-Then you could give function arrows this subtype rule:
-
-t1' <: t1
-t2 <: t2'
-m >= m'
-n' >= n
--------------------
-t1 ->^m_n t2    <:    t1' ->^m'_n' t2'
-
-The application rule would require the upper and lower bound to match: 
-
-gamma |-^m_n e : t1 ->^m_m t2
-gamma |-^m_n e1 : t1
-------------------
-gamma |-^m_n (e e1) : t2
-
-par blocks would constrain the lower bound: By including a par block
-as a subexpression you indicating that the containing expression must
-involve the par block parties: 
-
-m >= m'
-gamma |-^m'_n e : t
---------------
-gamma |-^m_(n \cup m') par m' e : t
-\end{verbatim}
+Note that when we develop a small-step operational semantics we'll
+have to develop type rules for special value forms too. Crash values
+$\vcrash$ can be given any type. Located values $\vloc{u}{P}$ will
+have the type of $u$ annotated with location $P$.
 
 \begin{figure}
 \[\begin{array}{c}
@@ -1447,10 +1744,62 @@ gamma |-^m_(n \cup m') par m' e : t
 
 Soon:
 \begin{itemize}
-\item Develop multi-party operational semantics.
+\item Revisit rules for typechecking functions. What if the function
+  has a mode A but is called from a caller in mode B? How will that
+  affect the type of what's returned? Not sure we are accounting for
+  that? 
+\item Develop small-step ST semantics
+\item Develop small-step MT semantics fleshed out from discussion
 \item Prove relationship between single- and multi-threaded semantics
 \item Prove type soundness for single-threaded semantics
 \end{itemize}
+\mwh{TODO}
+\begin{itemize}
+\item Reconsider function types --- see DavidH's note below.
+\item No subtyping at present for recursive types. Should we add it?
+\item Function types preclude top-level functions? See note below.
+\end{itemize}
+
+\begin{verbatim}
+By the way, I don't know if this will overcomplicate everything, but
+I've been thinking about how to get back the notion of applying a
+function with fewer parties than were there when the closure was
+made. (Which if I understand correctly is not possible in the current
+version since function sub-typing is invariant in the knownness of the
+function arrow). 
+
+It seems that you can view the annotation ^m (on both values and
+contexts) as a sort of upper bound on the parties who know some
+information (which you can subtype to include fewer parties). 
+Analogously you could imagine adding an annotation _n to represent a
+lower bound on the parties who know information (conceptually, the
+parties whose presence is mandatory to use a value). 
+Then you could give function arrows this subtype rule:
+
+t1' <: t1
+t2 <: t2'
+m >= m'
+n' >= n
+-------------------
+t1 ->^m_n t2    <:    t1' ->^m'_n' t2'
+
+The application rule would require the upper and lower bound to match: 
+
+gamma |-^m_n e : t1 ->^m_m t2
+gamma |-^m_n e1 : t1
+------------------
+gamma |-^m_n (e e1) : t2
+
+par blocks would constrain the lower bound: By including a par block
+as a subexpression you indicating that the containing expression must
+involve the par block parties: 
+
+m >= m'
+gamma |-^m'_n e : t
+--------------
+gamma |-^m_(n \cup m') par m' e : t
+\end{verbatim}
+
 
 % Next: Look at \texttt{writeup/spdz.md} and think about language
 % changes to support verification.
