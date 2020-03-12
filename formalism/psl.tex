@@ -980,7 +980,14 @@ in one fell swoop, using the big-step semantics.
 $$
 \begin{array}{c}
  
-    \inferrule*[lab=S-Var]
+    \inferrule*[lab=S-Nat]
+    {
+    }
+    {
+    \seval{\env}{m}{n}{\env}{\vloc{n}{m}}
+  }\qquad
+
+  \inferrule*[lab=S-Var]
     {
     \env(x) = v_0\\\\ \locof{m}{v_0} = v
     }
@@ -1805,7 +1812,6 @@ Soon:
   has a mode A but is called from a caller in mode B? How will that
   affect the type of what's returned? Not sure we are accounting for
   that? 
-\item Develop small-step ST semantics
 \item Develop small-step MT semantics fleshed out from discussion
 \item Prove relationship between single- and multi-threaded semantics
 \item Prove type soundness for single-threaded semantics
