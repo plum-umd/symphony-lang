@@ -519,8 +519,7 @@ previous incarnation would have been rejected):
                              && \mid & \einj{i}{v} & \text{sum elem, }i \in \{1,2\}\\
                              && \mid & \vclos{\env}{e}  & \text{closure} \\
                              && \mid & \vshare{Q}{\psi}{e} & \text{$\psi$-$Q$ share of evaluating $e$} \\
-      \text{Value} & v  \in \mathbf{Val} & ::=  & u & \text{locatable value}\\
-                       && \mid & \epair{v_1}{v_2} & \text{pair value}\\
+      \text{Value} & v  \in \mathbf{Val} & ::=  & \epair{v_1}{v_2} & \text{pair value}\\
                        && \mid & \efold{\trec{\alpha}{\tau}}{v} & \text{rectype value}\\
                    && \mid & \vloc{u}{P} & \text{located value}\\
                    && \mid & \vcrash & \text{bogus ``crash" value}\\
@@ -541,11 +540,13 @@ previous incarnation would have been rejected):
     \locof{P}{n} & \vloc{n}{P} \\
     \locof{P}{\einj{i}{v}} & \vloc{(\locof{P}{v})}{P} \\
     \locof{P}{\vclos{\env}{\elam{x}{e}}} & \vloc{(\vclos{(\locof{P}{\env})}{\elam{x}{e}})}{P}\\
-    \locof{P}{\vshare{Q}{\psi}{e}} & \vloc{(\vshare{Q}{\psi}{e})}{P} \\
+    \locof{P}{\vshare{Q}{\psi}{e}} & \vloc{(\vshare{Q}{\psi}{e})}{P}
+    \\ \\
     \locof{P}{\epair{v_1}{v_2}} & \epair{\locof{P}{v_1}}{\locof{P}{v_2}}\\
     \locof{P}{ \efold{\trec{\alpha}{\tau}}{v}} &  \efold{\trec{\alpha}{\tau}}{\locof{P}{v}}\\
-    \locof{P}{\vloc{u}{Q}} & \vloc{(\locof{P}{u})}{R} \qquad\text{where }R = P \cap Q\\
-    \locof{P}{\vcrash} & \vcrash\\
+    \locof{P}{\vloc{u}{Q}} & \locof{R}{u} \qquad\text{where }R = P \cap Q\\
+    \locof{P}{\vcrash} & \vcrash
+    \\ \\
     \locof{P}{\sigma} & \{ x \mapsto v' \mid \sigma(x) = v \land \locof{P}{v} = v' \}\\
     \multicolumn{2}{c}{}\\
     \getat{P}{(\vloc{u}{Q})} & u \qquad \text{where }Q \vdash P\\
@@ -563,13 +564,13 @@ $$
     {
     }
     {
-    \eval{\env}{m}{n}{n}
+    \eval{\env}{m}{n}{\vloc{n}{m}}
     }
     \qquad
 
     \inferrule*[lab=E-Var]
     {
-    \env(x) = v
+    \env(x) = v_0\\\\ \locof{m}{v_0} = v
     }
     {
     \eval{\env}{m}{x}{v}
@@ -580,7 +581,7 @@ $$
   m\text{ is a singleton}
     }
     {
-    \eval{\env}{m}{\eread}{n}
+    \eval{\env}{m}{\eread}{\vloc{n}{m}}
     }
     \qquad
 
@@ -591,46 +592,51 @@ $$
   \getat{m}{v} = n
     }
     {
-    \eval{\env}{m}{\ewrite{e}}{n}
+    \eval{\env}{m}{\ewrite{e}}{\vloc{n}{m}}
     }
     \\ \\
 
-      \inferrule*[lab=E-Par]
+      \inferrule*[lab=E-ParEmpty]
     {
-  Q = m \cap P\\\\
-  Q = \emptyset \Rightarrow v = \vcrash\\\\
-    Q \not= \emptyset \Rightarrow
-    \env' = \locof{P}{\env} \land
-    \eval{\env'}{{Q}}{e}{v}
+  m \cap P = \emptyset
+    }
+    {
+    \eval{\env}{m}{\epar{P}{e}}{\vcrash}
+    } \qquad
+  
+      \inferrule*[lab=E-ParStep]
+    {
+  Q = m \cap P\\
+  Q \not= \emptyset \\\\
+    \eval{\env}{{Q}}{e}{v}
     }
     {
     \eval{\env}{m}{\epar{P}{e}}{v}
     } \qquad
-  
-    \inferrule*[lab=E-Pair]
+
+  \inferrule*[lab=E-Pair]
     {
     \eval{\env}{m}{e_1}{v_1}\\\\
     \eval{\env}{m}{e_2}{v_2}
     }
     {
     \eval{\env}{m}{\epair{e_1}{e_2}}{\epair{v_1}{v_2}}
-    }\qquad
+    }\\ \\
     
     \inferrule*[lab=E-Access]
     {
-    \eval{\env}{m}{e}{v}\\\\
-    \getat{m}{v} = \epair{v_1}{v_2}
+    \eval{\env}{m}{e}{\epair{v_1}{v_2}}
     }
     {
     \eval{\env}{m}{\eproj{i}{e}}{v_i}
-    }\\\\
+    }\qquad
 
     \inferrule*[lab=E-inj]
     {
     \eval{\env}{m}{e}{v}
     }
     {
-    \eval{\env}{m}{\einj{i}{e}}{\einj{i}{v}}
+    \eval{\env}{m}{\einj{i}{e}}{\vloc{(\einj{i}{v})}{m}}
     } \qquad
     
     \inferrule*[lab=E-Match]
@@ -653,8 +659,7 @@ $$
 
     \inferrule*[lab=E-Unfold]
     {
-    \eval{\env}{m}{e}{v_0}\\\\
-    \getat{m}{v_0} = \efold{\trec{\alpha}{\tau}}{v}
+    \eval{\env}{m}{e}{\efold{\trec{\alpha}{\tau}}{v}}
     }
     {
     \eval{\env}{m}{\eunfold{e}}{v}
@@ -680,7 +685,7 @@ $$
   n = n_1 \oplus n_2\\
     }
     {
-    \eval{\env}{m}{\ebinop{e_1}{e_2}}{n}
+    \eval{\env}{m}{\ebinop{e_1}{e_2}}{\vloc{n}{m}}
     }\qquad
 
       
@@ -690,7 +695,7 @@ $$
   \getat{m}{v_1} = \vshare{m}{\psi}{e'_1} \\\\
     \eval{\env}{m}{e_2}{v_2}\\
   \getat{m}{v_2} = \vshare{m}{\psi}{e'_2} \\\\
-  v = \vshare{m}{\psi}{\ebinop{e'_1}{e'_2}}
+  v = \vloc{\vshare{m}{\psi}{\ebinop{e'_1}{e'_2}}}{m}
     }
     {
     \eval{\env}{m}{\ebinop{e_1}{e_2}}{v}
@@ -704,7 +709,7 @@ $$
   \getat{m}{v_1} = \vshare{m}{\psi}{e'_1} \\\\
     \eval{\env}{m}{e_2}{v_2}\\
   \getat{m}{v_2} = \vshare{m}{\psi}{e'_2} \\\\
-  v = \vshare{m}{\psi}{\emux{e'}{e_1'}{e_2'}}
+  v = \vloc{\vshare{m}{\psi}{\emux{e'}{e_1'}{e_2'}}}{m}
     }
     {
     \eval{\env}{m}{\emux{e}{e_1}{e_2}}{v}
@@ -726,14 +731,14 @@ $$
     {
     }
     {
-    \eval{\env}{m}{\elam{x}{e}}{\vclos{\env}{\elam{x}{e}}}
+    \eval{\env}{m}{\elam{x}{e}}{\vloc{\vclos{\env}{\elam{x}{e}}}{m}}
     }\qquad
    
     \inferrule*[lab=E-Fix]
     {
     }
     {
-    \eval{\env}{m}{\efix{f}{x}{e}}{\vclos{\env}{\efix{f}{x}{e}}}
+    \eval{\env}{m}{\efix{f}{x}{e}}{\vloc{\vclos{\env}{\efix{f}{x}{e}}}{m}}
     }\\\\
 
     \inferrule*[lab=E-App]
@@ -771,8 +776,7 @@ $$
 
   \inferrule*[lab=E-CrashOK]
     {
-    \eval{\env}{m}{e}{v}\\
-  \getat{m}{v} = \vcrash
+    \eval{\env}{m}{e}{\vcrash}
     }
     {
     \eval{\env}{m}{\eproj{i}{e}}{\vcrash}\\\\
@@ -818,9 +822,9 @@ are not present at the host. The $\vcrash$ value does not appear in
 source programs and arises when computing a $\epar{Q}{e}$ such that
 $Q$ is empty; we see this in the next subsection.
 
-In the same figure are two functions over values: $\locof{P}{v}$ and
-$\getat{v}{P}$. The first is a transformation of $v$ that
-``relocates'' it to $P$. For locatable, but not located, values $u$,
+In the same figure are two functions over values: $\locof{P}{...}$ and
+$\getat{P}{v}$. The first is a transformation that relocates a value
+(or its locatable components) to $P$. For locatable, but not located, values $u$,
 we annotate them with $P$. For compound forms we recurse inside them
 (sums, pairs, closure environments). Locating an environment locates
 its mapped-to values pointwise.  For located values $\vloc{u}{Q}$ we
@@ -839,43 +843,48 @@ principals in the requested mode $P$.
 
 \subsection{Operational rules}
 
-Now we turn to the rules. Many rules are essentially standard, in
-particular \rulelab{E-Nat}, \rulelab{E-Pair}, \rulelab{E-Inj},
-\rulelab{E-Var}, \rulelab{E-Let}, \rulelab{E-Abs}, and \rulelab{E-Fix}. Many others are
-\emph{almost} standard, including \rulelab{E-Write}, \rulelab{E-Access},
-\rulelab{E-Match}, \rulelab{E-Unfold}, \rulelab{E-BinopNat}, 
-\rulelab{E-App}, and \rulelab{E-FixApp}. These differ from their
-standard counterparts in that 
-they refer to $\getat{m}{v}$ in the premise---as elimination forms,
-they have to have to strip off any location information to use the
-value. This operation will fail if the value is not available to
-(located at) \emph{all} principals in the required mode $m$; the type system
-aims to rule out this sort of problem. \rulelab{E-Read} and
-\rulelab{E-Write} are unsurprising; notably, they only work in a
-singleton context---we need to know 
-which principal is reading from/writing to their terminal. 
+Now we turn to the rules. An invariant of the semantics is that
+\emph{If $\eval{\env}{m}{e}{v}$ then $v$ is compatible with $m$}. By
+"compatible with $m$," we mean $v$ is located at principal set(s)
+$P \subseteq m$. This means $v$ could be located at $\emptyset$,
+making it inaccessible to code subsequently trying to use it. Note
+that located values $u$ need to be explicitly annotated. For example,
+\rulelab{E-Nat} could not just evaluate to $n$ because the lack of an
+explicit location basically means \emph{every} location, which is not
+compatible with a specific $m$. Therefore, it evaluates to
+$\vloc{n}{m}$ instead. Rules \rulelab{E-Abs}, and \rulelab{E-Fix} are
+similarly standard except that they explicitly locate their
+result. \rulelab{E-Var} retrieves a variable's value from the
+environment but narrows its location to be compatible with the current
+mode $m$. (Indeed, we don't need to explicitly locate the closure's
+environment $\env$ in \rulelab{E-Abs} and \rulelab{E-Fix} because if
+we ever use variables from the $\env$ later, their accessibility will
+be trimmed to the current mode by \rulelab{E-Var}.) \rulelab{E-Read}
+and \rulelab{E-Write} only work in a singleton context---we need to
+know which principal is reading from/writing to their terminal, and we
+annotate the result with that principal.
 
-A key invariant of the semantics is the following: \emph{Assuming the
-  current environment $\sigma$ is compatible with mode
-  $m$ and $\eval{\env}{m}{e}{v}$ then $v$ is also compatible with $m$}. By
-"compatible with $m$," recall that we mean that values are located at
-principal set(s) $P \subseteq m$. The rules preserve the assumption of
-environment compatibility (in the premises) and ensure compatibility
-in the conclusion.
+Rules \rulelab{E-Pair}, \rulelab{E-Access}, \rulelab{E-Fold},
+\rulelab{E-Unfold}, and \rulelab{E-Let} are completely standard. They
+do not operate on located values, so there is nothing special to do.
+Rules \rulelab{E-Inj}, \rulelab{E-Match}, \rulelab{E-BinopNat},
+\rulelab{E-App}, and \rulelab{E-FixApp} differ from their standard
+counterparts in that they refer to $\getat{m}{v}$ in the premise---as
+elimination forms, they have to have to strip off any location
+information to use the value. Doing so will fail if the value is
+not available to (located at) \emph{all} principals in the required
+mode $m$; the type system aims to rule out this sort of problem. These
+rules locate the final result at $m$.
 
-Now consider \rulelab{E-Par}, which evaluates $\epar{P}{e}$. It
-evaluates $e$ in mode $Q = m \cap P$ to produce $v$; i.e., only those
-principals in $P$ \emph{also} present $m$ will run $e$. If $Q$ is
-empty, then no evaluation takes place, and $\vcrash$ is returned.
-(The alternative of running $e$ with $\emptyset$ as the mode is not
-equivalent; see discussion below.)  Otherwise, evaluation takes place
-in environment $\sigma'$, which is the current environment (already
-located at $P$ by assumption), which is constructed by intersecting
-mapped-to values' locations with $P$. Assuming $\sigma$ is compatible
-with $m$ already, it just needs to also be located at $P$, and the
-result will be compatible with $Q$. On the other hand the result $v$
-need not be explicitly located at $Q$ before it can be returned, per
-our invariant.
+Now consider \rulelab{E-ParEmpty} and \rulelab{E-ParStep}, which
+evaluate $\epar{P}{e}$. A $\kw{par}$ evaluates $e$ in mode
+$Q = m \cap P$ to produce $v$; i.e., only those principals in $P$
+\emph{also} present in $m$ will run $e$. Per \rulelab{E-ParEmpty}, if
+$Q$ is empty, then no evaluation takes place, and $\vcrash$ is
+returned. (The alternative of running $e$ with $\emptyset$ as the
+mode is not equivalent; see discussion below.)  Otherwise, evaluation
+takes place in mode $Q$ and its result $v$ is returned (which will be
+compatible with $m$ because it's compatible with $Q$, a subset).
 
 Let's consider the remaining rules, which focus on multiparty
 computation. \rulelab{E-Share} models principal $p \in P$
@@ -885,7 +894,8 @@ just $P$ is doing the sharing; hence we check that $P$ is present in
 $m$, and $v$ is located
 on $P$. We then encapsulate the extracted number $n$ in a share value,
 split between principals at $Q$, which must be present in $m$
-(ensuring our invariant on the location of final values).
+(ensuring our invariant on the location of final values). We locate
+this result at $Q$.
 
 \rulelab{E-BinopShare} permits multiparty computation on shares. It
 makes sure both arguments are available to exactly the executing hosts
@@ -908,7 +918,7 @@ as one of these will be stuck.
 
 \paragraph{Discussion}
 
-Rule~\rulelab{E-Par} indicates that if the ``present'' set of
+Rule~\rulelab{E-ParEmpty} indicates that if the ``present'' set of
 principals $Q$ is $\emptyset$ then $e$ should be skipped, and an
 (inaccessible) value returned instead. The alternative is to ``run''
 $e$ despite having no principals present.
@@ -978,17 +988,29 @@ In preparation for the multi-threaded semantics, we need a small-step
 version of the big-step semantics presented above. Judgment
 $\seval{\env}{e}{m}{\env'}{e'}$ states that in mode $m$ and
 environment $\env$, expression $e$ steps to expression $e'$ and
-environment $\env'$. We define \emph{evaluation contexts} $\ctxt$ in
-Figure~\ref{fig:ctxts}. The rules are defined in
-Figure~\ref{fig:small-sem}. \mwh{TODO}
+environment $\env'$.
 
+We define \emph{evaluation contexts} $\ctxt$ in
+Figure~\ref{fig:ctxts}. The rules are defined in
+Figure~\ref{fig:small-sem}. Evaluation contexts define left-to-right,
+call-by-value evaluation in the standard manner per the rule
+\rulelab{S-Ctxt}. We do not include context $\epar{P}{\ctxt}$ in the
+definition of contexts; i.e., \rulelab{S-Ctxt} does not cover
+evaluation within par blocks. Instead, this is handled by
+\rulelab{S-ParStep}, which is essentially a variation of
+\rulelab{S-Ctxt} but it adjusts the mode when evaluating $e$ according
+to $P$. Most of the rest of the rules are just the small-step versions
+of the previous big-step rules. One interesting rule is
+\rulelab{S-Reveal}---here we evaluate the contents of the share $e_0$
+in one fell swoop, using the big-step semantics.
 
 \begin{figure}
 $$
 \begin{array}{c}
+ 
     \inferrule*[lab=S-Var]
     {
-    \env(x) = v
+    \env(x) = v_0\\\\ \locof{m}{v_0} = v
     }
     {
     \seval{\env}{m}{x}{\env}{v}
@@ -999,7 +1021,7 @@ $$
   m\text{ is a singleton}
     }
     {
-    \seval{\env}{m}{\eread}{\env}{n}
+    \seval{\env}{m}{\eread}{\env}{\vloc{n}{m}}
     }
     \qquad
 
@@ -1009,30 +1031,58 @@ $$
   \getat{m}{v} = n
     }
     {
-    \seval{\env}{m}{\ewrite{v}}{\env}{n}
+    \seval{\env}{m}{\ewrite{v}}{\env}{\vloc{n}{m}}
     }
     \\ \\
 
- %      \inferrule*[lab=E-Par]
- %    {
- %  Q = m \cap P\\\\
- %  Q = \emptyset \Rightarrow v = \vcrash\\\\
- %    Q \not= \emptyset \Rightarrow
- %    \env' = \locof{P}{\env} \land
- %    \eval{\env'}{{Q}}{e}{v}
- %    }
- %    {
- %    \eval{\env}{m}{\epar{P}{e}}{v}
- %    } \qquad
+  \inferrule*[lab=S-ParEmp]
+  {
+  m \cap P = \emptyset\\
+  }
+  {
+  \seval{\env}{m}{\epar{P}{e}}{\env}{\vcrash}
+  } \qquad
   
-    \inferrule*[lab=S-Access]
+  \inferrule*[lab=S-ParStep]
+  {
+  m \cap P = Q\\
+  Q \not= \emptyset\\\\
+  \seval{\env}{Q}{e}{\env'}{e'}
+  }
+  {
+  \seval{\env}{m}{\epar{P}{e}}{\env'}{\epar{P}{e'}}
+  } \qquad
+
+
+  \inferrule*[lab=S-ParVal]
+  {
+  m \cap P \not= \emptyset\\
+  }
+  {
+  \seval{\env}{m}{\epar{P}{v}}{\env}{v}
+  } \\ \\
+
+      \inferrule*[lab=S-Let]
     {
-    \getat{m}{v} = \epair{v_1}{v_2}
     }
     {
-    \seval{\env}{m}{\eproj{i}{v}}{\env}{v_i}
-    }\qquad
+    \seval{\env}{m}{\elet{x}{v_1}{e_2}}{\env[x\mapsto v_1]}{e_2}
+  } \qquad
 
+  \inferrule*[lab=S-Access]
+    {
+    }
+    {
+    \seval{\env}{m}{\eproj{i}{\epair{v_1}{v_2}}}{\env}{v_i}
+    }\\ \\
+
+  \inferrule*[lab=S-Inj]
+  {
+  }
+  {
+  \seval{\env}{m}{\einj{i}{v}}{\env}{\vloc{(\einj{i}{v})}{m}}
+  }\qquad
+  
     \inferrule*[lab=S-Match]
     {
     \getat{m}{v} = \einj{i}{v_i}
@@ -1043,10 +1093,9 @@ $$
 
     \inferrule*[lab=S-Unfold]
     {
-    \getat{m}{v_0} = \efold{\trec{\alpha}{\tau}}{v}
     }
     {
-    \seval{\env}{m}{\eunfold{v_0}}{\env}{v}
+    \seval{\env}{m}{\eunfold{(\efold{\trec{\alpha}{\tau}}{v})}}{\env}{v}
     } \qquad
 
     \inferrule*[lab=S-Share]
@@ -1066,14 +1115,14 @@ $$
   n = n_1 \oplus n_2\\
     }
     {
-    \seval{\env}{m}{\ebinop{v_1}{v_2}}{\env}{n}
+    \seval{\env}{m}{\ebinop{v_1}{v_2}}{\env}{\vloc{n}{m}}
     }\qquad
     
     \inferrule*[lab=S-BinopShare]
     {
   \getat{m}{v_1} = \vshare{m}{\psi}{e_1} \\
   \getat{m}{v_2} = \vshare{m}{\psi}{e_2} \\\\
-  v = \vshare{m}{\psi}{\ebinop{e_1}{e_2}}
+  v = \vloc{\vshare{m}{\psi}{\ebinop{e_1}{e_2}}}{m}
     }
     {
     \seval{\env}{m}{\ebinop{v_1}{v_2}}{\env}{v}
@@ -1084,7 +1133,7 @@ $$
   \getat{m}{v_0} = \vshare{m}{\psi}{e'} \\\\
   \getat{m}{v_1} = \vshare{m}{\psi}{e'_1} \\
   \getat{m}{v_2} = \vshare{m}{\psi}{e'_2} \\\\
-  v = \vshare{m}{\psi}{\emux{e'}{e_1'}{e_2'}}
+  v = \vloc{\vshare{m}{\psi}{\emux{e'}{e_1'}{e_2'}}}{m}
     }
     {
     \seval{\env}{m}{\emux{v_0}{v_1}{v_2}}{\env}{v}
@@ -1100,12 +1149,19 @@ $$
     {
     \seval{\env}{m}{\ereveal{P}{Q}{v_0}{\psi}}{\env}{\vloc{n}{Q}}
     }\\\\
-    
+
+     \inferrule*[lab=S-Abs]
+    {
+    }
+    {
+    \seval{\env}{m}{\elam{x}{e}}{\env}{\vloc{\vclos{\env}{\elam{x}{e}}}{m}}
+    }\qquad
+
     \inferrule*[lab=S-Fix]
     {
     }
     {
-    \seval{\env}{m}{\efix{f}{x}{e}}{\env}{\vclos{\env}{\efix{f}{x}{e}}}
+    \seval{\env}{m}{\efix{f}{x}{e}}{\env}{\vloc{\vclos{\env}{\efix{f}{x}{e}}}{m}}
     }\\\\
 
     \inferrule*[lab=S-App]
@@ -1125,22 +1181,23 @@ $$
     \seval{\env}{m}{\eapp{v_0}{v_1}}{\env'[f \mapsto v'][x \mapsto v_1]}{e'}
     }\\ \\
 
-    \inferrule*[lab=S-Let]
+    \inferrule*[lab=S-CrashOK]
     {
     }
     {
-    \seval{\env}{m}{\elet{x}{v_1}{e_2}}{\env[x\mapsto v_1]}{e_2}
-  } \qquad
+    \seval{\env}{m}{\eproj{i}{\vcrash}}{\env}{\vcrash}\\\\
+    \seval{\env}{m}{\eunfold{\vcrash}}{\env}{\vcrash}
+    }\qquad
 
-  \inferrule*[lab=S-CrashOK]
-    {
-  \getat{m}{v} = \vcrash
-    }
-    {
-    \eval{\env}{m}{\eproj{i}{v}}{\vcrash}\\\\
-    \eval{\env}{m}{\eunfold{v}}{\vcrash}
-    }\\\\
-
+  \inferrule*[lab=S-Ctxt]
+  {
+  e = \ctxt \cdot e_0\\
+  \seval{\env}{m}{e_0}{\env'}{e_0'}\\
+  e' = \ctxt \cdot e_0'
+  }
+  {
+  \seval{\env}{m}{e}{\env'}{e'}
+  }
 \end{array}
     $$
 \caption{Operational Semantics (Single threaded, small step)}
