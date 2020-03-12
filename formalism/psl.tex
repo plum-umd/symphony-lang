@@ -956,34 +956,15 @@ that are contrived.
 
 \subsection{Small-step Semantics}
 
-\begin{figure}
-  \[\begin{array}{rlcl}
-      \text{Eval Context} & \ctxt & ::= & \hole \mid \ewrite{\ctxt} \mid
-                                          \epair{\ctxt}{e} \mid
-                             \epair{v}{\ctxt} \mid \eproj{i}{\ctxt}  \\
-               && \mid & \eshare{\psi}{P}{Q}{\ctxt} \mid
-                             \ereveal{P}{Q}{\ctxt}{\psi} \mid \ebinop{\ctxt}{e_2} \mid \ebinop{v}{\ctxt}   \\
-               && \mid & \emux{\ctxt}{e_1}{e_2}
-                         \mid \emux{v}{\ctxt}{e_2} \mid \emux{v}{v_1}{\ctxt}    \\
-               && \mid & \einj{i}{\ctxt} \mid \econd{\ctxt}{e_1}{e_2}   \\
-               && \mid & \efold{\trec{\alpha}{\tau}}{\ctxt} \mid \eunfold{\ctxt}  \\
-                          && \mid & \eapp{\ctxt}{e} \mid
-                         \eapp{v}{\ctxt} \mid \elet{x}{\ctxt}{e_2} \\
-    \end{array}
-  \]
-  \caption{Small-step semantics: Evaluation contexts}
-  \label{fig:ctxts}
-\end{figure}
-
 In preparation for the multi-threaded semantics, we need a small-step
 version of the big-step semantics presented above. Judgment
 $\seval{\env}{e}{m}{\env'}{e'}$ states that in mode $m$ and
 environment $\env$, expression $e$ steps to expression $e'$ and
-environment $\env'$.
+environment $\env'$. The rules are defined in
+Figure~\ref{fig:small-sem}. 
 
-We define \emph{evaluation contexts} $\ctxt$ in
-Figure~\ref{fig:ctxts}. The rules are defined in
-Figure~\ref{fig:small-sem}. Evaluation contexts define left-to-right,
+We define \emph{evaluation contexts} $\ctxt$ at the bottom of the
+figure. Evaluation contexts define left-to-right, 
 call-by-value evaluation in the standard manner per the rule
 \rulelab{S-Ctxt}. We do not include context $\epar{P}{\ctxt}$ in the
 definition of contexts; i.e., \rulelab{S-Ctxt} does not cover
@@ -1037,7 +1018,7 @@ $$
   \inferrule*[lab=S-ParStep]
   {
   m \cap P = Q\\
-  Q \not= \emptyset\\\\
+  Q \not= \emptyset\\
   \seval{\env}{Q}{e}{\env'}{e'}
   }
   {
@@ -1091,7 +1072,7 @@ $$
 
     \inferrule*[lab=S-Share]
     {
-    m \vdash P\\ m \vdash Q\\\\
+    m \vdash P\\ m \vdash Q\\
     P\text{ is a singleton}  \\
     \getat{P}{v} = n  
     }
@@ -1102,7 +1083,7 @@ $$
     \inferrule*[lab=S-BinopNat]
     {
   \getat{m}{v_1} = n_1\\
-  \getat{m}{v_2} = n_2\\\\
+  \getat{m}{v_2} = n_2\\
   n = n_1 \oplus n_2\\
     }
     {
@@ -1112,18 +1093,17 @@ $$
     \inferrule*[lab=S-BinopShare]
     {
   \getat{m}{v_1} = \vshare{m}{\psi}{e_1} \\
-  \getat{m}{v_2} = \vshare{m}{\psi}{e_2} \\\\
-  v = \vloc{\vshare{m}{\psi}{\ebinop{e_1}{e_2}}}{m}
+  \getat{m}{v_2} = \vshare{m}{\psi}{e_2} \\
     }
     {
-    \seval{\env}{m}{\ebinop{v_1}{v_2}}{\env}{v}
+    \seval{\env}{m}{\ebinop{v_1}{v_2}}{\env}{\vloc{\vshare{m}{\psi}{\ebinop{e_1}{e_2}}}{m}}
     }\\\\
 
     \inferrule*[lab=S-Mux]
     {
-  \getat{m}{v_0} = \vshare{m}{\psi}{e'} \\\\
-  \getat{m}{v_1} = \vshare{m}{\psi}{e'_1} \\
-  \getat{m}{v_2} = \vshare{m}{\psi}{e'_2} \\\\
+  \getat{m}{v_0} = \vshare{m}{\psi}{e'} \\
+  \getat{m}{v_1} = \vshare{m}{\psi}{e'_1} \\\\
+  \getat{m}{v_2} = \vshare{m}{\psi}{e'_2} \\
   v = \vloc{\vshare{m}{\psi}{\emux{e'}{e_1'}{e_2'}}}{m}
     }
     {
@@ -1132,7 +1112,7 @@ $$
 
     \inferrule*[lab=S-Reveal]
   {
-    m \vdash P\\ m \vdash Q\\\\
+    m \vdash P\\ m \vdash Q\\
     \getat{P}{v_0} = \vshare{P}{\psi}{e_0}\\\\
     \eval{\env}{m}{e_0}{v}\\
     n = \getat{P}{v} 
@@ -1190,7 +1170,21 @@ $$
   \seval{\env}{m}{e}{\env'}{e'}
   }
 \end{array}
-    $$
+$$
+  \[\begin{array}{rlcl}
+      \text{Eval Context} & \ctxt & ::= & \hole \mid \ewrite{\ctxt} \mid
+                                          \epair{\ctxt}{e} \mid
+                             \epair{v}{\ctxt} \mid \eproj{i}{\ctxt}  \\
+               && \mid & \eshare{\psi}{P}{Q}{\ctxt} \mid
+                             \ereveal{P}{Q}{\ctxt}{\psi} \mid \ebinop{\ctxt}{e_2} \mid \ebinop{v}{\ctxt}   \\
+               && \mid & \emux{\ctxt}{e_1}{e_2}
+                         \mid \emux{v}{\ctxt}{e_2} \mid \emux{v}{v_1}{\ctxt}    \\
+               && \mid & \einj{i}{\ctxt} \mid \econd{\ctxt}{e_1}{e_2}   \\
+               && \mid & \efold{\trec{\alpha}{\tau}}{\ctxt} \mid \eunfold{\ctxt}  \\
+                          && \mid & \eapp{\ctxt}{e} \mid
+                         \eapp{v}{\ctxt} \mid \elet{x}{\ctxt}{e_2} \\
+    \end{array}
+  \]
 \caption{Operational Semantics (Single threaded, small step)}
 \label{fig:small-sem}
 \end{figure}
@@ -1290,8 +1284,8 @@ $\ctxt_0 \cdot (\epar{P_0} \ctxt_1 \cdot (\epar{P_1} \ctxt_2 \cdot
 intersection $P_0 \cap P_1 ...$---i.e., it returns the mode under
 which the expression plugged into $\hole$ will be evaluated.
 
-The rule requires both $p$ and $q$ to arrive at a redex in which the
-share can be shared---the mode of both evaluation contexts is
+The rule requires both $p$ and $q$ to arrive at a redex suitable
+for sharing---the mode of both evaluation contexts is
 $\{p,q\}$. Since $p$ is doing the sharing, its value should be an
 (accessible) integer $n$; the value $v_q$ at $q$ is immaterial
 (probably something inaccessible, since it was computed only at $p$).
