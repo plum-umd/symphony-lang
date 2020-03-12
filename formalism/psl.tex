@@ -1285,11 +1285,21 @@ $$
 \end{array}
 $$
 Here, $\pctxt_p$ and $\pctxt_q$ are composition of contexts
-of the form
-$\ctxt_0 \cdot (\epar{P_0} \ctxt_1 \cdot (\epar{P_1} \ctxt_2 \cdot
-(... \hole)))$. The function $\mathit{mode}(\pctxt)$ returns the
-intersection $P_0 \cap P_1 ...$---i.e., it returns the mode under
-which the expression plugged into $\hole$ will be evaluated.
+of the following form:
+$$
+\begin{array}{lcl}
+  \multicolumn{3}{l}{\pctxt \; ::= \; \ctxt \cdot (\epar{Q}{\pctxt})\;
+  \mid\; \ctxt}\\
+\end{array}
+$$
+The function $\mathit{mode}(\pctxt)$ returns the mode under which the
+expression plugged into $\hole$ will be evaluated.
+$$
+\begin{array}{lcl}
+  \mathit{mode}(\ctxt) & = & \emptyset\\
+  \mathit{mode}(\ctxt \cdot (\epar{Q}{\pctxt})) & = & Q \cap \mathit{mode}(\pctxt)\\
+\end{array}
+$$
 
 The rule requires both $p$ and $q$ to arrive at a redex suitable
 for sharing---the mode of both evaluation contexts is
