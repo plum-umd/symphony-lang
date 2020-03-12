@@ -64,8 +64,9 @@
 \newcommand{\config}[2]{\ensuremath{\langle{#1},{#2}\rangle}}
 \newcommand{\locof}[2]{\ensuremath{\mathit{loc}_{#1}~{#2}}}
 \newcommand{\getat}[2]{\ensuremath{\mathit{on}_{#1}~{#2}}}
- \newcommand{\ctxt}{\ensuremath{\mathcal{E}}}
-% \newcommand{\pctxt}{\ensuremath{\mathcal{P}}}
+\newcommand{\ctxt}{\ensuremath{\mathcal{E}}}
+\newcommand{\pctxt}{\ensuremath{\mathcal{P}}}
+\newcommand{\hole}{\ensuremath{\circ}}
 
 \newcommand{\lang}{\textsc{corePSL}\xspace}
 
@@ -523,16 +524,6 @@ previous incarnation would have been rejected):
                        && \mid & \efold{\trec{\alpha}{\tau}}{v} & \text{rectype value}\\
                    && \mid & \vloc{u}{P} & \text{located value}\\
                    && \mid & \vcrash & \text{bogus ``crash" value}\\
-      % \text{Eval Context} & \ctxt & ::= & \multicolumn{2}{l}{\bullet \mid\epair{\ctxt}{e} \mid
-      %                        \epair{v}{\ctxt} \mid \eproj{i}{\ctxt}}  \\
-      %          && \mid & \multicolumn{2}{l}{\eshare{\psi}{P}{Q}{\ctxt} \mid
-      %                        \ereveal{P}{Q}{\ctxt}{\psi} \mid \ebinop{\ctxt}{e_2} \mid \ebinop{v}{\ctxt} }  \\
-      %          && \mid & \multicolumn{2}{l}{\emux{\ctxt}{e_1}{e_2}
-      %                    \mid \emux{v}{\ctxt}{e_2} \mid \emux{v}{v_1}{\ctxt}  }  \\
-      %          && \mid & \multicolumn{2}{l}{\einj{i}{\ctxt} \mid \econd{\ctxt}{e_1}{e_2} }  \\
-      %          && \mid & \multicolumn{2}{l}{\efold{\trec{\alpha}{\tau}}{\ctxt} \mid \eunfold{\ctxt}}  \\
-      %          && \mid & \multicolumn{2}{l}{\eapp{\ctxt}{e} \mid
-      %                    \eapp{v}{\ctxt} \mid \elet{x}{\ctxt}{e_2} }\\
     \end{array}
   \]
 
@@ -967,7 +958,7 @@ that are contrived.
 
 \begin{figure}
   \[\begin{array}{rlcl}
-      \text{Eval Context} & \ctxt & ::= & \bullet \mid \ewrite{\ctxt} \mid
+      \text{Eval Context} & \ctxt & ::= & \hole \mid \ewrite{\ctxt} \mid
                                           \epair{\ctxt}{e} \mid
                              \epair{v}{\ctxt} \mid \eproj{i}{\ctxt}  \\
                && \mid & \eshare{\psi}{P}{Q}{\ctxt} \mid
@@ -1224,7 +1215,7 @@ doing so causes the $\kw{par}$ expression's principal set to be empty,
 the expression will be skipped (and a $\vcrash$ value
 returned). Otherwise it will be run by that single principal.
 
-By inspection of the evaluation rules (Figure~\ref{fig:sem}), we can
+By inspection of the evaluation rules (Figure~\ref{fig:small-sem}), we can
 see that programs without $\kw{share}$ and $\kw{reveal}$ operations
 should work out fine---if the program would have run correctly as a
 single-threaded program, it should run correctly in this
@@ -1246,9 +1237,8 @@ each party to reach the same spot, carry out the computation, and
 continue on with whatever their local result should be. The type
 system should ensure things line up.
 
-We will need to make a small-step version of the ST semantics for this
-all to work. Assuming that we have it, I imagine a MT judgment of the
-form $\mathcal{CS} \longrightarrow \mathcal{CS'}$ where $\mathcal{CS}$
+I imagine a MT judgment of the form
+$\mathcal{CS} \longrightarrow \mathcal{CS'}$ where $\mathcal{CS}$
 represents a set of configurations, one per active principal. Here's
 the basic way a principal takes a step:
 $$
@@ -1257,7 +1247,7 @@ $$
     {
   \mathcal{CS} = \mathcal{CS}_0 :: (p,\config{\env_p}{e_p}) ::
   \mathcal{CS}_1\\
-  \eval{\env_p}{\{p\}}{e_p}{\config{\env_p'}{e'_p}}\\
+  \seval{\env_p}{\{p\}}{e_p}{\env_p'}{e'_p}\\
   \mathcal{CS}' = \mathcal{CS}_0 :: (p,\config{\env_p'}{e_p'}) ::
   \mathcal{CS}_1\\
   }
@@ -1274,12 +1264,18 @@ $$
     \inferrule*[lab=M-Share]
     {
   \mathcal{CS} = \mathcal{CS}_0 ::
-  (p,\config{\env_p}{\eshare{\psi}{\{p\}}{\{p,q\}}{n}}) ::
-  (q,\config{\env_q}{\eshare{\psi}{\{p\}}{\{p,q\}}{v}}) ::
+  (p,\config{\env_p}{e_p}) ::
+  (q,\config{\env_q}{e_q}) ::
   \mathcal{CS}_1\\\\
+  e_p = \pctxt_p \cdot \eshare{\psi}{\{p\}}{\{p,q\}}{v_p}\\\\
+  e_q = \pctxt_q \cdot \eshare{\psi}{\{p\}}{\{p,q\}}{v_q}\\\\
+  \mathit{mode}(\pctxt) = \mathit{mode}(\pctxt') = \{p,q\}\\\\
+  \getat{\{p\}}{v_p} = n\\\\
+  e_p' = \pctxt_p \cdot \vloc{\vshare{\{p,q\}}{\psi}{n}}{\{p\}}\\\\
+  e_q' = \pctxt_q \cdot \vloc{\vshare{\{p,q\}}{\psi}{n}}{\{q\}}\\\\
   \mathcal{CS}' = \mathcal{CS}_0 ::
-  (p,\config{\env_p}{\vloc{\vshare{\{p,q\}}{\psi}{n}}{\{p\}}}) ::
-  (q,\config{\env_q}{\vloc{\vshare{\{p,q\}}{\psi}{n}}{\{q\}}}) ::
+  (p,\config{\env_p}{e_p'}) ::
+  (q,\config{\env_q}{e_q'}) ::
   \mathcal{CS}_1\\
   }
   {
@@ -1287,20 +1283,30 @@ $$
   }
 \end{array}
 $$
+Here, $\pctxt_p$ and $\pctxt_q$ are composition of contexts
+of the form
+$\ctxt_0 \cdot (\epar{P_0} \ctxt_1 \cdot (\epar{P_1} \ctxt_2 \cdot
+(... \hole)))$. The function $\mathit{mode}(\pctxt)$ returns the
+intersection $P_0 \cap P_1 ...$---i.e., it returns the mode under
+which the expression plugged into $\hole$ will be evaluated.
+
 The rule requires both $p$ and $q$ to arrive at a redex in which the
-share can be shared. Since $p$ is doing
-the sharing, its value is sure to be an integer $n$; the value at $q$
-is immaterial (probably something inaccessible, since it was computed
-only at $p$), so we just write $v$. The rule takes a step by
-communicating the share value $\vshare{\{p,q\}}{\psi}{n}$ to each
-party $p$ and $q$ (and the share is specifically located there).
+share can be shared---the mode of both evaluation contexts is
+$\{p,q\}$. Since $p$ is doing the sharing, its value should be an
+(accessible) integer $n$; the value $v_q$ at $q$ is immaterial
+(probably something inaccessible, since it was computed only at $p$).
+The rule takes a step by communicating the share
+value $\vshare{\{p,q\}}{\psi}{n}$ to each party $p$ and $q$ (and the
+share is specifically located there).
 
 We likewise coordinate progress on shared values on the rules
 equivalent to \rulelab{E-BinopShare} and \rulelab{E-Mux}, but for
 these, both parties should take identical steps on identical share
 values. We also coordinate on a rule equivalent to \rulelab{E-Reveal}
 (where each party has the identical share value again), sending the
-unencrypted result to the desired party.
+unencrypted result to the desired party. It's possible we'll want to
+revisit the ``suspended'' computation of shared values and just
+compute them more eagerly.
 
 That coordination is always possible is guaranteed by the type system,
 and the simulation theorem. To prove this, we'll need some kind of
