@@ -458,6 +458,7 @@ testInterpreter = do
                 ]
         ]
       ]
+  testInterpreterExample "msort"
   -- testInterpreterExample "add"
   -- testInterpreterExample "arg-par-contains"
   -- testInterpreterExample "atq"

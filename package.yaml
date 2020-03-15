@@ -47,21 +47,21 @@ ghc-options:
 library:
   source-dirs: src
   dependencies:
+    - aeson
     - base
+    - bytestring
     - directory
+    - random
     - uvmhs
     - aeson
     - bytestring
     - random
 
-executable:
-  source-dirs: main
-  main: Main.hs
-  dependencies:
-    - base
-    - directory
-    - psl
-    - uvmhs
-    - aeson
-    - bytestring
-    - random
+executables:
+  psli:
+    source-dirs: main
+    main: PSLI.hs
+    dependencies:
+      - base
+      - psl
+      - uvmhs
