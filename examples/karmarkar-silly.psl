@@ -94,6 +94,15 @@ def square a = a * a
 
 def max muxer a b = muxer (a <= b) b a
 
+def max_spdz = mux
+
+def abs_val_real a = max mux a (-1.0 * a)
+
+-- TODO: define these properly
+def log_2_real = id
+
+def magn x = 1n
+
 -- BEGIN library for nats:
 
 -- inc n: increment of nat n
@@ -116,6 +125,37 @@ def elim_nat m z s =
 -- PSL: add syntactic sugar for this?
 def eliml_nat : nat -> t -> (t -> t) -> t
 def eliml_nat n z s = (elim_nat n id (compose s)) z
+
+-- monad for building a value and a continuation. Type is
+-- cont a b = (a -> a, b)
+-- where cont a is a monad.
+
+-- monadic return:
+def cont_return a = (id, a)
+
+-- monadic bind:
+def cont_bind (f, a) g =
+  let (f0, b) = g a in
+  (compose f0 f, b)
+
+def cont_join (f, (g, a)) = (compose f g, a)
+
+def cont_seq (f, a) v = cont_bind (f, a) (const v)
+
+-- cont_run : cont a a -> a: get an a value:
+def cont_run = uncurry apply
+
+-- if_then guard tc: an if-then branch 
+def if_then guard tc rest = (mux guard tc, rest)
+
+-- eliml_sec_nat: eliminate a secure nat. Just does this by iterating
+-- up to some bound.
+def max_nat = 0n
+def eliml_sec_nat muxer encz encone n z s = cont_run (snd
+  (eliml_nat max_nat
+    (n, cont_return z)
+    (fun (n', v) ->
+      (n' - encone, cont_join ((muxer (n' == encz) v), s v)) ) ) )
 
 -- nat_log: logarithm over nats. Diverges at 0n.
 def nat_log : nat -> nat -> nat
@@ -228,31 +268,8 @@ def is_const_vec c v = all_true (map (eq c) v)
 -- mux_ls: multiplex over a pair of lists:
 def mux_ls guard l0 l1 = zip_map (mux guard) l0 l1
 
--- monad for building a value and a continuation. Type is
--- cont a b = (a -> a, b)
--- where cont a is a monad.
-
--- monadic return:
-def cont_return a = (id, a)
-
--- monadic bind:
-def cont_bind (f, a) g =
-  let (f0, b) = g a in
-  (compose f0 f, b)
-
--- cont_run : cont a a -> a: get an a value:
-def cont_run = uncurry apply
-
--- loop_cont: loop while building a continuation monad, then run it
-def loop_cont n a0 f = cont_run
-  (eliml_nat n
-    (cont_return a0)
-    (flip cont_bind f) )
-
--- PSL: add syntactic sugar for this?
-def return_if muxer guard v = (muxer guard v, v)
-
-def return_ls_if = return_if mux_ls
+def eliml_sec_nat_ls = eliml_sec_nat mux_ls
+  (shr_w_comp 0n) (shr_w_comp 1n) 
 
 -- prod: the product over a list of numerics
 def prod v one = foldr v one mult
@@ -262,6 +279,7 @@ def sum v z = foldr v z plus
 
 -- dot_prod: take the dot product of two points
 def dot_prod z p0 p1 = sum (zip_map mult p0 p1) z
+def dot_prod_spdz = dot_prod shr0
 
 -- pt_diff: subtract one point from another
 def vec_diff : point -> point -> point
@@ -279,9 +297,9 @@ def l2norm z v = babylonian_sqrt (sum (map square v) z)
 def zeros_vec : nat -> list real
 def zeros_vec = const_vec 0.0
 
--- onesVec: a vector of real ones
-def onesVec : nat -> list real
-def onesVec = const_vec 1.0
+-- row_of_ones: a vector of real ones
+def row_of_ones : nat -> list real
+def row_of_ones = const_vec 1.0
 
 -- mult_mat_vec : multiply a matrix of secrets and a point
 def mult_mat_vec : num -> matrix -> point -> point
@@ -370,8 +388,8 @@ def lt_lift d l = rev_ls (snd
 
 -- inverse z m: the inverse matrix of m over numeric type with zero
 -- element z
-def inverse : num -> matrix -> matrix
-def inverse z m =
+def matrix_inverse_pdh : num -> matrix -> matrix
+def matrix_inverse_pdh z m =
   let l_inv = lt_lift z
     (lt_inverse z (cholesky z (squareMat z (transpose m)))) in
   mult_mat z (transpose l_inv) l_inv
@@ -392,9 +410,6 @@ def m = 2n
 def n : nat
 def n = 2n
 
--- iters : user parameter: the number of iterations
-def iters = 5n
-
 -- Ctr[m]: parties that bring the constraints
 principal Ctr[2]
 
@@ -407,14 +422,48 @@ principal Out
 -- comps: the parties that do computation, Ctr and Cost
 def comps = set(Ctr,Cost)
 
+-- shr_w_ctrs: share data with the parties performing computation
+def shr_w_ctrs = shr_spdz set(Ctr)
+
 -- shr_w_comp: share data with the parties performing computation
 def shr_w_comp = shr_spdz comps
 
-def nOnes : list flt
-def nOnes = onesVec n 
+-- shr0, shr1: shares of constants that are often reused:
+def shr0 = shr_w_comp 0.0 in
+def shr1 = shr_w_comp 1.0 in
+     
+def nOnes = row_of_ones n 
+
+-- dimensions_of m: the number of rows and vectors in m
+def dimensions_of m = case m
+  { [ ] -> (0, 0)
+  ; rv :: m' -> (inc (len m'), len rv)
+  }
+
+-- TODO: define
+def diagonal_matrix pt = [ ]
 
 -- karmarkar_iter: an iteration of Karmarkar's algorithm
-def karmarkar_iter shr0 a cost pt =
+def karmarkar_iteration initial_point a c =
+  let (m, n) = dimensions_of a in
+  -- D is a matrix of zeros with the values of initial_point on the
+  -- diagonal
+  -- Dimensions of D: n x n
+  let d = diagonal_matrix initial_point in
+  -- Dimensions of cprime: n x 1
+  let cprime = mult_mat_vec_spdz d c in
+  -- Dimensions of AD: m x n
+  let ad = mult_mat_spdz a d in
+
+  -- Construct B
+  -- Dimensions of B: (m + 1) x n
+  let b = concat ad [ row_of_ones n ] in -- append a row of ones onto AD
+
+  -- Dimensions of BBT: (m + 1) x (m + 1)
+  let bbt = mult_mat_spdz b (transpose b) in
+  -- Dimensions of BBTInv: (m + 1) x (m + 1)
+  let bbtinv = matrix_inverse_pdh bbt in
+
   -- vector and matrix operations instantiated to SPDZ protocol
   -- session
   let invert_spdz = inverse shr0 in
@@ -424,16 +473,11 @@ def karmarkar_iter shr0 a cost pt =
   let unit_cp =
     -- project c onto b's nullspace
     let cp =
-      -- c': product of diagonal of point and cost vector
-      let c' = mult_diag_vec pt (map shr_w_comp cost) in
+      -- c': product of diagonal of point and c vector
+      let c' = mult_diag_vec initial_point c in
       -- FANCY MPC:
       -- b: matrix of shares of constraint coefficients
-      let b = pfold 
-        [ nOnes ]
-        (fun Q ctr -> cons
-          (mult_diag_vec pt
-            (map shr_w_comp (reveal_ls comps ctr)) ) )
-        a in
+      let b = concat a [ nOnes ] in
       vec_diff
         c'
         (mult_spdz_mat_vec (transpose b)
@@ -450,43 +494,60 @@ def karmarkar_iter shr0 a cost pt =
     (map shr_w_comp (vec_div (to_flt n) nOnes))
     (vec_div (shr_w_comp (to_flt (3n * n))) unit_cp) in
 
-  let db' = mult_diag_vec pt b' in
+  let db' = mult_diag_vec initial_point b' in
   vec_div (dot_prod shr0 (map shr_w_comp nOnes) db') db'
+
+-- nzProd a: the product of all non-zero entries in a vector:
+def nz_prod : list (real{ ssec : p }) -> real{ ssec : p }
+def nz_prod z one l = prod (filter (eq z) l) one
+
+def nz_prod_vec_spdz = nz_prod shr0 shr1
+
+def nz_prod_mat_spdz m = foldr m
+  shr1
+  (fun rv -> mult (nz_prod_vec_spdz rv))
 
 -- karmarkar_loop: Karmarkar's algorithm, main loop: runs an iterative
 -- algorithm up to some bound computed from private inputs
-def karmarkar_loop : ctr -> costs -> point
-def karmarkar_loop a cost =
-  -- init_pt: the initial point:
-  let init_pt = vec_div (to_flt n) nOnes in
-  let init_shrs = map shr_w_comp init_pt in
-  let eps = shr_w_comp (10.0 ^ -8.0) in
-  mux_ls
-    -- if the initial point is optimal,
-    (share{ spdz : Ctr, Cost } ({ par : Cost }
-      -- TODO: this matches the pseudocode, but seems like it should
-      -- be replaced with a check against tolerance (eps)
-      ((dot_prod 0.0 cost init_pt) == 0.0) ) )
-    -- then return shares of it,
-    init_shrs
-    -- otherwise, evaluate to the result of the iterative algorithm
-    (let shr0 = shr_w_comp 0.0 in
-     let shr1 = shr_w_comp 1.0 in
-     let eval_cost = dot_prod shr0 (map shr_w_comp cost) in
-     loop_cont iters
-       init_shrs
-       (fun pt -> 
-         let pt' = karmarkar_iter shr0 a cost pt in
-         let cur_cost = eval_cost pt in
-         let new_cost = eval_cost pt' in
-         return_ls_if
-           (((cur_cost - new_cost) / (max mux shr1 cur_cost)) < eps)
-           pt' ) )
+def karmarkar_loop a c =
+  let (m, n) = dimensions_of a in
+  -- Epsilon is the stopping condition. This value should be close to
+  -- 0, so we choose 10^(-8)
+  let epsilon = 10.0 ^ -8.0 in
+
+  -- x is our initial point
+  let x = map shr_w_comp (vec_div (to_flt n) (row_of_ones n)) in
+
+  let max_iterations = 
+    -- product of non-zero entries in c and A
+    let p = (nz_prod_vec_spdz c) * (nz_prod_mat_spdz a) in
+    let l = (m + 1n) * n +
+      (magn (ceil (log_2_real (abs_val_real p)))) +
+      n * (magn (ceil (log_2_real (to_flt n)))) in
+    12n * n * l in
+  let max_iterations = shr_w_comp 1n in -- TODO: remove, used for debugging
+
+  -- If this initial point is an optimal solution, return
+  mux_ls ((dot_prod_spdz c x) < epsilon)
+    x
+  (eliml_sec_nat_ls max_iterations
+    x
+    (fun x -> 
+      let x' = karmarkar_iteration x a c in
+
+      -- if we are within the stopping condition in the current
+      -- iteration, return
+      if_then 
+        ((((dot_prod_spdz c x) - (dot_prod_spdz c x')) /
+           (max_spdz shr1 (dot_prod_spdz c x)) ) < epsilon )
+        x'
+      x') )
 
 -- main: entry point; Ctr, Cost read inputs and run the algorithm,
 -- distributes results to Out
 def main : unit ->{ inp : Ctr, Cost; rev : Out } (list out_sec)
 def main () =
+  -- read_vec: reads an input vector on a principal's machine
   let read_vec = fun () -> read (list flt) "in.txt" in
   
   -- FANCY MPC: Ctr and Cost send the data in the list to Out. This
@@ -498,14 +559,15 @@ def main () =
     (reveal_ls set(Ctr,Cost,Out)
       -- Ctr and Cost compute the solution point:
       ({ par : Ctr, Cost } karmarkar_loop
-        -- Ctr reads inputs constraints,
-        ({ par : Ctr } read_vec ())
-        -- Cost shares the shape of the cost vector with Ctr,
-        ({ par : Ctr, Cost } pdecons 
+        -- read in the matrix of constraints and share them
+        (pfold 
           [ ]
-          (const (compose (reveal_prins comps) (reveal_ls comps)))
-          -- Cost reads the cost vector,
-          ({ par : Cost } read_vec ())
-        ) ) ) ) in
+          (fun Q ctr -> cons
+            (mult_diag_vec pt
+            (map shr_w_comp (reveal_ls comps ctr)) ) )
+          ({ par : Ctr } read_vec ()) )
+        -- read in the vector of costs and share them
+        (map shr_w_comp
+          (reveal_ls comps ({ par : Cost } read_vec ())) ) ) ) ) in
   -- Ctr and Cost forget the structure of the solution
   { par : Out } reveal_ls set(Out) soln
