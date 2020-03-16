@@ -4,6 +4,7 @@ import UVMHS
 
 import PSL.Interpreter.Types
 import PSL.Interpreter.Truncating
+import PSL.Interpreter.Pretty ()
 import PSL.Syntax
 
 iprecisionSuffix ∷ IPrecision → 𝕊

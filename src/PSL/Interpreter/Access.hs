@@ -5,6 +5,7 @@ import UVMHS
 import PSL.Syntax
 
 import PSL.Interpreter.Types
+import PSL.Interpreter.Pretty ()
 
 -----------
 -- MODES --
@@ -87,12 +88,12 @@ restrictValP ṽ = do
     (PSecM ρs, ISecVP ρvs) → do
       let ρvs' = restrict ρs ρvs
       return $ ISecVP ρvs'
-    (PSecM ρs₁, ShareVP φ ρs₂ v md) → do
+    (PSecM ρs₁, ShareVP φ ρs₂ {- md -} v) → do
       guardErr (ρs₂ ⊆ ρs₁) (throwIErrorCxt TypeIError "restrictValP: ρs₁ ⊈ ρs₂" $ frhs
                             [ ("ρs₁",pretty ρs₁)
                             , ("ρs₂",pretty ρs₂)
                             ])
-      return $ ShareVP φ ρs₂ v md
+      return $ ShareVP φ ρs₂ {- md -} v
     (PSecM ρs, AllVP v) → do
       v' ← restrictValPRecVal v
       return $ SSecVP ρs v'
@@ -131,7 +132,7 @@ restrictValPRecVal v = case v of
   PrinV _ → return v
   PrinSetV _ → return v
 
-unShareValPsMode ∷ Mode → 𝐿 ValP → 𝑂 (𝐿 Val ∧ 𝑂 (Prot ∧ 𝑃 PrinVal ∧ ℕ))
+unShareValPsMode ∷ Mode → 𝐿 ValP → 𝑂 (𝐿 Val ∧ 𝑂 (Prot ∧ 𝑃 PrinVal {- ∧ ℕ -}))
 unShareValPsMode m ṽs = case ṽs of
   Nil → return $ Nil :* None
   ṽ :& ṽs' → do
@@ -139,22 +140,22 @@ unShareValPsMode m ṽs = case ṽs of
       SSecVP ρs v → do
         guard $ m ⊑ PSecM ρs
         return (v,None)
-      ShareVP φ ρs md v → do
+      ShareVP φ ρs {- md -} v → do
         guard $ PSecM ρs ⊑ m
-        return (valFrMPC v,Some $ φ :* ρs :* md)
+        return (valFrMPC v,Some $ φ :* ρs {- :* md -})
       AllVP v → return (v,None)
       ISecVP _ → abort
     vs :* φρsO₂ ← unShareValPsMode m ṽs'
     φρsO ← case (φρsO₁,φρsO₂) of
       (None,_) → return φρsO₂
       (_,None) → return φρsO₁
-      (Some (φ₁ :* ρs₁ :* md₁),Some (φ₂ :* ρs₂ :* md₂)) → do
+      (Some (φ₁ :* ρs₁ {- :* md₁ -}),Some (φ₂ :* ρs₂ {- :* md₂ -})) → do
         guard $ φ₁ ≡ φ₂
         guard $ ρs₁ ≡ ρs₂
-        return $ Some $ φ₁ :* ρs₁ :* (md₁ ⊔ md₂)
+        return $ Some $ φ₁ :* ρs₁ {- :* (md₁ ⊔ md₂) -}
     return $ (v :& vs) :* φρsO
 
-unShareValPs ∷ 𝐿 ValP → IM (𝐿 Val ∧ 𝑂 (Prot ∧ 𝑃 PrinVal ∧ ℕ))
+unShareValPs ∷ 𝐿 ValP → IM (𝐿 Val ∧ 𝑂 (Prot ∧ 𝑃 PrinVal {- ∧ ℕ -}))
 unShareValPs ṽs = do
   m ← askL iCxtModeL
   vsφρsO ← error𝑂 (unShareValPsMode m ṽs) (throwIErrorCxt TypeIError "unShareValsPs" $ frhs
@@ -162,12 +163,12 @@ unShareValPs ṽs = do
                                            ])
   return vsφρsO
 
-reShareValP ∷ 𝑂 (Prot ∧ 𝑃 PrinVal ∧ ℕ) → Val → IM ValP
+reShareValP ∷ 𝑂 (Prot ∧ 𝑃 PrinVal {- ∧ ℕ -}) → Val → IM ValP
 reShareValP φρsO v =case φρsO of
   None → introValP v
-  Some (φ :* ρs :* md) → do
+  Some (φ :* ρs {- :* md -}) → do
     sv ← mpcFrVal v
-    return $ ShareVP φ ρs md sv
+    return $ ShareVP φ ρs {- md -} sv
 
 ----------------
 -- MPC VALUES --

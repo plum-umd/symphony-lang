@@ -12,6 +12,8 @@ import PSL.Interpreter.Primitives
 import PSL.Interpreter.Access
 import PSL.Interpreter.PrinExp
 import PSL.Interpreter.ReadType
+import PSL.Interpreter.Pretty ()
+import PSL.Interpreter.Json
 
 import qualified Prelude as HS
 
@@ -19,6 +21,17 @@ import qualified Data.Aeson as JSON
 import qualified Data.ByteString.Lazy as BS
 
 import qualified System.Random as R
+
+import qualified System.FilePath as HS
+
+import qualified System.Console.GetOpt as O
+
+-------------
+-- VERSION --
+-------------
+
+psli_VERSION ∷ 𝕊
+psli_VERSION = "0.1.0.0"
 
 ---------------
 -- VARIABLES --
@@ -219,7 +232,7 @@ interpExp = wrapInterp $ \case
          [ ("ṽ",pretty ṽ)
          ])
     sv ← mpcFrVal v
-    return $ ShareVP φ ρvs 0 sv
+    return $ ShareVP φ ρvs {- 0 -} sv
   AccessE e' ρ → do
     ρv ← interpPrinExpSingle ρ
     ṽ ← interpExp e'
@@ -258,7 +271,7 @@ interpExp = wrapInterp $ \case
           ])
     ṽ ← interpExp e'
     case ṽ of
-      ShareVP _φ _ρs _md sv →
+      ShareVP _φ _ρs {- _md -} sv →
         let v = valFrMPC sv in
         return $ SSecVP ρvs v
       SSecVP _ρs v → return $ SSecVP ρvs v
@@ -293,7 +306,7 @@ interpExp = wrapInterp $ \case
     wrap :* τ' ← case τ of
       ShareT φ ρes τ' → do
         ρvs ← prinExpValss ^$ mapM interpPrinExp ρes
-        return $ ShareVP φ ρvs 0 :* τ'
+        return $ ShareVP φ ρvs {- 0 -} :* τ'
       _ → return $ AllVP ∘ valFrMPC :* τ
     v ← case τ' of
       ℕT ip → io $ NatMV ip ∘ trPrNat ip ∘ nat ^$ R.randomIO @ℕ64
@@ -305,7 +318,7 @@ interpExp = wrapInterp $ \case
     wrap :* τ' ← case τ of
       ShareT φ ρes τ' → do
         ρvs ← prinExpValss ^$ mapM interpPrinExp ρes
-        return $ ShareVP φ ρvs 0 :* τ'
+        return $ ShareVP φ ρvs {- 0 -} :* τ'
       _ → return $ AllVP ∘ valFrMPC :* τ
     ṽ ← interpExp e
     v ← elimValP ṽ
@@ -325,14 +338,14 @@ interpExp = wrapInterp $ \case
     ṽs ← mapM interpExp es
     vs :* φρsO ← unShareValPs ṽs
     v :* τ ← interpPrim o vs
-    let φρsO' = mapOn φρsO $ \ (φ :* ρs :* md) →
-          let md' = if o ≡ "TIMES" then md + 1 else md
-          in φ :* ρs :* md'
+    let φρsO' = mapOn φρsO $ \ (φ :* ρs {- :* md -}) →
+          -- let md' = if o ≡ "TIMES" then md + 1 else md
+          φ :* ρs {-:* md' -}
     v' ← reShareValP φρsO' v
     case φρsO' of
       None → skip
-      Some (φ :* ρs :* md) → do 
-        tellL iOutResEvsL $ single $ ResEv φ ρs τ o md
+      Some (φ :* ρs {- :* md -}) → do 
+        tellL iOutResEvsL $ ResEv φ ρs τ o ↦ 1
     return v'
   TraceE e₁ e₂ → do
     v ← interpExp e₁
@@ -365,123 +378,216 @@ interpTL tl = case extract tl of
 interpTLs ∷ 𝐿 TL → ITLM ()
 interpTLs = eachWith interpTL
 
--------------
--- TESTING --
--------------
+----------
+-- MAIN --
+----------
 
-interpretFile ∷ 𝕊 → IO (IOut ∧ ITLState )
-interpretFile fn = do
-  s ← read fn
+-- flagNames ∷ 𝑃 𝕊
+-- flagNames = pow
+--   [ "resources"
+--   ]
+-- 
+-- paramNames ∷ 𝑃 𝕊
+-- paramNames = pow
+--   [ "seed"
+--   ]
+
+-- parseArgs ∷ 𝐿 𝕊 → 𝕊 ⇰ 𝕊
+-- parseArgs = \case 
+--   a₁ :& as → case list a₁ of
+--     '-' :& '-' :& name | string name ∈ flagNames → 
+--       let ps = parseArgs as
+--       in (string name ↦ "") ⩌ ps
+--     '-' :& '-' :& name | string name ∈ paramNames, a₂ :& as' ← as →
+--       let ps = parseArgs as'
+--       in (string name ↦ a₂) ⩌ ps
+--     -- skip it
+--     _ → parseArgs as
+--   Nil → dø
+
+
+data Options = Options
+  { optVersion ∷ 𝔹
+  , optHelp ∷ 𝔹
+  , optDoResources ∷ 𝔹
+  , optRandomSeed ∷ 𝑂 ℕ
+  } 
+  deriving (Eq,Ord,Show)
+makeLenses ''Options
+
+options₀ ∷ Options
+options₀ = Options
+  { optVersion = False
+  , optHelp = False
+  , optDoResources = False
+  , optRandomSeed = None
+  }
+
+usageInfoTop ∷ [O.OptDescr (Options → Options)]
+usageInfoTop = 
+  [ O.Option ['v'] [chars "version"]   
+             (O.NoArg $ update optVersionL True)
+           $ chars "print version"
+  , O.Option ['h'] [chars "help"]
+             (O.NoArg $ update optHelpL True)
+           $ chars "show help"
+  ]
+
+usageInfoRun ∷ [O.OptDescr (Options → Options)]
+usageInfoRun = 
+  [ O.Option ['r'] [chars "resources"] 
+             (O.NoArg $ update optDoResourcesL True) 
+           $ chars "enable resource estimation"
+  , O.Option ['s'] [chars "seed"]  
+             (O.ReqArg (\ s -> update optRandomSeedL $ Some $ HS.read s) $ chars "NAT")
+           $ chars "set random seed"
+  ]
+
+initializeIO ∷ Options → IO ()
+initializeIO os = exec
+  [ case optRandomSeed os of
+      None → skip
+      Some seed → R.setStdGen $ R.mkStdGen $ HS.fromIntegral seed
+  ]
+
+initializeEnv ∷ Options → ITLEnv
+initializeEnv os = flip compose γtl₀
+  [ if optDoResources os then update itlEnvDoResourcesL True else id
+  ]
+
+interpretFile ∷ ITLEnv → 𝕊 → IO (ITLState ∧ IOut)
+interpretFile γtl path = do
+  s ← read path
   let ts = tokens s
   ls ← tokenizeIO lexer ts
   tls ← parseIO cpTLs ls
-  evalITLMIO σtl₀ $ do
-    o ← retOut $ interpTLs tls
-    σ ← get
-    return $ o :* σ
+  σtl :* o :* () ← runITLMIO γtl σtl₀ $ eachWith interpTL tls
+  return $ σtl :* o
 
-stringProtocol ∷ Prot → 𝕊
-stringProtocol = \case
-  YaoP  → "yao"
-  BGWP  → "bgw"
-  GMWP  → "gmw"
-  BGVP  → "bgv"
-  SPDZP → "spdz"
+interpretFileMain ∷ ITLEnv → 𝕊 → IO (ValP ∧ 𝑂 ValP)
+interpretFileMain γtl path = do
+  σtl :* _ ← interpretFile γtl path
+  let main = itlStateEnv σtl ⋕! var "main"
+  o :* v ← evalITLMIO γtl σtl $ hijack $ asTLM $ interpApp main $ AllVP BulV
+  let expectedO = itlStateEnv σtl ⋕? var "expected"
+  let fn = string $ HS.takeBaseName $ chars path
+  if itlEnvDoResources γtl
+    then BS.writeFile (chars $ "resources/" ⧺ fn ⧺ ".res") $ JSON.encode $ jsonEvents $ iOutResEvs o
+    else skip
+  return $ v :* expectedO
 
-jsonPrinVal ∷ PrinVal → 𝕊
-jsonPrinVal = \case
-  SinglePV s → s
-  AccessPV s i → s ⧺ "_" ⧺ show𝕊 i
+parseOptions ∷ IO (Options ∧ [𝕊])
+parseOptions = do
+  as ← askArgs
+  let (fs,nos,ems) = O.getOpt O.RequireOrder (usageInfoTop ⧺ usageInfoRun) $ lazyList $ map chars as
+  eachOn ems (out ∘ string)
+  let os = compose fs options₀
+  when (optVersion os) $ \ () → do
+    out ""
+    out $ "psli version " ⧺ psli_VERSION
+  when (optHelp os) $ \ () → do
+    out ""
+    out "Usage: psli [<command>] [<arguments>] [<target>]"
+    out ""
+    out $ string $ O.usageInfo (chars "psli [arguments]") usageInfoTop
+    out $ string $ O.usageInfo (chars "psli run [arguments] <file>") usageInfoRun
+    out $ string $ O.usageInfo (chars "psli example [arguments] <name>")  usageInfoRun
+    out $ string $ O.usageInfo (chars "psli test [arguments]") usageInfoRun
+  return $ frhs (os,map string nos)
 
-jsonPrins ∷ 𝑃 PrinVal → JSON.Value
-jsonPrins = JSON.toJSON ∘ lazyList ∘ map jsonPrinVal ∘ iter
+psliMainRun ∷ IO ()
+psliMainRun = do
+  (os,ts) ← tohs ^$ parseOptions
+  fn ← case ts of
+    [] → failIO "ERROR: No file specified as target. Correct usage: psli run [<arguments>] <file>"
+    [t] → return t
+    _ → failIO "ERROR: Too many files specified as target. Correct usage: psli run [<arguments>] <file>"
+  initializeIO os
+  let γtl = initializeEnv os
+  out ""
+  pprint $ ppHorizontal
+    [ ppHeader "INTERPRETING FILE:"
+    , ppString fn
+    ]
+  v ← fst ^$ interpretFileMain γtl fn
+  pprint $ ppHeader "RESULT"
+  pprint v
 
-jsonEvent ∷ ResEv → JSON.Value
-jsonEvent (ResEv φ ρs τ o md) = 
-  JSON.object [ "protocol" JSON..= stringProtocol φ 
-              , "principals" JSON..= jsonPrins ρs
-              , "type" JSON..= τ
-              , "op" JSON..= o
-              , "mult_depth" JSON..= md
-              ]
-
-jsonEvents ∷ (ToIter ResEv t) ⇒ t → JSON.Value
-jsonEvents = JSON.toJSON ∘ lazyList ∘ map jsonEvent ∘ iter
-
-interpretExample ∷ 𝕊 → IO ValP
-interpretExample fn = do
+psliMainExample ∷ IO ()
+psliMainExample = do
+  (os,ts) ← tohs ^$ parseOptions
+  fn ← case ts of
+    [] → failIO "ERROR: No file specified as target. Correct usage: psli example [<arguments>] <name>"
+    [t] → return t
+    _ → failIO "ERROR: Too many files specified as target. Correct usage: psli example [<arguments>] <name>"
+  initializeIO os
+  let γtl = initializeEnv os
+  out ""
+  pprint $ ppHorizontal 
+    [ ppHeader "INTERPRETING EXAMPLE:"
+    , ppString fn
+    ]
   let path = "examples/" ⧺ fn ⧺ ".psl"
-  out path
-  o₁ :* σtl ← interpretFile path
-  let v = itlStateEnv σtl ⋕! var "main"
-  o₂ :* v' ← evalITLMIO σtl $ hijack $ asTLM $ interpApp v $ AllVP BulV
-  let o = o₁ ⧺ o₂
-  -- write ("resources/" ⧺ fn ⧺ ".res") $ "RESOURCE ESTIMATION\n" ⧺ concat (inbetween "\n" $ map show𝕊 $ iOutResEvs o)
-  BS.writeFile (chars $ "resources/" ⧺ fn ⧺ ".res") $ JSON.encode $ jsonEvents $ iOutResEvs o
-  return v'
+  v ← fst ^$ interpretFileMain γtl path
+  pprint $ ppHeader "RESULT"
+  pprint v
 
-interpretTest ∷ 𝕊 → IO (ValP ∧ ValP)
-interpretTest fn = do
-  _ :* σtl ← interpretFile fn
-  let v = itlStateEnv σtl ⋕! var "main"
-      ev = itlStateEnv σtl ⋕! var "expected"
-  v' ← evalITLMIO σtl $ asTLM $ interpApp v $ AllVP BulV
-  return $ v' :* ev
-
-testInterpreterExample ∷ 𝕊 → IO ()
-testInterpreterExample fn = pprint *$ interpretExample fn
-
-testInterpreter ∷ IO ()
-testInterpreter = do
-  -- UNCOMMENT TO FIX THE RANDOM SEED
-  -- R.setStdGen $ R.mkStdGen $ HS.fromIntegral 54321
+psliMainTest ∷ IO ()
+psliMainTest = do
+  (os,ts) ← tohs ^$ parseOptions
+  case ts of
+    [] → skip
+    _ → failIO "ERROR: Command does not accept targets. Correct usage: psli test [<arguments>]"
+  let γtl = initializeEnv os
+  out ""
   pprint $ ppHeader "TESTING INTERPRETER"
   indir "tests" $ do
-    fs ← files
+    fns ← files
+    vevs ← mapMOn fns $ \ fn → do
+      initializeIO os
+      (fn :*) ^$ interpretFileMain γtl fn
     pprint $ ppVertical
       [ ppHeader "TESTS"
       , concat
         [ ppSpace $ 𝕟64 2
-        , ppAlign $ ppVertical $ mapOn fs $ \ fn →
-            let v :* ev = ioUNSAFE $ interpretTest fn
-            in case v ≡ ev of
-              True → ppHorizontal [ppFormat (formats [FG darkGreen]) $ ppString "PASSED",ppString fn]
-              False → ppVertical
-                [ ppHorizontal [ppFormat (formats [FG darkRed]) $ ppString "FAILED",ppString fn]
-                , concat
-                    [ ppSpace $ 𝕟64 2
-                    , ppAlign $ ppVertical
-                        [ ppHorizontal [ppHeader "RETURNED:",pretty v]
-                        , ppHorizontal [ppHeader "EXPECTED:",pretty ev]
-                        ]
-                    ]
-                ]
+        , ppAlign $ ppVertical $ mapOn vevs $ \ (fn :* (v :* ev)) → case Some v ≡ ev of
+            True → ppHorizontal 
+              [ ppFormat (formats [FG darkGreen]) $ ppString "PASSED"
+              , ppString fn
+              ]
+            False → ppVertical
+              [ ppHorizontal 
+                  [ ppFormat (formats [FG darkRed]) $ ppString "FAILED"
+                  , ppString fn
+                  ]
+              , concat
+                  [ ppSpace $ 𝕟64 2
+                  , ppAlign $ ppVertical
+                      [ ppHorizontal [ppHeader "RETURNED:",pretty v]
+                      , ppHorizontal [ppHeader "EXPECTED:",pretty ev]
+                      ]
+                  ]
+              ]
         ]
       ]
-  -- testInterpreterExample "add"
-  -- testInterpreterExample "arg-par-contains"
-  -- testInterpreterExample "atq"
-  -- testInterpreterExample "bind-fp-const"
-  -- testInterpreterExample "bind-shares"
-  -- testInterpreterExample "cmp"
-  -- testInterpreterExample "cmp-fn-flt"
-  -- testInterpreterExample "cmp-split"
-  -- testInterpreterExample "cmp-tutorial"
-  -- testInterpreterExample "elim-sec-ls"
-  -- testInterpreterExample "empty-par-diverge"
-  -- testInterpreterExample "euclid"
-  -- testInterpreterExample "indy-pars"
-  -- testInterpreterExample "pfold"
-  -- testInterpreterExample "karmarkar-simple"
-  testInterpreterExample "karmarkar-silly"
-  -- testInterpreterExample "msort"
-  -- testInterpreterExample "partial-diverge"
-  -- testInterpreterExample "reshare"
-  -- testInterpreterExample "share-ls"
-  -- testInterpreterExample "single-share"
-  -- testInterpreterExample "ssec-other-ssec"
-  -- testInterpreterExample "ssec-shr"
-  -- testInterpreterExample "sumprod"
-  -- testInterpreterExample "test"
-  -- testInterpreterExample "uninspecting-par"
-  -- testInterpreterExample "rand"
+
+pslMainInfo ∷ IO ()
+pslMainInfo = do
+  out ""
+  out $ concat $ inbetween "\n" 
+    [ "psli is the interpreter for the PSL language developed by"
+    , "the PANTHEON team, funded by IARPA for the HECTOR project."
+    ]
+  (_,ts) ← tohs ^$ parseOptions
+  case ts of
+    [] → skip
+    _ → failIO "ERROR: Command does not accept targets. Correct usage: psli [<arguments>]"
+
+interpreterMain ∷ IO ()
+interpreterMain = do
+  map list args ≫= \case
+    "run" :& as → localArgs as $ psliMainRun
+    "example" :& as → localArgs as $ psliMainExample
+    "test" :& as → localArgs as psliMainTest
+    Nil → localArgs (list ["--version","--help"]) pslMainInfo
+    as → localArgs as pslMainInfo

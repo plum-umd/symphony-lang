@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 06ec92f92daa7fe3ca7692a36ccc04d2aa46dc04e73c352c8c24ca87d2f38f22
+-- hash: 7f7e807e963e240d4c9329f15374b3e9be7592449addecdcf8a2f7de27d05cd2
 
 name:           psl
 version:        0.0.0.0
@@ -16,6 +16,7 @@ library
       PSL
       PSL.Interpreter
       PSL.Interpreter.Access
+      PSL.Interpreter.Json
       PSL.Interpreter.Pretty
       PSL.Interpreter.Primitives
       PSL.Interpreter.PrinExp
@@ -32,13 +33,17 @@ library
   default-extensions: ConstraintKinds DataKinds ExplicitNamespaces FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase MonadComprehensions MultiParamTypeClasses NoImplicitPrelude OverloadedStrings PatternSynonyms PolyKinds QuantifiedConstraints RankNTypes RebindableSyntax ScopedTypeVariables StandaloneDeriving Strict StrictData TemplateHaskell TypeApplications TypeFamilies TypeOperators UndecidableInstances UndecidableSuperClasses UnicodeSyntax ViewPatterns
   ghc-options: -Wall -Wno-orphans -Wno-partial-type-signatures -j
   build-depends:
-      base
+      aeson
+    , base
+    , bytestring
     , directory
+    , filepath
+    , random
     , uvmhs
   default-language: Haskell2010
 
-executable psl
-  main-is: Main.hs
+executable psli
+  main-is: PSLI.hs
   other-modules:
       Paths_psl
   hs-source-dirs:
@@ -46,11 +51,7 @@ executable psl
   default-extensions: ConstraintKinds DataKinds ExplicitNamespaces FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase MonadComprehensions MultiParamTypeClasses NoImplicitPrelude OverloadedStrings PatternSynonyms PolyKinds QuantifiedConstraints RankNTypes RebindableSyntax ScopedTypeVariables StandaloneDeriving Strict StrictData TemplateHaskell TypeApplications TypeFamilies TypeOperators UndecidableInstances UndecidableSuperClasses UnicodeSyntax ViewPatterns
   ghc-options: -Wall -Wno-orphans -Wno-partial-type-signatures -j
   build-depends:
-      aeson
-    , base
-    , bytestring
-    , directory
+      base
     , psl
-    , random
     , uvmhs
   default-language: Haskell2010
