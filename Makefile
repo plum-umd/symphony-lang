@@ -5,6 +5,7 @@ STACK_ARGS :=
 ARGS       :=
 
 psli: build
+	rm -f psli
 	ln -s `stack path --dist-dir`/build/psli/psli ./
 
 .stack-work:
