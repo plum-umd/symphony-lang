@@ -14,8 +14,11 @@ RUN : \
 ;
 
 COPY Makefile Makefile
+COPY examples examples
+COPY examples-data examples-data
 COPY main main
 COPY package.yaml package.yaml
+COPY resources resources
 COPY src src
 COPY stack.yaml stack.yaml
 COPY tests tests
