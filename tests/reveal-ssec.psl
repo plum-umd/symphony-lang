@@ -1,7 +1,7 @@
-principal A B C D
+principal A B C D E
 
 def main • =
-  reveal{A,C,D} (reveal{A,B,C} (share{yao:A,B} 3))
+  send{C → D,E} (reveal{A,B,C} (share{yao:A → A,B} 3))
 
 def expected =
-  reveal{A,C,D} (share{yao:A,B} 3)
+  par {D,E} 3

@@ -66,10 +66,10 @@ data COut = COut
 makePrettySum ''COut
 makeLenses ''COut
 
-instance Null COut where null = COut null
-instance Append COut where
-  COut η₁ ⧺ COut η₂ = COut $ η₁ ⧺ η₂
-instance Monoid COut
+-- instance Null COut where null = COut null
+-- instance Append COut where
+--   COut η₁ ⧺ COut η₂ = COut $ η₁ ⧺ η₂
+-- instance Monoid COut
 
 -----------
 -- ERROR --
@@ -142,6 +142,8 @@ evalCTLMIO σ xM = case evalCTLM σ xM of
       ]
     abortIO
   Inr x → return x
+
+{-
 
 -----------
 -- MONAD --
@@ -475,3 +477,4 @@ testTypechecker = do
   testTypecheckerExample "cmp"
   testTypecheckerExample "euclid"
 
+-}

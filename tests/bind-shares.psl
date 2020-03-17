@@ -2,10 +2,10 @@ principal A
 principal B
 
 def main () =
-  let a = share{ spdz : A } 0 in
-  let l = { par : A, B } ((share{ spdz : A } 0) :: [ ]) in
-  let l' = { par : A, B } (a :: [ ]) in
+  let a = share{spdz: A -> A} 0 in
+  let l = par {A,B} ((share{spdz: A -> A} 0) :: []) in
+  let l' = par {A,B} (a :: []) in
   l'
 
-def expected = {par:A,B} (share{spdz:A} 0) :: []
+def expected = par {A,B} (share{spdz: A -> A} 0) :: []
 

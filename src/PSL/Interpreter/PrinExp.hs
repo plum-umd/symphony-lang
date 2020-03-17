@@ -35,11 +35,18 @@ interpPrinExp ρe = case ρe of
       _ → throwIErrorCxt TypeIError "interpPrinExp: ρev ≢ SetPEV _ _" $ frhs
         [ ("ρev",pretty ρev)
         ]
+  StarPE x → throwIErrorCxt NotImplementedIError "principal star" null
+    -- do
+    -- ρev ← interpPrinVar x
+    -- case ρev of
+    --   SetPEV n ρ → return $ PowPEV $ pow $ mapOn (upTo n) $ \ i → AccessPV ρ i
+    --   _ → throwIErrorCxt TypeIError "ρev.* only works when ρ is the name of a principal set" $ frhs
+    --     [ ("ρev",pretty ρev) ]
   ThisPE → do
     m ← askL iCxtModeL
     case m of
-      SecM ρv → return $ ValPEV $ ρv
-      PSecM ρvs → return $ PowPEV $ ρvs
+      -- SecM ρv → return $ ValPEV $ ρv
+      SecM ρvs → return $ PowPEV $ ρvs
       TopM → throwIErrorCxt NotImplementedIError "Use of 'this' keyword in TopM not implemented" $ frhs
         [ ("m",pretty m)
         ]
@@ -54,11 +61,14 @@ interpPrinExpSingle ρe = do
       [ ("ρv",pretty ρv)
       ]
 
-prinExpVals ∷ (STACK) ⇒ PrinExpVal → 𝑃 PrinVal
+prinExpVals ∷ (STACK) ⇒ PrinExpVal → IM (𝑃 PrinVal)
 prinExpVals ρev = case ρev of
-  ValPEV v → single v
-  SetPEV n ρ → pow $ mapOn (upTo n) $ \ i → AccessPV ρ i
-  PowPEV vs → vs
+  ValPEV v → return $ single v
+  PowPEV vs → return $ vs
+  SetPEV n ρ → return $
+    pow $ mapOn (upTo n) $ \ i → AccessPV ρ i
+    -- throwIErrorCxt TypeIError "{A} fails when A is a set of prinples; did you mean {A.*}?" $ frhs
+    --   [ ("ρ",pretty ρ) ]
 
-prinExpValss ∷ (STACK,ToIter PrinExpVal t) ⇒ t → 𝑃 PrinVal
-prinExpValss = unions ∘ map prinExpVals ∘ iter
+prinExpValss ∷ (STACK,ToIter PrinExpVal t) ⇒ t → IM (𝑃 PrinVal)
+prinExpValss = unions ^∘ mapM prinExpVals ∘ list
