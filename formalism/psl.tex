@@ -569,6 +569,23 @@ variable \texttt{x1} will be bound to $\epair{\vcrash}{1}$, since the
 first element is not accessible at $a$, but this is not the value that
 is ultimately returned.
 
+\paragraph{Example 5}
+\begin{verbatim}
+let x = par{a,c} 0 in
+let f = par{a,b} fun y -> (x,y) in
+par{b} f 1
+\end{verbatim}
+This will create a variable located at $a$ and $c$; then it creates a
+closure at $a$ and $b$. This means that the call to \texttt{f} with
+only $b$ present, on the last line, will return a pair $\epair{0}{1}$
+where $0$ is located at $\emptyset$ (i.e., it is inaccessible to
+everyone) and $1$ is located at $b$. Note that the last line
+\texttt{par{b} f 1} would fail if changed to \texttt{par{c} f 1}. This
+is because the closure $f$ is not located at $c$ so it can't be
+called. If the last line was \texttt{par{a} f 1} then $\epair{0}{1}$
+would be returned again, but this time $0$ and $1$ would both be
+located at $a$.
+
 \section{Semantics (Single Threaded)}
 \label{sec:STsemantics}
 
