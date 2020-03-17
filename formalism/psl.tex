@@ -580,11 +580,11 @@ closure at $a$ and $b$. This means that the call to \texttt{f} with
 only $b$ present, on the last line, will return a pair $\epair{0}{1}$
 where $0$ is located at $\emptyset$ (i.e., it is inaccessible to
 everyone) and $1$ is located at $b$. Note that the last line
-\texttt{par{b} f 1} would fail if changed to \texttt{par{c} f 1}. This
-is because the closure $f$ is not located at $c$ so it can't be
-called. If the last line was \texttt{par{a} f 1} then $\epair{0}{1}$
-would be returned again, but this time $0$ and $1$ would both be
-located at $a$.
+\texttt{par\{b\} f 1} would fail if changed to \texttt{par\{c\} f
+  1}. This is because the closure $f$ is not located at $c$ so it
+can't be called from there. If the last line was \texttt{par\{a\} f 1}
+then $\epair{0}{1}$ would be returned again, but this time $0$ and $1$
+would both be located at $a$.
 
 \section{Semantics (Single Threaded)}
 \label{sec:STsemantics}
