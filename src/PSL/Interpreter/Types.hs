@@ -36,6 +36,7 @@ data ValP =
   | ISecVP (PrinVal ⇰ Val)
   | ShareVP Prot (𝑃 PrinVal) ValMPC
   | AllVP Val
+  | UnknownVP
   deriving (Eq,Ord,Show)
 
 -- Values used in circuits

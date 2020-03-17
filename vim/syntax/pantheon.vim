@@ -60,7 +60,9 @@ syn match pantheonOperator "\v\&\&"
 syn match pantheonOperator "\v∧"
 
 syn match pantheonPunctuation "\v→"
+syn match pantheonPunctuation "\v←"
 syn match pantheonPunctuation "\v\-\>"
+syn match pantheonPunctuation "\v\<\-"
 
 syn match pantheonNoMatch "\v(\w|_)+(\-|\w|_)*"
 syn match pantheonNoMatch "\v(\-|\w|_)*(\w|_)+"

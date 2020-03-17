@@ -138,7 +138,8 @@ interpApp ṽ₁ ṽ₂ = do
             None → id
             Some self → bindVar self ṽ₁
       m <- askL iCxtModeL
-      compose [localL iCxtCloL ξ, restrictMode m,bindPat ψ ṽ₂,selfγ] $ interpExp e
+      -- comment out code before is not necessary because of logic in elimValP
+      compose [localL iCxtCloL ξ, {- restrictMode m,-} bindPat ψ ṽ₂,selfγ] $ interpExp e
     _ → throwIErrorCxt TypeIError "interpExp: AppE: v₁ ≢ CloV _ _ _ _" $ frhs
       [ ("v₁",pretty v₁)
       ]
@@ -215,24 +216,28 @@ interpExp = wrapInterp $ \case
     return $ ISecVP $ dict ρṽs
   ParE ρes e' → do
     ρvs ← prinExpValss ^$ mapM interpPrinExp ρes
-    restrictMode (PSecM ρvs) $ interpExp e'
-  ShareE φ ρes e' → do
-    ρvs ← prinExpValss ^$ mapM interpPrinExp ρes
+    if ρvs ≡ pø 
+       then return UnknownVP
+       else restrictMode (PSecM ρvs) $ interpExp e'
+  ShareE φ ρes₁ ρes₂ e' → do
+    ρvs₁ ← prinExpValss ^$ mapM interpPrinExp ρes₁
+    ρvs₂ ← prinExpValss ^$ mapM interpPrinExp ρes₂
     m ← askL iCxtModeL
-    guardErr (PSecM ρvs ⊑ m) (throwIErrorCxt TypeIError "interpExp: ShareE: ρvs ⋢ m" $ frhs
-                              [ ("ρvs",pretty ρvs)
-                              , ("m",pretty m)
-                              ])
+    guardErr (count ρvs₁ ≡ 1) $
+      throwIErrorCxt TypeIError "interpExp: ShareE: size ρvs₁ ≠ 1" $ frhs
+        [ ("ρvs₁",pretty ρvs₁) ]
+    guardErr (PSecM ρvs₂ ⊑ m) $ 
+      throwIErrorCxt TypeIError "interpExp: ShareE: ρvs₂ ⋢ m" $ frhs
+        [ ("ρvs₂",pretty ρvs₂)
+        , ("m",pretty m)
+        ]
     ṽ ← interpExp e'
-    v ← error𝑂 (tries
-                [ snd ∘ frhs ^$ abort𝑂 $ view sSecVPL ṽ
-                , abort𝑂 $ view allVPL ṽ
-                ])
-        (throwIErrorCxt TypeIError "interpExp: ShareE: failed" $ frhs
-         [ ("ṽ",pretty ṽ)
-         ])
+    v ← case ṽ of
+      SSecVP ρvs v | ρvs ≡ ρvs₁ → return v
+      AllVP v → return v
+      _ → throwIErrorCxt TypeIError "interpExp: ShareE: bad" null
     sv ← mpcFrVal v
-    return $ ShareVP φ ρvs {- 0 -} sv
+    return $ ShareVP φ ρvs₂ sv
   AccessE e' ρ → do
     ρv ← interpPrinExpSingle ρ
     ṽ ← interpExp e'
@@ -257,24 +262,48 @@ interpExp = wrapInterp $ \case
                                   ])
       return $ ρv ↦ v
   -- BundleUnionE
-  RevealE ρes e' → do
-    ρvs ← prinExpValss ^$ mapM interpPrinExp ρes
+  RevealE ρes₁ ρes₂ e' → do
+    ρvs₁ ← prinExpValss ^$ mapM interpPrinExp ρes₁
+    ρvs₂ ← prinExpValss ^$ mapM interpPrinExp ρes₂
     m ← askL iCxtModeL
     case m of
-      PSecM ρs → guardErr (ρvs ⊆ ρs) (throwIErrorCxt TypeIError "interpExp: RevealE: ρvs ⊈ ρs" $ frhs
-                                      [ ("ρvs",pretty ρvs)
-                                      , ("ρs",pretty ρs)
-                                      ])
+      PSecM ρs → guardErr (ρvs₂ ⊆ ρs) $
+        throwIErrorCxt TypeIError "interpExp: RevealE: ρvs ⊈ ρs" $ frhs
+          [ ("ρvs₂",pretty ρvs₂)
+          , ("ρs",pretty ρs)
+          ]
       TopM → skip
       _ → (throwIErrorCxt TypeIError "interpExp: RevealE: m ∉ {PSecM _, TopM}" $ frhs
           [ ("m",pretty m)
           ])
     ṽ ← interpExp e'
     case ṽ of
-      ShareVP _φ _ρs {- _md -} sv →
+      ShareVP _φ ρs {- _md -} sv | ρs ≡ ρvs₁ →
         let v = valFrMPC sv in
-        return $ SSecVP ρvs v
-      SSecVP _ρs v → return $ SSecVP ρvs v
+        return $ SSecVP ρvs₂ v
+      _ → throwIErrorCxt TypeIError "interpExp: RevealE: ṽ ∉ {ShareVP _ _ _,SSecVP _ _}" $ frhs
+        [ ("ṽ",pretty ṽ)
+        ]
+  SendE ρes₁ ρes₂ e' → do
+    ρvs₁ ← prinExpValss ^$ mapM interpPrinExp ρes₁
+    ρvs₂ ← prinExpValss ^$ mapM interpPrinExp ρes₂
+    guardErr (count ρvs₁ ≡ 1) $
+      throwIErrorCxt TypeIError "interpExp: ShareE: size ρvs₁ ≠ 1" $ frhs
+        [ ("ρvs₁",pretty ρvs₁) ]
+    m ← askL iCxtModeL
+    case m of
+      PSecM ρs → guardErr (ρvs₂ ⊆ ρs) $
+        throwIErrorCxt TypeIError "interpExp: RevealE: ρvs ⊈ ρs" $ frhs
+          [ ("ρvs₂",pretty ρvs₂)
+          , ("ρs",pretty ρs)
+          ]
+      TopM → skip
+      _ → (throwIErrorCxt TypeIError "interpExp: RevealE: m ∉ {PSecM _, TopM}" $ frhs
+          [ ("m",pretty m)
+          ])
+    ṽ ← interpExp e'
+    case ṽ of
+      SSecVP ρs v | ρs ≡ ρvs₁ → return $ SSecVP ρvs₂ v
       _ → throwIErrorCxt TypeIError "interpExp: RevealE: ṽ ∉ {ShareVP _ _ _,SSecVP _ _}" $ frhs
         [ ("ṽ",pretty ṽ)
         ]

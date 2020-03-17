@@ -45,6 +45,7 @@ lexer = lexerBasic puns kws prim ops
       , "⟫",">>"
       , ".",",",":",";"
       , "→","->"
+      , "←","<-"
       , "⇒","=>"
       , "="
       , "_"
@@ -66,6 +67,7 @@ lexer = lexerBasic puns kws prim ops
       , "case"
       , "reveal"
       , "share"
+      , "send"
       , "trace"
       , "set"
       , "this"
@@ -589,15 +591,17 @@ pExp = fmixfixWithContext "exp" $ concat
       ρes ← pPrinExps
       cpSyntax "}"
       return $ ParE ρes
-  -- share{φ:P} e
+  -- share{φ:P→P} e
   , fmixPrefix levelAPP $ do 
       cpSyntax "share" 
       cpSyntax "{"
       φ ← pProt
       cpSyntax ":"
-      ρes ← pPrinExps
+      ρes₁ ← pPrinExps
+      concat [cpSyntax "→",cpSyntax "->"]
+      ρes₂ ← pPrinExps
       cpSyntax "}"
-      return $ ShareE φ ρes
+      return $ ShareE φ ρes₁ ρes₂
   -- e.ρ
   , fmixPostfix levelACCESS $ do cpSyntax "." ; ρe ← pPrinExp ; return $ \ e → AccessE e ρe
   -- ⟪ρ₁.e₁;…;ρₙ;eₙ⟫
@@ -612,13 +616,24 @@ pExp = fmixfixWithContext "exp" $ concat
       return $ BundleE ρes
   -- e⧺e
   , fmixInfixL levelPLUS $ do concat [cpSyntax "⧺",cpSyntax "++"] ; return BundleUnionE
-  -- reveal{P} e
+  -- reveal{P→P} e
   , fmixPrefix levelREVEAL $ do
       cpSyntax "reveal"
       cpSyntax "{"
-      ρes ← pPrinExps
+      ρes₁ ← pPrinExps
+      concat [cpSyntax "→",cpSyntax "->"]
+      ρes₂ ← pPrinExps
       cpSyntax "}"
-      return $ RevealE ρes
+      return $ RevealE ρes₁ ρes₂
+  -- send{P→P} e
+  , fmixPrefix levelAPP $ do
+      cpSyntax "send"
+      cpSyntax "{"
+      ρes₁ ← pPrinExps
+      concat [cpSyntax "→",cpSyntax "->"]
+      ρes₂ ← pPrinExps
+      cpSyntax "}"
+      return $ SendE ρes₁ ρes₂
   -- e:τ
   , fmixPostfix levelASCR $ do
       cpSyntax ":"
