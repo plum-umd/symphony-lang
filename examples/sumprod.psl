@@ -5,7 +5,7 @@ principal C
 -- output party
 principal E
 
-def main : 𝟙 →{inp:A,B;rev:E} 𝔹{ssec:E}
+def main : 𝟙 →{inp:A;rev:E} 𝔹{ssec:E}
 def main • =
   let x = {A} read ℤ "cmp-input.txt"
   let y = share{bgv:C} x.A

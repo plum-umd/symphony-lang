@@ -7,6 +7,7 @@
 \usepackage{mathpartir}
 \usepackage{color}
 \usepackage{xspace}
+\usepackage[override]{cmtt}
 
 %%%%% DEFS %%%%%%
 
@@ -16,7 +17,7 @@
 % Types
 \newcommand{\tnat}{\ensuremath{\mathtt{nat}}}
 \newcommand{\tfun}[3]{\ensuremath{{#1} ~^{#3}\!\rightarrow {#2}}}
-\newcommand{\tprod}[2]{\ensuremath{{#1} \times {#2}}}
+\newcommand{\tpair}[2]{\ensuremath{{#1} \times {#2}}}
 %\newcommand{\tsum}[4]{\ensuremath{{#1} +^{#3}_{#4} {#2}}}
 \newcommand{\tsum}[3]{\ensuremath{{#1} +^{#3} {#2}}}
 \newcommand{\trec}[2]{\ensuremath{\mu {#1}.{#2}}}
@@ -31,9 +32,9 @@
 \newcommand{\epar}[2]{\ensuremath{\kw{par}~{#1}~{#2}}}
 \newcommand{\esec}[2]{\ensuremath{\kw{sec}~{#1}~{#2}}}
 \newcommand{\ereveal}[4]{\ensuremath{\kw{reveal}^{#1}_{#4}~{#2}~{#3}}}
-\newcommand{\econd}[3]{\ensuremath{\kw{match}~{#1}~\kw{with}~x.{#2} \diamond {#3}}}
+\newcommand{\econd}[3]{\ensuremath{\kw{case}~{#1}~\kw{with}~x.{#2} \diamond {#3}}}
 %\newcommand{\emux}[3]{\ensuremath{\kw{mux}~{#1}~\kw{?}~x.{#2}~\kw{:}~x.{#3}}}
-\newcommand{\emux}[3]{\ensuremath{\kw{mux}~{#1}~\kw{?}~{#2}~\kw{:}~{#3}}}
+\newcommand{\emux}[3]{\ensuremath{\kw{mux}~{#1}~\kw{?}~{#2} \diamond {#3}}}
 \newcommand{\eshare}[4]{\ensuremath{\kw{share}^{#2}_{#1}~{#3}~{#4}}}
 %\newcommand{\esharesum}[4]{\ensuremath{\kw{sharesum}^{#2}_{#1}~{#3}~{#4}}}
 \newcommand{\einj}[2]{\ensuremath{\kw{inj}_{#1}~{#2}}}
@@ -130,7 +131,7 @@ semantics.
       \text{Protocol} & \psi & ::= & \cdot & \text{cleartext} \\
                        && \mid & \phi & \text{encryption format} \\
       \text{Types} & \tau & ::=  & \tnat^m_\psi & \text{a base type} \\
-                       && \mid & \tprod{\tau}{\tau} & \text{pairs} \\
+                       && \mid & \tpair{\tau}{\tau} & \text{pairs} \\
 %                       && \mid & \tsum{\tau}{\tau}{m}{\psi} & \text{sums} \\
                        && \mid & \tsum{\tau}{\tau}{m} & \text{sums} \\
                        && \mid & \trec{\alpha}{\tau} & \text{(iso)recursive types} \\
@@ -263,7 +264,7 @@ obvious language extensions).
 \subsubsection{Encrypted Sums}
 
 An encrypted sum can be represented as a value of the type
-$\tprod{\tnat^m_\psi}{(\tprod{\tau_1}{\tau_2})}$. Here, the first
+$\tpair{\tnat^m_\psi}{(\tpair{\tau_1}{\tau_2})}$. Here, the first
 element is a boolean that represents whether the ``real'' portion of
 the sum is the left side. We can introduce (encrypt) an existing sum
 by doing the following:
@@ -311,7 +312,7 @@ A \emph{wire bundle} conceptually represents a single logical value,
 but each party has its own distinct copy. We represent it as a product
 where each element of the product is only visible to a single
 party. For simplicity, consider the smallest one:
-$\tprod{\tnat^{\{p\}}_\psi}{\tnat^{\{q\}}_\psi}$. One way we could
+$\tpair{\tnat^{\{p\}}_\psi}{\tnat^{\{q\}}_\psi}$. One way we could
 write this as a derived type might be $W~\{p,q\}~\tnat^\alpha_\phi$
 where the interpretation is to substitute each principal in the first
 argument to $W$ (a principal set $P$) for $\alpha$ in the second
@@ -389,6 +390,41 @@ generalized the fixed-size notion of wire bundles given above.
 
 We leave it to future work to flesh out the details. 
 
+\subsection{Differences with PSL}
+
+\mwh{Some of these are problems, not expected differences. Fix}
+The PSL interpreter differs from \lang in several ways. We list a few
+of them here:
+\begin{itemize}
+\item PSL has effect annotations on function arrows indicating when
+  something is input or revealed; \lang does not have these,
+  instead only indicating which principals must be present. I think
+  that PSL doesn't do this, but should. For example, look at
+  \texttt{sumprod.psl} for effect annotation examples, and
+  \texttt{atq.psl} for an example of the lack of annotation, e.g., on
+  the \texttt{length} function, which involves principals $A$ and $B$.
+\item PSL has global principal declarations; \lang does not, and
+  rather assumes an existing pool of principal names. PSL programs can
+  be viewed as being defined in a global $\kw{par}$ block involving
+  the declared principals; \lang programs require making the
+  $\kw{par}$ block explicit.
+\item PSL has principal sets, e.g., \texttt{principal} $A[2]$ declares
+  a set of principals $A$ of size 2. See \texttt{bgv.psl}. However, I
+  don't understand these are being used as sets; they seem to be just
+  referenced as single principals.
+\item PSL seems to have universal / polymorphic types.
+\item What are the limits of \texttt{par} mode in PSL on wire bundles?
+\item The sharing syntax in \texttt{atq.psl} seems off -- needs to be
+  done in a singleton \texttt{par} block, so we know who is doing the
+  sharing.
+\item I don't understand \texttt{reveal-ssec.psl}. This seems to
+  assume some sort of set intersecting is going on (between A,C,D and
+  A,B,C)? Also, I observe that this test still lacks the distinction
+  of who is doing the revealing vs. who is receiving the result. In
+  \lang, this is two sets, $P$ and $Q$.
+\item What is \texttt{this} in PSL?
+\end{itemize}
+
 \section{Examples}
 \label{sec:examples}
 
@@ -397,7 +433,7 @@ We leave it to future work to flesh out the details.
 \newcommand{\twoprins}{\ensuremath{\{a,b\}}}
 
 A list of shares between $a$ and $b$ would have type
-$\trec{\alpha}{\tsum{(\tprod{\tnat^{\twoprins}_\psi}{\alpha})}{\tnat^{\twoprins}}{\twoprins}}$. In
+$\trec{\alpha}{\tsum{(\tpair{\tnat^{\twoprins}_\psi}{\alpha})}{\tnat^{\twoprins}}{\twoprins}}$. In
 short, a list of shares is either a pair, where the first element is a
 \twoprins-share and the second is a list, or it's a normal integer
 (i.e., the NULL terminator). Notice that neither the recursive type
@@ -459,7 +495,7 @@ As another thought experiment, suppose we have a list with values from
 both $a$ and $b$, but unencrypted?
 
 A list of shares between $a$ and $b$ would have type
-$\trec{\alpha}{\tsum{(\tprod{(\tprod{\tnat^{\{a\}}}{\tnat^{\{b\}}})}{\alpha})}{\tnat^{\twoprins}}{\twoprins}}$.
+$\trec{\alpha}{\tsum{(\tpair{(\tpair{\tnat^{\{a\}}}{\tnat^{\{b\}}})}{\alpha})}{\tnat^{\twoprins}}{\twoprins}}$.
 This list is like the earlier one, but instead of shared numbers as
 its contents, it has a pair of normal numbers, with the left as
 visible only to $a$ and the right visible only to $b$.
@@ -480,18 +516,37 @@ This example makes evident that each party needs to maintain the
 complete structure of the list, but only has actual values for its own
 parts of it; the other party's values will just be placeholders.
 
-\subsection{Other examples}
+\subsection{Visibility}
 
-\mwh{More}
+Here are several examples illustrating how multi-party value
+visibility is controlled.
 
+\paragraph{Example 1}
 \begin{verbatim}
-(fun x -> { par : C } x) 
-  ({ par : A, B, C } reveal{ C } (share{ yao : A, B } 0))
+par{a,b}
+  let x = par{b} (0,0) in
+  par{a} let y = #1 x in y
 \end{verbatim}
-This is allowed by the type system. The $\kw{reveal}$ produces a value
-at $C$, which may be ``passed through'' the par block at \verb+{A, B,C}+. 
-This is then passed in and used in the function.
+Running this example will produce $\vcrash$---the bogus value, see
+next section---but since the value is never accessed by the program,
+this is a fine result. The pair bound in \texttt{x} is only visible to
+$b$, but is accessed in a block run only by $a$. When $x$ is looked up
+in that latter block, $a$ will have no specific value for it but the
+\texttt{\# 1} operation will be allowed to proceed, also producing
+$\vcrash$, as pairs are not located.
 
+\paragraph{Example 2}
+\begin{verbatim}
+(fun x -> par{c} x) 
+  (par{a,b,c} reveal{a,b}{c} (share{a,b}{a} 0))
+\end{verbatim}
+This program has $a$ share $0$ with itself and $b$, and then reveal
+the results of that share to $c$. These operationsn are 
+This is allowed by the type system. The $\kw{reveal}$ directs $a$ and
+$b$ to reveal their result to $c$. The result is returned from the
+$\kw{par}$ block and successful accessed by $c$ in the called function.
+
+\paragraph{Example 3}
 \begin{verbatim}
 par(A,B) 
   let x = par(A) 0 in
@@ -499,16 +554,20 @@ par(A,B)
   par(A) 
     let z = (x,y) in #1 z
 \end{verbatim}
-Should work.
+This program works because even though $y$ is not available at $A$
+where the pair is constructed, it is never accessed.
 
+\paragraph{Example 4}
 \begin{verbatim}
-(fun x -> { par : B } ((), x)) ({ par : A } 0)
+par{a,b}
+  let x0 = par{b} 0 in
+  let x1 = (fun x -> par{a} (x,1)) x0 in
+  x0
 \end{verbatim}
-The above is allowed. And equivalently, so is this (which in a
-previous incarnation would have been rejected):
-\begin{verbatim}
-{ par : B } ((), ({ par : A } 0))
-\end{verbatim}
+Running this program produces the value $0$ located at $b$. The
+variable \texttt{x1} will be bound to $\epair{\vcrash}{1}$, since the
+first element is not accessible at $a$, but this is not the value that
+is ultimately returned.
 
 \section{Semantics (Single Threaded)}
 \label{sec:STsemantics}
@@ -1713,7 +1772,7 @@ have the type of $u$ annotated with location $P$.
     {
     m \vdash \tau_1 \\ m \vdash \tau_2
     }
-    {m \vdash \tprod{\tau_1}{\tau_2}}
+    {m \vdash \tpair{\tau_1}{\tau_2}}
     \qquad
 
     \inferrule*[lab=M-Rec]
@@ -1751,7 +1810,7 @@ have the type of $u$ annotated with location $P$.
     {
     m \dashv \tau_1 \\\\ m \dashv \tau_2
     }
-    {m \dashv \tprod{\tau_1}{\tau_2}}
+    {m \dashv \tpair{\tau_1}{\tau_2}}
     \qquad
 
     \inferrule*[lab=L-Rec]
