@@ -31,7 +31,7 @@
 \newcommand{\elet}[3]{\ensuremath{\kw{let}~#1\, =\, #2~\kw{in}\;{#3}}}
 \newcommand{\epar}[2]{\ensuremath{\kw{par}~{#1}~{#2}}}
 \newcommand{\esec}[2]{\ensuremath{\kw{sec}~{#1}~{#2}}}
-\newcommand{\ereveal}[3]{\ensuremath{\kw{reveal}^{#1}~{#2}~{#3}}}
+\newcommand{\ereveal}[3]{\ensuremath{\kw{reveal}_{#1}~{#2}~{#3}}}
 \newcommand{\econd}[3]{\ensuremath{\kw{case}~{#1}~\kw{with}~x.{#2} \diamond {#3}}}
 %\newcommand{\emux}[3]{\ensuremath{\kw{mux}~{#1}~\kw{?}~x.{#2}~\kw{:}~x.{#3}}}
 \newcommand{\emux}[3]{\ensuremath{\kw{mux}~{#1}~\kw{?}~{#2} \diamond {#3}}}
@@ -146,7 +146,6 @@ semantics.
                        && \mid & \phi & \text{encryption format} \\
       \text{Types} & \tau & ::=  & \tnat^m_\psi & \text{a base type} \\
                        && \mid & \tpair{\tau}{\tau} & \text{pairs} \\
-%                       && \mid & \tsum{\tau}{\tau}{m}{\psi} & \text{sums} \\
                        && \mid & \tsum{\tau}{\tau}{m} & \text{sums} \\
                        && \mid & \trec{\alpha}{\tau} & \text{(iso)recursive types} \\
                        && \mid & \alpha & \text{type variables (for recursive types)} \\
@@ -159,8 +158,7 @@ semantics.
                        && \mid & \epair{e_1}{e_2} & \text{pair construction}\\
                        && \mid & \eproj{i}{e} & \text{pair elem, }i \in \{1,2\}\\
                        && \mid & \eshare{\psi}{P}{Q}{e} & \text{$\psi$ shares of {\tnat} at $P$ to $Q$} \\
-                       % && \mid & \esharesum{\psi}{P}{Q}{e} & \text{$\psi$ shares of sum $P$ to $Q$} \\
-                       && \mid & \ereveal{P}{Q}{e} & \text{distribute result at $Q$ to $P$}\\
+                       && \mid & \ereveal{\psi}{Q}{e} & \text{reveal result to $Q$ in format $\psi$}\\
                        && \mid & \ebinop{e_1}{e_2}  & \text{binary operation} \\
                        && \mid & \emux{e}{e_1}{e_2}  & \text{MPC conditional} \\
                        && \mid & \einj{i}{e} & \text{sum elem, }i \in \{1,2\}\\
@@ -262,12 +260,14 @@ these principals which are present; we do not allow more, since other
 principals would not be able to carry out the operation (they don't
 have access to the share).
 
-Finally, an MPC is completed by invoking
-$\ereveal{P}{Q}{e}$. This takes a number shared among principals
-$P$ and shares its decrypted (cleartext) result with principals in
-$Q$. Doing so requires that all of $P \cup Q$ are present in the
-current mode so that the shareholders can agree to send the value and
-the result-receivers are there to receive it.
+Finally, an MPC is completed by invoking $\ereveal{\psi}{Q}{e}$. This
+takes a number share (among some set of principals $P$) and converts
+it to type $\psi$, sharing the result among principals $Q$. Doing so
+requires that all of $P \cup Q$ are present in the current mode so
+that the shareholders can agree to send the value and the
+result-receivers are there to receive it. In the degenerate case, the
+protocol for $\psi$ is $\cdot$, which means decrypting the result to
+cleartext. 
 
 \subsection{Derived Expressions}
 \label{sec:derived}
@@ -406,8 +406,8 @@ present, the typing and compatibility judgments rely on knowing the
 precise makeup of a principal set. This would have to change to permit
 unknown principal sets whose contents are governed by set
 constraints. A simple manifestation of this point is that
-$\ereveal{P}{Q}{e}$ should be $\ereveal{e_q}{e_q}{e}$
-where $e_P$ and $e_q$ are principal sets; likewise for $\kw{share}$
+$\ereveal{\psi}{Q}{e}$ should be $\ereveal{\psi}{e_q}{e}$
+where $e_q$ is a principal set; likewise for $\kw{share}$
 and $\kw{par}$. We would also need dependent types; for example if we
 had a run-time principal set stored in variable $s$, then we need to
 express types like $\tnat^s$, which indicates a type compatible with
@@ -626,16 +626,16 @@ would both be located at $a$.
 \[\begin{array}{l@{~~=~~}l}
     \locof{P}{n} & \vloc{n}{P} \\
     \locof{P}{\einj{i}{v}} & \vloc{(\locof{P}{v})}{P} \\
-    \locof{P}{\vclos{\env}{\elam{x}{e}}} & \vloc{(\vclos{(\locof{P}{\env})}{\elam{x}{e}})}{P}\\
-    \locof{P}{\vshare{Q}{\psi}{e}} & \vloc{(\vshare{Q}{\psi}{e})}{P}
+    \locof{P}{\vclos{\env}{\elam{x}{e}}} & \vloc{\vclos{\env}{\elam{x}{e}}}{P}\\
+    \locof{P}{\vshare{Q}{\psi}{e}} & \vloc{\vshare{Q}{\psi}{e}}{P}
     \\ \\
     \locof{P}{\epair{v_1}{v_2}} & \epair{\locof{P}{v_1}}{\locof{P}{v_2}}\\
     \locof{P}{ \efold{\trec{\alpha}{\tau}}{v}} &  \efold{\trec{\alpha}{\tau}}{\locof{P}{v}}\\
     \locof{P}{\vloc{u}{Q}} & \locof{R}{u} \qquad\text{where }R = P \cap Q\\
     \locof{P}{\vcrash} & \vcrash
     \\ \\
-    \locof{P}{\sigma} & \{ x \mapsto v' \mid \sigma(x) = v \land \locof{P}{v} = v' \}\\
-    \multicolumn{2}{c}{}\\
+    % \locof{P}{\sigma} & \{ x \mapsto v' \mid \sigma(x) = v \land \locof{P}{v} = v' \}\\
+    % \multicolumn{2}{c}{}\\
     \getat{P}{(\vloc{u}{Q})} & u \qquad \text{where }Q \vdash P\\
     \getat{P}{v} & v \qquad \text{for all other $v$ syntactic forms}\\
   \end{array}
@@ -765,11 +765,11 @@ $$
     
     \inferrule*[lab=E-BinopNat]
     {
-  \eval{\env}{m}{e_1}{v_1}\\
+  \eval{\env}{m}{e_1}{v_1}\\\\
+    \eval{\env}{m}{e_2}{v_2}\\\\
   \getat{m}{v_1} = n_1\\\\
-    \eval{\env}{m}{e_2}{v_2}\\
   \getat{m}{v_2} = n_2\\\\
-  n = n_1 \oplus n_2\\
+  n = n_1 \oplus n_2
     }
     {
     \eval{\env}{m}{\ebinop{e_1}{e_2}}{\vloc{n}{m}}
@@ -778,15 +778,15 @@ $$
       
     \inferrule*[lab=E-BinopShare]
     {
-  \eval{\env}{m}{e_1}{v_1}\\
+  \eval{\env}{m}{e_1}{v_1}\\\\
+    \eval{\env}{m}{e_2}{v_2}\\\\
   \getat{m}{v_1} = \vshare{m}{\psi}{e'_1} \\\\
-    \eval{\env}{m}{e_2}{v_2}\\
   \getat{m}{v_2} = \vshare{m}{\psi}{e'_2} \\\\
   v = \vloc{\vshare{m}{\psi}{\ebinop{e'_1}{e'_2}}}{m}
     }
     {
     \eval{\env}{m}{\ebinop{e_1}{e_2}}{v}
-    }\\\\
+    }\qquad
 
     \inferrule*[lab=E-Mux]
     {
@@ -800,9 +800,9 @@ $$
     }
     {
     \eval{\env}{m}{\emux{e}{e_1}{e_2}}{v}
-    }\qquad
+    }\\ \\
 
-    \inferrule*[lab=E-Reveal]
+    \inferrule*[lab=E-RevealPlain]
   {
     m \vdash P\\ m \vdash Q\\\\
     \eval{\env}{m}{e}{v_0}\\
@@ -811,7 +811,17 @@ $$
     n = \getat{P}{v} 
     } 
     {
-    \eval{\env}{m}{\ereveal{P}{Q}{e}}{\vloc{n}{Q}}
+    \eval{\env}{m}{\ereveal{}{Q}{e}}{\vloc{n}{Q}}
+  }\qquad
+
+      \inferrule*[lab=E-Conv]
+  {
+    m \vdash P\\ m \vdash Q\\\\
+    \eval{\env}{m}{e}{v_0}\\
+    \getat{P}{v_0} = \vshare{P}{\psi}{e_0}
+    } 
+    {
+    \eval{\env}{m}{\ereveal{\phi}{Q}{e}}{\vloc{\vshare{Q}{\phi}{e_0}}{Q}}
     }\\\\
     
    \inferrule*[lab=E-Abs]
@@ -913,8 +923,9 @@ In the same figure are two functions over values: $\locof{P}{...}$ and
 $\getat{P}{v}$. The first is a transformation that relocates a value
 (or its locatable components) to $P$. For locatable, but not located, values $u$,
 we annotate them with $P$. For compound forms we recurse inside them
-(sums, pairs, closure environments). Locating an environment locates
-its mapped-to values pointwise.  For located values $\vloc{u}{Q}$ we
+(sums, pairs). We do not need to locate closure environments; variable
+lookup from these environments (and control of the location of the
+closure itself) does the job.  For located values $\vloc{u}{Q}$ we
 relocate $u$'s contents and update its location to be $P$ intersected
 with $Q$. Note that this intersection could be the $\emptyset$ which
 indicates an inaccessible value.
@@ -991,10 +1002,12 @@ itself. \rulelab{E-Mux} produces a multiplexor on shares. It evaluates
 its arguments $e$, $e_1$, and $e_2$ to shares, and then constructs a
 circuit involving all three.
 
-\rulelab{E-Reveal} eliminates shares by ``forcing'' the suspended
-computation in the given share. We require that the principals $P$ who
-each have a share are present in $m$, and likewise the principals in
-$Q$ to whom the final result is sent.
+\rulelab{E-RevealPlain} eliminates shares by ``forcing'' the suspended
+computation in the given share, revealing it to cleartext. We require
+that the principals $P$ who each have a share are present in $m$, and
+likewise the principals in $Q$ to whom the final result is
+sent. \rulelab{E-Conv} converts a share from type $\psi$ among
+principals $P$ to be of type $\phi$ among principals $Q$ instead.
 
 Lastly, \rulelab{E-CrashOK} is an elimination rule for $\vcrash$
 values. This rule permits converting non-located containers---pairs
@@ -1204,25 +1217,35 @@ $$
 
     \inferrule*[lab=S-Mux]
     {
-  \getat{m}{v_0} = \vshare{m}{\psi}{e'} \\
+  \getat{m}{v_0} = \vshare{m}{\psi}{e'} \\\\
   \getat{m}{v_1} = \vshare{m}{\psi}{e'_1} \\\\
-  \getat{m}{v_2} = \vshare{m}{\psi}{e'_2} \\
+  \getat{m}{v_2} = \vshare{m}{\psi}{e'_2} \\\\
   v = \vloc{\vshare{m}{\psi}{\emux{e'}{e_1'}{e_2'}}}{m}
     }
     {
     \seval{\env}{m}{\emux{v_0}{v_1}{v_2}}{\env}{v}
     }\qquad
 
-    \inferrule*[lab=S-Reveal]
+    \inferrule*[lab=S-RevealPlain]
   {
-    m \vdash P\\ m \vdash Q\\
+    m \vdash P\\ m \vdash Q\\\\
     \getat{P}{v_0} = \vshare{P}{\psi}{e_0}\\\\
-    \eval{\env}{m}{e_0}{v}\\
+    \eval{\env}{m}{e_0}{v}\\\\
     n = \getat{P}{v} 
     } 
     {
-    \seval{\env}{m}{\ereveal{P}{Q}{v_0}}{\env}{\vloc{n}{Q}}
-    }\\\\
+    \seval{\env}{m}{\ereveal{}{Q}{v_0}}{\env}{\vloc{n}{Q}}
+  }\qquad
+
+    \inferrule*[lab=S-Conv]
+  {
+    m \vdash P\\ m \vdash Q\\\\
+  \getat{P}{v_0} = \vshare{P}{\psi}{e_0}\\\\
+  v = \vloc{\vshare{Q}{\phi}{e_0}}{Q}
+    } 
+    {
+    \seval{\env}{m}{\ereveal{\phi}{Q}{v_0}}{\env}{v}
+  }\\ \\  
 
      \inferrule*[lab=S-Abs]
     {
@@ -1409,9 +1432,10 @@ share is specifically located there).
 We likewise coordinate progress on shared values on the rules
 equivalent to \rulelab{E-BinopShare} and \rulelab{E-Mux}, but for
 these, both parties should take identical steps on identical share
-values. We also coordinate on a rule equivalent to \rulelab{E-Reveal}
+values. We also coordinate on rules equivalent to
+\rulelab{E-RevealPlain} and \rulelab{E-Conv}
 (where each party has the identical share value again), sending the
-unencrypted result to the desired party. It's possible we'll want to
+unencrypted/converted result to the desired party. It's possible we'll want to
 revisit the ``suspended'' computation of shared values and just
 compute them more eagerly.
 
@@ -1595,10 +1619,10 @@ approach and inspiration!
     {
     m \vdash P\\
     m \vdash Q\\\\
-    \hastyp{\Gamma}{m}{e}{\tnat^P_\psi}\\
+    \hastyp{\Gamma}{m}{e}{\tnat^P_{\psi}}\\
     }
     {
-    \hastyp{\Gamma}{m}{\ereveal{P}{Q}{e}}{\tnat^Q}
+    \hastyp{\Gamma}{m}{\ereveal{\psi'}{Q}{e}}{\tnat^Q_{\psi'}}
     }\\ \\
    
 
@@ -1653,12 +1677,24 @@ approach and inspiration!
 
 \mwh{TODO:}
 \begin{itemize}
-\item How are curried functions located: how is \texttt{m} on the
+ \item Move types to the end?
+\item Fix T-Var so that it ``locates'' types in the same way that
+  $\locof{m}{v}$ locates values. Locatedness  is related to $Q \vdash \tau$ I
+  think; probably we should ditch it. I am only seeing it
+  used in T-Par, and I don't think it's actually needed there.
+\item Need a version of T-Par to handle an empty $Q$; what should be
+  the type $\tau$ that is returned?
+\item With the T-Var change, how should T-App, T-Abs, and T-Fix
+  change? The operational semantics scopes access based on the call
+  site. We don't have polymorphism in the type system, so we can't do
+  that. How to restrict? I think we just leave the mode the same as
+  now.
+\item Prepare for the use of polymorphism by generalizing the
+  judgments that require $m$ to be the same on the type, i.e., on
+  $nat^m$. Think about how $m$ could become a variable, or unions and
+  intersections. 
+  \item How are curried functions located: how is \texttt{m} on the
   arrow handled?
-\item Revisit rules for typechecking functions. What if the function
-  has a mode A but is called from a caller in mode B? How will that
-  affect the type of what's returned? Not sure we are accounting for
-  that? Look at T-Var too.
 \item No subtyping at present for recursive types. Should we add it?
 \end{itemize}
 
@@ -1747,12 +1783,9 @@ restrict the results to be $\tnat$s, but this is easily generalized
 via encoding (Section~\ref{sec:generalmux}).
 
 Rule~\rulelab{T-Reveal} types share elimination, i.e., converting a
-share of a $\tnat$ to a normal value. In essence, it forces the secure
-computation (which we are thinking of as a thunk) to produce a result,
-and reveals that result held by principals $P$ to the specified
-principals $Q$. The rule requires that the current mode includes those
-in $Q$, and those $P$ who hold the shares. (We do not allow revealing
-encrypted sums, directly---we require destructing them first.)
+share of a $\tnat$ to a normal value, or to another share type. The
+rule requires that the current mode includes those in $Q$, and those
+$P$ who hold the shares.
 
 Rule~\rulelab{T-Match} types conditionals on normal sums, i.e., the
 conditional will run on each principal in mode $m$. It can return
