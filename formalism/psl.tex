@@ -31,7 +31,7 @@
 \newcommand{\elet}[3]{\ensuremath{\kw{let}~#1\, =\, #2~\kw{in}\;{#3}}}
 \newcommand{\epar}[2]{\ensuremath{\kw{par}~{#1}~{#2}}}
 \newcommand{\esec}[2]{\ensuremath{\kw{sec}~{#1}~{#2}}}
-\newcommand{\ereveal}[4]{\ensuremath{\kw{reveal}^{#1}_{#4}~{#2}~{#3}}}
+\newcommand{\ereveal}[3]{\ensuremath{\kw{reveal}^{#1}~{#2}~{#3}}}
 \newcommand{\econd}[3]{\ensuremath{\kw{case}~{#1}~\kw{with}~x.{#2} \diamond {#3}}}
 %\newcommand{\emux}[3]{\ensuremath{\kw{mux}~{#1}~\kw{?}~x.{#2}~\kw{:}~x.{#3}}}
 \newcommand{\emux}[3]{\ensuremath{\kw{mux}~{#1}~\kw{?}~{#2} \diamond {#3}}}
@@ -160,7 +160,7 @@ semantics.
                        && \mid & \eproj{i}{e} & \text{pair elem, }i \in \{1,2\}\\
                        && \mid & \eshare{\psi}{P}{Q}{e} & \text{$\psi$ shares of {\tnat} at $P$ to $Q$} \\
                        % && \mid & \esharesum{\psi}{P}{Q}{e} & \text{$\psi$ shares of sum $P$ to $Q$} \\
-                       && \mid & \ereveal{P}{Q}{e}{\psi} & \text{distribute result in $\psi$ at $Q$ to $P$}\\
+                       && \mid & \ereveal{P}{Q}{e} & \text{distribute result at $Q$ to $P$}\\
                        && \mid & \ebinop{e_1}{e_2}  & \text{binary operation} \\
                        && \mid & \emux{e}{e_1}{e_2}  & \text{MPC conditional} \\
                        && \mid & \einj{i}{e} & \text{sum elem, }i \in \{1,2\}\\
@@ -185,15 +185,6 @@ semantics.
 
 The syntax of \lang is in Figure~\ref{fig:syntax}. Some derived
 constructs (syntactic sugar) are given in Section~\ref{sec:derived}.
-
-\mwh{To do:}
-\begin{itemize}
-\item Reveal — remove the $\psi$ annotation (think of this as being figured out by the typeclass)
-\item Curried functions —> is ‘m’ on the arrow affected?
-\item Think about $\psi$ working for cleartext and make sure tings work 
-\item singleton share allows you to treat reveal as send
-\item encode as send{a}{a,b,c}
-\end{itemize}
 
 \subsection{Types}
 
@@ -272,7 +263,7 @@ principals would not be able to carry out the operation (they don't
 have access to the share).
 
 Finally, an MPC is completed by invoking
-$\ereveal{P}{Q}{e}{\psi}$. This takes a number shared among principals
+$\ereveal{P}{Q}{e}$. This takes a number shared among principals
 $P$ and shares its decrypted (cleartext) result with principals in
 $Q$. Doing so requires that all of $P \cup Q$ are present in the
 current mode so that the shareholders can agree to send the value and
@@ -283,6 +274,18 @@ the result-receivers are there to receive it.
 
 Some useful constructs can be encoded using \lang features (or via
 obvious language extensions). 
+
+\subsubsection{Message passing}
+
+Having a direct method of sending a message from $a$ to a set of
+principals $b$ and $c$ is easily encoded via $\kw{share}$ and
+$\kw{reveal}$. 
+\begin{verbatim}
+let send_a_to_bc m =
+  par{a,b,c} reveal {b,c} (share{a}{a} m)
+\end{verbatim}
+Here, the value \texttt{m} is shared to itself, and then distributed
+to remote parties.
 
 \subsubsection{Encrypted Sums}
 
@@ -403,7 +406,7 @@ present, the typing and compatibility judgments rely on knowing the
 precise makeup of a principal set. This would have to change to permit
 unknown principal sets whose contents are governed by set
 constraints. A simple manifestation of this point is that
-$\ereveal{P}{Q}{e}{\psi}$ should be $\ereveal{e_q}{e_q}{e}{\psi}$
+$\ereveal{P}{Q}{e}$ should be $\ereveal{e_q}{e_q}{e}$
 where $e_P$ and $e_q$ are principal sets; likewise for $\kw{share}$
 and $\kw{par}$. We would also need dependent types; for example if we
 had a run-time principal set stored in variable $s$, then we need to
@@ -422,12 +425,13 @@ The PSL interpreter differs from \lang in several ways. We list a few
 of them here:
 \begin{itemize}
 \item PSL has effect annotations on function arrows indicating when
-  something is input or revealed; \lang does not have these,
-  instead only indicating which principals must be present. I think
-  that PSL doesn't do this, but should. For example, look at
-  \texttt{sumprod.psl} for effect annotation examples, and
-  \texttt{atq.psl} for an example of the lack of annotation, e.g., on
-  the \texttt{length} function, which involves principals $A$ and $B$.
+  something is input or revealed; \lang does not have these. For
+  example, look at \texttt{sumprod.psl} for effect annotation
+  examples.
+\item PSL doesn't annotate which principals should be present on the
+  function type. \texttt{atq.psl} for an example of the lack
+  of annotation, e.g., on the \texttt{length} function, which involves
+  principals $A$ and $B$. 
 \item PSL has global principal declarations; \lang does not, and
   rather assumes an existing pool of principal names. PSL programs can
   be viewed as being defined in a global $\kw{par}$ block involving
@@ -438,15 +442,6 @@ of them here:
   don't understand these are being used as sets; they seem to be just
   referenced as single principals.
 \item PSL seems to have universal / polymorphic types.
-\item What are the limits of \texttt{par} mode in PSL on wire bundles?
-\item The sharing syntax in \texttt{atq.psl} seems off -- needs to be
-  done in a singleton \texttt{par} block, so we know who is doing the
-  sharing.
-\item I don't understand \texttt{reveal-ssec.psl}. This seems to
-  assume some sort of set intersecting is going on (between A,C,D and
-  A,B,C)? Also, I observe that this test still lacks the distinction
-  of who is doing the revealing vs. who is receiving the result. In
-  \lang, this is two sets, $P$ and $Q$.
 \item What is \texttt{this} in PSL?
 \end{itemize}
 
@@ -816,7 +811,7 @@ $$
     n = \getat{P}{v} 
     } 
     {
-    \eval{\env}{m}{\ereveal{P}{Q}{e}{\psi}}{\vloc{n}{Q}}
+    \eval{\env}{m}{\ereveal{P}{Q}{e}}{\vloc{n}{Q}}
     }\\\\
     
    \inferrule*[lab=E-Abs]
@@ -1226,7 +1221,7 @@ $$
     n = \getat{P}{v} 
     } 
     {
-    \seval{\env}{m}{\ereveal{P}{Q}{v_0}{\psi}}{\env}{\vloc{n}{Q}}
+    \seval{\env}{m}{\ereveal{P}{Q}{v_0}}{\env}{\vloc{n}{Q}}
     }\\\\
 
      \inferrule*[lab=S-Abs]
@@ -1284,7 +1279,7 @@ $$
                                           \epair{\ctxt}{e} \mid
                              \epair{v}{\ctxt} \mid \eproj{i}{\ctxt}  \\
                && \mid & \eshare{\psi}{P}{Q}{\ctxt} \mid
-                             \ereveal{P}{Q}{\ctxt}{\psi} \mid \ebinop{\ctxt}{e_2} \mid \ebinop{v}{\ctxt}   \\
+                             \ereveal{P}{Q}{\ctxt} \mid \ebinop{\ctxt}{e_2} \mid \ebinop{v}{\ctxt}   \\
                && \mid & \emux{\ctxt}{e_1}{e_2}
                          \mid \emux{v}{\ctxt}{e_2} \mid \emux{v}{v_1}{\ctxt}    \\
                && \mid & \einj{i}{\ctxt} \mid \econd{\ctxt}{e_1}{e_2}   \\
@@ -1603,17 +1598,16 @@ approach and inspiration!
     \hastyp{\Gamma}{m}{e}{\tnat^P_\psi}\\
     }
     {
-    \hastyp{\Gamma}{m}{\ereveal{P}{Q}{e}{\psi}}{\tnat^Q}
+    \hastyp{\Gamma}{m}{\ereveal{P}{Q}{e}}{\tnat^Q}
     }\\ \\
    
 
    \inferrule*[lab=T-Abs]
     {
-    m \vdash m'\\\\
-    \hastyp{\Gamma, x\!:\!\tau_1}{m'}{e}{\tau_2}
+    \hastyp{\Gamma, x\!:\!\tau_1}{m}{e}{\tau_2}
     }
     {
-    \hastyp{\Gamma}{m}{\elam{x}{e}}{\tfun{\tau_1}{\tau_2}{m'}}
+    \hastyp{\Gamma}{m}{\elam{x}{e}}{\tfun{\tau_1}{\tau_2}{m}}
     }\qquad
    
     \inferrule*[lab=T-App]
@@ -1656,6 +1650,17 @@ approach and inspiration!
 \caption{Typing rules}
 \label{fig:typing}
 \end{figure}
+
+\mwh{TODO:}
+\begin{itemize}
+\item How are curried functions located: how is \texttt{m} on the
+  arrow handled?
+\item Revisit rules for typechecking functions. What if the function
+  has a mode A but is called from a caller in mode B? How will that
+  affect the type of what's returned? Not sure we are accounting for
+  that? Look at T-Var too.
+\item No subtyping at present for recursive types. Should we add it?
+\end{itemize}
 
 The typing judgment's rules are defined in Figure~\ref{fig:typing}.
 The typing judgment has form $\hastyp{\Gamma}{m}{e}{\tau}$. It states
@@ -1761,13 +1766,12 @@ shares or normal values, as desired.
 % present. But this is not prevented because nothing actually done with
 % the contents of that variable.
 
-\rulelab{T-Abs} allows the body of a function to require a strictly
-smaller mode than the defining context. \mwh{Why? Can't we just wrap
-  in par mode? Rethink} \rulelab{T-App} requires the caller's mode to
-match the mode annotation on the function; this ensures that all
-principals that must be present in the function body will indeed be
-running the function. \rulelab{T-Fix} is essentially a combination of
-these two, allowing $f$ to be referred to recursively in $e$.
+\rulelab{T-Abs} types the body of a function in the defining context's
+mode $m$. \rulelab{T-App} requires the caller's mode to match the mode
+annotation on the function; this ensures that all principals that must
+be present in the function body will indeed be running the
+function. \rulelab{T-Fix} is essentially a combination of these two,
+allowing $f$ to be referred to recursively in $e$.
 
 Note that when we develop a small-step operational semantics we'll
 have to develop type rules for special value forms too. Crash values
@@ -1919,64 +1923,9 @@ have the type of $u$ annotated with location $P$.
 
 Soon:
 \begin{itemize}
-\item Revisit rules for typechecking functions. What if the function
-  has a mode A but is called from a caller in mode B? How will that
-  affect the type of what's returned? Not sure we are accounting for
-  that? 
 \item Develop small-step MT semantics fleshed out from discussion
 \item Prove relationship between single- and multi-threaded semantics
 \item Prove type soundness for single-threaded semantics
 \end{itemize}
-\mwh{TODO}
-\begin{itemize}
-\item Reconsider function types --- see DavidH's note below.
-\item No subtyping at present for recursive types. Should we add it?
-\item Function types preclude top-level functions? See note below.
-\end{itemize}
 
-\begin{verbatim}
-By the way, I don't know if this will overcomplicate everything, but
-I've been thinking about how to get back the notion of applying a
-function with fewer parties than were there when the closure was
-made. (Which if I understand correctly is not possible in the current
-version since function sub-typing is invariant in the knownness of the
-function arrow). 
-
-It seems that you can view the annotation ^m (on both values and
-contexts) as a sort of upper bound on the parties who know some
-information (which you can subtype to include fewer parties). 
-Analogously you could imagine adding an annotation _n to represent a
-lower bound on the parties who know information (conceptually, the
-parties whose presence is mandatory to use a value). 
-Then you could give function arrows this subtype rule:
-
-t1' <: t1
-t2 <: t2'
-m >= m'
-n' >= n
--------------------
-t1 ->^m_n t2    <:    t1' ->^m'_n' t2'
-
-The application rule would require the upper and lower bound to match: 
-
-gamma |-^m_n e : t1 ->^m_m t2
-gamma |-^m_n e1 : t1
-------------------
-gamma |-^m_n (e e1) : t2
-
-par blocks would constrain the lower bound: By including a par block
-as a subexpression you indicating that the containing expression must
-involve the par block parties: 
-
-m >= m'
-gamma |-^m'_n e : t
---------------
-gamma |-^m_(n \cup m') par m' e : t
-\end{verbatim}
-
-
-% Next: Look at \texttt{writeup/spdz.md} and think about language
-% changes to support verification.
-
-  
 \end{document}
