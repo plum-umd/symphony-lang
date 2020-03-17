@@ -91,6 +91,20 @@ leaving out features that can be encoded in terms of the core. Indeed,
 we expect the PANTHEON intermediate language (PIL) to look closer to
 \lang, once it's fully developed.
 
+\mwh{To do:}
+Highlight the benefits of PSL in a few paras at the start
+\begin{itemize}
+\item rule out protocol errors (sync)
+\item rule out bad use of crypto types
+\item easier to read the specs as single programs (ST mode easier to
+  understand)
+\item ST mode easier to simulate: helps with resource estimation, and
+  reasoning about what will happen for particular implementations
+  (e.g., divByZero)
+\item error handling customizable
+\item nice syntax — not hacking via comments or whatnot. Customizable
+\end{itemize}
+
 \subsection{Related Work}
 
 PSL (and \lang) was inspired by the MPC programming language
@@ -171,6 +185,15 @@ semantics.
 
 The syntax of \lang is in Figure~\ref{fig:syntax}. Some derived
 constructs (syntactic sugar) are given in Section~\ref{sec:derived}.
+
+\mwh{To do:}
+\begin{itemize}
+\item Reveal — remove the $\psi$ annotation (think of this as being figured out by the typeclass)
+\item Curried functions —> is ‘m’ on the arrow affected?
+\item Think about $\psi$ working for cleartext and make sure tings work 
+\item singleton share allows you to treat reveal as send
+\item encode as send{a}{a,b,c}
+\end{itemize}
 
 \subsection{Types}
 
@@ -307,6 +330,8 @@ that are not numbers, but pairs, sums, or recursive types---just as we
 of a pair, too, with a single construct.
 
 \subsubsection{Wire Bundles and Solo Mode}
+
+\mwh{To do: Can we add isec directly?}
 
 A \emph{wire bundle} conceptually represents a single logical value,
 but each party has its own distinct copy. We represent it as a product
