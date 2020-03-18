@@ -224,6 +224,29 @@ def concat l0 l1 = foldr l0 l1 cons
 def len : list t -> nat
 def len l = foldr l 0n (const inc)
 
+def order = len
+
+-- get i l: the ith element of l
+def get l i = eliml_nat i
+  l
+  (fun l' -> case l'
+    { [ ] -> [ ]
+    ; x :: l'' -> l''
+    })
+
+-- set l i v: list l with the ith element updated to be v
+def set l i v = eliml_nat i
+  (let rest = case l
+   { [ ] -> [ ]
+   ; x :: l' -> v :: l'
+   })
+  (fun l' -> case l'
+   { [ ] -> [ ]
+   ; x :: l'' -> x :: 
+   }
+  )
+  
+
 -- map: map operation for the list functor
 def map : (t -> u) -> list t -> list u
 def map f l = foldr l [ ] (compose f cons)
@@ -262,8 +285,9 @@ def transpose m = foldr m
 def all_true : list bool -> bool
 def all_true l = foldr l true and
 
--- is_const_vec c v: test if v is the vector of c's
-def is_const_vec c v = all_true (map (eq c) v)
+def eq_lists v0 v1 = all_true (zip_map eq v0 v1)
+
+def eq_vecs = eq_lists
 
 -- mux_ls: multiplex over a pair of lists:
 def mux_ls guard l0 l1 = zip_map (mux guard) l0 l1
@@ -278,16 +302,19 @@ def prod v one = foldr v one mult
 def sum v z = foldr v z plus
 
 -- dot_prod: take the dot product of two points
-def dot_prod z p0 p1 = sum (zip_map mult p0 p1) z
-def dot_prod_spdz = dot_prod shr0
+def dot_prod_gen z p0 p1 = sum (zip_map mult p0 p1) z
+def dot_prod = dot_prod_gen shr0
 
 -- pt_diff: subtract one point from another
-def vec_diff : point -> point -> point
-def vec_diff v0 v1 = zip_map minus v0 v1 
+def minus_vecs : point -> point -> point
+def minus_vecs v0 v1 = zip_map minus v0 v1 
 
--- vec_div: divide a vector of reals by a constant
-def vec_div : real -> list real -> list real
-def vec_div a = map (flip div a)
+-- scalar_vec_mult a v: scalar product of a and v
+def scalar_vec_mult a = map (mult a)
+
+-- scalar_vec_div: divide a vector of reals by a constant
+def div_vec : real -> list real -> list real
+def div_vec v a = map (flip div a) v
 
 -- l2norm z v: the L2 norm of a vector of numerics with zero element z
 def l2norm : point -> comp_shr
@@ -302,11 +329,10 @@ def row_of_ones : nat -> list real
 def row_of_ones = const_vec 1.0
 
 -- mult_mat_vec : multiply a matrix of secrets and a point
-def mult_mat_vec : num -> matrix -> point -> point
-def mult_mat_vec z m pt = map (dot_prod z pt) m
+def matrix_vec_mult_gen z m pt = map (dot_prod z pt) m
 
 -- mult_mat: product of row matrix and column matrix
-def mult_mat z m0 m1 = map (fun v -> map (dot_prod z v) m1) m0 
+def matrix_mult_gen z m0 m1 = map (fun v -> map (dot_prod z v) m1) m0 
 
 -- part_ith a i l: l partitioned into the first i - elements, ith elt,
 -- and the everything after element i. a is a default elt, which
@@ -332,51 +358,12 @@ def squareMat d m = rev_ls (snd
     (0n, [ ])
     (fun rv (i, acc) -> (inc i, (part_ith d i rv) :: acc)) ) )
 
--- cholesky m: the Cholesky decomposition of matrix m, in column-major
--- order, computed using the Cholesky-Crout algorithm
-def cholesky : sqMat -> ltMat
-def cholesky z m = fst
-  (foldl m -- fold over each column in the matrix,
-    ([ ], [ ])
-    (fun (top, diag, bot) (tri, base) ->
-      -- deconstruct the maintained base box 
-      let (jth_row', base') = case base
-        { [ ] -> ([ ], const_vec [ ] (len bot))
-        ; x :: tl -> (x, tl)
-        } in
-      -- diag': the diagonal elt of the solution
-      let diag' = babylonian_sqrt (diag - (dot_prod z jth_row' jth_row')) in
-      -- tri': the upper triangle, extended
-      let tri' = snoc (diag', [ ])
-        (map (fun ((d, tl), jth_elt) -> (d, snoc jth_elt tl))
-          (zip_lists tri jth_row')) in
-      -- the base box, extended
-      let base'' = map 
-        (fun (rv', elt) ->
-          snoc ((diag - (dot_prod z rv' jth_row')) / diag') rv')
-        (zip_lists base' bot) in
-      (tri', base'')) )
-
 -- col_lt_to_row m: LT matrix m in col-major form, converted to
 -- row-major form
 def col_lt_to_row m = foldr m
   [ ]
   (fun (hd, bot) acc -> ([ ], hd) ::
     (zip_map (fun b (ls, rt) -> (b :: ls, rt)) bot acc) )
-
--- lt_inverse m: the inverse of LT matrix m:
-def lt_inverse : ltMat -> ltMat
-def lt_inverse z l =
-  let add_inv = fun x -> z - x in
-  foldr_tl l -- fold over the LT matrix
-    [ ]
-    (fun (d, cv) tl -> snoc
-      -- fold over the tail of the current column and the rest of the matrix
-      (foldl (zip_lists cv (col_lt_to_row tl))
-        (d, [ ])
-        (fun (x, (rv, y)) (hd', tl') ->
-          let dprod = dot_prod z (snoc y rv) (hd' :: tl') in
-          (hd', snoc ((add_inv dprod) / y) tl') ) ) )
 
 -- lt_lift d l: LT matrix l, lifted into a matrix by padding copies of
 -- default element d
@@ -386,17 +373,11 @@ def lt_lift d l = rev_ls (snd
     ([ ], [ ])
     (fun (hd, tl) (buf, m) -> (d :: buf, (concat buf (hd :: tl)) :: m) ) ) )
 
--- inverse z m: the inverse matrix of m over numeric type with zero
--- element z
-def matrix_inverse_pdh : num -> matrix -> matrix
-def matrix_inverse_pdh z m =
-  let l_inv = lt_lift z
-    (lt_inverse z (cholesky z (squareMat z (transpose m)))) in
-  mult_mat z (transpose l_inv) l_inv
-
--- mult_diag_vec d v: product of diagonal matrix over vector d, and v
-def mult_diag_vec : point -> point -> point
-def mult_diag_vec = zip_map mult 
+-- diagonal_matrix_gen v: the diagonal matrix of vector v, with zero
+-- elt z
+def diagonal_matrix_gen z v = foldr v
+  [ ]
+  (fun x diag -> (x :: (const_vec z (len diag))) :: (map (cons z) diag))
 
 -- END: library code
 
@@ -432,18 +413,128 @@ def shr_w_comp = shr_spdz comps
 def shr0 = shr_w_comp 0.0 in
 def shr1 = shr_w_comp 1.0 in
      
+-- matrix_mult: multiply matrices of SPDZ shares
+def matrix_mult = matrix_mult_gen shr0 
+-- matrix_vec_mult: multiply matrix and vector of SPDZ shares
+def matrix_vec_mult = matrix_vec_mult_gen shr0 
+
 def nOnes = row_of_ones n 
 
--- dimensions_of m: the number of rows and vectors in m
+-- dimensions_of m: dimensions of matrix m
 def dimensions_of m = case m
   { [ ] -> (0, 0)
   ; rv :: m' -> (inc (len m'), len rv)
   }
 
--- TODO: define
-def diagonal_matrix pt = [ ]
+-- nz_prod z u l: the product of non-z entries in l, with
+-- multiplicative unit u
+def nz_prod z one l = prod (filter (compose (eq z) not) l) one
 
--- karmarkar_iter: an iteration of Karmarkar's algorithm
+def nz_prod_vec = nz_prod shr0 shr1
+
+def nz_prod_mat m = nz_prod_vec (map nz_prod_vec m)
+
+-- diagonal_matrix v: diagonal matrix of vector of SPDZ shares v
+def diagonal_matrix = diagonal_matrix_gen shr0
+
+def zero_vec = const_vec shr0 
+
+-- zero_pt: point of zero's
+def zero_pt = zero_vec n
+
+-- zero_mat: matrix of zeroes
+def zero_mat n = elim_nat n
+  [ ]
+  (cons (zero_vec n))
+
+-- range m n: the list of elements from m to n
+def range m n =
+  if n < m then [ ]
+  else map (plus m)
+    (elim_nat (n - m)
+       [ 0 ]
+       (fun rng -> (len rng) :: rng))
+
+def matrix_get m (i, j) = get (get m i) j
+
+def matrix_set m (i, j) v = set m i (set (get m i) j v)
+
+-- Listing 9: Inverse of a lower triangular matrix
+def matrix_inverse_lt l =
+  let n = order l in runST -- order of L
+  (bindST (newST (zero_mat n)) (fun l_inv_ref -> -- n x n zero matrix
+  forST (range 0 (n - 1n)) (fun k ->
+    -- For diagonal entries, take the reciprocal
+    bindST (readST l_inv_ref) (fun l_inv -> seqSTs [
+    writeST l_inv_ref (matrix_set l_inv (k, k) (matrix_get l (k, k)));
+    -- For non-diagonal entries, solve L * L_inv = I
+    forST (range (k + 1n) (n - 1n)) (fun j ->
+      bindST (newST 0n) (fun sum -> seqSTs [
+      (forST (range k (j - 1n)) (fun i -> 
+         (writeST sum
+           ((readST sum) -
+              (matrix_get l (j, i)) * (matrix_get l_inv (i, k)) ) ) ) ) ;
+      (writeST l_inv_ref (matrix_upd (readST))) ] )
+  readST l_inv_ref ) ) ]
+  ) ) ) )
+
+-- TODO: fix uses of readST
+
+-- TODO: replace with list syntax
+
+-- Listing 10: Cholesky decomposition of a positive definite Hermitian
+-- matrix
+-- TODO: match pseudocode
+def cholesky_decomposition m =
+  -- Initialize variables
+  let n = order m in
+  (bindST (newST (zero_mat n))) (fun l_ref -> bindST
+   (readST l_ref ) (fun l -> seqST
+
+   -- Calculate the top diagonal element of L
+   (writeST l_ref (matrix_set l (0, 0) (sqrt (matrix_get m (0, 0)))))
+
+   -- Calculate the rest of the first column of L
+   -- TODO: complete
+   forST (range 1n (n - 1n)) (fun j ->
+     
+   )
+  ) ) 
+
+
+
+-- DEP:
+fst
+  (foldl m -- fold over each column in the matrix,
+    ([ ], [ ])
+    (fun (top, diag, bot) (tri, base) ->
+      -- deconstruct the maintained base box 
+      let (jth_row', base') = case base
+        { [ ] -> ([ ], const_vec [ ] (len bot))
+        ; x :: tl -> (x, tl)
+        } in
+      -- diag': the diagonal elt of the solution
+      let diag' = babylonian_sqrt (diag - (dot_prod z jth_row' jth_row')) in
+      -- tri': the upper triangle, extended
+      let tri' = snoc (diag', [ ])
+        (map (fun ((d, tl), jth_elt) -> (d, snoc jth_elt tl))
+          (zip_lists tri jth_row')) in
+      -- the base box, extended
+      let base'' = map 
+        (fun (rv', elt) ->
+          snoc ((diag - (dot_prod z rv' jth_row')) / diag') rv')
+        (zip_lists base' bot) in
+      (tri', base'')) )
+
+-- Listing 8: Inverse of a positive definite Hermitian matrix
+def matrix_inverse_pdh : num -> matrix -> matrix
+def matrix_inverse_pdh m =
+  let l = cholesky_decomposition m in
+  let l_inv = matrix_inverse_lt l in -- Invert the lower-triangular matrix
+  let m_inv = matrix_mult (transpose l_inv) l_inv in
+  m_inv
+
+-- Listing 6: Iteration for Karmarkar's Algorithm
 def karmarkar_iteration initial_point a c =
   let (m, n) = dimensions_of a in
   -- D is a matrix of zeros with the values of initial_point on the
@@ -451,64 +542,48 @@ def karmarkar_iteration initial_point a c =
   -- Dimensions of D: n x n
   let d = diagonal_matrix initial_point in
   -- Dimensions of cprime: n x 1
-  let cprime = mult_mat_vec_spdz d c in
+  let cprime = matrix_scalar_vec_mult_spdz d c in
   -- Dimensions of AD: m x n
-  let ad = mult_mat_spdz a d in
+  let ad = matrix_mult_spdz a d in
 
   -- Construct B
   -- Dimensions of B: (m + 1) x n
   let b = concat ad [ row_of_ones n ] in -- append a row of ones onto AD
 
   -- Dimensions of BBT: (m + 1) x (m + 1)
-  let bbt = mult_mat_spdz b (transpose b) in
+  let bbt = matrix_mult_spdz b (transpose b) in
   -- Dimensions of BBTInv: (m + 1) x (m + 1)
   let bbtinv = matrix_inverse_pdh bbt in
 
-  -- vector and matrix operations instantiated to SPDZ protocol
-  -- session
-  let invert_spdz = inverse shr0 in
-  let mult_spdz_mats = mult_mat shr0 in
-  let mult_spdz_mat_vec = mult_mat_vec shr0 in
+  -- Project C onto B's nullspace
+  -- Dimensions of cp: n x 1
+  let cp = minus_vecs cprime
+    (matrix_scalar_vec_mult_spdz (transpose b)
+      (matrix_scalar_vec_mult_spdz bbtinv
+        (matrix_scalar_vec_mult_spdz b c') ) ) in
 
+  -- Calculate a unit vector of cp
+  -- Dimensions of unitcp: n x 1
   let unit_cp =
-    -- project c onto b's nullspace
-    let cp =
-      -- c': product of diagonal of point and c vector
-      let c' = mult_diag_vec initial_point c in
-      -- FANCY MPC:
-      -- b: matrix of shares of constraint coefficients
-      let b = concat a [ nOnes ] in
-      vec_diff
-        c'
-        (mult_spdz_mat_vec (transpose b)
-          (mult_spdz_mat_vec (invert_spdz (mult_spdz_mats b b))
-            (mult_spdz_mat_vec b c') ) ) in
+    mux_ls (eq_vecs cp zero_pt) -- If cp is the zero vector
+      -- If cp is the zero vector, assign it to be 0
+      zero_pt
+      (div_vec zero_pt (l2norm shr0 cp)) in
 
-    -- FANCY MPC: compute list of shares from shared Boolean
-    let is_const = is_const_vec shr0 cp in
-    zip_map (mux is_const)
-      (const_vec shr0 n) (vec_div (l2norm shr0 cp) cp)
+  -- Take a step of 1/3n in the direction of -cp, row_of_ones(n)/n is
+  -- the "transformed" initial point
+  -- Dimensions of bprime: n x 1
+  let bprime = minus_vecs
+    (div_vec (row_of_ones n) (to_flt n))
+    (scalar_vec_mult (1.0 / (3.0 * (to_flt n))) unit_cp) in
 
-  -- take a step of 1/3 n in the direction of cp
-  let b' = vec_diff
-    (map shr_w_comp (vec_div (to_flt n) nOnes))
-    (vec_div (shr_w_comp (to_flt (3n * n))) unit_cp) in
+  -- Transform the point back
+  -- Dimensions of b: n x 1
+  let b = scalar_vec_div (matrix_scalar_vec_mult_spdz d bprime)
+    (dot_prod (row_of_ones n) (matrix_scalar_vec_mult_spdz d bprime)) in
+  b
 
-  let db' = mult_diag_vec initial_point b' in
-  vec_div (dot_prod shr0 (map shr_w_comp nOnes) db') db'
-
--- nzProd a: the product of all non-zero entries in a vector:
-def nz_prod : list (real{ ssec : p }) -> real{ ssec : p }
-def nz_prod z one l = prod (filter (eq z) l) one
-
-def nz_prod_vec_spdz = nz_prod shr0 shr1
-
-def nz_prod_mat_spdz m = foldr m
-  shr1
-  (fun rv -> mult (nz_prod_vec_spdz rv))
-
--- karmarkar_loop: Karmarkar's algorithm, main loop: runs an iterative
--- algorithm up to some bound computed from private inputs
+-- Listing 7: Loop for Karmarkar's Algorithm
 def karmarkar_loop a c =
   let (m, n) = dimensions_of a in
   -- Epsilon is the stopping condition. This value should be close to
@@ -516,19 +591,18 @@ def karmarkar_loop a c =
   let epsilon = 10.0 ^ -8.0 in
 
   -- x is our initial point
-  let x = map shr_w_comp (vec_div (to_flt n) (row_of_ones n)) in
+  let x = map shr_w_comp (div_vec (row_of_ones n) (to_flt n)) in
 
-  let max_iterations = 
-    -- product of non-zero entries in c and A
-    let p = (nz_prod_vec_spdz c) * (nz_prod_mat_spdz a) in
-    let l = (m + 1n) * n +
-      (magn (ceil (log_2_real (abs_val_real p)))) +
-      n * (magn (ceil (log_2_real (to_flt n)))) in
-    12n * n * l in
-  let max_iterations = shr_w_comp 1n in -- TODO: remove, used for debugging
+  -- product of non-zero entries in c and A
+  let p = (nz_prod_vec c) * (nz_prod_mat a) in
+  let l = (m + 1n) * n +
+    (magn (ceil (log_2_real (abs_val_real p)))) +
+    n * (magn (ceil (log_2_real (to_flt n)))) in
+  let max_iterations = 12n * n * l in
+  let max_iterations = shr_w_comp 1n in -- DEBUG
 
   -- If this initial point is an optimal solution, return
-  mux_ls ((dot_prod_spdz c x) < epsilon)
+  mux_ls ((dot_prod c x) < epsilon)
     x
   (eliml_sec_nat_ls max_iterations
     x
@@ -538,8 +612,8 @@ def karmarkar_loop a c =
       -- if we are within the stopping condition in the current
       -- iteration, return
       if_then 
-        ((((dot_prod_spdz c x) - (dot_prod_spdz c x')) /
-           (max_spdz shr1 (dot_prod_spdz c x)) ) < epsilon )
+        ((((dot_prod c x) - (dot_prod c x')) /
+           (max_spdz shr1 (dot_prod c x)) ) < epsilon )
         x'
       x') )
 
