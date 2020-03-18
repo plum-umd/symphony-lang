@@ -3,6 +3,6 @@ principal B
 principal C
 
 def main • =
-  {par:A.1,B} set(this)
+  par {A.1,B} {this}
 
-def expected = {par:A.1,B} set(A.1,B)
+def expected = par {A.1,B} {A.1,B}

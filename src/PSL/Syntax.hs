@@ -38,6 +38,7 @@ makePrettySum ''PrinExpVal
 data PrinExp =
     VarPE 𝕏
   | AccessPE 𝕏 ℕ
+  | StarPE 𝕏
   | ThisPE
   deriving (Eq,Ord,Show)
 makePrettySum ''PrinExp
@@ -69,8 +70,7 @@ makePrettySum ''Constr
 ----------
 
 data Mode =
-    SecM PrinVal
-  | PSecM (𝑃 PrinVal)
+    SecM (𝑃 PrinVal)
   | TopM
   deriving (Eq,Ord,Show)
 makePrettySum ''Mode
@@ -78,10 +78,10 @@ makePrisms ''Mode
 
 instance POrd Mode where 
   _ ⊑ TopM = True
-  SecM ρ₁ ⊑ SecM ρ₂ | ρ₁ ≡ ρ₂ = True
-  SecM ρ₁ ⊑ PSecM ρs₂ | ρ₁ ∈ ρs₂ = True
-  PSecM ρs₁ ⊑ SecM ρ₁ | ρs₁ ≡ single ρ₁ = True
-  PSecM ρs₁ ⊑ PSecM ρs₂ = ρs₁ ⊆ ρs₂
+  -- SecM ρ₁ ⊑ SecM ρ₂ | ρ₁ ≡ ρ₂ = True
+  -- SecM ρ₁ ⊑ PSecM ρs₂ | ρ₁ ∈ ρs₂ = True
+  -- PSecM ρs₁ ⊑ SecM ρ₁ | ρs₁ ≡ single ρ₁ = True
+  SecM ρs₁ ⊑ SecM ρs₂ = ρs₁ ⊆ ρs₂
   _ ⊑ _ = False
 
 -----------------
@@ -89,20 +89,20 @@ instance POrd Mode where
 -----------------
 
 data EMode =
-    PSecEM (𝐿 PrinExp) -- (𝑃 PrinVal)
-  | SSecEM (𝐿 PrinExp) -- (𝑃 PrinVal)
+    SecEM (𝐿 PrinExp) -- (𝑃 PrinVal)
+  -- | SSecEM (𝐿 PrinExp) -- (𝑃 PrinVal)
   | TopEM
   deriving (Eq,Ord,Show)
 makePrettySum ''EMode
 makePrisms ''EMode
 
-instance Top EMode where top = TopEM
-instance Join EMode where
-  PSecEM ρs₁ ⊔ PSecEM ρs₂ = PSecEM $ ρs₁ ⧺ ρs₂
-  PSecEM ρs₁ ⊔ SSecEM ρs₂ = PSecEM $ ρs₁ ⧺ ρs₂
-  SSecEM ρs₁ ⊔ PSecEM ρs₂ = PSecEM $ ρs₁ ⧺ ρs₂
-  SSecEM ρs₁ ⊔ SSecEM ρs₂ = SSecEM $ ρs₁ ⧺ ρs₂
-  _ ⊔ _ = TopEM
+-- instance Top EMode where top = TopEM
+-- instance Join EMode where
+--   PSecEM ρs₁ ⊔ PSecEM ρs₂ = PSecEM $ ρs₁ ⧺ ρs₂
+--   PSecEM ρs₁ ⊔ SSecEM ρs₂ = PSecEM $ ρs₁ ⧺ ρs₂
+--   SSecEM ρs₁ ⊔ PSecEM ρs₂ = PSecEM $ ρs₁ ⧺ ρs₂
+--   SSecEM ρs₁ ⊔ SSecEM ρs₂ = SSecEM $ ρs₁ ⧺ ρs₂
+--   _ ⊔ _ = TopEM
 
 ------------
 -- Effect --
@@ -118,10 +118,10 @@ data Effect = Effect
 makePrettySum ''Effect
 makeLenses ''Effect
 
-instance Null Effect where null = Effect pø pø TopEM
-instance Append Effect where
-  Effect ei₁ er₁ em₁ ⧺ Effect ei₂ er₂ em₂ = Effect (ei₁ ∪ ei₂) (er₁ ∪ er₂) $ em₁ ⊔ em₂
-instance Monoid Effect
+-- instance Null Effect where null = Effect pø pø TopEM
+-- instance Append Effect where
+--   Effect ei₁ er₁ em₁ ⧺ Effect ei₂ er₂ em₂ = Effect (ei₁ ∪ ei₂) (er₁ ∪ er₂) $ em₁ ⊔ em₂
+-- instance Monoid Effect
 
 -- instance POrd Effect where
 --   Effect ei₁ er₁ em₁ ⊑ Effect ei₂ er₂ em₂ = (ei₁ ⊆ ei₂) ⩓ (er₁ ⊆ er₂) ⩓ (em₁ ⊑ em₂)
@@ -179,6 +179,7 @@ data Type =
   | 𝔹T                                          --  𝔹                          /  bool
   | 𝕊T                                          --  𝕊                          /  string
   | ℙT                                          --  ℙ                          /  prin
+  | ℙsT                                         --  ℙs                         /  prins
   | ℕT IPrecision                               --  ℕ#n.n                      /  nat#n.n
   | ℤT IPrecision                               --  ℤ#n.n                      /  int#n.n
   | 𝔽T FPrecision                               --  𝔽#n                        /  float#n
@@ -214,8 +215,10 @@ data Pat =
   | TupP Pat Pat          -- ψ,ψ      /  ψ,ψ
   | NilP                  -- []       /  []
   | ConsP Pat Pat         -- ψ∷ψ      /  ψ::ψ
-  | EmptyP                -- ⟨⟩       /  <>
-  | BundleP 𝕏 Pat Pat     -- ⟨ρ.ψ⟩⧺ψ  /  <ρ.ψ>++ψ
+  | EmptyP                -- ⟪⟫       /  <<>>
+  | BundleP 𝕏 Pat Pat     -- ⟪ρ|ψ⟫⧺ψ  /  <<ρ|ψ>>++ψ
+  | EmptySetP             -- {}       /  {}
+  | SetP 𝕏 Pat            -- {ρ}∪ψ    /  {ρ}\/ψ
   | AscrP Pat Type        -- ψ : τ    /  ψ : τ
   | WildP                 -- _        /  _
   -- [ψ₁;…;ψₙ] ≜ ψ₁ ∷ ⋯ ∷ ψₙ ∷ []
@@ -250,23 +253,23 @@ data ExpR =
   | AppE Exp Exp                             -- e e                   /  e e
   | TLamE TVar Exp                           -- Λ α → e               /  abs α → e
   | TAppE Exp Type                           -- e@τ                   /  e@τ
-  | SoloE (𝐿 PrinExp) Exp                    -- {P} e                 /  {P} e
-  | ParE (𝐿 PrinExp) Exp                     -- {par:P} e             /  {par:P} e
+  -- | SoloE (𝐿 PrinExp) Exp                 -- {P} e                 /  {P} e
+  | ParE (𝐿 PrinExp) Exp                     -- par {P} e             /  par {P} e
   | ShareE Prot (𝐿 PrinExp) (𝐿 PrinExp) Exp  -- share{φ:P→P} e        /  share{φ:P->P} e
   | AccessE Exp PrinExp                      -- e.ρ                   /  e.ρ
-  | BundleE (𝐿 (PrinExp ∧ Exp))              -- ⟨ρ₁.eₙ;…;ρₙ.eₙ⟩       /  <ρ₁.e₁;…;ρₙ.eₙ>
+  | BundleE (𝐿 (PrinExp ∧ Exp))              -- ⟪ρ|e;…;ρ|e⟫           /  <<ρ|e;…;ρ|e>>
   | BundleUnionE Exp Exp                     -- e⧺e                   /  e++e
-  | RevealE (𝐿 PrinExp) (𝐿 PrinExp) Exp      -- reveal{P→P} e         /  reveal{P->P} e
-  | SendE (𝐿 PrinExp) (𝐿 PrinExp) Exp        -- send{P→P} e           /  send{P->P} e
+  | RevealE (𝐿 PrinExp) Exp                  -- reveal {P} e          /  reveal{P} e
+  | SendE (𝐿 PrinExp) (𝐿 PrinExp) Exp        -- send {P→P} e          /  send{P->P} e
   | AscrE Exp Type                           -- e:τ                   /  e:τ
   | ReadE Type Exp                           -- read τ e              /  read τ e
   | RandE Type                               -- rand τ                /  rand τ
   | RandRangeE Type Exp                      -- rand-range τ e        /  rand-range τ e
   | InferE                                   -- _                     /  _
   | HoleE                                    -- ⁇                     /  ??
-  | PrimE 𝕊 (𝐿 Exp)                          -- prim[⊙](e,…,e)        /  𝑁/𝐴
+  | PrimE 𝕊 (𝐿 Exp)                          -- prim[⊙](e,…,e)        /  prim[⊙](e,…,e)
   | TraceE Exp Exp                           -- trace e in e          /  trace e in e
-  | SetE (𝐿 PrinExp)                         -- set(P)                /  set(P)
+  | SetE (𝐿 PrinExp)                         -- {P}                   /  {P}
   deriving (Eq,Ord,Show)
   -- [e₁;…;eₙ] ≜ e₁ ∷ ⋯ ∷ eₙ ∷ []
 makePrettySum ''ExpR

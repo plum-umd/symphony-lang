@@ -1,0 +1,13 @@
+def solo-f : ∀ A:☆. (P:ℙs) → ((p:ℙ | {p}⊆P) →{p} A) →{P} A{isec:P}
+def solo-f P f = case P
+  { {} → ⟪⟫
+  ; {p}∪P′ → ⟪ p | par {p} f p ⟫ ⧺ solo-f P′ f
+  }
+
+def fold-f : ∀ A:☆,B:☆,P:ℙs. B → ((p:ℙ | {p}⊆P) → A → B →{P} B) → A{isec:P} →{P} B
+def fold-f i f xs = case xs
+  { ⟪⟫ → i
+  ; ⟪p|x⟫⧺xs′ → f p x (fold-f i f xs′)
+  }
+
+  

@@ -2,11 +2,11 @@ principal A
 principal B
 principal C
 
-def idA x = { par : A } (x, ())
+def idA x = par {A} (x, ())
 
 def main () =
-  let x0 = { par : B } 0 in
+  let x0 = par {B} 0 in
   let x1 = idA x0 in
   x0
 
-def expected = {par:B} 0
+def expected = par {B} 0

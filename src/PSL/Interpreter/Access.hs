@@ -28,8 +28,8 @@ restrictMode m' xM = do
 -- inject a value into a mode
 modeValP ∷ (STACK) ⇒ Mode → Val → ValP
 modeValP m v = case m of
-  SecM ρ → SSecVP (single ρ) v
-  PSecM ρs → SSecVP ρs v
+  -- SecM ρ → SSecVP (single ρ) v
+  SecM ρs → SSecVP ρs v
   TopM → AllVP v
 
 -- create a value known to current mode
@@ -49,7 +49,7 @@ elimValP ṽ = do
   m ← askL iCxtModeL
   case ṽ of
     SSecVP ρs v' → do
-      guardErr (m ⊑ PSecM ρs) (throwIErrorCxt TypeIError "elimValP: m ⋢ PSecM ρs" $ frhs
+      guardErr (m ⊑ SecM ρs) (throwIErrorCxt TypeIError "elimValP: m ⋢ PSecM ρs" $ frhs
                                [ ("m",pretty m)
                                , ("ρs",pretty ρs)
                                ])
@@ -69,32 +69,32 @@ restrictValP ∷ (STACK) ⇒ ValP → IM ValP
 restrictValP ṽ = do
   m ← askL iCxtModeL
   case (m,ṽ) of
-    (SecM ρ, SSecVP ρs v) → do
-      v' ← restrictValPRecVal v
-      return $ SSecVP (single ρ ∩ ρs) v'
-    (SecM ρ, ISecVP ρvs) → do
-      v ← error𝑂 (ρvs ⋕? ρ) (throwIErrorCxt TypeIError "restrictValP: ρ not in ρvs" $ frhs
-                             [ ("ρvs",pretty ρvs)
-                             , ("ρ",pretty ρ)
-                             ])
-      return $ SSecVP (single ρ) v
-    (SecM ρ, AllVP v) → do
-      v' ← restrictValPRecVal v
-      return $ SSecVP (single ρ) v'
-    (PSecM ρs₁, SSecVP ρs₂ v) → do
+    -- (SecM ρ, SSecVP ρs v) → do
+    --   v' ← restrictValPRecVal v
+    --   return $ SSecVP (single ρ ∩ ρs) v'
+    -- (SecM ρ, ISecVP ρvs) → do
+    --   v ← error𝑂 (ρvs ⋕? ρ) (throwIErrorCxt TypeIError "restrictValP: ρ not in ρvs" $ frhs
+    --                          [ ("ρvs",pretty ρvs)
+    --                          , ("ρ",pretty ρ)
+    --                          ])
+    --   return $ SSecVP (single ρ) v
+    -- (SecM ρ, AllVP v) → do
+    --   v' ← restrictValPRecVal v
+    --   return $ SSecVP (single ρ) v'
+    (SecM ρs₁, SSecVP ρs₂ v) → do
       v' ← restrictValPRecVal v
       let ρs = ρs₁ ∩ ρs₂
       return $ SSecVP ρs v'
-    (PSecM ρs, ISecVP ρvs) → do
+    (SecM ρs, ISecVP ρvs) → do
       let ρvs' = restrict ρs ρvs
       return $ ISecVP ρvs'
-    (PSecM ρs₁, ShareVP φ ρs₂ {- md -} v) → do
+    (SecM ρs₁, ShareVP φ ρs₂ {- md -} v) → do
       guardErr (ρs₂ ⊆ ρs₁) (throwIErrorCxt TypeIError "restrictValP: ρs₁ ⊈ ρs₂" $ frhs
                             [ ("ρs₁",pretty ρs₁)
                             , ("ρs₂",pretty ρs₂)
                             ])
       return $ ShareVP φ ρs₂ {- md -} v
-    (PSecM ρs, AllVP v) → do
+    (SecM ρs, AllVP v) → do
       v' ← restrictValPRecVal v
       return $ SSecVP ρs v'
     (TopM,_) → return ṽ
@@ -138,10 +138,10 @@ unShareValPsMode m ṽs = case ṽs of
   ṽ :& ṽs' → do
     (v,φρsO₁) ← case ṽ of
       SSecVP ρs v → do
-        guard $ m ⊑ PSecM ρs
+        guard $ m ⊑ SecM ρs
         return (v,None)
       ShareVP φ ρs {- md -} v → do
-        guard $ PSecM ρs ⊑ m
+        guard $ SecM ρs ⊑ m
         return (valFrMPC v,Some $ φ :* ρs {- :* md -})
       AllVP v → return (v,None)
       ISecVP _ → abort
