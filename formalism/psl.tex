@@ -16,7 +16,7 @@
 
 % Types
 \newcommand{\tnat}{\ensuremath{\mathtt{nat}}}
-\newcommand{\tfun}[3]{\ensuremath{{#1} ~^{#3}\!\rightarrow {#2}}}
+\newcommand{\tfun}[3]{\ensuremath{{#1} ~^{#3}\!\!\rightarrow {#2}}}
 \newcommand{\tpair}[2]{\ensuremath{{#1} \times {#2}}}
 %\newcommand{\tsum}[4]{\ensuremath{{#1} +^{#3}_{#4} {#2}}}
 \newcommand{\tsum}[3]{\ensuremath{{#1} +^{#3} {#2}}}
@@ -130,9 +130,9 @@ discussion of how other features available in PSL can be encoded in
 terms of the core syntax. Section~\ref{sec:examples} presents a series
 of example programs written \lang. Section~\ref{sec:STsemantics}
 presents the single-threaded semantics of \lang, while
-Section~\ref{sec:MTsemantics} presents the distributed
+Section~\ref{sec:MTsemantics} presents a sketch of the distributed
 semantics. Section~\ref{sec:typing} presents the \lang type system and
-states our core theoretical result, which is that for type-correct
+states our core theoretical results, which is that for type-correct
 programs, the single-threaded semantics simulates the distributed
 semantics.
 
@@ -390,7 +390,8 @@ need a map from principal $\alpha$ to index in the pair for $\alpha$'s
 value. For the accessor in the code, you use the map to extra from the
 pair. Maybe use ``self'' and not $\alpha$.
 
-\subsection{Future work: First-class principals and dependent types}
+\subsection{Future work: First-class Principals and Dependent Types}
+\label{sec:deptypes}
 
 One aspect of Wysteria not encoded here is the idea of
 \emph{principals as data}, and more generally, having a first-class
@@ -540,6 +541,7 @@ complete structure of the list, but only has actual values for its own
 parts of it; the other party's values will just be placeholders.
 
 \subsection{Visibility}
+\label{sec:vis}
 
 Here are several examples illustrating how multi-party value
 visibility is controlled.
@@ -1688,6 +1690,10 @@ approach and inspiration!
 \label{fig:typing}
 \end{figure}
 
+While PSL is not statically typed at present, the plan is to make it
+so, eventually. As a preliminary step, we have developed a type system
+for \lang, but it has some deficiencies that will require further work.
+
 The typing judgment's rules are defined in Figure~\ref{fig:typing}.
 The typing judgment has form $\hastyp{\Gamma}{m}{e}{\tau}$. It states
 that under context $\Gamma$, expression $e$ has type $\tau$ when
@@ -1708,20 +1714,19 @@ Rule~\rulelab{T-Var} ensures that the variable it looks up is given a
 type compatible with the current mode $m$. It looks up the type
 $\tau'$ of $x$ in the environment, and then invokes subtyping
 $\issub{\tau'}{\tau}$ in an attempt to find a type $\tau$ compatible
-with mode $m$ (more about subtyping below). Compatibility holds if the
-classified-as-$\tau$ value is ``located'' at least some principals
-$q \in m$. Compatibility $m \vdash \tau$ is given in
-Figure~\ref{fig:aux}. The subtyping judgment is also given in
-Figure~\ref{fig:sub}. Intuitively, $\issub{\tau_1}{\tau_2}$ holds when
-$\tau_1$ is compatible with the maximal mode that $\tau_2$ is
-compatible with; i.e., it's OK to treat a value as being available at
-fewer locations than it actually is. The combination of compatibility
-and subtyping correspond to the semantic function $\locof{m}{v}$. This
-function takes $v$ and ``locates'' it at principals in $m$, filtering
-out principals not present in $P$. Rule~\rulelab{T-Sub} can be used to
-also invoke subtyping, directly.
+with mode $m$. Compatibility $m \vdash \tau$, given in
+Figure~\ref{fig:aux}, holds if the classified-as-$\tau$ value is
+``located'' at least some principals $q \in m$. The subtyping judgment
+is also given in Figure~\ref{fig:sub}. Intuitively,
+$\issub{\tau_1}{\tau_2}$ holds when $\tau_1$ is compatible with the
+maximal mode that $\tau_2$ is compatible with; i.e., it's OK to treat
+a value as being available at fewer locations than it actually is. The
+combination of compatibility and subtyping correspond to the semantic
+function $\locof{m}{v}$, which locates $v$ at principals in $m$
+(filtering out principals not present there). Rule~\rulelab{T-Sub} is
+used to invoke subtyping directly.
 
-Rule~\rulelab{T-Par} runs its expression $e$ in par mode involving
+Rule~\rulelab{T-Par} types the expression $e$ in par mode involving
 principals $P$. At run-time, only $m \cap P$ principals will actually
 execute $e$, and so $e$ is checked in this mode, which we name
 $Q$.\footnote{Wysteria requires $P \subseteq m$, which is always OK in
@@ -1783,14 +1788,6 @@ Rule~\rulelab{T-Match} types conditionals on normal sums, i.e., the
 conditional will run on each principal in mode $m$. It can return
 shares or normal values, as desired. 
 
-% Unlike the elimination rules for pairs and sums, the \rulelab{T-Var}
-% does not mandate ``presence'' of its contents. So the following
-% program would typecheck: $\elet{x0}{\epar{b}0}{\epar{a}{x0}}$. When
-% checking the second $\kw{par}$ block, the type of $x0$ is $\tnat^{b}$,
-% and this variable is occurring with a $\kw{par}$ block with only $a$
-% present. But this is not prevented because nothing actually done with
-% the contents of that variable.
-
 \rulelab{T-Abs} types the body of a function in the defining context's
 mode $m$. \rulelab{T-App} requires the caller's mode to match the mode
 annotation on the function; this ensures that all principals that must
@@ -1798,14 +1795,11 @@ be present in the function body will indeed be running the
 function. \rulelab{T-Fix} is essentially a combination of these two,
 allowing $f$ to be referred to recursively in $e$.
 
-\mwh{TODO: Discuss how the above is limiting; e.g., it won't typecheck
-  some of the earlier examples.}
-
-Note that when we develop a small-step operational semantics we'll
-have to develop type rules for special value forms too. Crash values
-$\vcrash$ can be given any type that is compatible with mode
-$\emptyset$. Located values $\vloc{u}{P}$ will have the type of $u$
-annotated with location $P$.
+% Note that when we develop a small-step operational semantics we'll
+% have to develop type rules for special value forms too. Crash values
+% $\vcrash$ can be given any type that is compatible with mode
+% $\emptyset$. Located values $\vloc{u}{P}$ will have the type of $u$
+% annotated with location $P$.
 
 \mwh{TODO:}
 \begin{itemize}
@@ -1955,36 +1949,97 @@ annotated with location $P$.
 \label{fig:sub}
 \end{figure}
 
-\subsection{Discussion: Closures and Polymorphism}
+\subsection{Discussion: Polymorphism and Function Types}
 
-\mwh{TODO: Talk about why these rules are pretty restrictive for
-  closures}
-We want polymorphism on the mode in which a function is
-executed. Imagine that we can have a type variable $\beta$ that
-represents the mode in which a function is called. Then, the mode in
-which its body is checked should be $m \cup \beta$ for some $m$. Here,
-$m$ is basically the lower bound. It is the set of the principals that
-must be present to avoid failure, as imposed by \rulelab{T-Reveal} or
-\rulelab{T-Share}. On the other hand, the mode of variables can be
-fluid, and controlled by the closure environment or the caller. For
-example, it might be that if you call a function in mode $\{ a,b,c\}$
-then the returned result has type $\tnat^{\{a,b\}}$, but if you call
-it in mode $\{ a \}$ then the result has type $\tnat^{\{a\}}$. By
-introducing a type variable representing the mode, we could generalize
-the returned type to something like $\tnat^{\{a,b\} \cap \beta}$, where
-$\beta$ is the caller's mode. We'll need to have a logic for deciding
-set constraints, e.g., to prove statements like $\beta \cup P \vdash
-\beta$ (for all literal sets $P$). We also need to adjust rules like
-\rulelab{T-Binop} so that premises like $\tau = \tnat^m_\psi$ are
-generalized to $\tau = \tnat^{m'}_\psi$ where $m' \vdash m$ and $m
-\vdash m'$. More to do!
+The rules for functions are limited by the lack of polymorphism in
+\lang's type system. Consider the following example:
+\begin{verbatim}
+par{a,b}
+  let f = fun x -> par{a} (x,1) in
+  let y = f (par{a,b} 1) in 
+  let y' = f (par{a} 1) in ...
+\end{verbatim}
+The function argument $x$'s type is forced by the type system to be
+monomorphic. To make both calls succeed, we could give the function
+the type
+$\tfun{\tnat^{\{a\}}}{\tpair{\tnat^{\{a\}}}{\tnat^{\{a\}}}}{\{a,b\}}$. Then
+the first call would use subtyping on the argument, since
+$\issub{\tnat^{\{a,b\}}}{\tnat^{\{a\}}}$. However, what would happen
+if added the line
+\begin{verbatim}
+let z = par{a} f 1 in ...
+\end{verbatim}
+This does not seem any different than the call assigning to
+\texttt{y'} and yet the type system will reject it---we cannot call
+\texttt{f} in a mode other than $\{a,b\}$. While for this function
+calling it in mode $\{a\}$ would be safe, if the function's body
+involved a $\kw{share}$ operation including both $a$ and $b$ (e.g., on
+its argument $x$, it would have the same type but would not be safe to
+call it just $a$.
 
-\section{Metatheory}
+We could imagine fixing this by trying to distinguish a lower bound
+versus an upper bound on which principals should be present. For example,
+if we had the function:
+\begin{verbatim}
+let f = fun () ->
+  let y = par{a,b} share{a}{a,b} 0 in
+  par{c} 0
+\end{verbatim}
+Function \texttt{f} must be called in a mode $m \supseteq \{a,b\}$ or
+else $\kw{share}$ call will fail. But the return type will differ
+depending on the actual choice of $m$. For example, if we call
+\texttt{f} in mode $\{a,b\}$ or $\{a,b,d\}$, the return type should be
+$\tnat^\emptyset$. If we call \texttt{f} in mode $\{a,b,c\}$ or
+$\{a,b,c,d\}$, , the return should be $\tnat^{\{c\}}$.
 
-\mwh{TODO:}
-\begin{itemize}
-\item Prove relationship between single- and multi-threaded semantics
-\item Prove type soundness for single-threaded semantics
-\end{itemize}
+This leads naturally to the idea that mode indicators $m$ on types can
+be \emph{polymorphic} (universally quantified), along with constraints
+on their possible solutions. The above example could be given the type
+$$
+\forall \beta, \gamma. [\beta \supseteq \{a,b\}, \gamma = \beta \cap
+\{c\}] \Rightarrow \tfun{\kw{unit}}{\tnat^\gamma}{\beta}
+$$
+Such a type conveys the minimum constraints on the caller's mode while
+at the same time affords precise mode annotations on types affected by
+the particular choice of mode.
+
+To develop such an approach, we will need to have a logic for deciding
+set constraints. We also need to adjust rules like \rulelab{T-Binop}
+so that premises like $\tau = \tnat^m_\psi$ are generalized to
+$\tau = \tnat^{m'}_\psi$ where $m' \vdash m$ and $m \vdash m'$. More
+to do!
+
+As discussed in Section~\ref{sec:deptypes}, we also want to support
+first-class principal sets and dependent types including these. These
+should be a natural addition to the approach we'll have to adopt for
+normal polymorphism.
+
+\subsection{Metatheory}
+
+We conjecture two theoretical results, which we aim to prove.
+
+\paragraph{Type soundness} If a program is type
+correct, then it will either diverge or else run to completion in the
+single-threaded semantics. More formally: If $\hastyp{}{m}{e}{\tau}$
+then there exists a some $e_v$ such that $\eval{[]}{m}{e}{e_v}$, or
+else for all $n$, $e$ can take $n$ steps in the small-step
+semantics. This theorem establishes that the type system ensures the
+program does not get ``stuck,'' e.g., by accessing a value on a host
+that has no access to it, treating a share as if it were a function,
+etc.
+
+\paragraph{Simulation} For all type correct programs, the
+multi-threaded semantics simulates the single-threaded one. To
+formalize this, we need to define some auxiliary functions that relate
+a ST configuration $\config{\env}{e}$ to the equivalent MT one,
+$\mathcal{CS}$. Then we can prove that if $\mathcal{CS}$ can a take a
+step, then $\config{\env}{e}$ can take a step too, and $\mathcal{CS}$
+will eventually reach the point where the auxiliary function matches
+them up. This theorem ensures that ST can be used to reason about
+real-world MT executions.
+
+\section{Conclusion and Future Work}
+
+\mwh{TODO}
 
 \end{document}
