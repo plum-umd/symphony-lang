@@ -1,6 +1,14 @@
 principal A
 principal B
 
+
+def concat : list (list a) -> list a
+def concat xs = case xs
+  { [] -> []
+  ; x :: xs' -> append x (concat xs')
+  }
+
+
 def main : unit -> {inp:A;rev:A}list (int{ssec:A})
 def main () =
   par {A, B}
@@ -8,4 +16,4 @@ def main () =
     let b = sequenceKnownness {B} (par {B} read (list int) "qsort-input.txt")
     let a' = map (fun x -> share {bgw:A -> A,B} x) a
     let b' = map (fun x -> share {bgw:B -> A,B} x) b
-    in concat a' b'
+    in concat (a' :: b' :: a' :: b' :: [])

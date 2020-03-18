@@ -29,11 +29,18 @@ def tail xs = case xs
 
 
 -- Concatenate two lists.
-def concat : list a -> list a -> list a
-def concat xs ys =
+def append : list a -> list a -> list a
+def append xs ys =
   case xs
   { [] -> ys
-  ; x::xs' -> x::(concat xs' ys)
+  ; x::xs' -> x::(append xs' ys)
+  }
+
+
+def concat : list (list a) -> list a
+def concat xs = case xs
+  { [] -> []
+  ; x :: xs' -> append x (concat xs')
   }
 
 
