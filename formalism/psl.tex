@@ -334,7 +334,7 @@ of a pair, too, with a single construct.
 
 \subsubsection{Wire Bundles and Solo Mode}
 
-\mwh{To do: Can we add isec directly?}
+\mwh{To do: Can we add isec directly? At the least, change to PSL syntax}
 
 A \emph{wire bundle} conceptually represents a single logical value,
 but each party has its own distinct copy. We represent it as a product
@@ -442,6 +442,9 @@ of them here:
   don't understand these are being used as sets; they seem to be just
   referenced as single principals.
 \item PSL seems to have universal / polymorphic types.
+\item We have one $\kw{reveal}$ construct for revealing final results
+  in plaintext and converting between share types; PSL has two names
+  for this.
 \item What is \texttt{this} in PSL?
 \end{itemize}
 
@@ -683,7 +686,7 @@ $$
     }
     \\ \\
 
-      \inferrule*[lab=E-ParEmpty]
+      \inferrule*[lab=E-ParEmp]
     {
   m \cap P = \emptyset
     }
@@ -974,10 +977,10 @@ not available to (located at) \emph{all} principals in the required
 mode $m$; the type system aims to rule out this sort of problem. These
 rules locate the final result at $m$.
 
-Now consider \rulelab{E-ParEmpty} and \rulelab{E-ParStep}, which
+Now consider \rulelab{E-ParEmp} and \rulelab{E-ParStep}, which
 evaluate $\epar{P}{e}$. A $\kw{par}$ evaluates $e$ in mode
 $Q = m \cap P$ to produce $v$; i.e., only those principals in $P$
-\emph{also} present in $m$ will run $e$. Per \rulelab{E-ParEmpty}, if
+\emph{also} present in $m$ will run $e$. Per \rulelab{E-ParEmp}, if
 $Q$ is empty, then no evaluation takes place, and $\vcrash$ is
 returned. (The alternative of running $e$ with $\emptyset$ as the
 mode is not equivalent; see discussion below.)  Otherwise, evaluation
@@ -1018,7 +1021,7 @@ as one of these will be stuck.
 
 \paragraph{Discussion}
 
-Rule~\rulelab{E-ParEmpty} indicates that if the ``present'' set of
+Rule~\rulelab{E-ParEmp} indicates that if the ``present'' set of
 principals $Q$ is $\emptyset$ then $e$ should be skipped, and an
 (inaccessible) value returned instead. The alternative is to ``run''
 $e$ despite having no principals present.
@@ -1494,7 +1497,8 @@ approach and inspiration!
 
     \inferrule*[lab=T-Var]
     {
-    x\!:\!\tau \in \Gamma
+    x\!:\!\tau' \in \Gamma\\\\
+    \issub{\tau'}{\tau}\\ m \vdash \tau
     }
     {
     \hastyp{\Gamma}{m}{x}{\tau}
@@ -1522,8 +1526,17 @@ approach and inspiration!
     \inferrule*[lab=T-Par]
     {
     Q = m \cap P\\
-    Q \vdash \tau\\\\
+    Q \not= \emptyset\\\\
     \hastyp{\Gamma}{{Q}}{e}{\tau}
+    }
+    {
+    \hastyp{\Gamma}{m}{\epar{P}{e}}{\tau}
+    } \qquad
+
+    \inferrule*[lab=T-ParEmp]
+    {
+    m \cap P = \emptyset\\\\
+    \emptyset \vdash \tau
     }
     {
     \hastyp{\Gamma}{m}{\epar{P}{e}}{\tau}
@@ -1675,29 +1688,6 @@ approach and inspiration!
 \label{fig:typing}
 \end{figure}
 
-\mwh{TODO:}
-\begin{itemize}
- \item Move types to the end?
-\item Fix T-Var so that it ``locates'' types in the same way that
-  $\locof{m}{v}$ locates values. Locatedness  is related to $Q \vdash \tau$ I
-  think; probably we should ditch it. I am only seeing it
-  used in T-Par, and I don't think it's actually needed there.
-\item Need a version of T-Par to handle an empty $Q$; what should be
-  the type $\tau$ that is returned?
-\item With the T-Var change, how should T-App, T-Abs, and T-Fix
-  change? The operational semantics scopes access based on the call
-  site. We don't have polymorphism in the type system, so we can't do
-  that. How to restrict? I think we just leave the mode the same as
-  now.
-\item Prepare for the use of polymorphism by generalizing the
-  judgments that require $m$ to be the same on the type, i.e., on
-  $nat^m$. Think about how $m$ could become a variable, or unions and
-  intersections. 
-  \item How are curried functions located: how is \texttt{m} on the
-  arrow handled?
-\item No subtyping at present for recursive types. Should we add it?
-\end{itemize}
-
 The typing judgment's rules are defined in Figure~\ref{fig:typing}.
 The typing judgment has form $\hastyp{\Gamma}{m}{e}{\tau}$. It states
 that under context $\Gamma$, expression $e$ has type $\tau$ when
@@ -1712,24 +1702,34 @@ visibility of the current mode. Rule~\rulelab{T-Read} types the
 \kw{read} command; since it will produce a different value at each
 location, it must be run in the visibility of a single principal ($m$
 must be a singleton set). Rule~\rulelab{T-Write} is
-similar. Rules~\rulelab{T-Var} and \rulelab{T-Let} (at the bottom) are standard.
+similar.
 
-Rule~\rulelab{T-Par} runs its expression $e$ in par
-mode involving principals $P$. At run-time, only $m \cap P$ principals
-will actually execute $e$, and so $e$ is checked in this mode, which
-we name $Q$.\footnote{Wysteria requires $P \subseteq m$, which is
-  always OK in \rulelab{T-Par}, too, but it's strictly more flexible.}
-Likewise, the returned value must be compatible with $Q$;
-i.e., it should be ``located'' at least some principals $q \in Q$.
-For example, in mode $\{p\}$ we don't want to return a value located
-(only) at $q$. If we did, then subsequent access by $p$ would fail at
-run-time, since the value is not actually present there.
-%
-Compatibility $m \vdash \tau$ is given in Figure~\ref{fig:aux}. We can
-think of it as related to the semantic function $\locof{m}{v}$. This
+Rule~\rulelab{T-Var} ensures that the variable it looks up is given a
+type compatible with the current mode $m$. It looks up the type
+$\tau'$ of $x$ in the environment, and then invokes subtyping
+$\issub{\tau'}{\tau}$ in an attempt to find a type $\tau$ compatible
+with mode $m$ (more about subtyping below). Compatibility holds if the
+classified-as-$\tau$ value is ``located'' at least some principals
+$q \in m$. Compatibility $m \vdash \tau$ is given in
+Figure~\ref{fig:aux}. The subtyping judgment is also given in
+Figure~\ref{fig:sub}. Intuitively, $\issub{\tau_1}{\tau_2}$ holds when
+$\tau_1$ is compatible with the maximal mode that $\tau_2$ is
+compatible with; i.e., it's OK to treat a value as being available at
+fewer locations than it actually is. The combination of compatibility
+and subtyping correspond to the semantic function $\locof{m}{v}$. This
 function takes $v$ and ``locates'' it at principals in $m$, filtering
-out principals not present in $P$. The judgment $m \vdash \tau$
-ensures that $\locof{m}{v}$ will be a no-op.
+out principals not present in $P$. Rule~\rulelab{T-Sub} can be used to
+also invoke subtyping, directly.
+
+Rule~\rulelab{T-Par} runs its expression $e$ in par mode involving
+principals $P$. At run-time, only $m \cap P$ principals will actually
+execute $e$, and so $e$ is checked in this mode, which we name
+$Q$.\footnote{Wysteria requires $P \subseteq m$, which is always OK in
+  \rulelab{T-Par}, too, but it's strictly more flexible.}
+Rule~\rulelab{T-ParEmp} handles the case that $m \cap P = \emptyset$
+so the expression $e$ is not actually executed. As such, it will
+return $\vcrash$, which we can type as having any type $\tau$ that is
+compatible with $\emptyset$.
 
 Rule~\rulelab{T-Pair} types the introduction of pairs. A pair's
 components must be typeable in the current mode, but they do not
@@ -1747,16 +1747,8 @@ this judgment as being related to semantic function $\getat{m}{v}$: If $v$
 has type $\tau$ and $m \dashv \tau$ (with the expected extensions to
 typing for new value forms), then $\getat{m}{v}$ should succeed.
 
-Intuitively, a $\tnat$ located at $\{p,q\}$ is also located at
-$p$. Rule~\rulelab{T-Sub} can be used to apply this kind of
-reasoning. The subtyping judgment is given in
-Figure~\ref{fig:sub}. Intuitively, $\issub{\tau_1}{\tau_2}$ holds when
-$\tau_1$ is compatible with the maximal mode that $\tau_2$ is
-compatible with; i.e., it's OK to treat a value as being available at
-fewer locations than it actually is.
-
 The rules \rulelab{T-Fold} and \rulelab{T-Unfold} for recursive types
-are standard.
+are standard. Rule \rulelab{T-Let} (at the bottom) is, too.
 
 Rule~\rulelab{T-Share} types encrypting a $\tnat$ (via secret
 sharing). The $P$ argument indicates the principal doing the sharing,
@@ -1806,10 +1798,21 @@ be present in the function body will indeed be running the
 function. \rulelab{T-Fix} is essentially a combination of these two,
 allowing $f$ to be referred to recursively in $e$.
 
+\mwh{TODO: Discuss how the above is limiting; e.g., it won't typecheck
+  some of the earlier examples.}
+
 Note that when we develop a small-step operational semantics we'll
 have to develop type rules for special value forms too. Crash values
-$\vcrash$ can be given any type. Located values $\vloc{u}{P}$ will
-have the type of $u$ annotated with location $P$.
+$\vcrash$ can be given any type that is compatible with mode
+$\emptyset$. Located values $\vloc{u}{P}$ will have the type of $u$
+annotated with location $P$.
+
+\mwh{TODO:}
+\begin{itemize}
+  \item How are curried functions located: how is \texttt{m} on the
+  arrow handled?
+\item No subtyping at present for recursive types. Should we add it?
+\end{itemize}
 
 \begin{figure}
 \[\begin{array}{c}
@@ -1824,20 +1827,20 @@ have the type of $u$ annotated with location $P$.
     
     \inferrule*[lab=M-Nat]
     {
-    m = n \vee
-    (\psi = \cdot \Rightarrow m \vdash n)
+    m = m' \vee
+    (\psi = \cdot \Rightarrow m \vdash m')
     }
     {
-    m \vdash \tnat^n_\psi
+    m \vdash \tnat^{m'}_\psi
     } \qquad
 
     \inferrule*[lab=M-Sum]
     {
-    m \vdash n\\
+    m \vdash m'\\
     m \vdash \tau_1 \\ m \vdash \tau_2
     }
     {
-    m \vdash \tsum{\tau_1}{\tau_2}{n}
+    m \vdash \tsum{\tau_1}{\tau_2}{m'}
     } \\ \\
 
     \inferrule*[lab=M-Fun]
@@ -1912,19 +1915,19 @@ have the type of $u$ annotated with location $P$.
 
     \inferrule*[lab=S-Nat]
     {
-    m \vdash \tnat^n_\psi
+    m \vdash \tnat^{m'}_\psi
     }
     {
-    \issub{\tnat^m_\psi}{\tnat^n_\psi}
+    \issub{\tnat^m_\psi}{\tnat^{m'}_\psi}
     } \qquad
 
     \inferrule*[lab=S-Sum]
     {
-    m \vdash \tsum{\tau_1'}{\tau_2'}{n}\\\\
+    m \vdash \tsum{\tau_1'}{\tau_2'}{m'}\\\\
     \issub{\tau_1}{\tau_1'} \land \issub{\tau_2}{\tau_2'}
     }
     {
-    \issub{\tsum{\tau_1}{\tau_2}{m}}{\tsum{\tau_1'}{\tau_2'}{n}}
+    \issub{\tsum{\tau_1}{\tau_2}{m}}{\tsum{\tau_1'}{\tau_2'}{m'}}
     } \qquad
     
     \inferrule*[lab=S-Fun]
@@ -1952,11 +1955,34 @@ have the type of $u$ annotated with location $P$.
 \label{fig:sub}
 \end{figure}
 
-\section{TO DO}
+\subsection{Discussion: Closures and Polymorphism}
 
-Soon:
+\mwh{TODO: Talk about why these rules are pretty restrictive for
+  closures}
+We want polymorphism on the mode in which a function is
+executed. Imagine that we can have a type variable $\beta$ that
+represents the mode in which a function is called. Then, the mode in
+which its body is checked should be $m \cup \beta$ for some $m$. Here,
+$m$ is basically the lower bound. It is the set of the principals that
+must be present to avoid failure, as imposed by \rulelab{T-Reveal} or
+\rulelab{T-Share}. On the other hand, the mode of variables can be
+fluid, and controlled by the closure environment or the caller. For
+example, it might be that if you call a function in mode $\{ a,b,c\}$
+then the returned result has type $\tnat^{\{a,b\}}$, but if you call
+it in mode $\{ a \}$ then the result has type $\tnat^{\{a\}}$. By
+introducing a type variable representing the mode, we could generalize
+the returned type to something like $\tnat^{\{a,b\} \cap \beta}$, where
+$\beta$ is the caller's mode. We'll need to have a logic for deciding
+set constraints, e.g., to prove statements like $\beta \cup P \vdash
+\beta$ (for all literal sets $P$). We also need to adjust rules like
+\rulelab{T-Binop} so that premises like $\tau = \tnat^m_\psi$ are
+generalized to $\tau = \tnat^{m'}_\psi$ where $m' \vdash m$ and $m
+\vdash m'$. More to do!
+
+\section{Metatheory}
+
+\mwh{TODO:}
 \begin{itemize}
-\item Develop small-step MT semantics fleshed out from discussion
 \item Prove relationship between single- and multi-threaded semantics
 \item Prove type soundness for single-threaded semantics
 \end{itemize}
