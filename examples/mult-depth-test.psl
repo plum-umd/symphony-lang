@@ -1,0 +1,6 @@
+principal A B C
+
+def main • =
+  let x = par {A, B} 5 in
+  let y = ((share{yao:A → A,B} 2) * (share{yao:B → A,B} 3))
+  reveal {C} (y * y)
