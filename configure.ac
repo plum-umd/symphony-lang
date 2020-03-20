@@ -19,32 +19,34 @@
 
 ]AC_CHECK_PROGS([STACK], [stack])[
 
-]AC_CACHE_CHECK(
-  [if stack is the correct one],
-  [psl_cv_stack_check],
-  [
-    case "$STACK" in
-      "stack") ;;
-      *)
-	printf 'no\n'
-        AC_MSG_ERROR(
-[Cannot find stack.
-Installation instructions: https://www.haskell.org/downloads/])
-      ;;
-    esac
-
-    case "`stack --help`" in
-      *'The Haskell Tool Stack'*) ;;
-      *)
-        printf 'no\n'
-        AC_MSG_ERROR(
-[The "stack" program does not appear to be the correct one.
-Try using "./configure STACK=/path/to/stack".])
-      ;;
-    esac
-
-    psl_cv_stack_check=yes
-  ])[
+]dnl
+dnl AC_CACHE_CHECK(
+dnl   [if stack is the correct one],
+dnl   [psl_cv_stack_check],
+dnl   [
+dnl     case "$STACK" in
+dnl       "stack") ;;
+dnl       *)
+dnl 	printf 'no\n'
+dnl         AC_MSG_ERROR(
+dnl [Cannot find stack.
+dnl Installation instructions: https://www.haskell.org/downloads/])
+dnl       ;;
+dnl     esac
+dnl 
+dnl     case "`stack --help`" in
+dnl       *'The Haskell Tool Stack'*) ;;
+dnl       *)
+dnl         printf 'no\n'
+dnl         AC_MSG_ERROR(
+dnl [The "stack" program does not appear to be the correct one.
+dnl Try using "./configure STACK=/path/to/stack".])
+dnl       ;;
+dnl     esac
+dnl 
+dnl     psl_cv_stack_check=yes
+dnl   ])
+[
 
 ]AC_CONFIG_FILES([Makefile])[
 
