@@ -252,6 +252,7 @@ interpExp = wrapInterp $ \case
       AllVP v → return v
       _ → throwIErrorCxt TypeIError "interpExp: ShareE: v ∉ {SSecVP _ _,AllVP _}" $ frhs
         [ ("ṽ",pretty ṽ) ]
+    tellL iOutResEvsL $ ResEv φ pø ρvs₁ ρvs₂ (getType v) "SHARE" ↦ 1
     sv ← mpcFrVal v
     return $ ShareVP φ ρvs₂ sv
   AccessE e' ρ → do
@@ -302,8 +303,9 @@ interpExp = wrapInterp $ \case
           ])
     ṽ ← interpExp e'
     case ṽ of
-      ShareVP _φ _ρs {- _md -} sv {- | ρs ≡ ρvs₁ -} →
-        let v = valFrMPC sv in
+      ShareVP φ ρs {- _md -} sv {- | ρs ≡ ρvs₁ -} → do
+        let v = valFrMPC sv
+        tellL iOutResEvsL $ ResEv φ pø ρs ρvs₂ (getTypeMPC sv) "REVEAL" ↦ 1
         return $ SSecVP ρvs₂ v
       _ → throwIErrorCxt TypeIError "interpExp: RevealE: ṽ ∉ {ShareVP _ _ _,SSecVP _ _}" $ frhs
         [ ("ṽ",pretty ṽ)
@@ -388,7 +390,7 @@ interpExp = wrapInterp $ \case
     case φρsO' of
       None → skip
       Some (φ :* ρs {- :* md -}) → do 
-        tellL iOutResEvsL $ ResEv φ ρs τ o ↦ 1
+        tellL iOutResEvsL $ ResEv φ ρs pø pø τ o ↦ 1
     return v'
   TraceE e₁ e₂ → do
     v ← interpExp e₁
