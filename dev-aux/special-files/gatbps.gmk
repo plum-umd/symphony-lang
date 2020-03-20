@@ -1,0 +1,13 @@
+#
+# For the copyright information for this file, please search up the
+# directory tree for the first README.md file.
+#
+
+## begin_variables
+
+gatbps_files += build-aux/GATBPS_WGET_RULES.am
+gatbps_files += m4/GATBPS_PROG_WGET.m4
+gatbps_files += m4/GATBPS_WGET.m4
+gatbps_files += m4/GATBPS_WGET_SUBST.m4
+
+## end_variables
