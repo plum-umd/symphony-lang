@@ -19,4 +19,9 @@
 
 ]AC_OUTPUT[
 
+if test -z "$(which stack)"; then
+  printf "ERROR: please install stack\n" 1>&2
+  exit 1
+fi
+
 ]
