@@ -138,12 +138,12 @@ def cont_bind (f, a) g =
   let (f0, b) = g a in
   (compose f0 f, b)
 
-def cont_join (f, (g, a)) = (compose f g, a)
-
-def cont_seq (f, a) v = cont_bind (f, a) (const v)
-
 -- cont_run : cont a a -> a: get an a value:
 def cont_run = uncurry apply
+
+def cont_join m = cont_bind (g, a) id
+
+def cont_seq (f, a) v = cont_bind (f, a) (const v)
 
 -- if_then guard tc: an if-then branch 
 def if_then guard tc rest = (mux guard tc, rest)
