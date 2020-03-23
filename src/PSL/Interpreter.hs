@@ -252,8 +252,9 @@ interpExp = wrapInterp $ \case
       AllVP v → return v
       _ → throwIErrorCxt TypeIError "interpExp: ShareE: v ∉ {SSecVP _ _,AllVP _}" $ frhs
         [ ("ṽ",pretty ṽ) ]
+    tellL iOutResEvsL $ ResEv φ pø ρvs₁ ρvs₂ (getType v) "SHARE" 0 ↦ 1
     sv ← mpcFrVal v
-    return $ ShareVP φ ρvs₂ sv
+    return $ ShareVP φ ρvs₂ 0 sv
   AccessE e' ρ → do
     ρv ← interpPrinExpSingle ρ
     ṽ ← interpExp e'
@@ -302,8 +303,9 @@ interpExp = wrapInterp $ \case
           ])
     ṽ ← interpExp e'
     case ṽ of
-      ShareVP _φ _ρs {- _md -} sv {- | ρs ≡ ρvs₁ -} →
-        let v = valFrMPC sv in
+      ShareVP φ ρs md sv {- | ρs ≡ ρvs₁ -} → do
+        let v = valFrMPC sv
+        tellL iOutResEvsL $ ResEv φ pø ρs ρvs₂ (getTypeMPC sv) "REVEAL" md ↦ 1
         return $ SSecVP ρvs₂ v
       _ → throwIErrorCxt TypeIError "interpExp: RevealE: ṽ ∉ {ShareVP _ _ _,SSecVP _ _}" $ frhs
         [ ("ṽ",pretty ṽ)
@@ -349,7 +351,7 @@ interpExp = wrapInterp $ \case
     wrap :* τ' ← case τ of
       ShareT φ ρes τ' → do
         ρvs ← prinExpValss *$ mapM interpPrinExp ρes
-        return $ ShareVP φ ρvs {- 0 -} :* τ'
+        return $ ShareVP φ ρvs 0 :* τ'
       _ → return $ AllVP ∘ valFrMPC :* τ
     v ← case τ' of
       ℕT ip → io $ NatMV ip ∘ trPrNat ip ∘ nat ^$ R.randomIO @ℕ64
@@ -361,7 +363,7 @@ interpExp = wrapInterp $ \case
     wrap :* τ' ← case τ of
       ShareT φ ρes τ' → do
         ρvs ← prinExpValss *$ mapM interpPrinExp ρes
-        return $ ShareVP φ ρvs {- 0 -} :* τ'
+        return $ ShareVP φ ρvs 0 :* τ'
       _ → return $ AllVP ∘ valFrMPC :* τ
     ṽ ← interpExp e
     v ← elimValP ṽ
@@ -381,14 +383,14 @@ interpExp = wrapInterp $ \case
     ṽs ← mapM interpExp es
     vs :* φρsO ← unShareValPs ṽs
     v :* τ ← interpPrim o vs
-    let φρsO' = mapOn φρsO $ \ (φ :* ρs {- :* md -}) →
-          -- let md' = if o ≡ "TIMES" then md + 1 else md
-          φ :* ρs {-:* md' -}
+    let φρsO' = mapOn φρsO $ \ (φ :* ρs :* md) →
+          let md' = multDepth φ o + md in
+          φ :* ρs :* md'
     v' ← reShareValP φρsO' v
     case φρsO' of
       None → skip
-      Some (φ :* ρs {- :* md -}) → do 
-        tellL iOutResEvsL $ ResEv φ ρs τ o ↦ 1
+      Some (φ :* ρs :* md) → do
+        tellL iOutResEvsL $ ResEv φ ρs pø pø τ o md ↦ 1
     return v'
   TraceE e₁ e₂ → do
     v ← interpExp e₁

@@ -34,7 +34,7 @@ data Val =
 data ValP =
     SSecVP (𝑃 PrinVal) Val
   | ISecVP (PrinVal ⇰ Val)
-  | ShareVP Prot (𝑃 PrinVal) ValMPC
+  | ShareVP Prot (𝑃 PrinVal) ℕ ValMPC
   | AllVP Val
   | UnknownVP
   deriving (Eq,Ord,Show)
@@ -51,6 +51,45 @@ data ValMPC =
   | LMV ValMPC
   | RMV ValMPC
   deriving (Eq,Ord,Show)
+
+------------------
+-- TYPES OUTPUT --
+------------------
+
+iprecisionSuffix ∷ IPrecision → 𝕊
+iprecisionSuffix = \case
+  InfIPr → ""
+  FixedIPr n₁ n₂ → concat ["#",show𝕊 n₁,".",show𝕊 n₂]
+
+fprecisionSuffix ∷ FPrecision → 𝕊
+fprecisionSuffix (FixedFPr n) = concat ["#",show𝕊 n]
+
+iPrecFrFPrec ∷ FPrecision → IPrecision
+iPrecFrFPrec (FixedFPr pr) = FixedIPr pr 0
+
+fPrecFrIPrec ∷ IPrecision → FPrecision
+fPrecFrIPrec = \case
+  InfIPr → FixedFPr 64
+  FixedIPr n₁ n₂ → FixedFPr $ n₁ + n₂
+
+getType ∷ Val → 𝕊
+getType = \case
+  BoolV _ → "bool"
+  NatV p _ → "nat"⧺iprecisionSuffix p
+  IntV p _ → "int"⧺iprecisionSuffix p
+  FltV p _ → "flt"⧺fprecisionSuffix p
+  PrinV _ → "prin"
+
+getTypeMPC ∷ ValMPC → 𝕊
+getTypeMPC = \case
+  BoolMV _ → "bool"
+  NatMV p _ → "nat"⧺iprecisionSuffix p
+  IntMV p _ → "int"⧺iprecisionSuffix p
+  FltMV p _ → "flt"⧺fprecisionSuffix p
+  PrinMV _ → "prin"
+  PairMV mv₁ mv₂ → (getTypeMPC mv₁) ⧺ " × " ⧺ (getTypeMPC mv₁)
+  LMV mv → "left " ⧺ (getTypeMPC mv)
+  RMV mv → "right " ⧺ (getTypeMPC mv)
 
 -----------------
 -- ENVIRONMENT --
@@ -135,8 +174,11 @@ iCxtDoResourcesL = itlEnvDoResourcesL ⊚ iCxtParamsL
 data ResEv = ResEv
   { resEvProt ∷ Prot
   , resEvPrins ∷ 𝑃 PrinVal
+  , resEvPrinsFrom ∷ 𝑃 PrinVal
+  , resEvPrinsTo ∷ 𝑃 PrinVal
   , resEvType ∷ 𝕊
   , resEvOp ∷ 𝕊
+  , resEvMd ∷ ℕ
   } deriving (Eq,Ord,Show)
 makePrettySum ''ResEv
 makeLenses ''ResEv
