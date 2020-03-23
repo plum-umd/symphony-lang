@@ -115,8 +115,8 @@ slightly more verbose than it would be in actual PSL, as discussed shortly):
 \end{verbatim}
 The program starts by reading an (integer) input at principal $A$'s
 host, as specified by the \emph{par block} \texttt{par\{A\} read}. The
-result, bound in \texttt{x}, is usable only at \texttt{A}; the
-variable is \emph{inaccessible} to the other participating hosts. In
+result, bound in \texttt{x}, is usable at \texttt{A} and not any of
+the other participating hosts. In  
 general, the construct $\epar{P}{e}$ runs the expression $e$ at the
 hosts indicated in the set $P$, and the result will be available only
 to those hosts. The PSL type system will reject programs that would
@@ -173,8 +173,8 @@ so far)
 let x = read in 
 send-share{yao:C,D} x
 \end{verbatim}
-$B$'s program would be similar (the only difference is details
-regarding communication we have not shown). $C$'s program would be
+$B$'s program would be similar, with the only difference being details
+regarding communication we have not shown. $C$'s program would be
 \begin{verbatim}
 let sx = recv-share{yao:C,D <- A} in
 let sy = recv-share{yao:C,D <- B} in
@@ -203,23 +203,26 @@ understandability. In particular, because the \texttt{share} and
 \texttt{reveal} constructs are separated into two parts, the
 programmer may now introduce race conditions and deadlocks. For
 example, $A$ might be sending to $B$ and waiting for it to acknowledge
-receipt, but at the same time $B$ is doing the same with $A$. The
+receipt, but at the same time $B$ could be doing the same with $A$. The
 single-program structure imposed by PSL assures this cannot happen. It
 also prevents the mistake of party $A$ sending one kind of encrypted
-value (e.g., a BGW share) while party $B$ expecting to receive a
+value (e.g., a BGW share) while party $B$ expects to receive a
 different kind (e.g., a GMW share)---the single \texttt{share}
-construct ensures both agree. While some flexibility is lost, it is
-akin to the situation with \texttt{goto} in structured programs; the
+construct ensures both agree. While not allowing primitive send and
+receive commands reduces the programmer's options, this restriction is
+akin to the situation with \texttt{goto} in structured programs as
+argued by Dijkstra; the
 potential harm of its use outweighs the small gain it affords in
 performance.
 
-Lastly, it is harder to automatically analyze the split program, e.g.,
+The final downside is that it is harder to automatically analyze
+multiple programs together compared to a single one, e.g.,
 to do resource estimation. Such an analysis would boil down to
 analyzing a multithreaded, message-passing program, which is hard to
 do in the general case. By contrast, in PSL not only is there a single
 program, but that program has a straightforward \emph{single threaded
   interpretation}. That is, we can faithfully simulate the program's
-multi-party execution when running it on a single host. This works by
+multi-party execution in a locally-hosted simulation. This works by
 interpreting par blocks simply as a means to define and enforce access
 to data based on the given principal set, not as a means to define
 actually parallel and communicating computations. We are able to prove
@@ -231,7 +234,8 @@ accurate view of what happens when running the former. \mwh{Could say
 
 \paragraph{Wysteria}
 
-PSL's design is inspired by that of Wysteria, which also advocated
+PSL's design is inspired by that of Wysteria, which (for all the
+reasons given above) also advocated
 writing a single MPC program with a sound single-threaded
 interpretation. PSL's use of par blocks is basically the same as
 Wysteria's. To perform an actual encrypted computation, Wysteria
@@ -250,20 +254,20 @@ involving $C$ and $D$.
 In this program, after $A$ and $B$ read their input values they stick
 them in a wire annotated with their identity. On line 3, we enter a
 sec block involving $A$, $B$, and $E$. Within, it compares the $A$'s
-value and $B$'s value, and packages the result in a wire to $E$, which
-is bound to $E$. On line 4 $E$ outputs the result it received.  With
+value and $B$'s value, and packages the result in a wire to $E$.
+On line 4, $E$ outputs the result it received.  With
 this program, we did not have to explicitly create encrypted values;
 the sec block does this implicitly. It also implicitly reveals any
 returned result to cleartext, here stored in a wire only accessible by
 $E$. This is convenient.
 
-However, it turns out to not be possible in Wysteria to implement the
-PSL program we started with. While Wysteria does have a notion of
+However, it turns out that it is \emph{not possible in Wysteria to implement the
+PSL program we started with}. While Wysteria does have a notion of
 encrypted values that can live outside a sec block, it is not flexible
 enough to allow such values to be communicated freely among different
 compute parties. Relatedly, while one can interleave local and
 multi-party computations in Wysteria, the use of sec blocks sometimes
-imposes an awkward structure when doing so It is also not always
+imposes an awkward structure when doing so. It is also not always
 possible in Wysteria to perform secure computations when the input
 size can vary; e.g., it is difficult to write a sorting algorithm in
 Wysteria where the (non-secret) size of the inputs can vary. Unrelated
@@ -428,10 +432,11 @@ cleartext.
 \subsection{Derived Expressions}
 \label{sec:derived}
 
-Some useful constructs can be encoded using \lang features (or via
-obvious language extensions). 
+Some useful constructs present in PSL are not represented natively in
+\lang, but they can be encoded using \lang features (or via
+obvious language extensions). We present these features here.
 
-\subsubsection{Message passing}
+\subsubsection{Message passing and share conversion}
 
 Having a direct method of sending a (cleartext) message $m$ from $A$
 to a set of principals $B$ and $C$ is written in PSL as \texttt{send\{A
@@ -440,9 +445,18 @@ to a set of principals $B$ and $C$ is written in PSL as \texttt{send\{A
 Here, the value $m$ is shared to itself as cleartext, and then
 distributed (again, as cleartext) to remote parties.
 
+\lang's $\kw{reveal}$ construct supports revealing results to
+cleartext, and converting between encryption/share types. For example,
+$\ereveal{}{A}{e}$ computes the result of $e$ and reveals the final
+result to $A$ as cleartext; $\ereveal{\kw{bgw}}{A}{e}$ instead
+computes the result of $e$ and then converts it to $\kw{bgw}$ format
+before sharing with $A$. In PSL \mwh{What is the conversion routine?}
+
 \subsubsection{Encrypted Sums}
 
-An encrypted sum can be represented as a value of the type
+\mwh{How are encrypted sums implemented in PSL?}
+
+  An encrypted sum can be represented as a value of the type
 $\tpair{\tnat^m_\psi}{(\tpair{\tau_1}{\tau_2})}$. Here, the first
 element is a boolean that represents whether the ``real'' portion of
 the sum is the left side. We can introduce (encrypt) an existing sum
@@ -467,8 +481,10 @@ binding form like $\kw{match}$.
 \subsubsection{Generalized Mux and Reveal}
 \label{sec:generalmux}
 
-A mux is restricted to returning encrypted
-$\tnat$s. We can generalize this to returning pairs of encrypted
+In \lang, a mux is restricted to returning encrypted
+$\tnat$s, but in PSL more types are allowed. This generalization is
+easily seen as a type-based translation. For example, here is how we
+would encode a mux that returns a pair of encrypted 
 $\tnat$s:
 \begin{verbatim}
 muxtopair e e1 e2 =
@@ -477,9 +493,9 @@ muxtopair e e1 e2 =
   let (l2,r2) = e2 in
   (b ? l1 : l2, b ? r1 : r2)
 \end{verbatim}
-With this encoding, we can likewise support multiplexing on encrypted
-sums and recursive types.
-%
+Following this basic ``unrolling,'' we can likewise support
+multiplexing on encrypted sums and recursive types.
+
 We can similarly generalize the $\kw{reveal}$ construct to work on types
 that are not numbers, but pairs, sums, or recursive types---just as we
 mux on the elements of a pair here, we can \kw{reveal} elements
@@ -586,34 +602,33 @@ generalized the fixed-size notion of wire bundles given above.
 
 We leave it to future work to flesh out the details. 
 
-\subsection{Differences with PSL}
+\subsection{Other Differences with PSL}
 
-\mwh{Some of these are problems, not expected differences. Fix}
-The PSL interpreter differs from \lang in several ways. We list a few
-of them here:
+There are some other differences between \lang and PSL. We enumerate
+them here. 
 \begin{itemize}
 \item PSL has effect annotations on function arrows indicating when
-  something is input or revealed; \lang does not have these. For
-  example, look at \texttt{sumprod.psl} for effect annotation
-  examples.
-\item PSL doesn't annotate which principals should be present on the
-  function type. \texttt{atq.psl} for an example of the lack
-  of annotation, e.g., on the \texttt{length} function, which involves
-  principals $A$ and $B$. 
-\item PSL has global principal declarations; \lang does not, and
-  rather assumes an existing pool of principal names. PSL programs can
+  \texttt{reveal} is called. The reason is to alert someone reading an
+  API, which will include a function's types, that secret values could
+  potentially be revealed by calling the function. This is a kind of
+  checked documentation. Such annotations are straightforward to
+  implement and are not consequential in the metatheory we are
+  interested in, so we do not include them in \lang.
+\item PSL has global principal declarations, e.g., of the form
+  \texttt{principal A}. It also permits defining sets of principals,
+  e.g., as \texttt{principal A[2]} for a set of 2 principals. \lang
+  does not require these; rather, it assumes an existing pool of
+  principal names. PSL programs can 
   be viewed as being defined in a global $\kw{par}$ block involving
   the declared principals; \lang programs require making the
   $\kw{par}$ block explicit.
-\item PSL has principal sets, e.g., \texttt{principal} $A[2]$ declares
-  a set of principals $A$ of size 2. See \texttt{bgv.psl}. However, I
-  don't understand these are being used as sets; they seem to be just
-  referenced as single principals.
-\item PSL seems to have universal / polymorphic types.
-\item We have one $\kw{reveal}$ construct for revealing final results
-  in plaintext and converting between share types; PSL has two names
-  for this.
-\item What is \texttt{this} in PSL?
+\item \mwh{TODO: FIX} PSL doesn't annotate which principals should be present on the
+  function type. \texttt{atq.psl} for an example of the lack
+  of annotation, e.g., on the \texttt{length} function, which involves
+  principals $A$ and $B$. 
+\item PSL seems to have universal / polymorphic types. \mwh{Are these
+    complete? Can we delete, or make them so?}
+\item \mwh{What is \texttt{this} in PSL?}
 \end{itemize}
 
 \section{Examples}
