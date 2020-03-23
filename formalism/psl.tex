@@ -7,6 +7,7 @@
 \usepackage{mathpartir}
 \usepackage{color}
 \usepackage{xspace}
+\usepackage[override]{cmtt}
 
 %%%%% DEFS %%%%%%
 
@@ -15,8 +16,8 @@
 
 % Types
 \newcommand{\tnat}{\ensuremath{\mathtt{nat}}}
-\newcommand{\tfun}[3]{\ensuremath{{#1} ~^{#3}\!\rightarrow {#2}}}
-\newcommand{\tprod}[2]{\ensuremath{{#1} \times {#2}}}
+\newcommand{\tfun}[3]{\ensuremath{{#1} ~^{#3}\!\!\rightarrow {#2}}}
+\newcommand{\tpair}[2]{\ensuremath{{#1} \times {#2}}}
 %\newcommand{\tsum}[4]{\ensuremath{{#1} +^{#3}_{#4} {#2}}}
 \newcommand{\tsum}[3]{\ensuremath{{#1} +^{#3} {#2}}}
 \newcommand{\trec}[2]{\ensuremath{\mu {#1}.{#2}}}
@@ -30,10 +31,10 @@
 \newcommand{\elet}[3]{\ensuremath{\kw{let}~#1\, =\, #2~\kw{in}\;{#3}}}
 \newcommand{\epar}[2]{\ensuremath{\kw{par}~{#1}~{#2}}}
 \newcommand{\esec}[2]{\ensuremath{\kw{sec}~{#1}~{#2}}}
-\newcommand{\ereveal}[4]{\ensuremath{\kw{reveal}^{#1}_{#4}~{#2}~{#3}}}
-\newcommand{\econd}[3]{\ensuremath{\kw{match}~{#1}~\kw{with}~x.{#2} \diamond {#3}}}
+\newcommand{\ereveal}[3]{\ensuremath{\kw{reveal}_{#1}~{#2}~{#3}}}
+\newcommand{\econd}[3]{\ensuremath{\kw{case}~{#1}~\kw{with}~x.{#2} \diamond {#3}}}
 %\newcommand{\emux}[3]{\ensuremath{\kw{mux}~{#1}~\kw{?}~x.{#2}~\kw{:}~x.{#3}}}
-\newcommand{\emux}[3]{\ensuremath{\kw{mux}~{#1}~\kw{?}~{#2}~\kw{:}~{#3}}}
+\newcommand{\emux}[3]{\ensuremath{\kw{mux}~{#1}~\kw{?}~{#2} \diamond {#3}}}
 \newcommand{\eshare}[4]{\ensuremath{\kw{share}^{#2}_{#1}~{#3}~{#4}}}
 %\newcommand{\esharesum}[4]{\ensuremath{\kw{sharesum}^{#2}_{#1}~{#3}~{#4}}}
 \newcommand{\einj}[2]{\ensuremath{\kw{inj}_{#1}~{#2}}}
@@ -64,8 +65,9 @@
 \newcommand{\config}[2]{\ensuremath{\langle{#1},{#2}\rangle}}
 \newcommand{\locof}[2]{\ensuremath{\mathit{loc}_{#1}~{#2}}}
 \newcommand{\getat}[2]{\ensuremath{\mathit{on}_{#1}~{#2}}}
- \newcommand{\ctxt}{\ensuremath{\mathcal{E}}}
-% \newcommand{\pctxt}{\ensuremath{\mathcal{P}}}
+\newcommand{\ctxt}{\ensuremath{\mathcal{E}}}
+\newcommand{\pctxt}{\ensuremath{\mathcal{P}}}
+\newcommand{\hole}{\ensuremath{\circ}}
 
 \newcommand{\lang}{\textsc{corePSL}\xspace}
 
@@ -88,6 +90,20 @@ computations (MPCs). The \lang core calculus consists of the key features of PSL
 leaving out features that can be encoded in terms of the core. Indeed,
 we expect the PANTHEON intermediate language (PIL) to look closer to
 \lang, once it's fully developed.
+
+\mwh{To do:}
+Highlight the benefits of PSL in a few paras at the start
+\begin{itemize}
+\item rule out protocol errors (sync)
+\item rule out bad use of crypto types
+\item easier to read the specs as single programs (ST mode easier to
+  understand)
+\item ST mode easier to simulate: helps with resource estimation, and
+  reasoning about what will happen for particular implementations
+  (e.g., divByZero)
+\item error handling customizable
+\item nice syntax — not hacking via comments or whatnot. Customizable
+\end{itemize}
 
 \subsection{Related Work}
 
@@ -114,9 +130,9 @@ discussion of how other features available in PSL can be encoded in
 terms of the core syntax. Section~\ref{sec:examples} presents a series
 of example programs written \lang. Section~\ref{sec:STsemantics}
 presents the single-threaded semantics of \lang, while
-Section~\ref{sec:MTsemantics} presents the distributed
+Section~\ref{sec:MTsemantics} presents a sketch of the distributed
 semantics. Section~\ref{sec:typing} presents the \lang type system and
-states our core theoretical result, which is that for type-correct
+states our core theoretical results, which is that for type-correct
 programs, the single-threaded semantics simulates the distributed
 semantics.
 
@@ -129,8 +145,7 @@ semantics.
       \text{Protocol} & \psi & ::= & \cdot & \text{cleartext} \\
                        && \mid & \phi & \text{encryption format} \\
       \text{Types} & \tau & ::=  & \tnat^m_\psi & \text{a base type} \\
-                       && \mid & \tprod{\tau}{\tau} & \text{pairs} \\
-%                       && \mid & \tsum{\tau}{\tau}{m}{\psi} & \text{sums} \\
+                       && \mid & \tpair{\tau}{\tau} & \text{pairs} \\
                        && \mid & \tsum{\tau}{\tau}{m} & \text{sums} \\
                        && \mid & \trec{\alpha}{\tau} & \text{(iso)recursive types} \\
                        && \mid & \alpha & \text{type variables (for recursive types)} \\
@@ -143,8 +158,7 @@ semantics.
                        && \mid & \epair{e_1}{e_2} & \text{pair construction}\\
                        && \mid & \eproj{i}{e} & \text{pair elem, }i \in \{1,2\}\\
                        && \mid & \eshare{\psi}{P}{Q}{e} & \text{$\psi$ shares of {\tnat} at $P$ to $Q$} \\
-                       % && \mid & \esharesum{\psi}{P}{Q}{e} & \text{$\psi$ shares of sum $P$ to $Q$} \\
-                       && \mid & \ereveal{P}{Q}{e}{\psi} & \text{distribute result in $\psi$ at $Q$ to $P$}\\
+                       && \mid & \ereveal{\psi}{Q}{e} & \text{reveal result to $Q$ in format $\psi$}\\
                        && \mid & \ebinop{e_1}{e_2}  & \text{binary operation} \\
                        && \mid & \emux{e}{e_1}{e_2}  & \text{MPC conditional} \\
                        && \mid & \einj{i}{e} & \text{sum elem, }i \in \{1,2\}\\
@@ -246,12 +260,14 @@ these principals which are present; we do not allow more, since other
 principals would not be able to carry out the operation (they don't
 have access to the share).
 
-Finally, an MPC is completed by invoking
-$\ereveal{P}{Q}{e}{\psi}$. This takes a number shared among principals
-$P$ and shares its decrypted (cleartext) result with principals in
-$Q$. Doing so requires that all of $P \cup Q$ are present in the
-current mode so that the shareholders can agree to send the value and
-the result-receivers are there to receive it.
+Finally, an MPC is completed by invoking $\ereveal{\psi}{Q}{e}$. This
+takes a number share (among some set of principals $P$) and converts
+it to type $\psi$, sharing the result among principals $Q$. Doing so
+requires that all of $P \cup Q$ are present in the current mode so
+that the shareholders can agree to send the value and the
+result-receivers are there to receive it. In the degenerate case, the
+protocol for $\psi$ is $\cdot$, which means decrypting the result to
+cleartext. 
 
 \subsection{Derived Expressions}
 \label{sec:derived}
@@ -259,10 +275,22 @@ the result-receivers are there to receive it.
 Some useful constructs can be encoded using \lang features (or via
 obvious language extensions). 
 
+\subsubsection{Message passing}
+
+Having a direct method of sending a message from $a$ to a set of
+principals $b$ and $c$ is easily encoded via $\kw{share}$ and
+$\kw{reveal}$. 
+\begin{verbatim}
+let send_a_to_bc m =
+  par{a,b,c} reveal {b,c} (share{a}{a} m)
+\end{verbatim}
+Here, the value \texttt{m} is shared to itself, and then distributed
+to remote parties.
+
 \subsubsection{Encrypted Sums}
 
 An encrypted sum can be represented as a value of the type
-$\tprod{\tnat^m_\psi}{(\tprod{\tau_1}{\tau_2})}$. Here, the first
+$\tpair{\tnat^m_\psi}{(\tpair{\tau_1}{\tau_2})}$. Here, the first
 element is a boolean that represents whether the ``real'' portion of
 the sum is the left side. We can introduce (encrypt) an existing sum
 by doing the following:
@@ -306,11 +334,13 @@ of a pair, too, with a single construct.
 
 \subsubsection{Wire Bundles and Solo Mode}
 
+\mwh{To do: Can we add isec directly? At the least, change to PSL syntax}
+
 A \emph{wire bundle} conceptually represents a single logical value,
 but each party has its own distinct copy. We represent it as a product
 where each element of the product is only visible to a single
 party. For simplicity, consider the smallest one:
-$\tprod{\tnat^{\{p\}}_\psi}{\tnat^{\{q\}}_\psi}$. One way we could
+$\tpair{\tnat^{\{p\}}_\psi}{\tnat^{\{q\}}_\psi}$. One way we could
 write this as a derived type might be $W~\{p,q\}~\tnat^\alpha_\phi$
 where the interpretation is to substitute each principal in the first
 argument to $W$ (a principal set $P$) for $\alpha$ in the second
@@ -360,7 +390,8 @@ need a map from principal $\alpha$ to index in the pair for $\alpha$'s
 value. For the accessor in the code, you use the map to extra from the
 pair. Maybe use ``self'' and not $\alpha$.
 
-\subsection{Future work: First-class principals and dependent types}
+\subsection{Future work: First-class Principals and Dependent Types}
+\label{sec:deptypes}
 
 One aspect of Wysteria not encoded here is the idea of
 \emph{principals as data}, and more generally, having a first-class
@@ -376,8 +407,8 @@ present, the typing and compatibility judgments rely on knowing the
 precise makeup of a principal set. This would have to change to permit
 unknown principal sets whose contents are governed by set
 constraints. A simple manifestation of this point is that
-$\ereveal{P}{Q}{e}{\psi}$ should be $\ereveal{e_q}{e_q}{e}{\psi}$
-where $e_P$ and $e_q$ are principal sets; likewise for $\kw{share}$
+$\ereveal{\psi}{Q}{e}$ should be $\ereveal{\psi}{e_q}{e}$
+where $e_q$ is a principal set; likewise for $\kw{share}$
 and $\kw{par}$. We would also need dependent types; for example if we
 had a run-time principal set stored in variable $s$, then we need to
 express types like $\tnat^s$, which indicates a type compatible with
@@ -388,6 +419,36 @@ generalized the fixed-size notion of wire bundles given above.
 
 We leave it to future work to flesh out the details. 
 
+\subsection{Differences with PSL}
+
+\mwh{Some of these are problems, not expected differences. Fix}
+The PSL interpreter differs from \lang in several ways. We list a few
+of them here:
+\begin{itemize}
+\item PSL has effect annotations on function arrows indicating when
+  something is input or revealed; \lang does not have these. For
+  example, look at \texttt{sumprod.psl} for effect annotation
+  examples.
+\item PSL doesn't annotate which principals should be present on the
+  function type. \texttt{atq.psl} for an example of the lack
+  of annotation, e.g., on the \texttt{length} function, which involves
+  principals $A$ and $B$. 
+\item PSL has global principal declarations; \lang does not, and
+  rather assumes an existing pool of principal names. PSL programs can
+  be viewed as being defined in a global $\kw{par}$ block involving
+  the declared principals; \lang programs require making the
+  $\kw{par}$ block explicit.
+\item PSL has principal sets, e.g., \texttt{principal} $A[2]$ declares
+  a set of principals $A$ of size 2. See \texttt{bgv.psl}. However, I
+  don't understand these are being used as sets; they seem to be just
+  referenced as single principals.
+\item PSL seems to have universal / polymorphic types.
+\item We have one $\kw{reveal}$ construct for revealing final results
+  in plaintext and converting between share types; PSL has two names
+  for this.
+\item What is \texttt{this} in PSL?
+\end{itemize}
+
 \section{Examples}
 \label{sec:examples}
 
@@ -396,7 +457,7 @@ We leave it to future work to flesh out the details.
 \newcommand{\twoprins}{\ensuremath{\{a,b\}}}
 
 A list of shares between $a$ and $b$ would have type
-$\trec{\alpha}{\tsum{(\tprod{\tnat^{\twoprins}_\psi}{\alpha})}{\tnat^{\twoprins}}{\twoprins}}$. In
+$\trec{\alpha}{\tsum{(\tpair{\tnat^{\twoprins}_\psi}{\alpha})}{\tnat^{\twoprins}}{\twoprins}}$. In
 short, a list of shares is either a pair, where the first element is a
 \twoprins-share and the second is a list, or it's a normal integer
 (i.e., the NULL terminator). Notice that neither the recursive type
@@ -458,7 +519,7 @@ As another thought experiment, suppose we have a list with values from
 both $a$ and $b$, but unencrypted?
 
 A list of shares between $a$ and $b$ would have type
-$\trec{\alpha}{\tsum{(\tprod{(\tprod{\tnat^{\{a\}}}{\tnat^{\{b\}}})}{\alpha})}{\tnat^{\twoprins}}{\twoprins}}$.
+$\trec{\alpha}{\tsum{(\tpair{(\tpair{\tnat^{\{a\}}}{\tnat^{\{b\}}})}{\alpha})}{\tnat^{\twoprins}}{\twoprins}}$.
 This list is like the earlier one, but instead of shared numbers as
 its contents, it has a pair of normal numbers, with the left as
 visible only to $a$ and the right visible only to $b$.
@@ -479,18 +540,38 @@ This example makes evident that each party needs to maintain the
 complete structure of the list, but only has actual values for its own
 parts of it; the other party's values will just be placeholders.
 
-\subsection{Other examples}
+\subsection{Visibility}
+\label{sec:vis}
 
-\mwh{More}
+Here are several examples illustrating how multi-party value
+visibility is controlled.
 
+\paragraph{Example 1}
 \begin{verbatim}
-(fun x -> { par : C } x) 
-  ({ par : A, B, C } reveal{ C } (share{ yao : A, B } 0))
+par{a,b}
+  let x = par{b} (0,0) in
+  par{a} let y = #1 x in y
 \end{verbatim}
-This is allowed by the type system. The $\kw{reveal}$ produces a value
-at $C$, which may be ``passed through'' the par block at \verb+{A, B,C}+. 
-This is then passed in and used in the function.
+Running this example will produce $\vcrash$---the bogus value, see
+next section---but since the value is never accessed by the program,
+this is a fine result. The pair bound in \texttt{x} is only visible to
+$b$, but is accessed in a block run only by $a$. When $x$ is looked up
+in that latter block, $a$ will have no specific value for it but the
+\texttt{\# 1} operation will be allowed to proceed, also producing
+$\vcrash$, as pairs are not located.
 
+\paragraph{Example 2}
+\begin{verbatim}
+(fun x -> par{c} x) 
+  (par{a,b,c} reveal{a,b}{c} (share{a,b}{a} 0))
+\end{verbatim}
+This program has $a$ share $0$ with itself and $b$, and then reveal
+the results of that share to $c$. These operationsn are 
+This is allowed by the type system. The $\kw{reveal}$ directs $a$ and
+$b$ to reveal their result to $c$. The result is returned from the
+$\kw{par}$ block and successful accessed by $c$ in the called function.
+
+\paragraph{Example 3}
 \begin{verbatim}
 par(A,B) 
   let x = par(A) 0 in
@@ -498,16 +579,37 @@ par(A,B)
   par(A) 
     let z = (x,y) in #1 z
 \end{verbatim}
-Should work.
+This program works because even though $y$ is not available at $A$
+where the pair is constructed, it is never accessed.
 
+\paragraph{Example 4}
 \begin{verbatim}
-(fun x -> { par : B } ((), x)) ({ par : A } 0)
+par{a,b}
+  let x0 = par{b} 0 in
+  let x1 = (fun x -> par{a} (x,1)) x0 in
+  x0
 \end{verbatim}
-The above is allowed. And equivalently, so is this (which in a
-previous incarnation would have been rejected):
+Running this program produces the value $0$ located at $b$. The
+variable \texttt{x1} will be bound to $\epair{\vcrash}{1}$, since the
+first element is not accessible at $a$, but this is not the value that
+is ultimately returned.
+
+\paragraph{Example 5}
 \begin{verbatim}
-{ par : B } ((), ({ par : A } 0))
+let x = par{a,c} 0 in
+let f = par{a,b} fun y -> (x,y) in
+par{b} f 1
 \end{verbatim}
+This will create a variable located at $a$ and $c$; then it creates a
+closure at $a$ and $b$. This means that the call to \texttt{f} with
+only $b$ present, on the last line, will return a pair $\epair{0}{1}$
+where $0$ is located at $\emptyset$ (i.e., it is inaccessible to
+everyone) and $1$ is located at $b$. Note that the last line
+\texttt{par\{b\} f 1} would fail if changed to \texttt{par\{c\} f
+  1}. This is because the closure $f$ is not located at $c$ so it
+can't be called from there. If the last line was \texttt{par\{a\} f 1}
+then $\epair{0}{1}$ would be returned again, but this time $0$ and $1$
+would both be located at $a$.
 
 \section{Semantics (Single Threaded)}
 \label{sec:STsemantics}
@@ -519,35 +621,26 @@ previous incarnation would have been rejected):
                              && \mid & \einj{i}{v} & \text{sum elem, }i \in \{1,2\}\\
                              && \mid & \vclos{\env}{e}  & \text{closure} \\
                              && \mid & \vshare{Q}{\psi}{e} & \text{$\psi$-$Q$ share of evaluating $e$} \\
-      \text{Value} & v  \in \mathbf{Val} & ::=  & u & \text{locatable value}\\
-                       && \mid & \epair{v_1}{v_2} & \text{pair value}\\
+      \text{Value} & v  \in \mathbf{Val} & ::=  & \epair{v_1}{v_2} & \text{pair value}\\
                        && \mid & \efold{\trec{\alpha}{\tau}}{v} & \text{rectype value}\\
                    && \mid & \vloc{u}{P} & \text{located value}\\
                    && \mid & \vcrash & \text{bogus ``crash" value}\\
-      % \text{Eval Context} & \ctxt & ::= & \multicolumn{2}{l}{\bullet \mid\epair{\ctxt}{e} \mid
-      %                        \epair{v}{\ctxt} \mid \eproj{i}{\ctxt}}  \\
-      %          && \mid & \multicolumn{2}{l}{\eshare{\psi}{P}{Q}{\ctxt} \mid
-      %                        \ereveal{P}{Q}{\ctxt}{\psi} \mid \ebinop{\ctxt}{e_2} \mid \ebinop{v}{\ctxt} }  \\
-      %          && \mid & \multicolumn{2}{l}{\emux{\ctxt}{e_1}{e_2}
-      %                    \mid \emux{v}{\ctxt}{e_2} \mid \emux{v}{v_1}{\ctxt}  }  \\
-      %          && \mid & \multicolumn{2}{l}{\einj{i}{\ctxt} \mid \econd{\ctxt}{e_1}{e_2} }  \\
-      %          && \mid & \multicolumn{2}{l}{\efold{\trec{\alpha}{\tau}}{\ctxt} \mid \eunfold{\ctxt}}  \\
-      %          && \mid & \multicolumn{2}{l}{\eapp{\ctxt}{e} \mid
-      %                    \eapp{v}{\ctxt} \mid \elet{x}{\ctxt}{e_2} }\\
     \end{array}
   \]
 
 \[\begin{array}{l@{~~=~~}l}
     \locof{P}{n} & \vloc{n}{P} \\
     \locof{P}{\einj{i}{v}} & \vloc{(\locof{P}{v})}{P} \\
-    \locof{P}{\vclos{\env}{\elam{x}{e}}} & \vloc{(\vclos{(\locof{P}{\env})}{\elam{x}{e}})}{P}\\
-    \locof{P}{\vshare{Q}{\psi}{e}} & \vloc{(\vshare{Q}{\psi}{e})}{P} \\
+    \locof{P}{\vclos{\env}{\elam{x}{e}}} & \vloc{\vclos{\env}{\elam{x}{e}}}{P}\\
+    \locof{P}{\vshare{Q}{\psi}{e}} & \vloc{\vshare{Q}{\psi}{e}}{P}
+    \\ \\
     \locof{P}{\epair{v_1}{v_2}} & \epair{\locof{P}{v_1}}{\locof{P}{v_2}}\\
     \locof{P}{ \efold{\trec{\alpha}{\tau}}{v}} &  \efold{\trec{\alpha}{\tau}}{\locof{P}{v}}\\
-    \locof{P}{\vloc{u}{Q}} & \vloc{(\locof{P}{u})}{R} \qquad\text{where }R = P \cap Q\\
-    \locof{P}{\vcrash} & \vcrash\\
-    \locof{P}{\sigma} & \{ x \mapsto v' \mid \sigma(x) = v \land \locof{P}{v} = v' \}\\
-    \multicolumn{2}{c}{}\\
+    \locof{P}{\vloc{u}{Q}} & \locof{R}{u} \qquad\text{where }R = P \cap Q\\
+    \locof{P}{\vcrash} & \vcrash
+    \\ \\
+    % \locof{P}{\sigma} & \{ x \mapsto v' \mid \sigma(x) = v \land \locof{P}{v} = v' \}\\
+    % \multicolumn{2}{c}{}\\
     \getat{P}{(\vloc{u}{Q})} & u \qquad \text{where }Q \vdash P\\
     \getat{P}{v} & v \qquad \text{for all other $v$ syntactic forms}\\
   \end{array}
@@ -563,13 +656,13 @@ $$
     {
     }
     {
-    \eval{\env}{m}{n}{n}
+    \eval{\env}{m}{n}{\vloc{n}{m}}
     }
     \qquad
 
     \inferrule*[lab=E-Var]
     {
-    \env(x) = v
+    \env(x) = v_0\\\\ \locof{m}{v_0} = v
     }
     {
     \eval{\env}{m}{x}{v}
@@ -580,7 +673,7 @@ $$
   m\text{ is a singleton}
     }
     {
-    \eval{\env}{m}{\eread}{n}
+    \eval{\env}{m}{\eread}{\vloc{n}{m}}
     }
     \qquad
 
@@ -591,46 +684,51 @@ $$
   \getat{m}{v} = n
     }
     {
-    \eval{\env}{m}{\ewrite{e}}{n}
+    \eval{\env}{m}{\ewrite{e}}{\vloc{n}{m}}
     }
     \\ \\
 
-      \inferrule*[lab=E-Par]
+      \inferrule*[lab=E-ParEmp]
     {
-  Q = m \cap P\\\\
-  Q = \emptyset \Rightarrow v = \vcrash\\\\
-    Q \not= \emptyset \Rightarrow
-    \env' = \locof{P}{\env} \land
-    \eval{\env'}{{Q}}{e}{v}
+  m \cap P = \emptyset
+    }
+    {
+    \eval{\env}{m}{\epar{P}{e}}{\vcrash}
+    } \qquad
+  
+      \inferrule*[lab=E-ParStep]
+    {
+  Q = m \cap P\\
+  Q \not= \emptyset \\\\
+    \eval{\env}{{Q}}{e}{v}
     }
     {
     \eval{\env}{m}{\epar{P}{e}}{v}
     } \qquad
-  
-    \inferrule*[lab=E-Pair]
+
+  \inferrule*[lab=E-Pair]
     {
     \eval{\env}{m}{e_1}{v_1}\\\\
     \eval{\env}{m}{e_2}{v_2}
     }
     {
     \eval{\env}{m}{\epair{e_1}{e_2}}{\epair{v_1}{v_2}}
-    }\qquad
+    }\\ \\
     
     \inferrule*[lab=E-Access]
     {
-    \eval{\env}{m}{e}{v}\\\\
-    \getat{m}{v} = \epair{v_1}{v_2}
+    \eval{\env}{m}{e}{\epair{v_1}{v_2}}
     }
     {
     \eval{\env}{m}{\eproj{i}{e}}{v_i}
-    }\\\\
+    }\qquad
 
     \inferrule*[lab=E-inj]
     {
     \eval{\env}{m}{e}{v}
     }
     {
-    \eval{\env}{m}{\einj{i}{e}}{\einj{i}{v}}
+    \eval{\env}{m}{\einj{i}{e}}{\vloc{(\einj{i}{v})}{m}}
     } \qquad
     
     \inferrule*[lab=E-Match]
@@ -653,8 +751,7 @@ $$
 
     \inferrule*[lab=E-Unfold]
     {
-    \eval{\env}{m}{e}{v_0}\\\\
-    \getat{m}{v_0} = \efold{\trec{\alpha}{\tau}}{v}
+    \eval{\env}{m}{e}{\efold{\trec{\alpha}{\tau}}{v}}
     }
     {
     \eval{\env}{m}{\eunfold{e}}{v}
@@ -673,28 +770,28 @@ $$
     
     \inferrule*[lab=E-BinopNat]
     {
-  \eval{\env}{m}{e_1}{v_1}\\
+  \eval{\env}{m}{e_1}{v_1}\\\\
+    \eval{\env}{m}{e_2}{v_2}\\\\
   \getat{m}{v_1} = n_1\\\\
-    \eval{\env}{m}{e_2}{v_2}\\
   \getat{m}{v_2} = n_2\\\\
-  n = n_1 \oplus n_2\\
+  n = n_1 \oplus n_2
     }
     {
-    \eval{\env}{m}{\ebinop{e_1}{e_2}}{n}
+    \eval{\env}{m}{\ebinop{e_1}{e_2}}{\vloc{n}{m}}
     }\qquad
 
       
     \inferrule*[lab=E-BinopShare]
     {
-  \eval{\env}{m}{e_1}{v_1}\\
+  \eval{\env}{m}{e_1}{v_1}\\\\
+    \eval{\env}{m}{e_2}{v_2}\\\\
   \getat{m}{v_1} = \vshare{m}{\psi}{e'_1} \\\\
-    \eval{\env}{m}{e_2}{v_2}\\
   \getat{m}{v_2} = \vshare{m}{\psi}{e'_2} \\\\
-  v = \vshare{m}{\psi}{\ebinop{e'_1}{e'_2}}
+  v = \vloc{\vshare{m}{\psi}{\ebinop{e'_1}{e'_2}}}{m}
     }
     {
     \eval{\env}{m}{\ebinop{e_1}{e_2}}{v}
-    }\\\\
+    }\qquad
 
     \inferrule*[lab=E-Mux]
     {
@@ -704,13 +801,13 @@ $$
   \getat{m}{v_1} = \vshare{m}{\psi}{e'_1} \\\\
     \eval{\env}{m}{e_2}{v_2}\\
   \getat{m}{v_2} = \vshare{m}{\psi}{e'_2} \\\\
-  v = \vshare{m}{\psi}{\emux{e'}{e_1'}{e_2'}}
+  v = \vloc{\vshare{m}{\psi}{\emux{e'}{e_1'}{e_2'}}}{m}
     }
     {
     \eval{\env}{m}{\emux{e}{e_1}{e_2}}{v}
-    }\qquad
+    }\\ \\
 
-    \inferrule*[lab=E-Reveal]
+    \inferrule*[lab=E-RevealPlain]
   {
     m \vdash P\\ m \vdash Q\\\\
     \eval{\env}{m}{e}{v_0}\\
@@ -719,21 +816,31 @@ $$
     n = \getat{P}{v} 
     } 
     {
-    \eval{\env}{m}{\ereveal{P}{Q}{e}{\psi}}{\vloc{n}{Q}}
+    \eval{\env}{m}{\ereveal{}{Q}{e}}{\vloc{n}{Q}}
+  }\qquad
+
+      \inferrule*[lab=E-Conv]
+  {
+    m \vdash P\\ m \vdash Q\\\\
+    \eval{\env}{m}{e}{v_0}\\
+    \getat{P}{v_0} = \vshare{P}{\psi}{e_0}
+    } 
+    {
+    \eval{\env}{m}{\ereveal{\phi}{Q}{e}}{\vloc{\vshare{Q}{\phi}{e_0}}{Q}}
     }\\\\
     
    \inferrule*[lab=E-Abs]
     {
     }
     {
-    \eval{\env}{m}{\elam{x}{e}}{\vclos{\env}{\elam{x}{e}}}
+    \eval{\env}{m}{\elam{x}{e}}{\vloc{\vclos{\env}{\elam{x}{e}}}{m}}
     }\qquad
    
     \inferrule*[lab=E-Fix]
     {
     }
     {
-    \eval{\env}{m}{\efix{f}{x}{e}}{\vclos{\env}{\efix{f}{x}{e}}}
+    \eval{\env}{m}{\efix{f}{x}{e}}{\vloc{\vclos{\env}{\efix{f}{x}{e}}}{m}}
     }\\\\
 
     \inferrule*[lab=E-App]
@@ -771,8 +878,7 @@ $$
 
   \inferrule*[lab=E-CrashOK]
     {
-    \eval{\env}{m}{e}{v}\\
-  \getat{m}{v} = \vcrash
+    \eval{\env}{m}{e}{\vcrash}
     }
     {
     \eval{\env}{m}{\eproj{i}{e}}{\vcrash}\\\\
@@ -818,12 +924,13 @@ are not present at the host. The $\vcrash$ value does not appear in
 source programs and arises when computing a $\epar{Q}{e}$ such that
 $Q$ is empty; we see this in the next subsection.
 
-In the same figure are two functions over values: $\locof{P}{v}$ and
-$\getat{v}{P}$. The first is a transformation of $v$ that
-``relocates'' it to $P$. For locatable, but not located, values $u$,
+In the same figure are two functions over values: $\locof{P}{...}$ and
+$\getat{P}{v}$. The first is a transformation that relocates a value
+(or its locatable components) to $P$. For locatable, but not located, values $u$,
 we annotate them with $P$. For compound forms we recurse inside them
-(sums, pairs, closure environments). Locating an environment locates
-its mapped-to values pointwise.  For located values $\vloc{u}{Q}$ we
+(sums, pairs). We do not need to locate closure environments; variable
+lookup from these environments (and control of the location of the
+closure itself) does the job.  For located values $\vloc{u}{Q}$ we
 relocate $u$'s contents and update its location to be $P$ intersected
 with $Q$. Note that this intersection could be the $\emptyset$ which
 indicates an inaccessible value.
@@ -839,43 +946,48 @@ principals in the requested mode $P$.
 
 \subsection{Operational rules}
 
-Now we turn to the rules. Many rules are essentially standard, in
-particular \rulelab{E-Nat}, \rulelab{E-Pair}, \rulelab{E-Inj},
-\rulelab{E-Var}, \rulelab{E-Let}, \rulelab{E-Abs}, and \rulelab{E-Fix}. Many others are
-\emph{almost} standard, including \rulelab{E-Write}, \rulelab{E-Access},
-\rulelab{E-Match}, \rulelab{E-Unfold}, \rulelab{E-BinopNat}, 
-\rulelab{E-App}, and \rulelab{E-FixApp}. These differ from their
-standard counterparts in that 
-they refer to $\getat{m}{v}$ in the premise---as elimination forms,
-they have to have to strip off any location information to use the
-value. This operation will fail if the value is not available to
-(located at) \emph{all} principals in the required mode $m$; the type system
-aims to rule out this sort of problem. \rulelab{E-Read} and
-\rulelab{E-Write} are unsurprising; notably, they only work in a
-singleton context---we need to know 
-which principal is reading from/writing to their terminal. 
+Now we turn to the rules. An invariant of the semantics is that
+\emph{If $\eval{\env}{m}{e}{v}$ then $v$ is compatible with $m$}. By
+"compatible with $m$," we mean $v$ is located at principal set(s)
+$P \subseteq m$. This means $v$ could be located at $\emptyset$,
+making it inaccessible to code subsequently trying to use it. Note
+that located values $u$ need to be explicitly annotated. For example,
+\rulelab{E-Nat} could not just evaluate to $n$ because the lack of an
+explicit location basically means \emph{every} location, which is not
+compatible with a specific $m$. Therefore, it evaluates to
+$\vloc{n}{m}$ instead. Rules \rulelab{E-Abs}, and \rulelab{E-Fix} are
+similarly standard except that they explicitly locate their
+result. \rulelab{E-Var} retrieves a variable's value from the
+environment but narrows its location to be compatible with the current
+mode $m$. (Indeed, we don't need to explicitly locate the closure's
+environment $\env$ in \rulelab{E-Abs} and \rulelab{E-Fix} because if
+we ever use variables from the $\env$ later, their accessibility will
+be trimmed to the current mode by \rulelab{E-Var}.) \rulelab{E-Read}
+and \rulelab{E-Write} only work in a singleton context---we need to
+know which principal is reading from/writing to their terminal, and we
+annotate the result with that principal.
 
-A key invariant of the semantics is the following: \emph{Assuming the
-  current environment $\sigma$ is compatible with mode
-  $m$ and $\eval{\env}{m}{e}{v}$ then $v$ is also compatible with $m$}. By
-"compatible with $m$," recall that we mean that values are located at
-principal set(s) $P \subseteq m$. The rules preserve the assumption of
-environment compatibility (in the premises) and ensure compatibility
-in the conclusion.
+Rules \rulelab{E-Pair}, \rulelab{E-Access}, \rulelab{E-Fold},
+\rulelab{E-Unfold}, and \rulelab{E-Let} are completely standard. They
+do not operate on located values, so there is nothing special to do.
+Rules \rulelab{E-Inj}, \rulelab{E-Match}, \rulelab{E-BinopNat},
+\rulelab{E-App}, and \rulelab{E-FixApp} differ from their standard
+counterparts in that they refer to $\getat{m}{v}$ in the premise---as
+elimination forms, they have to have to strip off any location
+information to use the value. Doing so will fail if the value is
+not available to (located at) \emph{all} principals in the required
+mode $m$; the type system aims to rule out this sort of problem. These
+rules locate the final result at $m$.
 
-Now consider \rulelab{E-Par}, which evaluates $\epar{P}{e}$. It
-evaluates $e$ in mode $Q = m \cap P$ to produce $v$; i.e., only those
-principals in $P$ \emph{also} present $m$ will run $e$. If $Q$ is
-empty, then no evaluation takes place, and $\vcrash$ is returned.
-(The alternative of running $e$ with $\emptyset$ as the mode is not
-equivalent; see discussion below.)  Otherwise, evaluation takes place
-in environment $\sigma'$, which is the current environment (already
-located at $P$ by assumption), which is constructed by intersecting
-mapped-to values' locations with $P$. Assuming $\sigma$ is compatible
-with $m$ already, it just needs to also be located at $P$, and the
-result will be compatible with $Q$. On the other hand the result $v$
-need not be explicitly located at $Q$ before it can be returned, per
-our invariant.
+Now consider \rulelab{E-ParEmp} and \rulelab{E-ParStep}, which
+evaluate $\epar{P}{e}$. A $\kw{par}$ evaluates $e$ in mode
+$Q = m \cap P$ to produce $v$; i.e., only those principals in $P$
+\emph{also} present in $m$ will run $e$. Per \rulelab{E-ParEmp}, if
+$Q$ is empty, then no evaluation takes place, and $\vcrash$ is
+returned. (The alternative of running $e$ with $\emptyset$ as the
+mode is not equivalent; see discussion below.)  Otherwise, evaluation
+takes place in mode $Q$ and its result $v$ is returned (which will be
+compatible with $m$ because it's compatible with $Q$, a subset).
 
 Let's consider the remaining rules, which focus on multiparty
 computation. \rulelab{E-Share} models principal $p \in P$
@@ -885,7 +997,8 @@ just $P$ is doing the sharing; hence we check that $P$ is present in
 $m$, and $v$ is located
 on $P$. We then encapsulate the extracted number $n$ in a share value,
 split between principals at $Q$, which must be present in $m$
-(ensuring our invariant on the location of final values).
+(ensuring our invariant on the location of final values). We locate
+this result at $Q$.
 
 \rulelab{E-BinopShare} permits multiparty computation on shares. It
 makes sure both arguments are available to exactly the executing hosts
@@ -894,10 +1007,12 @@ itself. \rulelab{E-Mux} produces a multiplexor on shares. It evaluates
 its arguments $e$, $e_1$, and $e_2$ to shares, and then constructs a
 circuit involving all three.
 
-\rulelab{E-Reveal} eliminates shares by ``forcing'' the suspended
-computation in the given share. We require that the principals $P$ who
-each have a share are present in $m$, and likewise the principals in
-$Q$ to whom the final result is sent.
+\rulelab{E-RevealPlain} eliminates shares by ``forcing'' the suspended
+computation in the given share, revealing it to cleartext. We require
+that the principals $P$ who each have a share are present in $m$, and
+likewise the principals in $Q$ to whom the final result is
+sent. \rulelab{E-Conv} converts a share from type $\psi$ among
+principals $P$ to be of type $\phi$ among principals $Q$ instead.
 
 Lastly, \rulelab{E-CrashOK} is an elimination rule for $\vcrash$
 values. This rule permits converting non-located containers---pairs
@@ -908,7 +1023,7 @@ as one of these will be stuck.
 
 \paragraph{Discussion}
 
-Rule~\rulelab{E-Par} indicates that if the ``present'' set of
+Rule~\rulelab{E-ParEmp} indicates that if the ``present'' set of
 principals $Q$ is $\emptyset$ then $e$ should be skipped, and an
 (inaccessible) value returned instead. The alternative is to ``run''
 $e$ despite having no principals present.
@@ -955,40 +1070,40 @@ that are contrived.
 
 \subsection{Small-step Semantics}
 
-\begin{figure}
-  \[\begin{array}{rlcl}
-      \text{Eval Context} & \ctxt & ::= & \bullet \mid \ewrite{\ctxt} \mid
-                                          \epair{\ctxt}{e} \mid
-                             \epair{v}{\ctxt} \mid \eproj{i}{\ctxt}  \\
-               && \mid & \eshare{\psi}{P}{Q}{\ctxt} \mid
-                             \ereveal{P}{Q}{\ctxt}{\psi} \mid \ebinop{\ctxt}{e_2} \mid \ebinop{v}{\ctxt}   \\
-               && \mid & \emux{\ctxt}{e_1}{e_2}
-                         \mid \emux{v}{\ctxt}{e_2} \mid \emux{v}{v_1}{\ctxt}    \\
-               && \mid & \einj{i}{\ctxt} \mid \econd{\ctxt}{e_1}{e_2}   \\
-               && \mid & \efold{\trec{\alpha}{\tau}}{\ctxt} \mid \eunfold{\ctxt}  \\
-                          && \mid & \eapp{\ctxt}{e} \mid
-                         \eapp{v}{\ctxt} \mid \elet{x}{\ctxt}{e_2} \\
-    \end{array}
-  \]
-  \caption{Small-step semantics: Evaluation contexts}
-  \label{fig:ctxts}
-\end{figure}
-
 In preparation for the multi-threaded semantics, we need a small-step
 version of the big-step semantics presented above. Judgment
 $\seval{\env}{e}{m}{\env'}{e'}$ states that in mode $m$ and
 environment $\env$, expression $e$ steps to expression $e'$ and
-environment $\env'$. We define \emph{evaluation contexts} $\ctxt$ in
-Figure~\ref{fig:ctxts}. The rules are defined in
-Figure~\ref{fig:small-sem}. \mwh{TODO}
+environment $\env'$. The rules are defined in
+Figure~\ref{fig:small-sem}. 
 
+We define \emph{evaluation contexts} $\ctxt$ at the bottom of the
+figure. Evaluation contexts define left-to-right, 
+call-by-value evaluation in the standard manner per the rule
+\rulelab{S-Ctxt}. We do not include context $\epar{P}{\ctxt}$ in the
+definition of contexts; i.e., \rulelab{S-Ctxt} does not cover
+evaluation within par blocks. Instead, this is handled by
+\rulelab{S-ParStep}, which is essentially a variation of
+\rulelab{S-Ctxt} but it adjusts the mode when evaluating $e$ according
+to $P$. Most of the rest of the rules are just the small-step versions
+of the previous big-step rules. One interesting rule is
+\rulelab{S-Reveal}---here we evaluate the contents of the share $e_0$
+in one fell swoop, using the big-step semantics.
 
 \begin{figure}
 $$
 \begin{array}{c}
-    \inferrule*[lab=S-Var]
+ 
+    \inferrule*[lab=S-Nat]
     {
-    \env(x) = v
+    }
+    {
+    \seval{\env}{m}{n}{\env}{\vloc{n}{m}}
+  }\qquad
+
+  \inferrule*[lab=S-Var]
+    {
+    \env(x) = v_0\\\\ \locof{m}{v_0} = v
     }
     {
     \seval{\env}{m}{x}{\env}{v}
@@ -999,7 +1114,7 @@ $$
   m\text{ is a singleton}
     }
     {
-    \seval{\env}{m}{\eread}{\env}{n}
+    \seval{\env}{m}{\eread}{\env}{\vloc{n}{m}}
     }
     \qquad
 
@@ -1009,30 +1124,58 @@ $$
   \getat{m}{v} = n
     }
     {
-    \seval{\env}{m}{\ewrite{v}}{\env}{n}
+    \seval{\env}{m}{\ewrite{v}}{\env}{\vloc{n}{m}}
     }
     \\ \\
 
- %      \inferrule*[lab=E-Par]
- %    {
- %  Q = m \cap P\\\\
- %  Q = \emptyset \Rightarrow v = \vcrash\\\\
- %    Q \not= \emptyset \Rightarrow
- %    \env' = \locof{P}{\env} \land
- %    \eval{\env'}{{Q}}{e}{v}
- %    }
- %    {
- %    \eval{\env}{m}{\epar{P}{e}}{v}
- %    } \qquad
+  \inferrule*[lab=S-ParEmp]
+  {
+  m \cap P = \emptyset\\
+  }
+  {
+  \seval{\env}{m}{\epar{P}{e}}{\env}{\vcrash}
+  } \qquad
   
-    \inferrule*[lab=S-Access]
+  \inferrule*[lab=S-ParStep]
+  {
+  m \cap P = Q\\
+  Q \not= \emptyset\\
+  \seval{\env}{Q}{e}{\env'}{e'}
+  }
+  {
+  \seval{\env}{m}{\epar{P}{e}}{\env'}{\epar{P}{e'}}
+  } \qquad
+
+
+  \inferrule*[lab=S-ParVal]
+  {
+  m \cap P \not= \emptyset\\
+  }
+  {
+  \seval{\env}{m}{\epar{P}{v}}{\env}{v}
+  } \\ \\
+
+      \inferrule*[lab=S-Let]
     {
-    \getat{m}{v} = \epair{v_1}{v_2}
     }
     {
-    \seval{\env}{m}{\eproj{i}{v}}{\env}{v_i}
-    }\qquad
+    \seval{\env}{m}{\elet{x}{v_1}{e_2}}{\env[x\mapsto v_1]}{e_2}
+  } \qquad
 
+  \inferrule*[lab=S-Access]
+    {
+    }
+    {
+    \seval{\env}{m}{\eproj{i}{\epair{v_1}{v_2}}}{\env}{v_i}
+    }\\ \\
+
+  \inferrule*[lab=S-Inj]
+  {
+  }
+  {
+  \seval{\env}{m}{\einj{i}{v}}{\env}{\vloc{(\einj{i}{v})}{m}}
+  }\qquad
+  
     \inferrule*[lab=S-Match]
     {
     \getat{m}{v} = \einj{i}{v_i}
@@ -1043,15 +1186,14 @@ $$
 
     \inferrule*[lab=S-Unfold]
     {
-    \getat{m}{v_0} = \efold{\trec{\alpha}{\tau}}{v}
     }
     {
-    \seval{\env}{m}{\eunfold{v_0}}{\env}{v}
+    \seval{\env}{m}{\eunfold{(\efold{\trec{\alpha}{\tau}}{v})}}{\env}{v}
     } \qquad
 
     \inferrule*[lab=S-Share]
     {
-    m \vdash P\\ m \vdash Q\\\\
+    m \vdash P\\ m \vdash Q\\
     P\text{ is a singleton}  \\
     \getat{P}{v} = n  
     }
@@ -1062,50 +1204,66 @@ $$
     \inferrule*[lab=S-BinopNat]
     {
   \getat{m}{v_1} = n_1\\
-  \getat{m}{v_2} = n_2\\\\
+  \getat{m}{v_2} = n_2\\
   n = n_1 \oplus n_2\\
     }
     {
-    \seval{\env}{m}{\ebinop{v_1}{v_2}}{\env}{n}
+    \seval{\env}{m}{\ebinop{v_1}{v_2}}{\env}{\vloc{n}{m}}
     }\qquad
     
     \inferrule*[lab=S-BinopShare]
     {
   \getat{m}{v_1} = \vshare{m}{\psi}{e_1} \\
-  \getat{m}{v_2} = \vshare{m}{\psi}{e_2} \\\\
-  v = \vshare{m}{\psi}{\ebinop{e_1}{e_2}}
+  \getat{m}{v_2} = \vshare{m}{\psi}{e_2} \\
     }
     {
-    \seval{\env}{m}{\ebinop{v_1}{v_2}}{\env}{v}
+    \seval{\env}{m}{\ebinop{v_1}{v_2}}{\env}{\vloc{\vshare{m}{\psi}{\ebinop{e_1}{e_2}}}{m}}
     }\\\\
 
     \inferrule*[lab=S-Mux]
     {
   \getat{m}{v_0} = \vshare{m}{\psi}{e'} \\\\
-  \getat{m}{v_1} = \vshare{m}{\psi}{e'_1} \\
+  \getat{m}{v_1} = \vshare{m}{\psi}{e'_1} \\\\
   \getat{m}{v_2} = \vshare{m}{\psi}{e'_2} \\\\
-  v = \vshare{m}{\psi}{\emux{e'}{e_1'}{e_2'}}
+  v = \vloc{\vshare{m}{\psi}{\emux{e'}{e_1'}{e_2'}}}{m}
     }
     {
     \seval{\env}{m}{\emux{v_0}{v_1}{v_2}}{\env}{v}
     }\qquad
 
-    \inferrule*[lab=S-Reveal]
+    \inferrule*[lab=S-RevealPlain]
   {
     m \vdash P\\ m \vdash Q\\\\
     \getat{P}{v_0} = \vshare{P}{\psi}{e_0}\\\\
-    \eval{\env}{m}{e_0}{v}\\
+    \eval{\env}{m}{e_0}{v}\\\\
     n = \getat{P}{v} 
     } 
     {
-    \seval{\env}{m}{\ereveal{P}{Q}{v_0}{\psi}}{\env}{\vloc{n}{Q}}
-    }\\\\
-    
+    \seval{\env}{m}{\ereveal{}{Q}{v_0}}{\env}{\vloc{n}{Q}}
+  }\qquad
+
+    \inferrule*[lab=S-Conv]
+  {
+    m \vdash P\\ m \vdash Q\\\\
+  \getat{P}{v_0} = \vshare{P}{\psi}{e_0}\\\\
+  v = \vloc{\vshare{Q}{\phi}{e_0}}{Q}
+    } 
+    {
+    \seval{\env}{m}{\ereveal{\phi}{Q}{v_0}}{\env}{v}
+  }\\ \\  
+
+     \inferrule*[lab=S-Abs]
+    {
+    }
+    {
+    \seval{\env}{m}{\elam{x}{e}}{\env}{\vloc{\vclos{\env}{\elam{x}{e}}}{m}}
+    }\qquad
+
     \inferrule*[lab=S-Fix]
     {
     }
     {
-    \seval{\env}{m}{\efix{f}{x}{e}}{\env}{\vclos{\env}{\efix{f}{x}{e}}}
+    \seval{\env}{m}{\efix{f}{x}{e}}{\env}{\vloc{\vclos{\env}{\efix{f}{x}{e}}}{m}}
     }\\\\
 
     \inferrule*[lab=S-App]
@@ -1125,24 +1283,39 @@ $$
     \seval{\env}{m}{\eapp{v_0}{v_1}}{\env'[f \mapsto v'][x \mapsto v_1]}{e'}
     }\\ \\
 
-    \inferrule*[lab=S-Let]
+    \inferrule*[lab=S-CrashOK]
     {
     }
     {
-    \seval{\env}{m}{\elet{x}{v_1}{e_2}}{\env[x\mapsto v_1]}{e_2}
-  } \qquad
+    \seval{\env}{m}{\eproj{i}{\vcrash}}{\env}{\vcrash}\\\\
+    \seval{\env}{m}{\eunfold{\vcrash}}{\env}{\vcrash}
+    }\qquad
 
-  \inferrule*[lab=S-CrashOK]
-    {
-  \getat{m}{v} = \vcrash
-    }
-    {
-    \eval{\env}{m}{\eproj{i}{v}}{\vcrash}\\\\
-    \eval{\env}{m}{\eunfold{v}}{\vcrash}
-    }\\\\
-
+  \inferrule*[lab=S-Ctxt]
+  {
+  e = \ctxt \cdot e_0\\
+  \seval{\env}{m}{e_0}{\env'}{e_0'}\\
+  e' = \ctxt \cdot e_0'
+  }
+  {
+  \seval{\env}{m}{e}{\env'}{e'}
+  }
 \end{array}
-    $$
+$$
+  \[\begin{array}{rlcl}
+      \text{Eval Context} & \ctxt & ::= & \hole \mid \ewrite{\ctxt} \mid
+                                          \epair{\ctxt}{e} \mid
+                             \epair{v}{\ctxt} \mid \eproj{i}{\ctxt}  \\
+               && \mid & \eshare{\psi}{P}{Q}{\ctxt} \mid
+                             \ereveal{P}{Q}{\ctxt} \mid \ebinop{\ctxt}{e_2} \mid \ebinop{v}{\ctxt}   \\
+               && \mid & \emux{\ctxt}{e_1}{e_2}
+                         \mid \emux{v}{\ctxt}{e_2} \mid \emux{v}{v_1}{\ctxt}    \\
+               && \mid & \einj{i}{\ctxt} \mid \econd{\ctxt}{e_1}{e_2}   \\
+               && \mid & \efold{\trec{\alpha}{\tau}}{\ctxt} \mid \eunfold{\ctxt}  \\
+                          && \mid & \eapp{\ctxt}{e} \mid
+                         \eapp{v}{\ctxt} \mid \elet{x}{\ctxt}{e_2} \\
+    \end{array}
+  \]
 \caption{Operational Semantics (Single threaded, small step)}
 \label{fig:small-sem}
 \end{figure}
@@ -1167,7 +1340,7 @@ doing so causes the $\kw{par}$ expression's principal set to be empty,
 the expression will be skipped (and a $\vcrash$ value
 returned). Otherwise it will be run by that single principal.
 
-By inspection of the evaluation rules (Figure~\ref{fig:sem}), we can
+By inspection of the evaluation rules (Figure~\ref{fig:small-sem}), we can
 see that programs without $\kw{share}$ and $\kw{reveal}$ operations
 should work out fine---if the program would have run correctly as a
 single-threaded program, it should run correctly in this
@@ -1189,9 +1362,8 @@ each party to reach the same spot, carry out the computation, and
 continue on with whatever their local result should be. The type
 system should ensure things line up.
 
-We will need to make a small-step version of the ST semantics for this
-all to work. Assuming that we have it, I imagine a MT judgment of the
-form $\mathcal{CS} \longrightarrow \mathcal{CS'}$ where $\mathcal{CS}$
+I imagine a MT judgment of the form
+$\mathcal{CS} \longrightarrow \mathcal{CS'}$ where $\mathcal{CS}$
 represents a set of configurations, one per active principal. Here's
 the basic way a principal takes a step:
 $$
@@ -1200,7 +1372,7 @@ $$
     {
   \mathcal{CS} = \mathcal{CS}_0 :: (p,\config{\env_p}{e_p}) ::
   \mathcal{CS}_1\\
-  \eval{\env_p}{\{p\}}{e_p}{\config{\env_p'}{e'_p}}\\
+  \seval{\env_p}{\{p\}}{e_p}{\env_p'}{e'_p}\\
   \mathcal{CS}' = \mathcal{CS}_0 :: (p,\config{\env_p'}{e_p'}) ::
   \mathcal{CS}_1\\
   }
@@ -1217,12 +1389,18 @@ $$
     \inferrule*[lab=M-Share]
     {
   \mathcal{CS} = \mathcal{CS}_0 ::
-  (p,\config{\env_p}{\eshare{\psi}{\{p\}}{\{p,q\}}{n}}) ::
-  (q,\config{\env_q}{\eshare{\psi}{\{p\}}{\{p,q\}}{v}}) ::
+  (p,\config{\env_p}{e_p}) ::
+  (q,\config{\env_q}{e_q}) ::
   \mathcal{CS}_1\\\\
+  e_p = \pctxt_p \cdot \eshare{\psi}{\{p\}}{\{p,q\}}{v_p}\\\\
+  e_q = \pctxt_q \cdot \eshare{\psi}{\{p\}}{\{p,q\}}{v_q}\\\\
+  \mathit{mode}(\pctxt) = \mathit{mode}(\pctxt') = \{p,q\}\\\\
+  \getat{\{p\}}{v_p} = n\\\\
+  e_p' = \pctxt_p \cdot \vloc{\vshare{\{p,q\}}{\psi}{n}}{\{p\}}\\\\
+  e_q' = \pctxt_q \cdot \vloc{\vshare{\{p,q\}}{\psi}{n}}{\{q\}}\\\\
   \mathcal{CS}' = \mathcal{CS}_0 ::
-  (p,\config{\env_p}{\vloc{\vshare{\{p,q\}}{\psi}{n}}{\{p\}}}) ::
-  (q,\config{\env_q}{\vloc{\vshare{\{p,q\}}{\psi}{n}}{\{q\}}}) ::
+  (p,\config{\env_p}{e_p'}) ::
+  (q,\config{\env_q}{e_q'}) ::
   \mathcal{CS}_1\\
   }
   {
@@ -1230,20 +1408,41 @@ $$
   }
 \end{array}
 $$
-The rule requires both $p$ and $q$ to arrive at a redex in which the
-share can be shared. Since $p$ is doing
-the sharing, its value is sure to be an integer $n$; the value at $q$
-is immaterial (probably something inaccessible, since it was computed
-only at $p$), so we just write $v$. The rule takes a step by
-communicating the share value $\vshare{\{p,q\}}{\psi}{n}$ to each
-party $p$ and $q$ (and the share is specifically located there).
+Here, $\pctxt_p$ and $\pctxt_q$ are composition of contexts
+of the following form:
+$$
+\begin{array}{lcl}
+  \multicolumn{3}{l}{\pctxt \; ::= \; \ctxt \cdot (\epar{Q}{\pctxt})\;
+  \mid\; \ctxt}\\
+\end{array}
+$$
+The function $\mathit{mode}(\pctxt)$ returns the mode under which the
+expression plugged into $\hole$ will be evaluated.
+$$
+\begin{array}{lcl}
+  \mathit{mode}(\ctxt) & = & \emptyset\\
+  \mathit{mode}(\ctxt \cdot (\epar{Q}{\pctxt})) & = & Q \cap \mathit{mode}(\pctxt)\\
+\end{array}
+$$
+
+The rule requires both $p$ and $q$ to arrive at a redex suitable
+for sharing---the mode of both evaluation contexts is
+$\{p,q\}$. Since $p$ is doing the sharing, its value should be an
+(accessible) integer $n$; the value $v_q$ at $q$ is immaterial
+(probably something inaccessible, since it was computed only at $p$).
+The rule takes a step by communicating the share
+value $\vshare{\{p,q\}}{\psi}{n}$ to each party $p$ and $q$ (and the
+share is specifically located there).
 
 We likewise coordinate progress on shared values on the rules
 equivalent to \rulelab{E-BinopShare} and \rulelab{E-Mux}, but for
 these, both parties should take identical steps on identical share
-values. We also coordinate on a rule equivalent to \rulelab{E-Reveal}
+values. We also coordinate on rules equivalent to
+\rulelab{E-RevealPlain} and \rulelab{E-Conv}
 (where each party has the identical share value again), sending the
-unencrypted result to the desired party.
+unencrypted/converted result to the desired party. It's possible we'll want to
+revisit the ``suspended'' computation of shared values and just
+compute them more eagerly.
 
 That coordination is always possible is guaranteed by the type system,
 and the simulation theorem. To prove this, we'll need some kind of
@@ -1300,7 +1499,8 @@ approach and inspiration!
 
     \inferrule*[lab=T-Var]
     {
-    x\!:\!\tau \in \Gamma
+    x\!:\!\tau' \in \Gamma\\\\
+    \issub{\tau'}{\tau}\\ m \vdash \tau
     }
     {
     \hastyp{\Gamma}{m}{x}{\tau}
@@ -1328,8 +1528,17 @@ approach and inspiration!
     \inferrule*[lab=T-Par]
     {
     Q = m \cap P\\
-    Q \vdash \tau\\\\
+    Q \not= \emptyset\\\\
     \hastyp{\Gamma}{{Q}}{e}{\tau}
+    }
+    {
+    \hastyp{\Gamma}{m}{\epar{P}{e}}{\tau}
+    } \qquad
+
+    \inferrule*[lab=T-ParEmp]
+    {
+    m \cap P = \emptyset\\\\
+    \emptyset \vdash \tau
     }
     {
     \hastyp{\Gamma}{m}{\epar{P}{e}}{\tau}
@@ -1425,20 +1634,19 @@ approach and inspiration!
     {
     m \vdash P\\
     m \vdash Q\\\\
-    \hastyp{\Gamma}{m}{e}{\tnat^P_\psi}\\
+    \hastyp{\Gamma}{m}{e}{\tnat^P_{\psi}}\\
     }
     {
-    \hastyp{\Gamma}{m}{\ereveal{P}{Q}{e}{\psi}}{\tnat^Q}
+    \hastyp{\Gamma}{m}{\ereveal{\psi'}{Q}{e}}{\tnat^Q_{\psi'}}
     }\\ \\
    
 
    \inferrule*[lab=T-Abs]
     {
-    m \vdash m'\\\\
-    \hastyp{\Gamma, x\!:\!\tau_1}{m'}{e}{\tau_2}
+    \hastyp{\Gamma, x\!:\!\tau_1}{m}{e}{\tau_2}
     }
     {
-    \hastyp{\Gamma}{m}{\elam{x}{e}}{\tfun{\tau_1}{\tau_2}{m'}}
+    \hastyp{\Gamma}{m}{\elam{x}{e}}{\tfun{\tau_1}{\tau_2}{m}}
     }\qquad
    
     \inferrule*[lab=T-App]
@@ -1482,6 +1690,10 @@ approach and inspiration!
 \label{fig:typing}
 \end{figure}
 
+While PSL is not statically typed at present, the plan is to make it
+so, eventually. As a preliminary step, we have developed a type system
+for \lang, but it has some deficiencies that will require further work.
+
 The typing judgment's rules are defined in Figure~\ref{fig:typing}.
 The typing judgment has form $\hastyp{\Gamma}{m}{e}{\tau}$. It states
 that under context $\Gamma$, expression $e$ has type $\tau$ when
@@ -1496,24 +1708,33 @@ visibility of the current mode. Rule~\rulelab{T-Read} types the
 \kw{read} command; since it will produce a different value at each
 location, it must be run in the visibility of a single principal ($m$
 must be a singleton set). Rule~\rulelab{T-Write} is
-similar. Rules~\rulelab{T-Var} and \rulelab{T-Let} (at the bottom) are standard.
+similar.
 
-Rule~\rulelab{T-Par} runs its expression $e$ in par
-mode involving principals $P$. At run-time, only $m \cap P$ principals
-will actually execute $e$, and so $e$ is checked in this mode, which
-we name $Q$.\footnote{Wysteria requires $P \subseteq m$, which is
-  always OK in \rulelab{T-Par}, too, but it's strictly more flexible.}
-Likewise, the returned value must be compatible with $Q$;
-i.e., it should be ``located'' at least some principals $q \in Q$.
-For example, in mode $\{p\}$ we don't want to return a value located
-(only) at $q$. If we did, then subsequent access by $p$ would fail at
-run-time, since the value is not actually present there.
-%
-Compatibility $m \vdash \tau$ is given in Figure~\ref{fig:aux}. We can
-think of it as related to the semantic function $\locof{m}{v}$. This
-function takes $v$ and ``locates'' it at principals in $m$, filtering
-out principals not present in $P$. The judgment $m \vdash \tau$
-ensures that $\locof{m}{v}$ will be a no-op.
+Rule~\rulelab{T-Var} ensures that the variable it looks up is given a
+type compatible with the current mode $m$. It looks up the type
+$\tau'$ of $x$ in the environment, and then invokes subtyping
+$\issub{\tau'}{\tau}$ in an attempt to find a type $\tau$ compatible
+with mode $m$. Compatibility $m \vdash \tau$, given in
+Figure~\ref{fig:aux}, holds if the classified-as-$\tau$ value is
+``located'' at least some principals $q \in m$. The subtyping judgment
+is also given in Figure~\ref{fig:sub}. Intuitively,
+$\issub{\tau_1}{\tau_2}$ holds when $\tau_1$ is compatible with the
+maximal mode that $\tau_2$ is compatible with; i.e., it's OK to treat
+a value as being available at fewer locations than it actually is. The
+combination of compatibility and subtyping correspond to the semantic
+function $\locof{m}{v}$, which locates $v$ at principals in $m$
+(filtering out principals not present there). Rule~\rulelab{T-Sub} is
+used to invoke subtyping directly.
+
+Rule~\rulelab{T-Par} types the expression $e$ in par mode involving
+principals $P$. At run-time, only $m \cap P$ principals will actually
+execute $e$, and so $e$ is checked in this mode, which we name
+$Q$.\footnote{Wysteria requires $P \subseteq m$, which is always OK in
+  \rulelab{T-Par}, too, but it's strictly more flexible.}
+Rule~\rulelab{T-ParEmp} handles the case that $m \cap P = \emptyset$
+so the expression $e$ is not actually executed. As such, it will
+return $\vcrash$, which we can type as having any type $\tau$ that is
+compatible with $\emptyset$.
 
 Rule~\rulelab{T-Pair} types the introduction of pairs. A pair's
 components must be typeable in the current mode, but they do not
@@ -1531,16 +1752,8 @@ this judgment as being related to semantic function $\getat{m}{v}$: If $v$
 has type $\tau$ and $m \dashv \tau$ (with the expected extensions to
 typing for new value forms), then $\getat{m}{v}$ should succeed.
 
-Intuitively, a $\tnat$ located at $\{p,q\}$ is also located at
-$p$. Rule~\rulelab{T-Sub} can be used to apply this kind of
-reasoning. The subtyping judgment is given in
-Figure~\ref{fig:sub}. Intuitively, $\issub{\tau_1}{\tau_2}$ holds when
-$\tau_1$ is compatible with the maximal mode that $\tau_2$ is
-compatible with; i.e., it's OK to treat a value as being available at
-fewer locations than it actually is.
-
 The rules \rulelab{T-Fold} and \rulelab{T-Unfold} for recursive types
-are standard.
+are standard. Rule \rulelab{T-Let} (at the bottom) is, too.
 
 Rule~\rulelab{T-Share} types encrypting a $\tnat$ (via secret
 sharing). The $P$ argument indicates the principal doing the sharing,
@@ -1567,37 +1780,33 @@ restrict the results to be $\tnat$s, but this is easily generalized
 via encoding (Section~\ref{sec:generalmux}).
 
 Rule~\rulelab{T-Reveal} types share elimination, i.e., converting a
-share of a $\tnat$ to a normal value. In essence, it forces the secure
-computation (which we are thinking of as a thunk) to produce a result,
-and reveals that result held by principals $P$ to the specified
-principals $Q$. The rule requires that the current mode includes those
-in $Q$, and those $P$ who hold the shares. (We do not allow revealing
-encrypted sums, directly---we require destructing them first.)
+share of a $\tnat$ to a normal value, or to another share type. The
+rule requires that the current mode includes those in $Q$, and those
+$P$ who hold the shares.
 
 Rule~\rulelab{T-Match} types conditionals on normal sums, i.e., the
 conditional will run on each principal in mode $m$. It can return
 shares or normal values, as desired. 
 
-% Unlike the elimination rules for pairs and sums, the \rulelab{T-Var}
-% does not mandate ``presence'' of its contents. So the following
-% program would typecheck: $\elet{x0}{\epar{b}0}{\epar{a}{x0}}$. When
-% checking the second $\kw{par}$ block, the type of $x0$ is $\tnat^{b}$,
-% and this variable is occurring with a $\kw{par}$ block with only $a$
-% present. But this is not prevented because nothing actually done with
-% the contents of that variable.
+\rulelab{T-Abs} types the body of a function in the defining context's
+mode $m$. \rulelab{T-App} requires the caller's mode to match the mode
+annotation on the function; this ensures that all principals that must
+be present in the function body will indeed be running the
+function. \rulelab{T-Fix} is essentially a combination of these two,
+allowing $f$ to be referred to recursively in $e$.
 
-\rulelab{T-Abs} allows the body of a function to require a strictly
-smaller mode than the defining context. \mwh{Why? Can't we just wrap
-  in par mode? Rethink} \rulelab{T-App} requires the caller's mode to
-match the mode annotation on the function; this ensures that all
-principals that must be present in the function body will indeed be
-running the function. \rulelab{T-Fix} is essentially a combination of
-these two, allowing $f$ to be referred to recursively in $e$.
+% Note that when we develop a small-step operational semantics we'll
+% have to develop type rules for special value forms too. Crash values
+% $\vcrash$ can be given any type that is compatible with mode
+% $\emptyset$. Located values $\vloc{u}{P}$ will have the type of $u$
+% annotated with location $P$.
 
-Note that when we develop a small-step operational semantics we'll
-have to develop type rules for special value forms too. Crash values
-$\vcrash$ can be given any type. Located values $\vloc{u}{P}$ will
-have the type of $u$ annotated with location $P$.
+\mwh{TODO:}
+\begin{itemize}
+  \item How are curried functions located: how is \texttt{m} on the
+  arrow handled?
+\item No subtyping at present for recursive types. Should we add it?
+\end{itemize}
 
 \begin{figure}
 \[\begin{array}{c}
@@ -1612,20 +1821,20 @@ have the type of $u$ annotated with location $P$.
     
     \inferrule*[lab=M-Nat]
     {
-    m = n \vee
-    (\psi = \cdot \Rightarrow m \vdash n)
+    m = m' \vee
+    (\psi = \cdot \Rightarrow m \vdash m')
     }
     {
-    m \vdash \tnat^n_\psi
+    m \vdash \tnat^{m'}_\psi
     } \qquad
 
     \inferrule*[lab=M-Sum]
     {
-    m \vdash n\\
+    m \vdash m'\\
     m \vdash \tau_1 \\ m \vdash \tau_2
     }
     {
-    m \vdash \tsum{\tau_1}{\tau_2}{n}
+    m \vdash \tsum{\tau_1}{\tau_2}{m'}
     } \\ \\
 
     \inferrule*[lab=M-Fun]
@@ -1639,7 +1848,7 @@ have the type of $u$ annotated with location $P$.
     {
     m \vdash \tau_1 \\ m \vdash \tau_2
     }
-    {m \vdash \tprod{\tau_1}{\tau_2}}
+    {m \vdash \tpair{\tau_1}{\tau_2}}
     \qquad
 
     \inferrule*[lab=M-Rec]
@@ -1677,7 +1886,7 @@ have the type of $u$ annotated with location $P$.
     {
     m \dashv \tau_1 \\\\ m \dashv \tau_2
     }
-    {m \dashv \tprod{\tau_1}{\tau_2}}
+    {m \dashv \tpair{\tau_1}{\tau_2}}
     \qquad
 
     \inferrule*[lab=L-Rec]
@@ -1700,19 +1909,19 @@ have the type of $u$ annotated with location $P$.
 
     \inferrule*[lab=S-Nat]
     {
-    m \vdash \tnat^n_\psi
+    m \vdash \tnat^{m'}_\psi
     }
     {
-    \issub{\tnat^m_\psi}{\tnat^n_\psi}
+    \issub{\tnat^m_\psi}{\tnat^{m'}_\psi}
     } \qquad
 
     \inferrule*[lab=S-Sum]
     {
-    m \vdash \tsum{\tau_1'}{\tau_2'}{n}\\\\
+    m \vdash \tsum{\tau_1'}{\tau_2'}{m'}\\\\
     \issub{\tau_1}{\tau_1'} \land \issub{\tau_2}{\tau_2'}
     }
     {
-    \issub{\tsum{\tau_1}{\tau_2}{m}}{\tsum{\tau_1'}{\tau_2'}{n}}
+    \issub{\tsum{\tau_1}{\tau_2}{m}}{\tsum{\tau_1'}{\tau_2'}{m'}}
     } \qquad
     
     \inferrule*[lab=S-Fun]
@@ -1740,69 +1949,97 @@ have the type of $u$ annotated with location $P$.
 \label{fig:sub}
 \end{figure}
 
-\section{TO DO}
+\subsection{Discussion: Polymorphism and Function Types}
 
-Soon:
-\begin{itemize}
-\item Revisit rules for typechecking functions. What if the function
-  has a mode A but is called from a caller in mode B? How will that
-  affect the type of what's returned? Not sure we are accounting for
-  that? 
-\item Develop small-step ST semantics
-\item Develop small-step MT semantics fleshed out from discussion
-\item Prove relationship between single- and multi-threaded semantics
-\item Prove type soundness for single-threaded semantics
-\end{itemize}
-\mwh{TODO}
-\begin{itemize}
-\item Reconsider function types --- see DavidH's note below.
-\item No subtyping at present for recursive types. Should we add it?
-\item Function types preclude top-level functions? See note below.
-\end{itemize}
-
+The rules for functions are limited by the lack of polymorphism in
+\lang's type system. Consider the following example:
 \begin{verbatim}
-By the way, I don't know if this will overcomplicate everything, but
-I've been thinking about how to get back the notion of applying a
-function with fewer parties than were there when the closure was
-made. (Which if I understand correctly is not possible in the current
-version since function sub-typing is invariant in the knownness of the
-function arrow). 
-
-It seems that you can view the annotation ^m (on both values and
-contexts) as a sort of upper bound on the parties who know some
-information (which you can subtype to include fewer parties). 
-Analogously you could imagine adding an annotation _n to represent a
-lower bound on the parties who know information (conceptually, the
-parties whose presence is mandatory to use a value). 
-Then you could give function arrows this subtype rule:
-
-t1' <: t1
-t2 <: t2'
-m >= m'
-n' >= n
--------------------
-t1 ->^m_n t2    <:    t1' ->^m'_n' t2'
-
-The application rule would require the upper and lower bound to match: 
-
-gamma |-^m_n e : t1 ->^m_m t2
-gamma |-^m_n e1 : t1
-------------------
-gamma |-^m_n (e e1) : t2
-
-par blocks would constrain the lower bound: By including a par block
-as a subexpression you indicating that the containing expression must
-involve the par block parties: 
-
-m >= m'
-gamma |-^m'_n e : t
---------------
-gamma |-^m_(n \cup m') par m' e : t
+par{a,b}
+  let f = fun x -> par{a} (x,1) in
+  let y = f (par{a,b} 1) in 
+  let y' = f (par{a} 1) in ...
 \end{verbatim}
+The function argument $x$'s type is forced by the type system to be
+monomorphic. To make both calls succeed, we could give the function
+the type
+$\tfun{\tnat^{\{a\}}}{\tpair{\tnat^{\{a\}}}{\tnat^{\{a\}}}}{\{a,b\}}$. Then
+the first call would use subtyping on the argument, since
+$\issub{\tnat^{\{a,b\}}}{\tnat^{\{a\}}}$. However, what would happen
+if added the line
+\begin{verbatim}
+let z = par{a} f 1 in ...
+\end{verbatim}
+This does not seem any different than the call assigning to
+\texttt{y'} and yet the type system will reject it---we cannot call
+\texttt{f} in a mode other than $\{a,b\}$. While for this function
+calling it in mode $\{a\}$ would be safe, if the function's body
+involved a $\kw{share}$ operation including both $a$ and $b$ (e.g., on
+its argument $x$, it would have the same type but would not be safe to
+call it just $a$.
 
+We could imagine fixing this by trying to distinguish a lower bound
+versus an upper bound on which principals should be present. For example,
+if we had the function:
+\begin{verbatim}
+let f = fun () ->
+  let y = par{a,b} share{a}{a,b} 0 in
+  par{c} 0
+\end{verbatim}
+Function \texttt{f} must be called in a mode $m \supseteq \{a,b\}$ or
+else $\kw{share}$ call will fail. But the return type will differ
+depending on the actual choice of $m$. For example, if we call
+\texttt{f} in mode $\{a,b\}$ or $\{a,b,d\}$, the return type should be
+$\tnat^\emptyset$. If we call \texttt{f} in mode $\{a,b,c\}$ or
+$\{a,b,c,d\}$, , the return should be $\tnat^{\{c\}}$.
 
-% Next: Look at \texttt{writeup/spdz.md} and think about language
-% changes to support verification.
+This leads naturally to the idea that mode indicators $m$ on types can
+be \emph{polymorphic} (universally quantified), along with constraints
+on their possible solutions. The above example could be given the type
+$$
+\forall \beta, \gamma. [\beta \supseteq \{a,b\}, \gamma = \beta \cap
+\{c\}] \Rightarrow \tfun{\kw{unit}}{\tnat^\gamma}{\beta}
+$$
+Such a type conveys the minimum constraints on the caller's mode while
+at the same time affords precise mode annotations on types affected by
+the particular choice of mode.
 
-  
+To develop such an approach, we will need to have a logic for deciding
+set constraints. We also need to adjust rules like \rulelab{T-Binop}
+so that premises like $\tau = \tnat^m_\psi$ are generalized to
+$\tau = \tnat^{m'}_\psi$ where $m' \vdash m$ and $m \vdash m'$. More
+to do!
+
+As discussed in Section~\ref{sec:deptypes}, we also want to support
+first-class principal sets and dependent types including these. These
+should be a natural addition to the approach we'll have to adopt for
+normal polymorphism.
+
+\subsection{Metatheory}
+
+We conjecture two theoretical results, which we aim to prove.
+
+\paragraph{Type soundness} If a program is type
+correct, then it will either diverge or else run to completion in the
+single-threaded semantics. More formally: If $\hastyp{}{m}{e}{\tau}$
+then there exists a some $e_v$ such that $\eval{[]}{m}{e}{e_v}$, or
+else for all $n$, $e$ can take $n$ steps in the small-step
+semantics. This theorem establishes that the type system ensures the
+program does not get ``stuck,'' e.g., by accessing a value on a host
+that has no access to it, treating a share as if it were a function,
+etc.
+
+\paragraph{Simulation} For all type correct programs, the
+multi-threaded semantics simulates the single-threaded one. To
+formalize this, we need to define some auxiliary functions that relate
+a ST configuration $\config{\env}{e}$ to the equivalent MT one,
+$\mathcal{CS}$. Then we can prove that if $\mathcal{CS}$ can a take a
+step, then $\config{\env}{e}$ can take a step too, and $\mathcal{CS}$
+will eventually reach the point where the auxiliary function matches
+them up. This theorem ensures that ST can be used to reason about
+real-world MT executions.
+
+\section{Conclusion and Future Work}
+
+\mwh{TODO}
+
 \end{document}

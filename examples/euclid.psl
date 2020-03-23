@@ -1,11 +1,11 @@
 -- input parties
-principal A B 
+principal A B
 -- compute parties
-principal C D 
+principal C D
 -- output party
 principal E
 
--- assumptions: 
+-- assumptions:
 -- ‣ a > b
 def euclid-rec : ℕ → ℤ{yao:C,D} → ℤ{yao:C,D} → ℤ{yao:C,D}
 def euclid-rec n a b =
@@ -32,5 +32,7 @@ def euclid a b =
 
 def main : 𝟙 → {inp:A,B;rev:E} ℤ{ssec:E}
 def main • =
-  let ab = {par:A,B} read ℤ "euclid.txt"
-  reveal{E} euclid (share{yao:C,D} ab.A) (share{yao:C,D} ab.B)
+  let a = par {A} (read ℤ "euclid.txt")
+  let b = par {B} (read ℤ "euclid.txt")
+  reveal{E} euclid (share{yao:A -> C,D} a)
+                   (share{yao:B -> C,D} b)

@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 13c55f655e6e9b8deedabd9035271020b51e476c272177a1933f7d69838182cf
+-- hash: 7f7e807e963e240d4c9329f15374b3e9be7592449addecdcf8a2f7de27d05cd2
 
 name:           psl
 version:        0.0.0.0
@@ -16,6 +16,7 @@ library
       PSL
       PSL.Interpreter
       PSL.Interpreter.Access
+      PSL.Interpreter.Json
       PSL.Interpreter.Pretty
       PSL.Interpreter.Primitives
       PSL.Interpreter.PrinExp
@@ -36,6 +37,7 @@ library
     , base
     , bytestring
     , directory
+    , filepath
     , random
     , uvmhs
   default-language: Haskell2010

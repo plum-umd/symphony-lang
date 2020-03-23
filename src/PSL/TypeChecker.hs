@@ -66,10 +66,10 @@ data COut = COut
 makePrettySum ''COut
 makeLenses ''COut
 
-instance Null COut where null = COut null
-instance Append COut where
-  COut η₁ ⧺ COut η₂ = COut $ η₁ ⧺ η₂
-instance Monoid COut
+-- instance Null COut where null = COut null
+-- instance Append COut where
+--   COut η₁ ⧺ COut η₂ = COut $ η₁ ⧺ η₂
+-- instance Monoid COut
 
 -----------
 -- ERROR --
@@ -142,6 +142,8 @@ evalCTLMIO σ xM = case evalCTLM σ xM of
       ]
     abortIO
   Inr x → return x
+
+{-
 
 -----------
 -- MONAD --
@@ -300,7 +302,7 @@ elabExpInfer e = mapFst (siphon e) ^$ localL cCxtSourceL (Some $ annotatedTag e)
   -- HoleE
   -- PrimE 𝕊 (𝐿 Exp)
   -- TraceE Exp Exp
-  ShareE φ ρs e' → do
+  ShareE φ ρs₁ ρs₂ e' → do
     eᴱ' :* τ' ← elabExpInfer e'
     τ'' ← case τ' of
           SecT _ τ'³ → return τ'³
@@ -310,7 +312,7 @@ elabExpInfer e = mapFst (siphon e) ^$ localL cCxtSourceL (Some $ annotatedTag e)
           _ → throwCErrorCxt TypeCError "elabExpInfer: ShareE: τ' ∉ {SecT _ _,𝔹T,ℕT _,ℤT _}" $ frhs 
             [ ("τ'",pretty τ')
             ]
-    return $ ShareE φ ρs eᴱ' :* ShareT φ ρs τ''
+    return $ ShareE φ ρs₁ ρs₂ eᴱ' :* ShareT φ ρs₂ τ''
   AccessE e' ρ → do
     eᴱ' :* τ' ← elabExpInfer e'
     τ'' ← case τ' of
@@ -351,10 +353,10 @@ elabExpInfer e = mapFst (siphon e) ^$ localL cCxtSourceL (Some $ annotatedTag e)
       _ → throwCErrorCxt TypeCError "elabExpInfer: AppE: τ₁ ≠ (_ :→: (_ :* _))" $ frhs
         [ ("τ₁",pretty τ₁)
         ]
-  RevealE ρs e' → do
+  RevealE ρs₁ ρs₂ e' → do
     eᴱ' :* τ' ← elabExpInfer e'
     case τ' of
-      ShareT _ _ τ'' → return $ RevealE ρs eᴱ' :* SSecT ρs τ''
+      ShareT _ _ τ'' → return $ RevealE ρs₁ ρs₂ eᴱ' :* SSecT ρs₂ τ''
       _ → throwCErrorCxt TypeCError "elabExpIner: RevealE: τ' ≠ ShareT _ _ _" $ frhs
         [ ("τ'",pretty τ')
         ]
@@ -475,3 +477,4 @@ testTypechecker = do
   testTypecheckerExample "cmp"
   testTypecheckerExample "euclid"
 
+-}
