@@ -461,70 +461,75 @@ def matrix_set m (i, j) v = set m i (set (get m i) j v)
 
 -- Listing 9: Inverse of a lower triangular matrix
 def matrix_inverse_lt l =
-  let n = order l in runST -- order of L
-  (bindST (newST (zero_mat n)) (fun l_inv_ref -> -- n x n zero matrix
-  forST (range 0 (n - 1n)) (fun k ->
-    -- For diagonal entries, take the reciprocal
-    bindST (readST l_inv_ref) (fun l_inv -> seqSTs [
-    writeST l_inv_ref (matrix_set l_inv (k, k) (matrix_get l (k, k)));
-    -- For non-diagonal entries, solve L * L_inv = I
-    forST (range (k + 1n) (n - 1n)) (fun j ->
-      bindST (newST 0n) (fun sum -> seqSTs [
-      (forST (range k (j - 1n)) (fun i -> 
-         (writeST sum
-           ((readST sum) -
-              (matrix_get l (j, i)) * (matrix_get l_inv (i, k)) ) ) ) ) ;
-      (writeST l_inv_ref (matrix_upd (readST))) ] )
-  readST l_inv_ref ) ) ]
-  ) ) ) )
+  let n = order l in -- order of L
+  let l_inv = ref (zero_mat n) in -- n x n zero matrix
+  -- PSL: can we add syntactic sugar for sequencing?
+  -- PSL: can we add syntactic sugar for loops? In particular for
+  -- loops with no accumulator?
+  fold-f ()
+    (fun k ->
+      -- For diagonal entries, take the reciprocal
+      l_inv := matrix_set l_inv (k, k) (matrix_get l_inv (k, k)) ;
 
--- TODO: fix uses of readST
+      -- For non-diagonal entries, solve L * L_inv = I
+      fold-f ()
+        (let sum = ref 0n in
+          fold-f ()
+            (fun i ->
+              sum := sum -
+                (metrix_get l (j, i)) * (matrix_get l_inv (i, k)) )
+            (range k (j - 1n)) )
+        (range (k + 1n) (n - 1n)) )
+    (range 0 (n - 1n)) ;
+  l_inv
 
 -- TODO: replace with list syntax
 
 -- Listing 10: Cholesky decomposition of a positive definite Hermitian
 -- matrix
--- TODO: match pseudocode
 def cholesky_decomposition m =
   -- Initialize variables
-  let n = order m in
-  (bindST (newST (zero_mat n))) (fun l_ref -> bindST
-   (readST l_ref ) (fun l -> seqST
+  let n = order m in -- order of m
+  let l = ref (zero_mat n) in -- n x n zero matrix
 
-   -- Calculate the top diagonal element of L
-   (writeST l_ref (matrix_set l (0, 0) (sqrt (matrix_get m (0, 0)))))
+  -- Calculate the top diagonal element of L
+  l := matrix_set l (0, 0) (sqrt (matrix_get m (0, 0))) ;
 
-   -- Calculate the rest of the first column of L
-   -- TODO: complete
-   forST (range 1n (n - 1n)) (fun j ->
-     
-   )
-  ) ) 
+  -- Calculate the rest of the first column of L
+  fold-f ()
+    (fun j ->
+      l := matrix_set l (j, 0n)
+        ((matrix_get m (j, 0n)) / (matrix_get l (0n, 0n))) )
+    (range 1n (n - 1n)) ;
 
+  -- Iterate through the remaining columns
+  fold-f ()
+    (fun i ->
+      -- First calculate the diagonal element for this column
+      let sum = ref 0n in
+      fold-f ()
+        (fun j ->
+          sum := sum + (matrix_get l (i, j)) * (matrix_get l (i, j)) )
+        (range 0n (i - 1n)) ;
 
+      l := matrix_set (i, i) (sqrt ((matrix_get m (i, i)) - sum)) ;
 
--- DEP:
-fst
-  (foldl m -- fold over each column in the matrix,
-    ([ ], [ ])
-    (fun (top, diag, bot) (tri, base) ->
-      -- deconstruct the maintained base box 
-      let (jth_row', base') = case base
-        { [ ] -> ([ ], const_vec [ ] (len bot))
-        ; x :: tl -> (x, tl)
-        } in
-      -- diag': the diagonal elt of the solution
-      let diag' = babylonian_sqrt (diag - (dot_prod z jth_row' jth_row')) in
-      -- tri': the upper triangle, extended
-      let tri' = snoc (diag', [ ])
-        (map (fun ((d, tl), jth_elt) -> (d, snoc jth_elt tl))
-          (zip_lists tri jth_row')) in
-      -- the base box, extended
-      let base'' = map 
-        (fun (rv', elt) ->
-          snoc ((diag - (dot_prod z rv' jth_row')) / diag') rv')
-        (zip_lists base' bot) in
-      (tri', base'')) )
+      -- Now fill in the remaining entries in this column
+      if_then (i < n - 1n)
+        (fold-f ()
+          (fun j ->
+            sum := 0n ;
+            fold-f ()
+              (fun k ->
+                sum := sum + (matrix_get l (i, k)) * (matrix_get l (j, k))
+              )
+              (range 0n (i - 1n))
+          )
+          (range (i + 1n) (n - 1n))
+        )
+    )
+    (range 1n (n - 1n)) ;
+  l
 
 -- Listing 8: Inverse of a positive definite Hermitian matrix
 def matrix_inverse_pdh : num -> matrix -> matrix
@@ -591,7 +596,7 @@ def karmarkar_loop a c =
   let epsilon = 10.0 ^ -8.0 in
 
   -- x is our initial point
-  let x = map shr_w_comp (div_vec (row_of_ones n) (to_flt n)) in
+  let x = div_vec (row_of_ones n) (to_flt n) in
 
   -- product of non-zero entries in c and A
   let p = (nz_prod_vec c) * (nz_prod_mat a) in
@@ -599,7 +604,7 @@ def karmarkar_loop a c =
     (magn (ceil (log_2_real (abs_val_real p)))) +
     n * (magn (ceil (log_2_real (to_flt n)))) in
   let max_iterations = 12n * n * l in
-  let max_iterations = shr_w_comp 1n in -- DEBUG
+  let max_iterations = shr_w_comp 1n in -- DEBUG CODE
 
   -- If this initial point is an optimal solution, return
   mux_ls ((dot_prod c x) < epsilon)

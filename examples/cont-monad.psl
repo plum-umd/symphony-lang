@@ -12,3 +12,6 @@ def cont_bind (f, a) g =
 
 -- cont_run : cont a a -> a: get an a value:
 def cont_run = uncurry apply
+
+-- if_then guard tc: an if-then branch, represented as a monadic value
+def if_then guard tc rest = (mux guard tc, rest)

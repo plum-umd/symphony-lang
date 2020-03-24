@@ -618,35 +618,6 @@ psliMainTest = do
               ]
         ]
       ]
-<<<<<<< HEAD
-  -- testInterpreterExample "add"
-  -- testInterpreterExample "arg-par-contains"
-  -- testInterpreterExample "atq"
-  -- testInterpreterExample "bind-fp-const"
-  -- testInterpreterExample "bind-shares"
-  -- testInterpreterExample "cmp"
-  -- testInterpreterExample "cmp-fn-flt"
-  -- testInterpreterExample "cmp-split"
-  -- testInterpreterExample "cmp-tutorial"
-  -- testInterpreterExample "elim-sec-ls"
-  -- testInterpreterExample "empty-par-diverge"
-  -- testInterpreterExample "euclid"
-  -- testInterpreterExample "indy-pars"
-  -- testInterpreterExample "pfold"
-  -- testInterpreterExample "karmarkar-simple"
-  -- testInterpreterExample "karmarkar-silly"
-  -- testInterpreterExample "msort"
-  -- testInterpreterExample "partial-diverge"
-  -- testInterpreterExample "reshare"
-  -- testInterpreterExample "share-ls"
-  -- testInterpreterExample "single-share"
-  -- testInterpreterExample "ssec-other-ssec"
-  -- testInterpreterExample "ssec-shr"
-  -- testInterpreterExample "sumprod"
-  -- testInterpreterExample "test"
-  -- testInterpreterExample "uninspecting-par"
-  -- testInterpreterExample "rand"
-=======
 
 pslMainInfo ∷ IO ()
 pslMainInfo = do
@@ -668,4 +639,3 @@ interpreterMain = do
     "test" :& as → localArgs as psliMainTest
     Nil → localArgs (list ["--version","--help"]) pslMainInfo
     as → localArgs as pslMainInfo
->>>>>>> 8d097175cce5b25684ea94ac66940a1a10e606d3
