@@ -3,7 +3,13 @@
 ## directory tree for the first README file.
 ##
 
+## begin_variables
+
 EXTRA_DIST =
+
+hs_files =
+
+## end_variables
 
 ## begin_includes
 
