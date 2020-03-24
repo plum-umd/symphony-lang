@@ -115,8 +115,8 @@ slightly more verbose than it would be in actual PSL, as discussed shortly):
 \end{verbatim}
 The program starts by reading an (integer) input at principal $A$'s
 host, as specified by the \emph{par block} \texttt{par\{A\} read}. The
-result, bound in \texttt{x}, is usable only at \texttt{A}; the
-variable is \emph{inaccessible} to the other participating hosts. In
+result, bound in \texttt{x}, is usable at \texttt{A} and not any of
+the other participating hosts. In  
 general, the construct $\epar{P}{e}$ runs the expression $e$ at the
 hosts indicated in the set $P$, and the result will be available only
 to those hosts. The PSL type system will reject programs that would
@@ -173,8 +173,8 @@ so far)
 let x = read in 
 send-share{yao:C,D} x
 \end{verbatim}
-$B$'s program would be similar (the only difference is details
-regarding communication we have not shown). $C$'s program would be
+$B$'s program would be similar, with the only difference being details
+regarding communication we have not shown. $C$'s program would be
 \begin{verbatim}
 let sx = recv-share{yao:C,D <- A} in
 let sy = recv-share{yao:C,D <- B} in
@@ -203,23 +203,26 @@ understandability. In particular, because the \texttt{share} and
 \texttt{reveal} constructs are separated into two parts, the
 programmer may now introduce race conditions and deadlocks. For
 example, $A$ might be sending to $B$ and waiting for it to acknowledge
-receipt, but at the same time $B$ is doing the same with $A$. The
+receipt, but at the same time $B$ could be doing the same with $A$. The
 single-program structure imposed by PSL assures this cannot happen. It
 also prevents the mistake of party $A$ sending one kind of encrypted
-value (e.g., a BGW share) while party $B$ expecting to receive a
+value (e.g., a BGW share) while party $B$ expects to receive a
 different kind (e.g., a GMW share)---the single \texttt{share}
-construct ensures both agree. While some flexibility is lost, it is
-akin to the situation with \texttt{goto} in structured programs; the
+construct ensures both agree. While not allowing primitive send and
+receive commands reduces the programmer's options, this restriction is
+akin to the situation with \texttt{goto} in structured programs as
+argued by Dijkstra; the
 potential harm of its use outweighs the small gain it affords in
 performance.
 
-Lastly, it is harder to automatically analyze the split program, e.g.,
+The final downside is that it is harder to automatically analyze
+multiple programs together compared to a single one, e.g.,
 to do resource estimation. Such an analysis would boil down to
 analyzing a multithreaded, message-passing program, which is hard to
 do in the general case. By contrast, in PSL not only is there a single
 program, but that program has a straightforward \emph{single threaded
   interpretation}. That is, we can faithfully simulate the program's
-multi-party execution when running it on a single host. This works by
+multi-party execution in a locally-hosted simulation. This works by
 interpreting par blocks simply as a means to define and enforce access
 to data based on the given principal set, not as a means to define
 actually parallel and communicating computations. We are able to prove
@@ -231,7 +234,8 @@ accurate view of what happens when running the former. \mwh{Could say
 
 \paragraph{Wysteria}
 
-PSL's design is inspired by that of Wysteria, which also advocated
+PSL's design is inspired by that of Wysteria, which (for all the
+reasons given above) also advocated
 writing a single MPC program with a sound single-threaded
 interpretation. PSL's use of par blocks is basically the same as
 Wysteria's. To perform an actual encrypted computation, Wysteria
@@ -250,20 +254,20 @@ involving $C$ and $D$.
 In this program, after $A$ and $B$ read their input values they stick
 them in a wire annotated with their identity. On line 3, we enter a
 sec block involving $A$, $B$, and $E$. Within, it compares the $A$'s
-value and $B$'s value, and packages the result in a wire to $E$, which
-is bound to $E$. On line 4 $E$ outputs the result it received.  With
+value and $B$'s value, and packages the result in a wire to $E$.
+On line 4, $E$ outputs the result it received.  With
 this program, we did not have to explicitly create encrypted values;
 the sec block does this implicitly. It also implicitly reveals any
 returned result to cleartext, here stored in a wire only accessible by
 $E$. This is convenient.
 
-However, it turns out to not be possible in Wysteria to implement the
-PSL program we started with. While Wysteria does have a notion of
+However, it turns out that it is \emph{not possible in Wysteria to implement the
+PSL program we started with}. While Wysteria does have a notion of
 encrypted values that can live outside a sec block, it is not flexible
 enough to allow such values to be communicated freely among different
 compute parties. Relatedly, while one can interleave local and
 multi-party computations in Wysteria, the use of sec blocks sometimes
-imposes an awkward structure when doing so It is also not always
+imposes an awkward structure when doing so. It is also not always
 possible in Wysteria to perform secure computations when the input
 size can vary; e.g., it is difficult to write a sorting algorithm in
 Wysteria where the (non-secret) size of the inputs can vary. Unrelated
@@ -283,8 +287,7 @@ The rest of this document describes \lang, a core calculus that
 formalizes PSL and its behavior. In Section~\ref{sec:syntax} we
 present the syntax of \lang, along discussion of how other features
 available in PSL can be encoded in terms of the core
-syntax. Section~\ref{sec:examples} presents a series of example
-programs written \lang. Section~\ref{sec:STsemantics} presents the
+syntax. Section~\ref{sec:STsemantics} presents the
 single-threaded semantics of \lang, while
 Section~\ref{sec:MTsemantics} presents a sketch of the distributed
 semantics. Section~\ref{sec:typing} presents the \lang type system and
@@ -428,10 +431,12 @@ cleartext.
 \subsection{Derived Expressions}
 \label{sec:derived}
 
-Some useful constructs can be encoded using \lang features (or via
-obvious language extensions). 
+Some useful constructs present in PSL are not represented natively in
+\lang, but they can be encoded using \lang features (or via
+obvious language extensions). We present these features here, as well
+as some examples.
 
-\subsubsection{Message passing}
+\subsubsection{Message passing and share conversion}
 
 Having a direct method of sending a (cleartext) message $m$ from $A$
 to a set of principals $B$ and $C$ is written in PSL as \texttt{send\{A
@@ -440,35 +445,20 @@ to a set of principals $B$ and $C$ is written in PSL as \texttt{send\{A
 Here, the value $m$ is shared to itself as cleartext, and then
 distributed (again, as cleartext) to remote parties.
 
-\subsubsection{Encrypted Sums}
-
-An encrypted sum can be represented as a value of the type
-$\tpair{\tnat^m_\psi}{(\tpair{\tau_1}{\tau_2})}$. Here, the first
-element is a boolean that represents whether the ``real'' portion of
-the sum is the left side. We can introduce (encrypt) an existing sum
-by doing the following:
-\begin{verbatim}
-let sharesum e def_lhs def_rhs =
-  case e 
-    x.(share 1,x,def_rhs)
-  | x.(share 0,def_lhs,x)
-\end{verbatim}
-We can eliminate an encrypted sum by using a mux, which forces us
-to produce a $\tnat^m_\psi$, to ensure obliviousness:
-\begin{verbatim}
-let muxshare e t_fun f_fun =
-  let (x,(l,r)) = e in
-  x ? t_fun l : f_fun r
-\end{verbatim}
-While \verb+t_fun+ and \verb+f_fun+ are notated as functions, instead
-it makes sense to make these proper syntax in \lang, with a
-binding form like $\kw{match}$.
+\lang's $\kw{reveal}$ construct supports revealing results to
+cleartext, and converting between encryption/share types. For example,
+$\ereveal{}{A}{e}$ computes the result of $e$ and reveals the final
+result to $A$ as cleartext; $\ereveal{\kw{bgw}}{A}{e}$ instead
+computes the result of $e$ and then converts it to $\kw{bgw}$ format
+before sharing with $A$. In PSL \mwh{What is the conversion routine?}
 
 \subsubsection{Generalized Mux and Reveal}
 \label{sec:generalmux}
 
-A mux is restricted to returning encrypted
-$\tnat$s. We can generalize this to returning pairs of encrypted
+In \lang, a mux is restricted to returning encrypted
+$\tnat$s, but in PSL more types are allowed. This generalization is
+easily seen as a type-based translation. For example, here is how we
+would encode a mux that returns a pair of encrypted 
 $\tnat$s:
 \begin{verbatim}
 muxtopair e e1 e2 =
@@ -477,23 +467,79 @@ muxtopair e e1 e2 =
   let (l2,r2) = e2 in
   (b ? l1 : l2, b ? r1 : r2)
 \end{verbatim}
-With this encoding, we can likewise support multiplexing on encrypted
-sums and recursive types.
-%
+Following this basic ``unrolling,'' we can likewise support
+multiplexing on encrypted sums and recursive types.
+
 We can similarly generalize the $\kw{reveal}$ construct to work on types
 that are not numbers, but pairs, sums, or recursive types---just as we
 mux on the elements of a pair here, we can \kw{reveal} elements
 of a pair, too, with a single construct.
 
+\subsubsection{Example: Lists of shares}
+
+\newcommand{\twoprins}{\ensuremath{\{A,B\}}}
+
+A common programming pattern is to compute over a list of encrypted
+values (i.e., shares). 
+%
+Lists are native to PSL, and they can be encoded using sums, pairs,
+and recursive types in \lang.
+
+A list of shares between $A$ and $B$ would have type
+$\trec{\alpha}{\tsum{(\tpair{\tnat^{\twoprins}_\psi}{\alpha})}{\tnat^{\twoprins}}{\twoprins}}$. In
+short, a list of shares is either a pair, where the first element is a
+\twoprins-share and the second is a list, or it's a normal integer
+(i.e., the NULL terminator). Since neither the recursive type
+nor the sum itself are encrypted, the list's size
+(and the fact that's a list) is known and evident to both $A$ and $B$.
+
+Here's an example of how $A$ and $B$ could create a list with a share
+originating from each of them:
+\begin{verbatim}
+let l = par{A,B}
+  let x = par{A} read in
+  let y = par{B} read in
+  let xs = share{bgw:A -> A,B} x in
+  let ys = share{bgw:B -> A,B} y in
+  fold (inj_1 (xs, fold (inj_1 (ys, fold (inj_2 0)))))
+\end{verbatim}
+Here's a function that sums the elements in the list:
+\begin{verbatim}
+let sum = par{A,B}
+  fix f -> fun y ->
+    case (unfold y) x.
+      let (x1,x2) = x in
+      x1 + (f x2)
+    | share{bgw:A -> A,B} 0
+\end{verbatim}
+Notice that we have to explicitly share constants. In this case, the
+\verb+0+ is shared by $A$ to $A$ and $B$.
+
+Finally, we could apply \verb+sum+ to \verb+l+ and reveal the result
+to both $A$ and $B$:
+\begin{verbatim}
+par{A,B}
+  reveal{:A,B} (sum l)
+\end{verbatim}
+
+Suppose we tried to run \verb+sum+ just in \verb+par{A}+---what would
+happen? It will fail because we require all parties having a share to
+be present when the share is computed on (here, by
+\verb!+!). Conversely, if we tried to run in mode \verb+par{A,B,C}+ it
+would also fail: parties \emph{without} a share cannot carry out
+computations on it.
+
 \subsubsection{Wire Bundles and Solo Mode}
 \label{sec:wirebundles}
 
 A \emph{wire bundle} is a single logical object, but each party has
-its own distinct value.  We represent it as a product where each
+its own distinct value. In PSL, a wire bundle with $A$ and $B$ each
+having their own integer value would be written \texttt{int\{isec:A,B\}}.
+
+We represent a wire bundle in \lang as a product where each
 element of the product is only visible to a single party. For
 simplicity, consider the smallest one:
-$\tpair{\tnat^{\{A\}}}{\tnat^{\{B\}}}$. In PSL, this is written
-$\tnat$\texttt{\{isec:A,B\}}. To operate on a wire bundle we can use the
+$\tpair{\tnat^{\{A\}}}{\tnat^{\{B\}}}$. To operate on a wire bundle we can use the
 following sugared syntax:
 
 \bigskip
@@ -546,9 +592,28 @@ This is a little cleaner, so the first line of millionaires would become
 let x = (solo {A,B} x.read) (0,0) in
 \end{verbatim}
 You can imagine generalizing \texttt{all} and \texttt{solo} to wire
-bundles of arbitrary (but fixed) size. You can also easily imagine
-converting this pair to a list, and then supporting equivalent
-constructs like \texttt{wfold}.
+bundles of arbitrary (but fixed) size. Another useful pattern is to convert a single wire bundle to a list,
+and then supporting equivalent constructs like \texttt{wfold}.
+
+An interesting twist is to encode a wire bundle of lists as a list of
+wire bundles. Doing so ensures that the list is the same length at
+both parties. For example, a list of wire
+bundles private to $A$ and $B$ would have type 
+$\trec{\alpha}{\tsum{(\tpair{(\tpair{\tnat^{\{A\}}}{\tnat^{\{B\}}})}{\alpha})}{\tnat^{\twoprins}}{\twoprins}}$.
+Summing each principal's components would look like this:
+\begin{verbatim}
+let sum2 = par{A,B}
+  fix f.lam y.
+    case (unfold y) x.
+      let ((xa,xb),x2) = x in
+      let (sa,sb) = f x2 in
+      let l = par{A} sa+xa in
+      let r = par{B} sb+xb in
+      (l,r)
+    | (par{A} 0,par{B} 0)
+\end{verbatim}
+We could generalize this pattern to work for generic functions (rather
+than being specialized to summation, as here).
 
 % For example, they could run in full par mode
 % (with multiple principals) but then accesses to the individual elements
@@ -557,10 +622,76 @@ constructs like \texttt{wfold}.
 % value. For the accessor in the code, you use the map to extra from the
 % pair. Maybe use ``self'' and not $\alpha$.
 
-\subsection{Future work: First-class Principals and Dependent Types}
+\subsubsection{Encrypted Sums}
+
+PSL does not currently support sum types directly; it just supports
+lists. However, as shown in \lang, they are not hard to add. Indeed,
+we can also support a kind of \emph{encrypted sum} without much extra
+work. 
+
+An encrypted sum can be represented as a value of the type
+$\tpair{\tnat^m_\psi}{(\tpair{\tau_1}{\tau_2})}$. Here, the first
+element is a boolean that represents whether the ``real'' portion of
+the sum is the left side. We can introduce (encrypt) an existing sum
+by doing the following:
+\begin{verbatim}
+let sharesum e def_lhs def_rhs =
+  case e 
+    x.(share 1,x,def_rhs)
+  | x.(share 0,def_lhs,x)
+\end{verbatim}
+We can eliminate an encrypted sum by using a mux, which forces us
+to produce a $\tnat^m_\psi$, to ensure obliviousness:
+\begin{verbatim}
+let muxshare e t_fun f_fun =
+  let (x,(l,r)) = e in
+  x ? t_fun l : f_fun r
+\end{verbatim}
+While \verb+t_fun+ and \verb+f_fun+ are notated as functions, instead
+it makes sense to make these proper syntax in \lang, with a
+binding form like $\kw{match}$.
+
+Another question: What if we ``encrypted'' the sum type that defines
+the list (per the encoding given earlier)? This would imply that both the left
+and right side of the sum are always possible, so both would be
+maintained. However, since this is a recursive type and we cannot
+support infinitely sized data structures, we could not actually
+construct elements of this type! The reason you can construct
+recursive data structures at all is that there is eventually a base
+case, i.e., just one side of the sum, here the $\tnat^{\{A,B\}}_\psi$
+part. But when you are required provide \emph{both} sides, you never
+get to the base case (only). You could do a constant-length list, but
+not using a recursive type; you'd have to do a finite (by hand)
+unrolling.
+
+\subsubsection{Other Differences with PSL}
+
+There are some other differences between \lang and PSL that are not
+particularly consequential; we touch on them here.
+
+PSL has effect annotations on function arrows indicating when
+\texttt{reveal} is called. The reason is to alert someone reading an
+API, which will include a function's type but not show its code, that secret values could
+potentially be revealed by calling the function. This is a kind of
+checked documentation. Such annotations are straightforward to
+implement and are not consequential in the metatheory we are
+interested in, so we do not include them in \lang.
+
+PSL has global principal declarations, e.g., of the form
+\texttt{principal A}. It also permits defining sets of principals,
+e.g., as \texttt{principal A[2]} for a set of 2 principals. \lang does
+not require these; rather, it assumes an existing pool of principal
+names. PSL programs can be viewed as being defined in a global
+$\kw{par}$ block involving the declared principals; \lang programs
+require making the $\kw{par}$ block explicit.
+
+\mwh{Anything else ...}
+
+\subsection{Future work: First-class Principals and Dependent and
+  Polymorphic Types}
 \label{sec:deptypes}
 
-One aspect of Wysteria not encoded here is the idea of
+One aspect of PSL not encoded here is the idea of
 \emph{principals as data}, and more generally, having a first-class
 representation of a set of principals. Run-time principal sets are
 useful for writing computations that are generic over the identity and
@@ -584,199 +715,11 @@ set-indexed recursive datastrutures like lists, e.g., so that each
 element of a list could belong to a different principal. This
 generalized the fixed-size notion of wire bundles given above.
 
+\mwh{Refer to Wysteria as having these, and that we can use its
+  metatheory for inspiration}
+\mwh{TODO: More about polymorphism. Describe \texttt{this}.}
+
 We leave it to future work to flesh out the details. 
-
-\subsection{Differences with PSL}
-
-\mwh{Some of these are problems, not expected differences. Fix}
-The PSL interpreter differs from \lang in several ways. We list a few
-of them here:
-\begin{itemize}
-\item PSL has effect annotations on function arrows indicating when
-  something is input or revealed; \lang does not have these. For
-  example, look at \texttt{sumprod.psl} for effect annotation
-  examples.
-\item PSL doesn't annotate which principals should be present on the
-  function type. \texttt{atq.psl} for an example of the lack
-  of annotation, e.g., on the \texttt{length} function, which involves
-  principals $A$ and $B$. 
-\item PSL has global principal declarations; \lang does not, and
-  rather assumes an existing pool of principal names. PSL programs can
-  be viewed as being defined in a global $\kw{par}$ block involving
-  the declared principals; \lang programs require making the
-  $\kw{par}$ block explicit.
-\item PSL has principal sets, e.g., \texttt{principal} $A[2]$ declares
-  a set of principals $A$ of size 2. See \texttt{bgv.psl}. However, I
-  don't understand these are being used as sets; they seem to be just
-  referenced as single principals.
-\item PSL seems to have universal / polymorphic types.
-\item We have one $\kw{reveal}$ construct for revealing final results
-  in plaintext and converting between share types; PSL has two names
-  for this.
-\item What is \texttt{this} in PSL?
-\end{itemize}
-
-\section{Examples}
-\label{sec:examples}
-
-\subsection{Encoding lists of shares}
-
-\newcommand{\twoprins}{\ensuremath{\{A,B\}}}
-
-A list of shares between $A$ and $B$ would have type
-$\trec{\alpha}{\tsum{(\tpair{\tnat^{\twoprins}_\psi}{\alpha})}{\tnat^{\twoprins}}{\twoprins}}$. In
-short, a list of shares is either a pair, where the first element is a
-\twoprins-share and the second is a list, or it's a normal integer
-(i.e., the NULL terminator). Notice that neither the recursive type
-nor the sum itself are encrypted---this means that the list's size
-(and the fact that's a list) is known and evident to both $A$ and $B$.
-
-Here's an example of how $A$ and $B$ could create a list with a share
-originating from each of them:
-\begin{verbatim}
-let l = par{A,B}
-  let x = par{A} read in
-  let y = par{B} read in
-  let xs = share{bgw:A -> A,B} x in
-  let ys = share{bgw:B -> A,B} y in
-  fold (inj_1 (xs, fold (inj_1 (ys, fold (inj_2 0)))))
-\end{verbatim}
-Here's a function that sums the elements in the list:
-\begin{verbatim}
-let sum = par{A,B}
-  fix f -> fun y ->
-    case (unfold y) x.
-      let (x1,x2) = x in
-      x1 + (f x2)
-    | share{bgw:A -> A,B} 0
-\end{verbatim}
-Notice that we have to explicitly share constants. In this case, the
-\verb+0+ is shared by $A$ to $A$ and $B$.
-
-Finally, we could apply \verb+sum+ to \verb+l+ and reveal the result
-to both $A$ and $B$:
-\begin{verbatim}
-par{A,B}
-  reveal{:A,B} (sum l)
-\end{verbatim}
-
-Suppose we tried to run \verb+sum+ just in \verb+par{A}+---what would
-happen? It will fail because we require all parties having a share to
-be present when the share is computed on (here, by
-\verb!+!). Conversely, if we tried to run in mode \verb+par{A,B,C}+ it
-would also fail: parties \emph{without} a share cannot carry out
-computations on it.
-
-Another question: What if we ``encrypted'' the sum type that defines
-the list (per the above encoding)? This would imply that both the left
-and right side of the sum are always possible, so both would be
-maintained. However, since this is a recursive type and we cannot
-support infinitely sized data structures, we could not actually
-construct elements of this type! The reason you can construct
-recursive data structures at all is that there is eventually a base
-case, i.e., just one side of the sum, here the $\tnat^{\{A,B\}}_\psi$
-part. But when you are required provide \emph{both} sides, you never
-get to the base case (only). You could do a constant-length list, but
-not using a recursive type; you'd have to do a finite (by hand)
-unrolling.
-
-\subsection{Lists of private values at multiple parties}
-
-As another thought experiment, suppose we have a list with values from
-both $A$ and $B$, but unencrypted?
-
-A list of shares between $A$ and $B$ would have type
-$\trec{\alpha}{\tsum{(\tpair{(\tpair{\tnat^{\{A\}}}{\tnat^{\{B\}}})}{\alpha})}{\tnat^{\twoprins}}{\twoprins}}$.
-This list is like the earlier one, but instead of shared numbers as
-its contents, it has a pair of normal numbers, with the left as
-visible only to $A$ and the right visible only to $B$.
-
-Summing each principal's components would look like this:
-\begin{verbatim}
-let sum2 = par{A,B}
-  fix f.lam y.
-    case (unfold y) x.
-      let ((xa,xb),x2) = x in
-      let (sa,sb) = f x2 in
-      let l = par{A} sa+xa in
-      let r = par{B} sb+xb in
-      (l,r)
-    | (par{A} 0,par{B} 0)
-\end{verbatim}
-This example makes evident that each party needs to maintain the
-complete structure of the list, but only has actual values for its own
-parts of it; the other party's values will just be placeholders.
-
-\subsection{Visibility}
-\label{sec:vis}
-
-Here are several examples illustrating how multi-party value
-visibility is controlled.
-
-\paragraph{Example 1}
-\begin{verbatim}
-par{A,B}
-  let x = par{B} (0,0) in
-  par{A} let y = #1 x in y
-\end{verbatim}
-Running this example will produce $\vcrash$---the bogus value, see
-next section---but since the value is never accessed by the program,
-this is a fine result. The pair bound in \texttt{x} is only visible to
-$B$, but is accessed in a block run only by $A$. When $x$ is looked up
-in that latter block, $A$ will have no specific value for it but the
-\texttt{\# 1} operation will be allowed to proceed, also producing
-$\vcrash$, as pairs are not located.
-
-\paragraph{Example 2}
-\begin{verbatim}
-(fun x -> par{C} x) 
-  (par{a,b,c} reveal{A,B}{C} (share{A,B}{A} 0))
-\end{verbatim}
-This program has $A$ share $0$ with itself and $B$, and then reveal
-the results of that share to $C$. These operationsn are 
-This is allowed by the type system. The $\kw{reveal}$ directs $A$ and
-$B$ to reveal their result to $C$. The result is returned from the
-$\kw{par}$ block and successful accessed by $C$ in the called function.
-
-\paragraph{Example 3}
-\begin{verbatim}
-par(A,B) 
-  let x = par(A) 0 in
-  let y = par(B) 1 in
-  par(A) 
-    let z = (x,y) in #1 z
-\end{verbatim}
-This program works because even though $y$ is not available at $A$
-where the pair is constructed, it is never accessed.
-
-\paragraph{Example 4}
-\begin{verbatim}
-par{A,B}
-  let x0 = par{B} 0 in
-  let x1 = (fun x -> par{A} (x,1)) x0 in
-  x0
-\end{verbatim}
-Running this program produces the value $0$ located at $B$. The
-variable \texttt{x1} will be bound to $\epair{\vcrash}{1}$, since the
-first element is not accessible at $A$, but this is not the value that
-is ultimately returned.
-
-\paragraph{Example 5}
-\begin{verbatim}
-let x = par{a,c} 0 in
-let f = par{A,B} fun y -> (x,y) in
-par{B} f 1
-\end{verbatim}
-This will create a variable located at $A$ and $C$; then it creates a
-closure at $A$ and $B$. This means that the call to \texttt{f} with
-only $B$ present, on the last line, will return a pair $\epair{0}{1}$
-where $0$ is located at $\emptyset$ (i.e., it is inaccessible to
-everyone) and $1$ is located at $B$. Note that the last line
-\texttt{par\{B\} f 1} would fail if changed to \texttt{par\{C\} f
-  1}. This is because the closure $f$ is not located at $C$ so it
-can't be called from there. If the last line was \texttt{par\{A\} f 1}
-then $\epair{0}{1}$ would be returned again, but this time $0$ and $1$
-would both be located at $A$.
 
 \section{Semantics (Single Threaded)}
 \label{sec:STsemantics}
@@ -1190,52 +1133,121 @@ elimination rules for $\vcrash$ values having located types, i.e.,
 numbers, sums, or functions. A program that tries to use a crash value
 as one of these will be stuck.
 
-\paragraph{Discussion}
+% \paragraph{Discussion}
 
-Rule~\rulelab{E-ParEmp} indicates that if the ``present'' set of
-principals $Q$ is $\emptyset$ then $e$ should be skipped, and an
-(inaccessible) value returned instead. The alternative is to ``run''
-$e$ despite having no principals present.
+% Rule~\rulelab{E-ParEmp} indicates that if the ``present'' set of
+% principals $Q$ is $\emptyset$ then $e$ should be skipped, and an
+% (inaccessible) value returned instead. The alternative is to ``run''
+% $e$ despite having no principals present.
 
-One important justification for skipping $e$ is that this is what the
-distributed semantics will do, in a general sense (see the next
-section for more on this). In particular, if
-we have $\epar{\{A,B\}}{e}$ running in mode $m = \{ a, b, c \}$ then
-what should $C$ do while $A$ and $B$ are each running $e$? The
-assumption is that it will skip it. Another way to put this: We can
-think of a principal's ``slice'' of an expression as that expression
-with $\kw{par}$ sets intersected with that principal. So on $C$ it
-would be $\epar{\{A,B\} \cap \{C\}}{e}$ or in other words the
-principal set is empty---no relevant principals are ``here''---and we
-don't run it. This implies that a $\kw{par}$ block with an empty
-principal set should be skipped (and the $\vcrash$ value returned as a
-placeholder). 
+% One important justification for skipping $e$ is that this is what the
+% distributed semantics will do, in a general sense (see the next
+% section for more on this). In particular, if
+% we have $\epar{\{A,B\}}{e}$ running in mode $m = \{ a, b, c \}$ then
+% what should $C$ do while $A$ and $B$ are each running $e$? The
+% assumption is that it will skip it. Another way to put this: We can
+% think of a principal's ``slice'' of an expression as that expression
+% with $\kw{par}$ sets intersected with that principal. So on $C$ it
+% would be $\epar{\{A,B\} \cap \{C\}}{e}$ or in other words the
+% principal set is empty---no relevant principals are ``here''---and we
+% don't run it. This implies that a $\kw{par}$ block with an empty
+% principal set should be skipped (and the $\vcrash$ value returned as a
+% placeholder). 
 
-The alternative is weird. If no-principal blocks should be executed,
-how should that be done? The meaning is that no principal sets are
-``here'' to run the block, so who exactly is doing the running? 
+% The alternative is weird. If no-principal blocks should be executed,
+% how should that be done? The meaning is that no principal sets are
+% ``here'' to run the block, so who exactly is doing the running? 
 
-Suppose we choose to run $e$ with an empty set, say on each principal
-$A$, $B$, and $C$. Doing so could have failures or non-termination. For the
-former, it could reach a $\kw{reveal}$, $\kw{share}$, $\kw{read}$,
-or $\kw{write}$, each of which require certain principals to be
-present. Since no principals are present, evaluation will get stuck
-at these constructs. This is odd, once again, from the perspective of
-the distributed semantics: We would not expect to run $A$'s blocks on
-$B$ with an empty principal set because doing so will fail.
+% Suppose we choose to run $e$ with an empty set, say on each principal
+% $A$, $B$, and $C$. Doing so could have failures or non-termination. For the
+% former, it could reach a $\kw{reveal}$, $\kw{share}$, $\kw{read}$,
+% or $\kw{write}$, each of which require certain principals to be
+% present. Since no principals are present, evaluation will get stuck
+% at these constructs. This is odd, once again, from the perspective of
+% the distributed semantics: We would not expect to run $A$'s blocks on
+% $B$ with an empty principal set because doing so will fail.
 
-You might argue that somehow a $\kw{par}$ block should be run, even
-with no principals (somewhere) for its termination behavior. The
-analogy would be that you have $\epar{A}{...}$ followed by
-  $\epar{B}{...}$ and the first doesn't terminate in the ST semantics,
-  precluding running the second block there, whereas in the MT the
-  second will run. The argument is somehow that if you don't ``run''
-  $\epar{\emptyset}{...}$ blocks, you won't match this kind of
-    behavior, if the $...$ would fail to terminate. But I don't think this
-is either here nor there; the simulation theorem is about computations
-that terminate; we are not obligated to reason about non-terminating
-programs. And in any case it's about ``real'' computations; not ones
-that are contrived.
+% You might argue that somehow a $\kw{par}$ block should be run, even
+% with no principals (somewhere) for its termination behavior. The
+% analogy would be that you have $\epar{A}{...}$ followed by
+%   $\epar{B}{...}$ and the first doesn't terminate in the ST semantics,
+%   precluding running the second block there, whereas in the MT the
+%   second will run. The argument is somehow that if you don't ``run''
+%   $\epar{\emptyset}{...}$ blocks, you won't match this kind of
+%     behavior, if the $...$ would fail to terminate. But I don't think this
+% is either here nor there; the simulation theorem is about computations
+% that terminate; we are not obligated to reason about non-terminating
+% programs. And in any case it's about ``real'' computations; not ones
+% that are contrived.
+
+\subsection{Understanding Visibility}
+
+Here are several examples illustrating how multi-party value
+visibility is managed by the semantics.
+
+\paragraph{Example 1}
+\begin{verbatim}
+par{A,B}
+  let x = par{B} (0,0) in
+  par{A} let y = #1 x in y
+\end{verbatim}
+Running this example will produce $\vcrash$, but since the value is never accessed by the program,
+this is a fine result. The pair bound in \texttt{x} is only visible to
+$B$, but is accessed in a block run only by $A$. When $x$ is looked up
+in that latter block, $A$ will have no specific value for it but the
+\texttt{\# 1} operation will be allowed to proceed, also producing
+$\vcrash$, as pairs are not located.
+
+\paragraph{Example 2}
+\begin{verbatim}
+(fun x -> par{C} x) 
+  (par{A,B,C} reveal{A,B}{C} (share{A,B}{A} 0))
+\end{verbatim}
+This program has $A$ share $0$ with itself and $B$, and then reveal
+the results of that share to $C$. These operationsn are 
+This is allowed by the type system. The $\kw{reveal}$ directs $A$ and
+$B$ to reveal their result to $C$. The result is returned from the
+$\kw{par}$ block and successful accessed by $C$ in the called function.
+
+\paragraph{Example 3}
+\begin{verbatim}
+par(A,B) 
+  let x = par(A) 0 in
+  let y = par(B) 1 in
+  par(A) 
+    let z = (x,y) in #1 z
+\end{verbatim}
+This program works because even though $y$ is not available at $A$
+where the pair is constructed, it is never accessed.
+
+\paragraph{Example 4}
+\begin{verbatim}
+par{A,B}
+  let x0 = par{B} 0 in
+  let x1 = (fun x -> par{A} (x,1)) x0 in
+  x0
+\end{verbatim}
+Running this program produces the value $0$ located at $B$. The
+variable \texttt{x1} will be bound to $\epair{\vcrash}{1}$, since the
+first element is not accessible at $A$, but this is not the value that
+is ultimately returned.
+
+\paragraph{Example 5}
+\begin{verbatim}
+let x = par{A,C} 0 in
+let f = par{A,B} fun y -> (x,y) in
+par{B} f 1
+\end{verbatim}
+This will create a variable located at $A$ and $C$; then it creates a
+closure at $A$ and $B$. This means that the call to \texttt{f} with
+only $B$ present, on the last line, will return a pair $\epair{0}{1}$
+where $0$ is located at $\emptyset$ (i.e., it is inaccessible to
+everyone) and $1$ is located at $B$. Note that the last line
+\texttt{par\{B\} f 1} would fail if changed to \texttt{par\{C\} f
+  1}. This is because the closure $f$ is not located at $C$ so it
+can't be called from there. If the last line was \texttt{par\{A\} f 1}
+then $\epair{0}{1}$ would be returned again, but this time $0$ and $1$
+would both be located at $A$.
 
 \subsection{Small-step Semantics}
 
