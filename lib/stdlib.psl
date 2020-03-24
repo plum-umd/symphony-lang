@@ -11,14 +11,6 @@ def fold-f i f xs = case xs
   ; ⟪p|x⟫⧺xs′ → f p x (fold-f i f xs′)
   }
 
-
--- Compute the length of a list.
-def length : list int -> int
-def length xs = case xs
-  { [] -> 0
-  ; _::xs' -> 1 + length xs'
-  }
-
 -- Safe version of tail: If the list is empty, the tail of the list is the
 -- empty list.
 def tail : list int -> list int
@@ -28,28 +20,29 @@ def tail xs = case xs
   }
 
 
--- Concatenate two lists.
-def append : list a -> list a -> list a
-def append xs ys =
-  case xs
-  { [] -> ys
-  ; x::xs' -> x::(append xs' ys)
+def foldr : (a -> b -> b) -> b -> list a -> b
+def foldr f acc xs = case xs
+  { [] -> acc
+  ; x::xs' -> foldr f (f x acc) xs'
   }
+
+
+-- Compute the length of a list.
+def length : list int -> int
+def length = foldr (fun _ n -> n+1) 0
+
+
+def append : list a -> list a -> list a
+def append xs ys = foldr (fun x zs -> x :: zs) ys xs
 
 
 def concat : list (list a) -> list a
-def concat xs = case xs
-  { [] -> []
-  ; x :: xs' -> append x (concat xs')
-  }
+def concat = foldr (fun xs xss -> append xs xss) []
 
 
 -- List map.
 def map : (a -> b) -> list a -> list b
-def map f xs = case xs
-  { [] -> []
-  ; (x::xs') -> f x :: map f xs'
-  }
+def map f xs = foldr (fun x ys -> f x :: ys) [] xs
 
 
 -- Convert a known list into a list of known objects.
