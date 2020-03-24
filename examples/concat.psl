@@ -9,5 +9,4 @@ def main () =
     let b = sequenceKnownness {B} (par {B} read (list int) "qsort-input.txt")
     let a' = map (fun x -> share {bgw:A -> A,B} x) a
     let b' = map (fun x -> share {bgw:B -> A,B} x) b
-    in concat (a' :: b' :: a' :: b' :: [])
-    -- in append a' b'
+    in append a' b'
