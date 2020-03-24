@@ -6,10 +6,32 @@
 ## begin_variables
 
 EXTRA_DIST =
+EXTRA_DIST += $(psli_files)
+
+TMPEXT = .tmp
+
+bin_SCRIPTS =
+bin_SCRIPTS += psli
 
 hs_files =
 
+psli_files =
+psli_files += $(hs_files)
+psli_files += package.yaml
+
 ## end_variables
+
+## begin_rules
+
+psli: $(psli_files)
+	$(STACK) build
+	{ \
+	  x=`$(STACK) path --dist-dir` || exit; \
+	  cp "$$x"/build/psli/psli $@$(TMPEXT) || exit; \
+	  mv $@$(TMPEXT) $@ || exit; \
+	}
+
+## end_rules
 
 ## begin_includes
 
