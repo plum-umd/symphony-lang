@@ -1,3 +1,8 @@
+dnl
+dnl For the copyright information for this file, please search up the
+dnl directory tree for the first README file.
+dnl
+
 [
 
 ]AC_INIT(
@@ -7,6 +12,11 @@
   [[psl]],
   [[]])[
 
+]AC_CONFIG_AUX_DIR([build-aux])[
+]AC_CONFIG_MACRO_DIR([m4])[
+]AC_CONFIG_MACRO_DIRS([m4])[
+]AC_CONFIG_SRCDIR([psl.cabal])[
+
 ]AM_INIT_AUTOMAKE([
   -Wall
   foreign
@@ -14,6 +24,16 @@
   subdir-objects
   tar-ustar
 ])[
+
+]DEFINE_ALL[
+
+]dnl begin_includes
+[
+
+]m4_include([build-aux/autogen.ac])[
+
+]dnl end_includes
+[
 
 ]AC_ARG_VAR([STACK], [the command to use to run stack (Haskell build tool)])[
 
@@ -47,6 +67,8 @@ dnl
 dnl     psl_cv_stack_check=yes
 dnl   ])
 [
+
+]GATBPS_WGET_SUBST[
 
 ]AC_CONFIG_FILES([Makefile])[
 
