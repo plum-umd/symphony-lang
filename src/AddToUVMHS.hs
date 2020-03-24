@@ -1,9 +1,10 @@
 module AddToUVMHS 
   ( module AddToUVMHS
+  , module UVMHS
   , module GHC.Stack
   ) where
 
-import UVMHS
+import UVMHS hiding (args)
 
 import GHC.Stack (CallStack,callStack,withFrozenCallStack)
 import qualified GHC.Stack as HS
@@ -11,6 +12,8 @@ import qualified GHC.Stack as HS
 import System.Directory as HS
 import Data.Fixed as HS
 import qualified Prelude as HS
+
+import qualified System.Environment as HS
 
 files ∷ IO (𝐿 𝕊)
 files = list ∘ map string ^$ HS.listDirectory $ chars "."
@@ -35,3 +38,9 @@ unconsL ∷ 𝐿 a ⌲ (a ∧ 𝐿 a)
 unconsL = Prism (curry (:&)) $ \case { x:&xs → Some (x:*xs) ; _ → None}
 
 instance DivMod 𝔻 where {(⌿) = (HS./);(÷) = HS.mod'}
+
+askArgs ∷ IO (𝐿 𝕊)
+askArgs = map (list ∘ map string) HS.getArgs
+
+localArgs ∷ 𝐿 𝕊 → IO a → IO a
+localArgs args = HS.withArgs $ lazyList $ map chars $ iter args

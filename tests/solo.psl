@@ -1,0 +1,9 @@
+principal A B
+
+def main • =
+  let xy = ⟪ A | 1 ; B | 2 ⟫
+  -- solo-f {A,B} (λ ρ → xy.ρ + 1)
+  solo {A,B} as ρ in 
+    xy.ρ + 1
+
+def expected = ⟪ A | 2 ; B | 3 ⟫

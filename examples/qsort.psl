@@ -2,106 +2,132 @@ principal A
 principal B
 
 -- TODO
--- not yet working with interpreter, something with case expressions?
--- merge lists together
 -- replace nat by real
 
 def index
-  : nat{bgw:A,B}
-  -> list nat{bgw:A,B}
-  -> nat{bgw:A,B}
+  : nat{bgw:this}
+  -> list nat{bgw:this}
+  -> nat{bgw:this}
 def index i xs =
   case xs
-  { [] -> 0
+  { [] -> share {bgw:A -> this} 0
   ; x::xs ->
-    if i == 0
+    if reveal {this} (i == 0)
     then x
-    else index (i-1) xs
+    else index (i - 1) xs
   }
 
 def replace
-  : nat{bgw:A,B} -- index
-  -> nat{bgw:A,B} -- to insert
-  -> list nat{bgw:A,B}
-  -> list nat{bgw:A,B}
+  : nat{bgw:this} -- index
+  -> nat{bgw:this} -- to insert
+  -> list nat{bgw:this}
+  -> list nat{bgw:this}
 def replace ix x arr =
   case arr
   { [] -> []
   ; y::ys ->
-    if ix == 0
+    if reveal {this} (ix == 0)
     then x::ys
     else y::(replace (ix - 1) x ys)
   }
 
+def swap
+   : nat{bgw:this}
+  -> nat{bgw:this}
+  -> list nat{bgw:this}
+  -> list nat{bgw:this}
+def swap i j arr =
+  let l = index i arr
+  let r = index j arr
+  in
+    replace i r (replace j l arr)
+
 -- Swap the two indices in the array iff the condition is true
 def condSwap
-  : bool{bgw:A,B}
-  -> nat{bgw:A,B}
-  -> nat{bgw:A,B}
-  -> list nat{bgw:A,B}
-  -> list nat{bgw:A,B}
+  : bool{bgw:this}
+  -> nat{bgw:this}
+  -> nat{bgw:this}
+  -> list nat{bgw:this}
+  -> list nat{bgw:this}
 def condSwap cond i j arr =
-  if cond
+  -- TODO no reveal
+  if reveal {this} cond
   then
-    let l = index i arr
-    in let r = index j arr
-    in replace i r (replace j l arr)
-  else arr
+    swap i j arr
+  else
+    arr
 
-def boolToInt : bool{bgw:A,B} -> nat{bgw:A,B}
-def boolToInt b = if b then 1 else 0
+def boolToInt : bool{bgw:this} -> nat{bgw:this}
+def boolToInt b = 
+  -- TODO no reveal
+  if reveal {this} b
+  then
+    share {bgw:A -> this} 1
+  else
+    share {bgw:A -> this} 0
 
 def partLoop
   : nat -- remaining iterations
-  -> nat{bgw:A,B}
-  -> nat{bgw:A,B}
-  -> nat{bgw:A,B}
-  -> list nat{bgw:A,B}
-  -> list nat{bgw:A,B} * nat{bgw:A,B}
-def partLoop n i lo hi arr =
+  -> nat{bgw:this}
+  -> nat{bgw:this}
+  -> nat{bgw:this}
+  -> list nat{bgw:this}
+  -> list nat{bgw:this} * nat{bgw:this}
+def partLoop n i j hi arr =
   if n == 0
-  then i, arr
+  then
+    arr, i
   else
-    let cond = index lo arr < index hi arr
-    in let arr = condSwap cond lo hi arr
-    in let i' = i + boolToInt cond
-    in partLoop (n - 1) i' (lo+1) hi arr
+    let cond = index j arr < index hi arr
+    let arr = condSwap cond i j arr
+    let i' = i + boolToInt cond
+    let j' =
+      if reveal {this} (j < hi)
+      then j + 1
+      else j
+    in
+      partLoop (n - 1) i' j' hi arr
 
 def partition
   : nat -- the size of the entire list
-  -> nat{bgw:A,B}
-  -> nat{bgw:A,B}
-  -> list nat{bgw:A,B}
-  -> list nat{bgw:A,B} * nat{bgw:A,B}
+  -> nat{bgw:this}
+  -> nat{bgw:this}
+  -> list nat{bgw:this}
+  -> list nat{bgw:this} * nat{bgw:this}
 def partition n lo hi arr =
-  let r = rand-range nat{bgw:A,B} (lo,hi) in
-  let arr = condSwap true r hi arr in
-  partLoop n lo lo hi arr
+  -- TODO rand-range not working for bgw
+  -- let r = rand-range nat{bgw:this} (lo,hi) in
+  -- let arr = condSwap true r hi arr in
+  let arr', pivot = partLoop n lo lo hi arr
+  in (swap pivot hi arr', pivot)
 
 def quickSort
   : nat -- iterations remaining
-  -> nat{bgw:A,B} -- lo
-  -> nat{bgw:A,B} -- hi
-  -> list nat{bgw:A,B}
-  -> list nat{bgw:A,B}
+  -> nat{bgw:this} -- lo
+  -> nat{bgw:this} -- hi
+  -> list nat{bgw:this}
+  -> list nat{bgw:this}
 def quickSort n lo hi arr =
-  if n == 0
+  if (n == 0) || (reveal {this} (lo >= hi))
   then arr
   else
-    let partitioned, pivot = partition lo hi arr
+    let partitioned, pivot = partition n lo hi arr
     in
-      quickSort (n - 1) (pivot + 1) hi (quickSort (n - 1) lo (pivot - 1) partitioned)
-arr
+      quickSort (n - 1) (pivot + 1) hi
+        (quickSort (n - 1) lo (pivot - 1) partitioned)
 
 def main : unit -> {inp:A,B;rev:A,B} list nat{bgw:A,B}
 def main () =
-  let xys-pre : (list ℤ){isec:A,B}
-  let xys-pre = {par:A,B} read (list ℤ) "qsort-input.txt"
-  in
+  par {A,B}
+    let a = sequenceKnownness {A} (par {A} read (list int) "qsort-input.txt")
+    let b = sequenceKnownness {B} (par {B} read (list int) "qsort-input.txt")
+    let a' = map (fun x -> share {bgw:A -> this} x) a
+    let b' = map (fun x -> share {bgw:B -> this} x) b
+    let inps = append a' b'
+    let n = 9 -- TODO this should be the length of the merged list
 
-  -- TODO how to merge lists? Is this what preprocess-lists does in msort?
-
-  let n = 10 -- TODO this should be the length of the merged list
-  in
-
-  quickSort n 0 0 xys-pre
+    let slo = share {bgw:A -> this} 0
+    let shi = share {bgw:A -> this} n
+    in
+    -- partition n slo shi inps
+    quickSort 10 slo shi inps

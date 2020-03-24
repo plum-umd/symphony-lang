@@ -1,11 +1,17 @@
 module PSL where
 
 import UVMHS
+import AddToUVMHS
 
 import PSL.Interpreter
--- import PSL.TypeChecker
 
 main ∷ IO ()
-main = do
-  -- testTypechecker
-  testInterpreter
+main = interpreterMain
+
+mainDefaultArgs ∷ 𝐿 𝕊
+mainDefaultArgs = 
+  list ["test","--version","--help"]
+  -- list ["example","qsort"]
+
+mainDefault ∷ IO ()
+mainDefault = localArgs mainDefaultArgs  interpreterMain

@@ -1,0 +1,78 @@
+def solo-f : ∀ A:☆. (P:ℙs) → ((p:ℙ | {p}⊆P) →{p} A) →{P} A{isec:P}
+def solo-f P f = case P
+  { {} → ⟪⟫
+  ; {p}∪P′ → ⟪ p | par {p} f p ⟫ ⧺ solo-f P′ f
+  }
+
+
+def fold-f : ∀ A:☆,B:☆,P:ℙs. B → ((p:ℙ | {p}⊆P) → A → B →{P} B) → A{isec:P} →{P} B
+def fold-f i f xs = case xs
+  { ⟪⟫ → i
+  ; ⟪p|x⟫⧺xs′ → f p x (fold-f i f xs′)
+  }
+
+-- Safe version of tail: If the list is empty, the tail of the list is the
+-- empty list.
+def tail : list int -> list int
+def tail xs = case xs
+  { [] -> []
+  ; _::xs' -> xs'
+  }
+
+
+def foldr : (a -> b -> b) -> b -> list a -> b
+def foldr f acc xs = case xs
+  { [] -> acc
+  ; x::xs' -> f x (foldr f acc xs')
+  }
+
+
+-- Compute the length of a list.
+def length : list int -> int
+def length = foldr (fun _ n -> n+1) 0
+
+
+def append : list a -> list a -> list a
+def append xs ys = foldr (fun x zs -> x :: zs) ys xs
+
+
+def concat : list (list a) -> list a
+def concat = foldr (fun xs xss -> append xs xss) []
+
+
+-- List map.
+def map : (a -> b) -> list a -> list b
+def map f xs = foldr (fun x ys -> f x :: ys) [] xs
+
+
+-- Convert a known list into a list of known objects.
+-- The list will contain the first `n` elements of the known list.
+-- If `n` exceeds the length of the list, the list will be padded with default.
+def sequenceKnownnessN :
+  forall knowers:prin.
+  int -> int -> (list int){ssec:knowers} -> list (int{ssec:knowers})
+def sequenceKnownnessN knowers n default xs =
+  let shareHead : (list int){ssec:knowers} -> int{ssec:knowers}
+  let shareHead = fun xs ->
+    par {knowers} case xs
+                  { [] -> default
+                  ; x::_ -> x
+                  }
+
+  if n == 0
+  then []
+  else
+    shareHead xs ::
+      sequenceKnownnessN knowers (n - 1) default (par {knowers} (tail xs))
+
+
+-- Convert a known list into a list of known objects.
+-- WARNING: This shares the length of the list in cleartext.
+def sequenceKnownness :
+  forall knowers:prin.
+  (list int){ssec:knowers} -> list (int{ssec:knowers})
+def sequenceKnownness knowers xs =
+  let n = par {knowers} length xs
+  let n' = send {knowers -> this} n
+  in sequenceKnownnessN {knowers} n' 0 xs
+

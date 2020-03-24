@@ -1,43 +1,46 @@
-E    := PSL.main
+E          := PSL.mainDefault
+STACK_ARGS := --trace --ghci-options '-fexternal-interpreter -prof'
+STACK_ARGS := 
 
-.PHONY: dev
-dev: .stack-work
-	# ghcid --warnings --test $E
-	ghcid --command="stack ghci --trace --ghci-options '-fexternal-interpreter -prof'" --warnings --test $E
+ARGS       :=
 
-# ghcid --command="stack ghci --ghci-options -fobject-code" --warnings --test $E
+psli: build
+	rm -f psli
+	ln -s `stack path --dist-dir`/build/psli/psli ./
 
 .stack-work:
 	stack setup
 
-.PHONY: eval
-eval:
-	stack ghci --trace --ghci-options '-fexternal-interpreter -prof -e $E'
-
 .PHONY: build
-build:
+build: .stack-work
 	stack build
 
-.PHONY: run
-run:
-	# stack run
-	# stack ghci --ghci-options -e --ghci-options $E
-	stack run
+.PHONY: dev
+dev: .stack-work
+	ghcid --command="stack ghci $(STACK_ARGS)" --warnings --test $E
 
-.PHONY: profile
-profile:
-	stack run --profile -- +RTS -p
+.PHONY: eval
+eval: .stack-work
+	stack ghci $(STACK_ARGS) --ghci-options '-e $E'
+
+.PHONY: run
+run: .stack-work
+	stack run -- $(ARGS)
 
 .PHONY: trace
-trace:
-	stack run --trace
+trace: .stack-work
+	stack run --trace -- $(ARGS)
+
+.PHONY: profile
+profile: .stack-work
+	stack run --profile -- $(ARGS) +RTS -p
 
 .PHONY: ghci
-ghci:
+ghci: .stack-work
 	stack ghci
 
 .PHONY: doc
-doc:
+doc: .stack-work
 	stack haddock
 	cp -r `stack path --local-doc-root` ./
 

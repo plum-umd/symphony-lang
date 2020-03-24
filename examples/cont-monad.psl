@@ -1,0 +1,17 @@
+-- monad for building a value and a continuation. Type is
+-- cont a b = (a -> a, b)
+-- where cont a is a monad.
+
+-- monadic return:
+def cont_return a = (id, a)
+
+-- monadic bind:
+def cont_bind (f, a) g =
+  let (f0, b) = g a in
+  (compose f0 f, b)
+
+-- cont_run : cont a a -> a: get an a value:
+def cont_run = uncurry apply
+
+-- if_then guard tc: an if-then branch, represented as a monadic value
+def if_then guard tc rest = (mux guard tc, rest)

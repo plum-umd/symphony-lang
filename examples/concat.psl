@@ -1,0 +1,12 @@
+principal A
+principal B
+
+
+def main : unit -> {inp:A,B} list (int{bgw:A,B})
+def main () =
+  par {A, B}
+    let a = sequenceKnownness {A} (par {A} read (list int) "qsort-input.txt")
+    let b = sequenceKnownness {B} (par {B} read (list int) "qsort-input.txt")
+    let a' = map (fun x -> share {bgw:A -> A,B} x) a
+    let b' = map (fun x -> share {bgw:B -> A,B} x) b
+    in append a' b'
