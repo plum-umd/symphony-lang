@@ -23,7 +23,7 @@ def tail xs = case xs
 def foldr : (a -> b -> b) -> b -> list a -> b
 def foldr f acc xs = case xs
   { [] -> acc
-  ; x::xs' -> foldr f (f x acc) xs'
+  ; x::xs' -> f x (foldr f acc xs')
   }
 
 
@@ -54,11 +54,10 @@ def sequenceKnownnessN :
 def sequenceKnownnessN knowers n default xs =
   let shareHead : (list int){ssec:knowers} -> int{ssec:knowers}
   let shareHead = fun xs ->
-    let h = par {knowers} case xs
-                    { [] -> default
-                    ; x::_ -> x
-                    }
-    in h
+    par {knowers} case xs
+                  { [] -> default
+                  ; x::_ -> x
+                  }
 
   if n == 0
   then []
