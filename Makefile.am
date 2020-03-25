@@ -18,6 +18,7 @@ hs_files =
 psli_files =
 psli_files += $(hs_files)
 psli_files += package.yaml
+psli_files += stack.yaml
 
 ## end_variables
 
