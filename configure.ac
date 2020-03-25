@@ -15,7 +15,7 @@ dnl
 ]AC_CONFIG_AUX_DIR([build-aux])[
 ]AC_CONFIG_MACRO_DIR([m4])[
 ]AC_CONFIG_MACRO_DIRS([m4])[
-]AC_CONFIG_SRCDIR([src/PSL.hs])[
+]AC_CONFIG_SRCDIR([main/PSLI.hs])[
 
 ]AM_INIT_AUTOMAKE([
   -Wall
