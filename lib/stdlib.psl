@@ -45,6 +45,14 @@ def zip xs ys = case (xs,ys)
   ; (x∷xs',y∷ys') → (x,y)∷(zip xs' ys')
   }
 
+def fst p = case p
+  { (f,_) → f
+  }
+
+def snd p = case p
+  { (_,s) → s
+  }
+
 -- List map.
 def map : (a -> b) -> list a -> list b
 def map f xs = foldr (fun x ys -> f x :: ys) [] xs

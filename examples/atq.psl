@@ -1,5 +1,6 @@
 principal A[2] -- Parties who supply just integers
 principal B[2] -- Parties who supply both integers and queries
+principal Dummy
 
 -- basic functions
 
@@ -70,7 +71,7 @@ def remove-dups qs = case qs
     let b = elem-triple (q,t) qs'
     let a' = b ? false ◇ a
     let q' = b ? -1 ◇ q
-    let t' = b ? {A.0} ◇ t
+    let t' = b ? {Dummy} ◇ t
     in (a',(q',t'))∷(remove-dups qs')
   }
 
@@ -117,12 +118,18 @@ def run-queries :
 def run-queries xs = (min xs) ∷ (max xs) ∷ (median xs) ∷ (num-unique xs) ∷ []
 
 def send-result :
-    (t : ℙ{ssec:A,B})
-  → list ℤ{bgw:A,B}
+    ℙ{bgw:A,B}
+  → (t : ℙ{ssec:A,B})
   → ℤ{bgw:A,B}
-  → ℤ{ssec:t}
-def send-result t results q a =
-  reveal{t} (elem-at q results)
+  → 𝔹{bgw:A,B}
+  → list (𝔹{ssec:t} × ℤ{ssec:t}) --Not an accurate type
+def send-result P t r a = case P
+  { {} → []
+  ; {p}∪P' →
+    let b = a ? (t ≡ p) ◇ false
+    let v = a ? ((t ≡ p) ? r ◇ -1) ◇ -1
+    in (reveal {p} b, reveal {p} v) ∷ (send-result P' t r a)
+  }
 
 def send-results :
     list ℤ{bgw:A,B}
@@ -130,7 +137,7 @@ def send-results :
   → list ℤ{ssec:any}
 def send-results results ps = case ps
   { [] → []
-  ; (a,(q,t))∷ps' → (send-result (reveal{A,B} t) results q a) ∷ (send-results results ps')
+  ; (a,(q,t))∷ps' → (send-result {A,B} (reveal{A,B} t) (elem-at q results) a) ∷ (send-results results ps')
   }
 
 def main : 𝟙 →{inp:A,B;rev:A,B} list ℤ{ssec:any}
@@ -148,7 +155,7 @@ def main • =
   let results = par {A,B} run-queries xs
 
   let qs = solo {B} as α in (pair-with-list true (zip qs-pre.α ts-pre.α))
-  let qs' = concat (fold-f [] (λ P x i → (p-lists-n-triples P {A,B} 3 x (false,(-1,{A.0}))) ∷ i) qs)
+  let qs' = concat (fold-f [] (λ P x i → (p-lists-n-triples P {A,B} 3 x (false,(-1,{Dummy}))) ∷ i) qs)
 
   let qs'' : list (ℤ{bgw:A,B} × ℙ{bgw:A,B})
   let qs'' = remove-dups qs'

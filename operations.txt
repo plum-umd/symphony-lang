@@ -47,9 +47,5 @@ ATQ
   BGW, SPDZ
     Cond(S,S,S)
     S ≡ S
-    S < S
-    (↓ used for testing for dummy data, might be able to remove these)
-    S < const
-    S || S
-    S && S
+    S ≤ S (for sorting a list of ints)
 
