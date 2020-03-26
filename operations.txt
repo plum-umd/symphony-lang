@@ -1,24 +1,24 @@
-Msort
+Msort (ints, 16 bit)
   BGV
-    Cond(S,S,S) (ints)
-    S ≤ S       (ints)
+    Cond(S,S,S)
+    S ≤ S
 
-Qsort
+Qsort (reals, binary64 as per iee08)
   BGW, SPDZ
-    Cond(S,S,S) (ints)
-    S ≤ S       (ints)
-    S + S       (ints)
-    S - S       (ints)
+    Cond(S,S,S)
+    S ≤ S
+    S + S
+    S - S
 
-GCD/Euclid
+GCD/Euclid (ints, 4096 bit)
   Yao, BGV
-    S ≡ const   (ints)
-    Cond(S,S,S) (ints)
-    S % S       (ints)
-    S < S       (ints)
+    S ≡ const
+    Cond(S,S,S)
+    S % S
+    S < S
 
-Karmakar
-  SPDZ (with floats)
+Karmakar (reals, binary64 as per iee08)
+  SPDZ
     Cond(S,const,S)
     sqrt S
     S ≡ const
@@ -31,18 +31,18 @@ Karmakar
     Cond(S,S,S)
     S ≤ S
 
-DB-Stats (Unsure about this one until it's finished)
+DB-Stats (unsigned ints, 32 bit | reals, binary64 as per iee08)
   BGV
     Cond(S,S,S) (unsigned ints)
     S ≡ S       (unsigned ints)
     S < S       (unsigned ints)
-    S - S       (unsigned ints, looks like it shouldn't be possible to underflow)
+    S - S       (unsigned ints, looks like it might not be possible to underflow)
     -- (↓ used only for avg and std-dev over lists of secrets with secret lengths)
     S + S       (unsigned ints)
     S * S       (unsigned ints)
-    S / S       (unsigned ints)
+    S / S       (unsigned ints to reals)
 
-ATQ
+ATQ (ints, 32 bit)
   BGW, SPDZ
     Cond(S,S,S) (ints, bools, and principals)
     S ≡ S       (ints, bools, and principals)
