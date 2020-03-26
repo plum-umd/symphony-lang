@@ -1,23 +1,21 @@
-(Keep in mind there may be some operations missing or some may not actually be needed)
-
 Msort
   BGV
-    Cond(S,S,S)
-    S ≤ S
+    Cond(S,S,S) (ints)
+    S ≤ S       (ints)
 
 Qsort
   BGW, SPDZ
-    Cond(S,S,S)
-    S ≤ S
-    S + S
-    S - S
+    Cond(S,S,S) (ints)
+    S ≤ S       (ints)
+    S + S       (ints)
+    S - S       (ints)
 
 GCD/Euclid
   Yao, BGV
-    S ≡ const
-    Cond(S,S,S)
-    S % S
-    S < S
+    S ≡ const   (ints)
+    Cond(S,S,S) (ints)
+    S % S       (ints)
+    S < S       (ints)
 
 Karmakar
   SPDZ (with floats)
@@ -29,23 +27,25 @@ Karmakar
     S * S
     S * const   -- ?
     S / S
-    (↓ Low priority (only needed if early returns are required))
+    -- (↓ Low priority (only needed if early returns are required))
     Cond(S,S,S)
     S ≤ S
 
-DB-Stats
+DB-Stats (Unsure about this one until it's finished)
   BGV
-    Cond(S,S,S)
-    S ≡ S
-    S < S
-    (↓ used for avg and std-dev over lists of secrets with secret lengths)
-    S + S
-    S * S
-    S / S
+    Cond(S,S,S) (unsigned ints)
+    S ≡ S       (unsigned ints)
+    S < S       (unsigned ints)
+    S - S       (unsigned ints, looks like it shouldn't be possible to underflow)
+    -- (↓ used only for avg and std-dev over lists of secrets with secret lengths)
+    S + S       (unsigned ints)
+    S * S       (unsigned ints)
+    S / S       (unsigned ints)
 
 ATQ
   BGW, SPDZ
-    Cond(S,S,S)
-    S ≡ S
-    S ≤ S (for sorting a list of ints)
+    Cond(S,S,S) (ints, bools, and principals)
+    S ≡ S       (ints, bools, and principals)
+    S ≤ S       (for sorting a list of ints)
+    S % 2       (or is-even)
 
