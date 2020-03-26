@@ -75,10 +75,20 @@ fPrecFrIPrec = \case
 getType ∷ Val → 𝕊
 getType = \case
   BoolV _ → "bool"
+  StrV _ → "string"
   NatV p _ → "nat"⧺iprecisionSuffix p
   IntV p _ → "int"⧺iprecisionSuffix p
   FltV p _ → "flt"⧺fprecisionSuffix p
+  BulV → "bul"
+  LV _ → "left"
+  RV _ → "right"
+  PairV _ _ → "pair"
+  NilV → "list"
+  ConsV _ _ → "list"
+  CloV _ _ _ _ → "clo"
+  TCloV _ _ _ → "tclo"
   PrinV _ → "prin"
+  PrinSetV _ → "prinset"
 
 getTypeMPC ∷ ValMPC → 𝕊
 getTypeMPC = \case

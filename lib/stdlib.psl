@@ -39,6 +39,11 @@ def append xs ys = foldr (fun x zs -> x :: zs) ys xs
 def concat : list (list a) -> list a
 def concat = foldr (fun xs xss -> append xs xss) []
 
+def zip xs ys = case (xs,ys)
+  { ([],_) → []
+  ; (_,[]) → []
+  ; (x∷xs',y∷ys') → (x,y)∷(zip xs' ys')
+  }
 
 -- List map.
 def map : (a -> b) -> list a -> list b
@@ -76,3 +81,73 @@ def sequenceKnownness knowers xs =
   let n' = send {knowers -> this} n
   in sequenceKnownnessN {knowers} n' 0 xs
 
+def obliv-head : ∀ P:☆. ℤ → (list ℤ){isec:P} → ℤ{isec:P}
+def obliv-head P i xs = solo {P} as α in case xs.α
+  { [] → i
+  ; x∷_ → x
+  }
+
+def obliv-tail : ∀ P:☆. (list ℤ){isec:P} → (list ℤ){isec:P}
+def obliv-tail P xs = solo {P} as α in case xs.α
+  { [] → []
+  ; _∷xs′ → xs′
+  }
+
+def preprocess-lists : (P:ℙ) → ℕ → ℤ → (list ℤ){isec:P} → list ℤ{isec:P}
+def preprocess-lists P n i xs =
+  if n <= 0
+  then []
+  else
+    let x′ : ℤ{isec:P}
+    let x′ = obliv-head P i xs
+    let xs′ : list ℤ{isec:P}
+    let xs′ = preprocess-lists P (n - 1) i (obliv-tail P xs)
+    in
+    x′ ∷ xs′
+
+-- Merge sort, copy and pasted and modified slightly, used by atq
+--def list-cond :
+--    𝔹{yao:C}
+--  → list ℤ{yao:C}
+--  → list ℤ{yao:C}
+--  → list ℤ{yao:C}
+def list-cond b xs ys = case xs,ys
+  { [],_ → ys
+  ; _,[] → xs
+  ; x∷xs′,y∷ys′ → b ? x ◇ y ∷ list-cond b xs′ ys′
+  }
+
+--def split : list ℤ{isec:A,B} → list ℤ{isec:A,B} × list ℤ{isec:A,B}
+def split xs = case xs
+  { [] → [] , []
+  ; [x] → [] , [x]
+  ; x₁∷x₂∷xs →
+      let xs₁,xs₂ = split xs
+      in x₁∷xs₁,x₂∷xs₂
+  }
+
+--def merge :
+--    list ℤ{yao:C}
+--  → list ℤ{yao:C}
+--  → list ℤ{yao:C}
+def merge xs ys = case xs,ys
+  { [],_ → ys
+  ; _,[] → xs
+  ; x∷xs′,y∷ys′ →
+      list-cond (x ≤ y)
+                (x ∷ merge xs′ ys)
+                (y ∷ merge xs ys′)
+  }
+
+--input is shares instead of isec
+--def msort : list ℤ{isec:A,B} → list ℤ{yao:C}
+def msort xs = case xs
+  { [] → []
+  ; [x] → [x]
+  ; x₁∷x₂∷xs′ →
+      let xs₁,xs₂ = split xs
+      let ys₁ = msort xs₁
+      let ys₂ = msort xs₂
+      in merge ys₁ ys₂
+  }
+-- Merge sort end

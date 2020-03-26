@@ -181,7 +181,9 @@ mpcFrVal v = case v of
   IntV pr i → return $ IntMV pr i
   FltV pr i → return $ FltMV pr i
   PrinV ρe → return $ PrinMV ρe
-  PrinSetV ρs → return $ PrinMV $ PowPEV ρs -- TODO: bad
+  PrinSetV ρv | psize ρv ≡ 1 →
+               let Some (pv :* _) = uncons𝑆 $ stream𝑃 ρv
+               in return $ PrinMV $ ValPEV pv
   _ → throwIErrorCxt TypeIError "mpcFrVal: v ∉ BoolV,NatV,IntV,FltV,PrinV" $ frhs
     [ ("v",pretty v)
     ]
