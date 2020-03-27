@@ -10,7 +10,6 @@ RUN : \
   && apt-get -qy install curl make \
   && curl -sSL -o install_stack https://get.haskellstack.org/ \
   && sh install_stack \
-  && stack install ghcid \
 ;
 
 COPY Makefile Makefile
