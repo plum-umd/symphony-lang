@@ -7,6 +7,7 @@
 
 EXTRA_DIST =
 EXTRA_DIST += $(psli_files)
+EXTRA_DIST += Dockerfile
 
 MOSTLYCLEANFILES =
 MOSTLYCLEANFILES += psli
@@ -45,7 +46,24 @@ psli_files += stack.yaml
 
 ## begin_rules
 
+.PHONY: FORCE
+.PHONY: docker
+
 FORCE:
+
+docker: $(psli_files)
+docker: Dockerfile
+docker: FORCE
+	@case '$(DOCKER)' in \
+	  '') \
+	    printf 'DOCKER is unset\n' >&2; \
+	    exit 1; \
+	  ;; \
+	esac
+	{ \
+	  $(copy_vpath_files); \
+	  $(DOCKER) build -t psl . || exit; \
+	}
 
 mostlyclean-local: psli/clean
 
