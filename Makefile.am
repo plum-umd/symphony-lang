@@ -77,9 +77,9 @@ psli: $(psli_files)
 	}
 
 psli/clean: FORCE
-	-{ \
+	{ \
 	  $(copy_vpath_files); \
-	  $(STACK) clean --full || exit; \
+	  $(STACK) clean --full || :; \
 	}
 	-rm -f psl.cabal stack.yaml.lock
 
