@@ -1,36 +1,18 @@
 principal A[2] -- Parties who supply just integers
 principal B[2] -- Parties who supply both integers and queries
+principal Dummy
 
 -- basic functions
 
-def length :
-    list ℤ{bgw:A,B}
-  → ℤ
-def length xs = case xs
-  { [] → 0
-  ; x∷xs' → length xs' + 1
-  }
-
-def elem :
-    ℤ{bgw:A,B}
-  → list ℤ{bgw:A,B}
+def elem-triple :
+    (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
+  → list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
   → 𝔹{bgw:A,B}
-def elem y xs = case xs
-  { [] → share{bgw:A,B} false
-  ; x∷xs →
-    let b = x == y
-    in b ? (share{bgw:A,B} true) ◇ (elem y xs)
-  }
-
-def elem-pair :
-    (ℤ{bgw:A,B} × ℙ{bgw:A,B})
-  → list (ℤ{bgw:A,B} × ℙ{bgw:A,B})
-  → 𝔹{bgw:A,B}
-def elem-pair y xs = case (xs,y)
-  { ([],_) → share{bgw:A,B} false
-  ; ((a,b)∷xs,(a',b')) →
+def elem-triple y xs = case (xs,y)
+  { ([],_) → false
+  ; ((_,(a,b))∷xs,(a',b')) →
     let b = (a == a') && (b == b')
-    in b ? (share{bgw:A,B} true) ◇ (elem-pair y xs)
+    in b ? true ◇ (elem-triple y xs)
   }
 
 def elem-at :
@@ -38,114 +20,95 @@ def elem-at :
   → list ℤ{bgw:A,B}
   → ℤ{bgw:A,B}
 def elem-at i xs = case xs
-  { [] → share{bgw:A,B} -1
+  { [] → -1
   ; x∷xs' →
-    let b = i ≡ (share{bgw:A,B} 0)
-    in b ? x ◇ (elem-at (i - (share{bgw:A,B} 1)) xs')
+    let b = i ≡ 0
+    in b ? x ◇ (elem-at (i - 1) xs')
   }
-
 
 -- query functions
 
 def min : list ℤ{bgw:A,B} → ℤ{bgw:A,B}
 def min xs = case xs
-  { [x] → x
-  ; x∷xs' →
-    let y = min xs'
-    let b = ((x ≥ 0) && (x < y)) || (y < 0)
-    in b ? x ◇ y
+  { x∷_ → x
   }
-
 
 def max : list ℤ{bgw:A,B} → ℤ{bgw:A,B}
 def max xs = case xs
   { [x] → x
-  ; x∷xs' →
-    let y = max xs'
-    let b = ((x ≥ 0) && (x > y)) || (y < 0)
-    in b ? x ◇ y
+  ; _∷xs' → max xs'
   }
 
-
 def median : list ℤ{bgw:A,B} → ℤ{bgw:A,B}
-def median xs = share{bgw:A,B} 0 -- not implemented
+def median xs =
+  let l = length xs
+  let idx = l / 2
+  let idx' = ((l % 2) ≡ 0) ? (idx - 1) ◇ idx
+  in elem-at idx' xs
 
-
-def num-unique-rec : list ℤ{bgw:A,B} → list ℤ{bgw:A,B} → ℤ{bgw:A,B} → ℤ{bgw:A,B}
-def num-unique-rec xs seen = case xs
-  { [] → length seen
-  ; x∷xs →
-    let b = (x < 0) || (elem x seen)
-    in b ? num-unique-rec xs seen ◇ num-unique-rec xs (x∷seen)
+def num-unique-rec : list ℤ{bgw:A,B} → ℤ{bgw:A,B} → ℤ{bgw:A,B}
+def num-unique-rec xs last = case xs
+  { [] → 0
+  ; x∷xs' →
+    let b = x ≡ last
+    in (num-unique-rec xs' x) + (b ? 0 ◇ 1)
   }
 
 def num-unique : list ℤ{bgw:A,B} → ℤ{bgw:A,B}
-def num-unique xs = num-unique-rec xs []
+def num-unique xs = case xs
+  { [] → 0
+  ; x∷xs' → (num-unique-rec xs' x) + 1
+  }
 
 -- mpc/list manip
 
-def pfold : ∀ A:☆,P:ℙ. ℤ → ((Q:ℙ | Q⊆P) → ℤ{Q} → A → A) → ℤ{isec:P} →{sec:P} A
-def pfold i f xy = case xy
-  { ⟪⟫ → i
-  ; ⟪Q.x⟫⧺xy′ → f Q x (pfold i f xy′)
-  }
-
-def obliv-head : ∀ P:ℙ. ℤ → (list ℤ){isec:P} → ℤ{isec:P}
-def obliv-head P i xs = {P} case xs
-  { [] → i
-  ; x∷_ → x
-  }
-
-def obliv-tail : ∀ P:ℙ. (list ℤ){isec:P} → (list ℤ){isec:P}
-def obliv-tail P xs = {P} case xs
-  { [] → []
-  ; _∷xs′ → xs′
-  }
-
-def preprocess-lists : (P:ℙ) → ℕ → ℤ → (list ℤ){isec:P} → list ℤ{isec:P}
-def preprocess-lists P n i xs =
-  if n <= 0 
-  then []
-  else
-    let x′ : ℤ{isec:P}
-    let x′ = obliv-head P i xs
-    let xs′ : list ℤ{isec:P}
-    let xs′ = preprocess-lists P (n - 1) i (obliv-tail P xs)
-    in 
-    x′ ∷ xs′
-
-def append :
-    list ℤ{bgw:A,B}
-  → list ℤ{bgw:A,B}
-  → list ℤ{bgw:A,B}
-def append xs ys = case xs
-  { [] → ys
-  ; (x∷xs) → append xs (x∷ys)
-  }
-
-def combine-lists : list ℤ{isec:A,B} → list ℤ{bgw:A,B}
-def combine-lists xs = case xs
-  { [] → []
-  ; x∷xs' → append (pfold [] (λ Q x' i → (share{bgw:A,B} x') ∷ i) x) (combine-lists xs')
-  }
-
-def zip xs ys = case (xs,ys)
-  { ([],_) → []
-  ; (_,[]) → []
-  ; (x∷xs',y∷ys') → (x,y)∷(zip xs' ys')
-  }
-
 def remove-dups :
-    list (ℤ{bgw:A,B} × ℙ{bgw:A,B})
-  → list (ℤ{bgw:A,B} × ℙ{bgw:A,B})
+    list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
+  → list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
 def remove-dups qs = case qs
   { [] → []
-  ; (q,t)∷qs' →
-    let b = elem-pair (q,t) qs'
-    let h1 = b ? share{bgw:A,B} (-1) ◇ q
-    let h2 = b ? share{bgw:A,B} set(A,B) ◇ t
-    in (h1,h2)∷(remove-dups qs')
+  ; (a,(q,t))∷qs' →
+    let b = elem-triple (q,t) qs'
+    let a' = b ? false ◇ a
+    let q' = b ? -1 ◇ q
+    let t' = b ? {Dummy} ◇ t
+    in (a',(q',t'))∷(remove-dups qs')
   }
+
+def pair-with-list v xs = case xs
+  { [] → []
+  ; x∷xs' → (v, x)∷(pair-with-list v xs')
+  }
+
+def share-triple p t x = case x
+  { (v₁,(v₂,v₃)) → (share{bgw:p → t} v₁, (share{bgw:p → t} v₂, share{bgw:p → t} v₃))
+  }
+
+def get-head-or-default p ys d =
+  par {p} case ys
+    { [] → d
+    ;y∷_ → y
+    }
+
+def p-lists-n-triples p t len zs d =
+  if len == 0
+  then []
+  else
+    let v = get-head-or-default p zs d
+    let b = par {p} fst v
+    let q = par {p} fst (snd v)
+    let tr = par {p} snd (snd v)
+    in (share{bgw:p → t} b, (share{bgw:p → t} q, share{bgw:p → t} tr)) ∷ (p-lists-n-triples p t (len - 1) (par {p} tail zs) d)
+
+def p-lists-n p t len zs d =
+  if len == 0
+  then []
+  else (share{bgw:p → t} (get-head-or-default p zs d)) ∷ (p-lists-n p t (len - 1) (par {p} tail zs) d)
+
+def p-lists p t xs d =
+  let l = par {p} length xs
+  let l' = send {p → t} l
+  in p-lists-n p t l' xs d
 
 -- atq
 
@@ -155,51 +118,47 @@ def run-queries :
 def run-queries xs = (min xs) ∷ (max xs) ∷ (median xs) ∷ (num-unique xs) ∷ []
 
 def send-result :
-    (t : ℙ{ssec:A,B})
-  → list ℤ{bgw:A,B}
+    ℙ{bgw:A,B}
+  → (t : ℙ{ssec:A,B})
   → ℤ{bgw:A,B}
-  → ℤ{ssec:t}
-def send-result t results q =
-  reveal{t} (elem-at q results)
+  → 𝔹{bgw:A,B}
+  → list (𝔹{ssec:t} × ℤ{ssec:t}) --Not an accurate type
+def send-result P t r a = case P
+  { {} → []
+  ; {p}∪P' →
+    let b = a ? (t ≡ p) ◇ false
+    let v = a ? ((t ≡ p) ? r ◇ -1) ◇ -1
+    in (reveal {p} b, reveal {p} v) ∷ (send-result P' t r a)
+  }
 
 def send-results :
     list ℤ{bgw:A,B}
-  → list (ℤ{bgw:A,B} × ℙ{bgw:A,B})
+  → list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
   → list ℤ{ssec:any}
 def send-results results ps = case ps
   { [] → []
-  ; (q,t)∷ps' → (send-result (reveal{A,B} t) results q) ∷ (send-results results ps')
+  ; (a,(q,t))∷ps' → (send-result {A,B} (reveal{A,B} t) (elem-at q results) a) ∷ (send-results results ps')
   }
 
 def main : 𝟙 →{inp:A,B;rev:A,B} list ℤ{ssec:any}
 def main • =
   let xs-pre : (list ℤ){isec:A,B}
-  let xs-pre = {par:A,B} read (list ℤ) "atq-data.txt"
+  let xs-pre = solo {A,B} as α in read (list ℤ) "atq-data.txt"
   let qs-pre : (list ℤ){isec:B}
-  let qs-pre = {par:B} read (list ℤ) "atq-queries.txt"
+  let qs-pre = solo {B} as α in read (list ℤ) "atq-queries.txt"
   let ts-pre : (list ℙ){isec:B}
-  let ts-pre = {par:B} read (list ℙ) "atq-targets.txt"
-  
-  let xs : list ℤ{isec:A,B}
-  let xs = preprocess-lists set(A,B) 2 -1 xs-pre
-  let qs : list ℤ{isec:B}
-  let qs = preprocess-lists set(B) 3 -1 qs-pre
-  let ts : list ℙ{isec:B}
-  let ts = preprocess-lists set(B) 3 set(A,B) ts-pre
+  let ts-pre = solo {B} as α in read (list ℙ) "atq-targets.txt"
 
-  let xs' : list ℤ{bgw:A,B}
-  let xs' = combine-lists xs
-  let qs' : list ℤ{bgw:A,B}
-  let qs' = combine-lists qs
-  let ts' : list ℙ{bgw:A,B}
-  let ts' = combine-lists ts
-
-  let ps : list (ℤ{bgw:A,B} × ℙ{bgw:A,B})
-  let ps = zip qs' ts'
-  let ps' : list (ℤ{bgw:A,B} × ℙ{bgw:A,B})
-  let ps' = remove-dups ps
-
+  let xs : list ℤ{bgw:A,B}
+  let xs = par {A,B} msort (concat (fold-f [] (λ P x i → (p-lists P {A,B} x 0) ∷ i) xs-pre))
   let results : list ℤ{bgw:A,B}
-  let results = run-queries xs'
+  let results = par {A,B} run-queries xs
 
-  in {par:A,B} send-results results ps'
+  let qs = solo {B} as α in (pair-with-list true (zip qs-pre.α ts-pre.α))
+  let qs' = concat (fold-f [] (λ P x i → (p-lists-n-triples P {A,B} 3 x (false,(-1,{Dummy}))) ∷ i) qs)
+
+  let qs'' : list (ℤ{bgw:A,B} × ℙ{bgw:A,B})
+  let qs'' = remove-dups qs'
+
+  in par {A,B} send-results results qs''
+
