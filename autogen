@@ -19,4 +19,6 @@ autogen_downloads build-aux/downloads
 autogen_ac_finish
 autogen_am_finish
 
-autoreconf -fi
+autoreconf -fivW all
+
+echo success
