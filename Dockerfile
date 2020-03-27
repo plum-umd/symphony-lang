@@ -22,4 +22,4 @@ COPY src src
 COPY stack.yaml stack.yaml
 COPY tests tests
 
-RUN make build
+RUN make build psli
