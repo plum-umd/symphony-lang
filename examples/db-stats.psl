@@ -1,5 +1,7 @@
 principal Hosts[128]
-principal C[2] -- using yao for now until further clarification on how to specify closer
+principal C[2]
+
+-- using yao for now until further clarification on how to specify closer
 
 -- type Key1 = int{yao:C}
 -- type Key2 = int{yao:C}
@@ -21,23 +23,23 @@ principal C[2] -- using yao for now until further clarification on how to specif
 --               | ThresholdNotMet
 --               | Success
 
-def thresholdNotMet : Response
+-- def thresholdNotMet : Response
 -- bug, must add argument to this function
-def thresholdNotMet _ = R (L ())
+-- def thresholdNotMet _ = R (L ())
 
-def summary : Count -> Stats -> Stats -> Response
-def summary c s0 s1 = L (c, s0, s1)
+-- def summary : Count -> Stats -> Stats -> Response
+-- def summary c s0 s1 = L (c, s0, s1)
 
-def success : Response
+-- def success : Response
 -- bug, must add argument to this function
-def success _ = R (R ())
+-- def success _ = R (R ())
 
 
 -- data Input = Query Key | Insert Key Value
 
 -- type Database = [(Key, [Value])]
 
-def threshold : int#32
+def threshold : int
 def threshold = 5
 
 def update : Key -> Value -> Database -> Database
@@ -49,17 +51,15 @@ def update k v db = case db
       else (k', vs)::update k v rest
   }
 
-def median : list int#32{yao:C} -> Median
+def median : list int{yao:C} -> int{yao:C}
+def median = median
 
-def mean : list int#32{yao:C} -> Mean
+-- def mean : list int#32{yao:C} -> Mean
 
-def stdDev : list int#32{yao:C} -> StdDev
+-- def stdDev : list int#32{yao:C} -> StdDev
 
-def stats : list int#32{yao:C} -> Stats
-def stats xs = (median xs, mean xs, stdDev xs)
-
-def and : bool -> bool -> bool
--- def and x y = x && y
+-- def stats : list int#32{yao:C} -> Stats
+-- def stats xs = (median xs, mean xs, stdDev xs)
 
 def query : Key -> Database -> Response
 def query k db = case db
@@ -74,21 +74,20 @@ def query k db = case db
             else query k rest
   }
 
-def respond : Response -> Database -> Database
+-- def respond : Response -> Database -> Database
+-- def respond = respond
 -- How do we handle IO?
 
-def handler : Input -> Database -> (Database, Response)
+def handler : Input -> Database -> (Database * Response)
 -- Bug: the following is commented out because it does not compile due to parser
--- def handler input db = case input
--- { L x -> (update k x db, success _)
--- ; _ -> (db, query k db)
--- }
+def handler input db = case input
+  { L x -> (update k x db, success _)
+  ; _ -> (db, query k db)
+  }
 
+def main : unit -> list float
 def main () =
-  -- what is the correct way to read a custom type in?
-  -- let queries = {par:C} read Input "db-stats.txt"
-  let inputs = {par:C} read int "db-stats.txt"
-  in prin_fold{ C } [ [] ] (fun party db ->
-    let (db', resp) = handler (share inputs)
-    let _ = write (reveal{party} resp)
-    db')
+  -- let l = 100 :: 2 :: 3 :: 4 :: 5 :: 1000 :: 8 :: 9 :: 99 :: []
+  let l = 1.0 :: 2.0 :: 3.0 :: 4.0 :: 5.0 :: 6.0 :: 7.0 :: 8.0 :: 9.0 :: 10.0 :: []
+  -- in sort natminmax l
+  in stddev l
