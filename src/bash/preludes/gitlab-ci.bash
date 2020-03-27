@@ -16,7 +16,7 @@ export TMPDIR
 #
 #
 
-. src/bash/preludes/standard.bash || exit
+set -e; . src/bash/preludes/standard.bash
 
 #
 # Turn on command tracing so we can see what's going on in the job log
