@@ -51,8 +51,46 @@ def update k v db = case db
       else (k', vs)::update k v rest
   }
 
-def median : list int{yao:C} -> int{yao:C}
-def median = median
+
+def bgvminmax
+   : int{bgv:C}
+  -> int{bgv:C}
+  -> (int{bgv:C} * int{bgv:C})
+def bgvminmax x y =
+  if x < y then x, y else y, x
+
+
+def med : list int{bgv:C} -> int{bgv:C}
+def med = median bgvminmax 0
+
+
+def sum : list float -> float
+def sum = foldr (fun x y -> x + y) 0.0
+
+
+def mean : list int{bgv:C} -> float{bgv:C}
+def mean xs = to_flt (sum xs) / to_flt (length xs)
+
+
+def stddev : list float -> float
+def stddev xs =
+  let m = mean xs
+  let square = fun x -> x * x
+  let diffs = map (fun x -> square (x - m)) xs
+  in sqrt (mean diffs)
+
+
+def natminmax : nat -> nat -> (nat * nat)
+def natminmax x y = if x < y then x, y else y, x
+
+
+def floatminmax : float -> float -> (float * float)
+def floatminmax x y = if x < y then x, y else y, x
+
+
+
+
+
 
 -- def mean : list int#32{yao:C} -> Mean
 

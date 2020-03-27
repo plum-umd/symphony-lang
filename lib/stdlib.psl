@@ -15,6 +15,7 @@ def fold-f i f xs = case xs
 def fst : (a * b) -> a
 def fst x = case x { (a, _) -> a }
 
+
 def snd : (a * b) -> a
 def snd x = case x { (_, b) -> b }
 
@@ -66,6 +67,7 @@ def insert minmax x xs = case xs
       let lo, hi = minmax x x'
       in lo :: insert minmax hi xs'
   }
+
 
 -- Oblivious friendly sort. Always O(n^2)
 def sort : (a -> a -> (a * a)) -> list a -> list a
