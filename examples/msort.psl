@@ -40,8 +40,8 @@ def msort : list ℤ{isec:A,B} → list ℤ{yao:C}
 def msort xs = case xs 
   { [] → []
   ; [xy] →
-      let x = share{yao:C} xy.A
-      let y = share{yao:C} xy.B
+      let x = share{yao:A -> C} xy.A
+      let y = share{yao:B -> C} xy.B
       let b = x ≤ y
       in [ b ? x ◇ y ; b ? y ◇ x ]
   ; x₁∷x₂∷xs′ →
@@ -61,34 +61,10 @@ def map f xs = case xs
   ; x∷xs′ → f x∷map f xs′
   }
 
-def obliv-head : ∀ P:☆. ℤ → (list ℤ){isec:P} → ℤ{isec:P}
-def obliv-head P i xs = {P} case xs
-  { [] → i
-  ; x∷_ → x
-  }
-
-def obliv-tail : ∀ P:☆. (list ℤ){isec:P} → (list ℤ){isec:P}
-def obliv-tail P xs = {P} case xs
-  { [] → []
-  ; _∷xs′ → xs′
-  }
-
-def preprocess-lists : (P:ℙ) → ℕ → ℤ → (list ℤ){isec:P} → list ℤ{isec:P}
-def preprocess-lists P n i xs =
-  if n <= 0 
-  then []
-  else
-    let x′ : ℤ{isec:P}
-    let x′ = obliv-head P i xs
-    let xs′ : list ℤ{isec:P}
-    let xs′ = preprocess-lists P (n - 1) i (obliv-tail P xs)
-    in 
-    x′ ∷ xs′
-
 def main : 𝟙 →{inp:A,B;rev:E} list ℤ{ssec:E}
 def main • = 
   let xys-pre : (list ℤ){isec:A,B}
-  let xys-pre = {par:A,B} read (list ℤ) "msort-input.txt"
+  let xys-pre = solo {A,B} as α in read (list ℤ) "msort-input.txt"
   let xys : list ℤ{isec:A,B}
-  let xys = preprocess-lists set(A,B) 5 0 xys-pre
+  let xys = preprocess-lists {A,B} 5 0 xys-pre
   in map (λ x → reveal{E} x) (msort xys)
