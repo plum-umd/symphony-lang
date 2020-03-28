@@ -3,27 +3,28 @@
 # directory tree for the first README file.
 #
 
-stages:
-  - stage1
-
-#
-#
-
 .builder-images:
   - &builder-images-ubuntu registry.stealthsoftwareinc.com/stealth/builder-images/ubuntu
 
 #
 #
 
+default:
+  image: *builder-images-ubuntu
+
+stages:
+  - stage1
+
+#
+#
+
 dist:
   artifacts: {paths: ["*.tar.*"]}
-  image: *builder-images-ubuntu
   script: [src/bash/scripts/gitlab-ci/dist]
   stage: stage1
   tags: [shared]
 
 docker:
-  image: ubuntu
-  script: [gitlab-ci/docker]
+  script: [src/bash/scripts/gitlab-ci/docker]
   stage: stage1
   tags: [shared]
