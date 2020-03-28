@@ -1,5 +1,26 @@
+#
+# For the copyright information for this file, please search up the
+# directory tree for the first README file.
+#
+
 stages:
   - stage1
+
+#
+#
+
+.builder-images:
+  - &builder-images-ubuntu registry.stealthsoftwareinc.com/stealth/builder-images/ubuntu
+
+#
+#
+
+dist:
+  artifacts: {paths: ["*.tar.*"]}
+  image: *builder-images-ubuntu
+  script: [src/bash/scripts/gitlab-ci/dist]
+  stage: stage1
+  tags: [shared]
 
 docker:
   image: ubuntu
