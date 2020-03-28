@@ -7,7 +7,6 @@
 
 EXTRA_DIST =
 EXTRA_DIST += $(psli_files)
-EXTRA_DIST += Dockerfile
 
 MOSTLYCLEANFILES =
 MOSTLYCLEANFILES += psli
@@ -51,9 +50,8 @@ psli_files += stack.yaml
 
 FORCE:
 
-docker: $(psli_files)
 docker: Dockerfile
-docker: FORCE
+docker: dist-gzip
 	@case '$(DOCKER)' in \
 	  '') \
 	    printf 'DOCKER is unset\n' >&2; \

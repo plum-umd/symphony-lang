@@ -70,6 +70,7 @@ dnl   ])
 
 ]GATBPS_WGET_SUBST[
 
+]AC_CONFIG_FILES([Dockerfile])[
 ]AC_CONFIG_FILES([Makefile])[
 
 ]AC_OUTPUT[
