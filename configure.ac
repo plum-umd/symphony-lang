@@ -68,12 +68,12 @@ dnl     psl_cv_stack_check=yes
 dnl   ])
 [
 
-]dnl begin_prerequisites
+]dnl begin_includes
 [
 
 ]GATBPS_CONFIG_FILE([Dockerfile])[
 
-]dnl end_prerequisites
+]dnl end_includes
 [
 
 ]dnl begin_prerequisites
