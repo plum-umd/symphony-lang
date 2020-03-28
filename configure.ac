@@ -68,9 +68,24 @@ dnl     psl_cv_stack_check=yes
 dnl   ])
 [
 
+]dnl begin_prerequisites
+[
+
+]GATBPS_CONFIG_FILE([Dockerfile])[
+
+]dnl end_prerequisites
+[
+
+]dnl begin_prerequisites
+[
+
+]GATBPS_CONFIG_FILE_SUBST[
+]GATBPS_CONFIG_LATER_SUBST[
 ]GATBPS_WGET_SUBST[
 
-]AC_CONFIG_FILES([Dockerfile])[
+]dnl end_prerequisites
+[
+
 ]AC_CONFIG_FILES([Makefile])[
 
 ]AC_OUTPUT[

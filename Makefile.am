@@ -91,6 +91,8 @@ include $(srcdir)/build-aux/autogen.am
 
 ## begin_includes
 
+include $(srcdir)/build-aux/GATBPS_CONFIG_FILE_RULES.am
+include $(srcdir)/build-aux/GATBPS_CONFIG_LATER_RULES.am
 include $(srcdir)/build-aux/GATBPS_WGET_RULES.am
 include $(srcdir)/build-aux/wget.am
 
