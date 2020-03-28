@@ -14,6 +14,8 @@ autogen_am_var_append hs_files \
   src/**/*.hs \
 ;
 
+autogen_am_var_append lib_files lib/**/*.psl
+
 autogen_downloads build-aux/downloads
 
 autogen_ac_finish

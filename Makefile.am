@@ -36,6 +36,11 @@ $(empty)
 
 hs_files =
 
+lib_files =
+
+nobase_pkgdata_DATA =
+nobase_pkgdata_DATA += $(lib_files)
+
 psli_files =
 psli_files += $(hs_files)
 psli_files += package.yaml
