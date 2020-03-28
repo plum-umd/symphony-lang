@@ -40,6 +40,24 @@ readonly DEBIAN_FRONTEND
 export DEBIAN_FRONTEND
 
 #
+# Log in to the GitLab Docker registry, if possible.
+#
+
+if command -v docker &>/dev/null; then
+  x1=${CI_REGISTRY_USER:+x}
+  x2=${CI_REGISTRY:+x}
+  x3=${CI_REGISTRY_PASSWORD:+x}
+  if [[ "$x1$x2$x3" == xxx ]]; then
+    docker login \
+      --username "$CI_REGISTRY_USER" \
+      --password-stdin \
+      "$CI_REGISTRY" \
+      <<<"$CI_REGISTRY_PASSWORD" \
+    ;
+  fi
+fi
+
+#
 # Determine whether we're running on an archivist runner.
 #
 

@@ -80,32 +80,36 @@ rundir=$PWD
 readonly rundir
 
 #
-# Set tmpdir to an absolute path to a directory to use for temporary
-# files. The directory will be deleted when the script exits. It will
-# not necessarily be empty when the prelude completes, as the prelude
-# itself may use temporary files.
+# Set root_tmpdir to an absolute path to a directory to use for
+# temporary files. The directory will be deleted when the script exits.
+#
+# Callers should not use root_tmpdir directly, as it will contain
+# temporary files used by the prelude, so file name collisions are a
+# risk. Instead, they should use tmpdir, which the prelude guarantees
+# will be an empty directory somewhere under root_tmpdir.
 #
 
-if tmpdir=$(mktemp -d); then
-  if [[ "$tmpdir" != /* ]]; then
-    tmpdir=$PWD/$tmpdir
+if root_tmpdir=$(mktemp -d); then
+  if [[ "$root_tmpdir" != /* ]]; then
+    root_tmpdir=$PWD/$root_tmpdir
   fi
 else
   n=10
   while ((--n >= 0)); do
-    tmpdir=${TMPDIR:-/tmp}/$RANDOM$RANDOM
-    if [[ "$tmpdir" != /* ]]; then
-      tmpdir=$PWD/$tmpdir
+    root_tmpdir=${TMPDIR:-/tmp}/$RANDOM$RANDOM
+    if [[ "$root_tmpdir" != /* ]]; then
+      root_tmpdir=$PWD/$root_tmpdir
     fi
-    mkdir "$tmpdir" && break || :
+    mkdir "$root_tmpdir" && break
   done
   if ((n < 0)); then
     barf 'unable to choose tmpdir'
   fi
 fi
-readonly tmpdir
-chmod 700 "$tmpdir"
-trap_append 'rm -fr "$tmpdir" || :' EXIT
+readonly root_tmpdir
+chmod 700 "$root_tmpdir"
+trap_append 'rm -f -r "$root_tmpdir" || :' EXIT
+tmpdir="$root_tmpdir"
 
 #
 #
@@ -187,3 +191,6 @@ EOF
 
   ;;
 esac
+
+tmpdir="$tmpdir"/caller
+mkdir "$tmpdir"
