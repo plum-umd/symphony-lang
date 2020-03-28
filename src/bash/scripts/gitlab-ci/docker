@@ -6,7 +6,7 @@
 
 set -e; . src/bash/preludes/gitlab-ci.bash
 
-ubuntu_install_images \
+ubuntu_install_packages \
   make \
   tar \
 ;
