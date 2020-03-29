@@ -7,6 +7,7 @@
 
 EXTRA_DIST =
 EXTRA_DIST += $(psli_files)
+EXTRA_DIST += VERSION
 
 MOSTLYCLEANFILES =
 MOSTLYCLEANFILES += psli
@@ -55,6 +56,10 @@ psli_files += stack.yaml
 
 FORCE:
 
+VERSION:
+	bash build-aux/VERSION.bash >VERSION$(TMPEXT)
+	mv VERSION$(TMPEXT) VERSION
+
 docker: Dockerfile
 docker: dist-gzip
 	@case '$(DOCKER)' in \
@@ -65,7 +70,7 @@ docker: dist-gzip
 	esac
 	{ \
 	  $(copy_vpath_files); \
-	  $(DOCKER) build -t psl . || exit; \
+	  $(DOCKER) build -t psl:$(PACKAGE_VERSION) . || exit; \
 	}
 
 mostlyclean-local: psli/clean

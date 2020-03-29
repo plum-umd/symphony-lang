@@ -7,7 +7,9 @@ dnl
 
 ]AC_INIT(
   [[PSL]],
-  [[0.1.0.0]],
+  m4_esyscmd_s([
+    bash build-aux/VERSION.bash
+  ])m4_if(m4_sysval, [0], [], [m4_fatal([VERSION.bash failed])]),
   [[]],
   [[psl]],
   [[]])[
