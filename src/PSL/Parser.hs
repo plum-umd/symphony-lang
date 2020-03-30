@@ -5,11 +5,12 @@ import UVMHS
 
 import PSL.Syntax
 
-levelIF,levelLAM,levelLET,levelPAR ∷ ℕ64
-levelIF   = 𝕟64 10
-levelLAM  = 𝕟64 10
-levelLET  = 𝕟64 10
-levelPAR  = 𝕟64 10
+levelIF,levelLAM,levelLET,levelPAR,levelUPDATE ∷ ℕ64
+levelIF     = 𝕟64 10
+levelLAM    = 𝕟64 10
+levelLET    = 𝕟64 10
+levelPAR    = 𝕟64 10
+levelUPDATE = 𝕟64 15
 
 levelCOMMA,levelASCR,levelCONS,levelREVEAL ∷ ℕ64
 
@@ -29,9 +30,11 @@ levelEXP     = 𝕟64 70
 levelAPP ∷ ℕ64
 levelAPP = 𝕟64 100
 
-levelCIRCUIT,levelACCESS ∷ ℕ64
-levelCIRCUIT = 𝕟64 120
-levelACCESS  = 𝕟64 130
+levelDEREF ∷ ℕ64
+levelDEREF = 𝕟64 120
+
+levelACCESS ∷ ℕ64 
+levelACCESS = 𝕟64 130
 
 levelMODE ∷ ℕ64
 levelMODE  = 𝕟64 200
@@ -54,6 +57,7 @@ lexer = lexerBasic puns kws prim ops
       , "⊆","c="
       , "#"
       , "|"
+      , "!","≔",":="
       ]
     kws = list
       [ "primitive"
@@ -74,6 +78,7 @@ lexer = lexerBasic puns kws prim ops
       , "solo","as"
       , "fold","on"
       , "par"
+      , "ref","array"
       ]
     prim = list
       [ "yao","gmw","bgw","bgv","spdz"
@@ -622,8 +627,8 @@ pExp = fmixfixWithContext "exp" $ concat
       ρes₂ ← pPrinExps
       cpSyntax "}"
       return $ ShareE φ ρes₁ ρes₂
-  -- e.ρ
-  , fmixPostfix levelACCESS $ do cpSyntax "." ; ρe ← pPrinExp ; return $ \ e → AccessE e ρe
+  -- e@ρ
+  , fmixPostfix levelACCESS $ do cpSyntax "@" ; ρe ← pPrinExp ; return $ \ e → AccessE e ρe
   -- ⟪⟫
   , fmixTerminal $ do concat [cpSyntax "⟪⟫",cpSyntax "<<>>"] ; return $ BundleE null
   -- ⟪ρ₁|e₁;…;ρₙ|eₙ⟫
@@ -692,6 +697,23 @@ pExp = fmixfixWithContext "exp" $ concat
       ρes ← pPrinExps
       cpSyntax "}"
       return $ SetE ρes
+  -- ref e
+  , fmixPrefix levelAPP $ do cpSyntax "ref" ; return RefE
+  -- !e
+  , fmixPrefix levelDEREF $ do cpSyntax "!" ; return RefReadE
+  -- e ≔ e
+  , fmixInfixR levelUPDATE $ do concat [cpSyntax "≔",cpSyntax ":="] ; return RefWriteE
+  -- array[e] e
+  , fmixPrefix levelAPP $ do
+      cpSyntax "array"
+      cpSyntax "["
+      e ← pExp
+      cpSyntax "]"
+      return $ ArrayE e
+  -- e.e
+  , fmixInfix levelACCESS $ do cpSyntax "." ; return ArrayReadE
+  -- e.e ← e
+  , fmixInfixR levelUPDATE $ do concat [cpSyntax "←",cpSyntax "<-"] ; return ArrayWriteE
   -- prim[⊙](e,…,e)
   , fmixInfixL levelPLUS $ do concat [cpSyntax "∨",cpSyntax "||"] ; return $ \ e₁ e₂ → PrimE "OR" $ list [e₁,e₂]
   , fmixInfixL levelTIMES $ do concat [cpSyntax "∧",cpSyntax "&&"] ; return $ \ e₁ e₂ → PrimE "AND" $ list [e₁,e₂]
@@ -735,6 +757,7 @@ pExp = fmixfixWithContext "exp" $ concat
                    siphon e $ SetE ρes) $ 
              siphon e $ 
              LamE None (single $ VarP x) e
+  -- fold e as x . x on e as x in e
   , fmixPrefix levelLET $ do
       cpSyntax "fold"
       e₁ ← pExp
@@ -754,6 +777,12 @@ pExp = fmixfixWithContext "exp" $ concat
                          e₂) $ 
                    siphon e $ LamE None (list [VarP x₁,VarP x₂,VarP x₃]) e) $ 
              e₁
+  -- do e in e
+  , fmixPrefix levelLET $ do
+      cpSyntax "do"
+      e ← pExp
+      void $ cpOptional $ cpSyntax "in"
+      return $ LetE (VarP $ var "") e
   ]
       
 ---------------

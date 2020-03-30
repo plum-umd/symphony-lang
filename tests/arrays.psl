@@ -1,0 +1,12 @@
+def main • =
+  let y = array[10] 0
+  let f = fun x → x + y.0 + y.9
+  do  y.0 ← 10
+  do  y.9 ← 100
+  do  y.1 ← 1000
+  let y = array[10] 20
+  in
+  f 1
+
+def expected = 111
+
