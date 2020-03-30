@@ -7,6 +7,8 @@
 
 EXTRA_DIST =
 EXTRA_DIST += $(psli_files)
+EXTRA_DIST += COMMIT
+EXTRA_DIST += DATE
 EXTRA_DIST += VERSION
 
 MOSTLYCLEANFILES =
@@ -53,6 +55,14 @@ psli_files += stack.yaml
 
 .PHONY: FORCE
 .PHONY: docker
+
+COMMIT:
+	bash build-aux/COMMIT.bash >COMMIT$(TMPEXT)
+	mv COMMIT$(TMPEXT) COMMIT
+
+DATE:
+	sh build-aux/DATE.sh >DATE$(TMPEXT)
+	mv DATE$(TMPEXT) DATE
 
 FORCE:
 
