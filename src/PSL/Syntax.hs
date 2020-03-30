@@ -184,7 +184,7 @@ data Type =
   | ℤT IPrecision                               --  ℤ#n.n                      /  int#n.n
   | 𝔽T FPrecision                               --  𝔽#n                        /  float#n
   | Type :+: Type                               --  τ + τ                      /  τ + τ
-  | Type :×: Type                               --  τ × τ                      /  τ × τ
+  | Type :×: Type                               --  τ × τ                      /  τ * τ
   | ListT Type                                  --  list τ                     /  list τ
   | Type :→: (Effect ∧ Type)                    --  τ →{η} τ                   /  τ ->{η} τ
   | (𝕏 ∧ Type ∧ 𝐿 Constr) :→†: (Effect ∧ Type)  --  (x : τ | c,…,c) →{η} τ     /  (x : τ | c,…,c) ->{η} τ
@@ -256,7 +256,7 @@ data ExpR =
   -- | SoloE (𝐿 PrinExp) Exp                 -- {P} e                 /  {P} e
   | ParE (𝐿 PrinExp) Exp                     -- par {P} e             /  par {P} e
   | ShareE Prot (𝐿 PrinExp) (𝐿 PrinExp) Exp  -- share{φ:P→P} e        /  share{φ:P->P} e
-  | AccessE Exp PrinExp                      -- e.ρ                   /  e.ρ
+  | AccessE Exp PrinExp                      -- e@ρ                   /  e@ρ
   | BundleE (𝐿 (PrinExp ∧ Exp))              -- ⟪ρ|e;…;ρ|e⟫           /  <<ρ|e;…;ρ|e>>
   | BundleUnionE Exp Exp                     -- e⧺e                   /  e++e
   | RevealE (𝐿 PrinExp) Exp                  -- reveal {P} e          /  reveal{P} e
@@ -270,6 +270,12 @@ data ExpR =
   | PrimE 𝕊 (𝐿 Exp)                          -- prim[⊙](e,…,e)        /  prim[⊙](e,…,e)
   | TraceE Exp Exp                           -- trace e in e          /  trace e in e
   | SetE (𝐿 PrinExp)                         -- {P}                   /  {P}
+  | RefE Exp                                 -- ref e                 /  ref e
+  | RefReadE Exp                             -- !e                    /  !e
+  | RefWriteE Exp Exp                        -- e ≔ e                 /  e := e
+  | ArrayE Exp Exp                           -- array[e] e            /  array[e] e
+  | ArrayReadE Exp Exp                       -- e.e                   /  e.e
+  | ArrayWriteE Exp Exp                      -- e ← e                 /  e <- e
   deriving (Eq,Ord,Show)
   -- [e₁;…;eₙ] ≜ e₁ ∷ ⋯ ∷ eₙ ∷ []
 makePrettySum ''ExpR

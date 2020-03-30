@@ -154,7 +154,7 @@ def main • =
   let results : list ℤ{bgw:A,B}
   let results = par {A,B} run-queries xs
 
-  let qs = solo {B} as α in (pair-with-list true (zip qs-pre.α ts-pre.α))
+  let qs = solo {B} as α in (pair-with-list true (zip qs-pre@α ts-pre@α))
   let qs' = concat (fold-f [] (λ P x i → (p-lists-n-triples P {A,B} 3 x (false,(-1,{Dummy}))) ∷ i) qs)
 
   let qs'' : list (ℤ{bgw:A,B} × ℙ{bgw:A,B})

@@ -4,11 +4,52 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 7f7e807e963e240d4c9329f15374b3e9be7592449addecdcf8a2f7de27d05cd2
+-- hash: fc2ca25d492d17a14760cc9b5de156f4d59d4b9752094c1f09e551a90205c821
 
 name:           psl
-version:        0.0.0.0
+version:        0.1.0.0
 build-type:     Simple
+data-files:
+    lib/stdlib.psl
+    examples/arg-par-contains.psl
+    examples/atq.psl
+    examples/bind-fp-const.psl
+    examples/bind-shares.psl
+    examples/cmp-fn-flt.psl
+    examples/cmp-tutorial.psl
+    examples/cmp-tutorial.psl.html
+    examples/cmp-tutorial.psl.pdf
+    examples/cmp.psl
+    examples/cmp.psl.html
+    examples/cmp.psl.pdf
+    examples/concat.psl
+    examples/cont-monad.psl
+    examples/db-stats.psl
+    examples/elim-sec-ls.psl
+    examples/empty-par-diverge.psl
+    examples/euclid-dh.psl
+    examples/euclid.psl
+    examples/indy-pars.psl
+    examples/karmarkar-decl.psl
+    examples/karmarkar-setup.psl
+    examples/karmarkar-silly.psl
+    examples/karmarkar-simple.psl
+    examples/karmarkar.psl
+    examples/mill.psl.sec
+    examples/msort.psl
+    examples/mult-depth-test.psl
+    examples/partial-diverge.psl
+    examples/pfold.psl
+    examples/qsort.psl
+    examples/rand.psl
+    examples/reshare.psl
+    examples/share-ls.psl
+    examples/ssec-other-ssec.psl
+    examples/ssec-shr.psl
+    examples/sumprod.psl
+    examples/test.psl
+    examples/uninspecting-par.psl
+    examples/yao.psl.bmi
 
 library
   exposed-modules:

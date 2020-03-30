@@ -90,13 +90,13 @@ def sequenceKnownness knowers xs =
   in sequenceKnownnessN {knowers} n' 0 xs
 
 def obliv-head : ∀ P:☆. ℤ → (list ℤ){isec:P} → ℤ{isec:P}
-def obliv-head P i xs = solo {P} as α in case xs.α
+def obliv-head P i xs = solo {P} as α in case xs@α
   { [] → i
   ; x∷_ → x
   }
 
 def obliv-tail : ∀ P:☆. (list ℤ){isec:P} → (list ℤ){isec:P}
-def obliv-tail P xs = solo {P} as α in case xs.α
+def obliv-tail P xs = solo {P} as α in case xs@α
   { [] → []
   ; _∷xs′ → xs′
   }
