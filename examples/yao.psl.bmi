@@ -1,0 +1,11 @@
+operations { 
+  XOR                -- primitive operations
+  AND                -- primitive operations
+}
+
+security {
+  semi-honest        -- an implementation is given for semi-honest
+  malicious          -- an implementation is given for malicious
+  parties: n=2       -- works for exactly 2 parties
+  corruptible: n<=1  -- up to 1 parties corruptible
+}
