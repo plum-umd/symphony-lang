@@ -14,6 +14,13 @@ dnl
   [[psl]],
   [[]])[
 
+]GATBPS_DEFINE_DATE(
+  [AC_],
+  [PACKAGE_DATE],
+  m4_esyscmd_s([
+    sh build-aux/DATE.sh
+  ])m4_if(m4_sysval, [0], [], [m4_fatal([DATE.sh failed])]))[
+
 ]AC_CONFIG_AUX_DIR([build-aux])[
 ]AC_CONFIG_MACRO_DIR([m4])[
 ]AC_CONFIG_MACRO_DIRS([m4])[
