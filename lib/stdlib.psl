@@ -11,6 +11,28 @@ def fold-f i f xs = case xs
   ; ⟪p|x⟫⧺xs′ → f p x (fold-f i f xs′)
   }
 
+
+def fst : (a * b) -> a
+def fst x = case x { (a, _) -> a }
+
+
+def snd : (a * b) -> a
+def snd x = case x { (_, b) -> b }
+
+
+def at : a -> nat -> list a -> a
+def at default ix xs = case xs
+  { [] -> default
+  ; (x::xs') -> if ix == 0
+                then x
+                else at default (ix - 1) xs'
+  }
+
+
+def head : a -> list a -> a
+def head default = at default 0
+
+
 -- Safe version of tail: If the list is empty, the tail of the list is the
 -- empty list.
 def tail : list int -> list int
@@ -27,9 +49,78 @@ def foldr f acc xs = case xs
   }
 
 
+-- List map.
+def map : (a -> b) -> list a -> list b
+def map f xs = foldr (fun x ys -> f x :: ys) [] xs
+
+
 -- Compute the length of a list.
 def length : list int -> int
 def length = foldr (fun _ n -> n+1) 0
+
+
+-- Oblivious friendly insert to list.
+def insert : (a -> a -> (a * a)) -> a -> list a -> list a
+def insert minmax x xs = case xs
+  { [] -> [x]
+  ; (x'::xs') ->
+      let lo, hi = minmax x x'
+      in lo :: insert minmax hi xs'
+  }
+
+
+-- Oblivious friendly sort. Always O(n^2)
+def sort : (a -> a -> (a * a)) -> list a -> list a
+def sort minmax = foldr (insert minmax) []
+
+
+def median : (a -> a -> (a * a)) -> a -> list a -> a
+def median minmax default xs =
+  at default (length xs / 2) (sort minmax xs)
+
+
+def sum : list float -> float
+def sum = foldr (fun x y -> x + y) 0.0
+
+
+def mean : list float -> float
+def mean xs = sum xs / to_flt (length xs)
+
+
+def stddev : list float -> float
+def stddev xs =
+  let m = mean xs
+  let square = fun x -> x * x
+  let diffs = map (fun x -> square (x - m)) xs
+  in sqrt (mean diffs)
+
+
+def natminmax : nat -> nat -> (nat * nat)
+def natminmax x y = if x < y then x, y else y, x
+
+
+def floatminmax : float -> float -> (float * float)
+def floatminmax x y = if x < y then x, y else y, x
+
+
+def split : nat -> list a -> (list a * list a)
+def split n xs =
+  if n == 0
+  then [], xs
+  else
+    case xs
+    { [] -> []
+    ; (x::xs') ->
+        let take, drop = split (n - 1) xs'
+        in x::take, drop
+    }
+
+
+def take : nat -> list a -> list a
+def take n xs = fst (split n xs)
+
+def drop : nat -> list a -> list a
+def drop n xs = snd (split n xs)
 
 
 def append : list a -> list a -> list a
@@ -52,11 +143,6 @@ def fst p = case p
 def snd p = case p
   { (_,s) → s
   }
-
--- List map.
-def map : (a -> b) -> list a -> list b
-def map f xs = foldr (fun x ys -> f x :: ys) [] xs
-
 
 -- Convert a known list into a list of known objects.
 -- The list will contain the first `n` elements of the known list.

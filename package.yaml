@@ -47,6 +47,7 @@ ghc-options:
 data-files:
   - lib/*
   - examples/*
+  - tests/*
 
 library:
   source-dirs: 
