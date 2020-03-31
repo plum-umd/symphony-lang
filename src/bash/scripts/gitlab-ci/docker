@@ -18,21 +18,24 @@ docker login \
   <<<"$CI_REGISTRY_PASSWORD" \
 ;
 
-image=$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG/psl
-readonly image
-
-tag=$(git log -1 --pretty=%ct)
-tag=$(date -ud @$tag +%Y-%m-%d-%H%M%S)
-tag=$tag-g$(git rev-parse --short HEAD)
-
 cd "$tmpdir"
 tar xzf "$rundir"/*.tar.gz
 cd *
 ./configure
 make docker
 
-docker tag psl:latest "$image:$tag"
-docker tag psl:latest "$image:latest"
+image=$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG/psl
+readonly image
 
-docker push "$image:$tag"
-docker push "$image:latest"
+tags=$(
+  docker images \
+    --filter 'reference=psl:*' \
+    --format '{{.Tag}}' \
+  ;
+)
+readonly tags
+
+for tag in $tags; do
+  docker tag psl:latest "$image:$tag"
+  docker push "$image:$tag"
+done
