@@ -27,7 +27,6 @@ sst_downloads = \
   m4/DEFINE_SED.m4 \
   m4/DEFINE_TAR.m4 \
   m4/DEFINE_WGET.m4 \
-  m4/DEFINE_XZ.m4 \
   src/bash/functions/array/array_contains.bash \
   src/bash/functions/autogen/autogen_ac_append.bash \
   src/bash/functions/autogen/autogen_ac_finish.bash \
