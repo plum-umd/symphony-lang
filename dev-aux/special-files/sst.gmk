@@ -78,7 +78,6 @@ sst_downloads = \
   src/bash/functions/jq/jq_expect_types_or_null.bash \
   src/bash/functions/jq/jq_inline.bash \
   src/bash/functions/make_j.bash \
-  src/bash/functions/opt/opt_parse.bash \
   src/bash/functions/path/path_get_prefix.bash \
   src/bash/functions/pick_max_procs.bash \
   src/bash/functions/protect_path.bash \
