@@ -28,7 +28,6 @@ gatbps_files += build-aux/echo.sh
 gatbps_files += build-aux/gen-configure.sh
 gatbps_files += build-aux/git.am
 gatbps_files += build-aux/gzip.am
-gatbps_files += build-aux/m4.am
 gatbps_files += build-aux/save-artifacts.sh
 gatbps_files += build-aux/sh-form.sh
 gatbps_files += build-aux/tar.am
