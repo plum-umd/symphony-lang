@@ -60,6 +60,9 @@ library:
     - filepath
     - random
     - uvmhs
+    - aeson
+    - bytestring
+    - random
 
 executables:
   psli:

@@ -1,0 +1,45 @@
+/*
+ * For the copyright information for this file, please search up the
+ * directory tree for the first README file.
+ */
+
+/*
+ * This is a short wrapper program for the real psli program. The real
+ * program gets installed to libexecdir and this one gets installed to
+ * bindir. This lets us set psl_datadir and friends to the right paths
+ * before running the real program. If some of these paths are already
+ * set, we of course let those ones pass through.
+ *
+ * Note that psl_dynlibdir is set to {@}libdir{@}/psl, as POSIX-like
+ * systems generally keep both shared and static libraries under libdir.
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+static void xsetenv(
+    char const * const envname,
+    char const * const envval,
+    int const overwrite) {
+  if (setenv(envname, envval, overwrite) != 0) {
+    perror("setenv");
+    exit(EXIT_FAILURE);
+  }
+}
+
+static void xexecv(char const * const path, char * const * const argv) {
+  execv(path, argv);
+  perror("execv");
+  exit(EXIT_FAILURE);
+}
+
+int main(int const argc, char ** const argv) {
+  xsetenv("psl_bindir", "{@}bindir{@}/psl", 0);
+  xsetenv("psl_datadir", "{@}datadir{@}/psl", 0);
+  xsetenv("psl_dynlibdir", "{@}libdir{@}/psl", 0);
+  xsetenv("psl_libdir", "{@}libdir{@}/psl", 0);
+  xsetenv("psl_libexecdir", "{@}libexecdir{@}/psl", 0);
+  xsetenv("psl_sysconfdir", "{@}sysconfdir{@}/psl", 0);
+  xexecv("{@}libexecdir{@}/psl/psli", argv);
+}

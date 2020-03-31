@@ -1,0 +1,13 @@
+##
+## For the copyright information for this file, please search up the
+## directory tree for the first README file.
+##
+
+## begin_variables
+
+bin_PROGRAMS += src/posix-like/bin/psli
+
+src_posix_like_bin_psli_SOURCES =
+src_posix_like_bin_psli_SOURCES += src/posix-like/bin/psli.c
+
+## end_variables
