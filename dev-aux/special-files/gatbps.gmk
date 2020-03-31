@@ -16,7 +16,6 @@ gatbps_files += build-aux/GATBPS_VPATH_SEARCH.am
 gatbps_files += build-aux/GATBPS_V_NOP.am
 gatbps_files += build-aux/GATBPS_V_PAD.am
 gatbps_files += build-aux/GATBPS_WGET_RULES.am
-gatbps_files += build-aux/INPUT_FILTER.sh.in
 gatbps_files += build-aux/cp.am
 gatbps_files += build-aux/docker.am
 gatbps_files += build-aux/echo.sh
