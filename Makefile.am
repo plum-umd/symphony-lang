@@ -36,8 +36,6 @@ copy_vpath_files = \
   done \
 $(prevent_an_empty_line)
 
-data_psldir = $(datadir)/psl
-
 hs_files =
 
 libexec_psl_SCRIPTS =
@@ -45,12 +43,14 @@ libexec_psl_SCRIPTS += psli
 
 libexec_psldir = $(libexecdir)/psl
 
-nobase_dist_data_psl_DATA =
+nobase_dist_share_psl_DATA =
 
 psli_files =
 psli_files += $(hs_files)
 psli_files += package.yaml
 psli_files += stack.yaml
+
+share_psldir = $(datadir)/psl
 
 ## end_variables
 

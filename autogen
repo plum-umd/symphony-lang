@@ -20,7 +20,7 @@ autogen_am_var_append_files \
 ;
 
 autogen_am_var_append_files \
-  nobase_dist_data_psl_DATA \
+  nobase_dist_share_psl_DATA \
     examples-data/**/* \
     examples/**/* \
     lib/**/* \
