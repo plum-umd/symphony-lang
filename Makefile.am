@@ -81,7 +81,8 @@ docker: dist-gzip
 	esac
 	{ \
 	  $(copy_vpath_files); \
-	  $(DOCKER) build -t psl:$(PACKAGE_VERSION) . || exit; \
+	  $(DOCKER) build -t psl:latest . || exit; \
+	  $(DOCKER) tag psl:latest psl:$(PACKAGE_VERSION) || exit; \
 	}
 
 mostlyclean-local: psli/clean
