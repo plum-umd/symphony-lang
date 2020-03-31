@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: fc2ca25d492d17a14760cc9b5de156f4d59d4b9752094c1f09e551a90205c821
+-- hash: db5468a9837ad865ce67282bb85986ad1c5460681c789bafe04f13c49fa3146d
 
 name:           psl
 version:        0.1.0.0
@@ -50,6 +50,24 @@ data-files:
     examples/test.psl
     examples/uninspecting-par.psl
     examples/yao.psl.bmi
+    tests/andor.psl
+    tests/arrays.psl
+    tests/bgv.psl
+    tests/bind-shares.psl
+    tests/flt-arith.psl
+    tests/fold.psl
+    tests/micro-let.psl
+    tests/natfold.psl
+    tests/overflow-int.psl
+    tests/overflow-nat.psl
+    tests/refs.psl
+    tests/reveal-ssec.psl
+    tests/solo.psl
+    tests/sums.psl
+    tests/this.psl
+    tests/underflow-int.psl
+    tests/underflow-nat.psl
+    tests/uninspecting-par.psl
 
 library
   exposed-modules:

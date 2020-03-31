@@ -558,7 +558,8 @@ psliMainRun = do
     [ ppHeader "INTERPRETING FILE:"
     , ppString fn
     ]
-  σtl :* _ ← interpretFile γtl σtl₀ "lib/stdlib.psl"
+  libpath ← string ^$ getDataFileName $ chars "lib/stdlib.psl"
+  σtl :* _ ← interpretFile γtl σtl₀ libpath
   v ← fst ^$ interpretFileMain γtl σtl fn
   pprint $ ppHeader "RESULT"
   pprint v
@@ -593,8 +594,10 @@ psliMainTest = do
   let γtl = initializeEnv os
   out ""
   pprint $ ppHeader "TESTING INTERPRETER"
-  σtl :* _ ← interpretFile γtl σtl₀ "lib/stdlib.psl"
-  indir "tests" $ do
+  libpath ← string ^$ getDataFileName $ chars "lib/stdlib.psl"
+  σtl :* _ ← interpretFile γtl σtl₀ libpath
+  testsdir ← string ^$ getDataFileName $ chars "tests"
+  indir testsdir $ do
     fns ← files
     vevs ← mapMOn fns $ \ fn → do
       initializeIO os
