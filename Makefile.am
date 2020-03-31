@@ -40,8 +40,10 @@ datadir_psldir = $(datadir)/psl
 
 hs_files =
 
-libexec_SCRIPTS =
-libexec_SCRIPTS += psli
+libexec_psl_SCRIPTS =
+libexec_psl_SCRIPTS += psli
+
+libexec_psldir = $(libexecdir)/psl
 
 nobase_dist_datadir_psl_DATA =
 
