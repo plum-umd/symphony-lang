@@ -40,6 +40,7 @@ dnl
 [
 
 ]m4_include([build-aux/autogen.ac])[
+]m4_include([src/posix-like/bin/psli.ac])[
 
 ]dnl end_includes
 [

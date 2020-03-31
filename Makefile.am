@@ -16,8 +16,7 @@ MOSTLYCLEANFILES += psli
 
 TMPEXT = .tmp
 
-bin_SCRIPTS =
-bin_SCRIPTS += psli
+bin_PROGRAMS =
 
 copy_vpath_files = \
   vpath_files=; \
@@ -40,6 +39,9 @@ $(empty)
 hs_files =
 
 lib_files =
+
+libexec_SCRIPTS =
+libexec_SCRIPTS += psli
 
 nobase_dist_pkgdata_DATA =
 nobase_dist_pkgdata_DATA += $(lib_files)
@@ -106,6 +108,7 @@ psli/clean: FORCE
 ## begin_includes
 
 include $(srcdir)/build-aux/autogen.am
+include $(srcdir)/src/posix-like/bin/psli.am
 
 ## end_includes
 
@@ -113,6 +116,7 @@ include $(srcdir)/build-aux/autogen.am
 
 include $(srcdir)/build-aux/GATBPS_CONFIG_FILE_RULES.am
 include $(srcdir)/build-aux/GATBPS_CONFIG_LATER_RULES.am
+include $(srcdir)/build-aux/GATBPS_VPATH_SEARCH.am
 include $(srcdir)/build-aux/GATBPS_WGET_RULES.am
 include $(srcdir)/build-aux/wget.am
 
