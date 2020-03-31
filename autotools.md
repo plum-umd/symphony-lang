@@ -1,33 +1,31 @@
 PSL includes an Autotools-based build system that provides a
-conventional POSIX-like workflow for building and installing PSL.
+conventional POSIX-like workflow for building and installation.
+There are three main steps to using the build system:
 
-Working with this build system differs slightly depending on whether
-you're working with the PSL Git repository or with a PSL distribution
-archive.
-The former you would have acquired by running `git clone`, and the
-latter you would have acquired by downloading an archive whose name
-looks like `psl-<VERSION>.tar.gz`.
+1. Initializing the build system.
+2. Configuring the build system.
+3. Running the build system.
 
-The difference is that when working with the Git repository, you must
-manually initialize the build system, whereas with the distribution
-archive, the build system comes pre-initialized.
-The former is typically used by people who are interested in doing
-development work on PSL itself (e.g., the PANTHEON team), whereas the
-latter is typically used by people who are only interested in building
-and installing PSL and using it to develop PSL programs.
+You should skip the first step if you're working with a distribution
+archive, which you would have acquired by downloading and extracting an
+archive file whose name looks like `psl-<VERSION>.tar.gz`.
+Otherwise, you're working with the Git repository, which you must have
+acquired by running `git clone` (or equivalent).
+In this case, you cannot skip the first step.
 
-Since the build system works the same way once it's initialized, we'll
-first discuss how to initialize it when working with the Git repository.
+Distribution archives are typically used by people who are only
+interested in building and installing PSL to use it to develop PSL
+programs.
+The Git repository is typically used by people who are interested in
+doing development on PSL itself (e.g., the PANTHEON team).
 
 ## Initializing the build system
 
-**IMPORTANT:** If you are working with a distribution archive instead of
-the Git repository, you should skip this section.
+**IMPORTANT:**
+You should skip this step if you're working with a distribution archive.
 
 Initializing the build system requires the following tools to be
-installed on your system.
-This list of tools is much more developer oriented than the list of
-tools required after the build system is initialized:
+installed on your system:
 
 - Bash 4.4 or newer.
 - jq 1.5 or newer.
@@ -36,7 +34,10 @@ tools required after the build system is initialized:
 - GNU Automake 1.12.6 or newer.
 - GNU M4 1.4.16 or newer.
 
-To initialize the build system, simply run the following command:
+Note that this list of tools is much more developer oriented than the
+list of tools required by the next step.
+
+To initialize the build system, run the following command:
 
 ```
 ./autogen
@@ -46,4 +47,52 @@ Be sure to verify that the last line it prints is `success`.
 
 ## Configuring the build system
 
+Configuring the build system requires the following tools to be
+installed on your system:
+
+- Any C compiler.
+- Any `make` implementation.
+- The Haskell Tool Stack 2.1.3 or newer.
+
+The following tools are optional:
+
+- Docker 19.03.7 or newer.
+  This is necessary if you want to build the PSL Docker image.
+
+To configure the build system, run the following command:
+
+```
+./configure
+```
+
+There are also many options that can be given to `./configure`, which
+can be listed by running `./configure --help`.
+Some of these options will be familiar to you if you're familiar with
+building and installing other POSIX-like software from source.
+
+The most notable of the options are as follows:
+
+- `./configure STACK='foo'` can be used to specify how to run `stack`.
+
+- `./configure DOCKER='foo'` can be used to specify how to run `docker`.
+  For example, you might use `./configure DOCKER='sudo docker'`.
+
 ## Running the build system
+
+To run the build system, run the following command:
+
+```
+make
+```
+
+After doing this, the `psli` interpreter will be available in the
+current directory, and you can run it with `./psli`.
+
+To install it to your system, run the following command, replacing
+`sudo` with any equivalent if necessary:
+
+```
+sudo make install
+```
+
+After doing this, you can run `psli` from anywhere.
