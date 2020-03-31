@@ -40,7 +40,6 @@ sst_downloads = \
   src/bash/functions/autogen/autogen_am_var_append.bash \
   src/bash/functions/autogen/autogen_am_var_append_files.bash \
   src/bash/functions/autogen/autogen_downloads.bash \
-  src/bash/functions/autogen/autogen_gitbundles.bash \
   src/bash/functions/autogen/autogen_print_ac_header.bash \
   src/bash/functions/autogen/autogen_print_am_header.bash \
   src/bash/functions/barf.bash \
