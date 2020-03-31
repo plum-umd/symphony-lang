@@ -15,6 +15,7 @@ autogen_am_var_append_files() {
   local path
 
   name=$1
+  shift
 
   for path; do
     if [[ ! -d "$path" ]]; then
