@@ -39,19 +39,16 @@ sst_downloads = \
   src/bash/functions/autogen/autogen_am_start.bash \
   src/bash/functions/autogen/autogen_am_var_append.bash \
   src/bash/functions/autogen/autogen_am_var_append_files.bash \
-  src/bash/functions/autogen/autogen_c_cpp_tests.bash \
   src/bash/functions/autogen/autogen_downloads.bash \
   src/bash/functions/autogen/autogen_gitbundles.bash \
   src/bash/functions/autogen/autogen_print_ac_header.bash \
   src/bash/functions/autogen/autogen_print_am_header.bash \
-  src/bash/functions/autogen/autogen_texinfo.bash \
   src/bash/functions/barf.bash \
   src/bash/functions/cc.bash \
   src/bash/functions/config_h_get_string.bash \
   src/bash/functions/expect_c_identifier.bash \
   src/bash/functions/expect_safe_path.bash \
   src/bash/functions/gitlab_ci_docker_push_here.bash \
-  src/bash/functions/install_local_git.bash \
   src/bash/functions/jq/jq_expect.bash \
   src/bash/functions/jq/jq_expect_array.bash \
   src/bash/functions/jq/jq_expect_array_or_null.bash \
