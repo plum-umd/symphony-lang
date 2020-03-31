@@ -13,12 +13,13 @@ sed '
   s/^\([[:blank:]]*version\): .*$/\1: @PACKAGE_VERSION@/
 ' <package.yaml >package.yaml.in
 
-autogen_am_var_append hs_files \
-  main/**/*.hs \
-  src/**/*.hs \
+autogen_am_var_append_files \
+  hs_files \
+    main/**/*.hs \
+    src/**/*.hs \
 ;
 
-autogen_am_var_append \
+autogen_am_var_append_files \
   nobase_dist_datadir_psl_DATA \
     examples-data/**/* \
     examples/**/* \
