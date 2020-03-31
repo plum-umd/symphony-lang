@@ -16,6 +16,8 @@ autogen_am_var_append hs_files \
 
 autogen_am_var_append \
   nobase_dist_datadir_psl_DATA \
+    examples-data/**/* \
+    examples/**/* \
     lib/**/*.psl \
 ;
 
