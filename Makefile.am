@@ -34,7 +34,7 @@ copy_vpath_files = \
     rmdir $$x || exit; \
     cp $(srcdir)/$$x $$x || exit; \
   done \
-$(empty)
+$(prevent_an_empty_line)
 
 datadir_psldir = $(datadir)/psl
 
