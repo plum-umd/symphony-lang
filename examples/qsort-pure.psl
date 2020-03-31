@@ -5,6 +5,8 @@ principal B
 -- replace functional array implementation by arrays once done
 -- generalize to 64 players
 
+
+
 def index
   : nat{bgw:this}
   -> list flt{bgw:this}
