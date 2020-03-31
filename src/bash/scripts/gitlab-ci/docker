@@ -11,13 +11,6 @@ ubuntu_install_packages \
   tar \
 ;
 
-docker login \
-  --username "$CI_REGISTRY_USER" \
-  --password-stdin \
-  "$CI_REGISTRY" \
-  <<<"$CI_REGISTRY_PASSWORD" \
-;
-
 cd "$tmpdir"
 tar xzf "$rundir"/*.tar.gz
 cd *
