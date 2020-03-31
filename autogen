@@ -24,6 +24,7 @@ autogen_am_var_append_files \
     examples-data/**/* \
     examples/**/* \
     lib/**/* \
+    tests/**/* \
 ;
 
 autogen_downloads build-aux/downloads
