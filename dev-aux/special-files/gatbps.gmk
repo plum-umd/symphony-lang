@@ -66,7 +66,6 @@ gatbps_files += m4/GATBPS_DEFINE_LIB_CFLAGS.m4
 gatbps_files += m4/GATBPS_DEFINE_LIB_CXXFLAGS.m4
 gatbps_files += m4/GATBPS_DEFINE_LIB_LDFLAGS.m4
 gatbps_files += m4/GATBPS_DEFINE_TEXI2DVIFLAGS.m4
-gatbps_files += m4/GATBPS_DEFINE_VERSION.m4
 gatbps_files += m4/GATBPS_DOCKER_BUILD.m4
 gatbps_files += m4/GATBPS_DOCKER_BUILD_SUBST.m4
 gatbps_files += m4/GATBPS_GIT_ARCHIVE.m4
