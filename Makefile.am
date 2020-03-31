@@ -36,6 +36,8 @@ copy_vpath_files = \
   done \
 $(empty)
 
+datadir_psldir = $(datadir)/psl
+
 hs_files =
 
 lib_files =
@@ -43,8 +45,8 @@ lib_files =
 libexec_SCRIPTS =
 libexec_SCRIPTS += psli
 
-nobase_dist_pkgdata_DATA =
-nobase_dist_pkgdata_DATA += $(lib_files)
+nobase_dist_datdir_psl_DATA =
+nobase_dist_datdir_psl_DATA += $(lib_files)
 
 psli_files =
 psli_files += $(hs_files)
