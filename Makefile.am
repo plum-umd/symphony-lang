@@ -43,7 +43,7 @@ hs_files =
 libexec_SCRIPTS =
 libexec_SCRIPTS += psli
 
-nobase_dist_datdir_psl_DATA =
+nobase_dist_datadir_psl_DATA =
 
 psli_files =
 psli_files += $(hs_files)
