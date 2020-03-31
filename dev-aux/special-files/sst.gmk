@@ -19,7 +19,6 @@ sst_downloads = \
   m4/DEFINE_DOCKER.m4 \
   m4/DEFINE_GIT.m4 \
   m4/DEFINE_GREP.m4 \
-  m4/DEFINE_GZIP.m4 \
   m4/DEFINE_LN_S.m4 \
   m4/DEFINE_MAKEINFO.m4 \
   m4/DEFINE_MKDIR_P.m4 \
