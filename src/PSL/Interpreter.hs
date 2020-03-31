@@ -1,5 +1,7 @@
 module PSL.Interpreter where
 
+import Paths_psl
+
 import UVMHS
 import AddToUVMHS
 
@@ -26,12 +28,14 @@ import qualified System.FilePath as HS
 
 import qualified System.Console.GetOpt as O
 
+import qualified Data.Version as Version
+
 -------------
 -- VERSION --
 -------------
 
 psli_VERSION ∷ 𝕊
-psli_VERSION = "0.1.0.0"
+psli_VERSION = concat $ inbetween "." $ map show𝕊 $ Version.versionBranch version
 
 ---------------
 -- VARIABLES --
@@ -554,7 +558,8 @@ psliMainRun = do
     [ ppHeader "INTERPRETING FILE:"
     , ppString fn
     ]
-  σtl :* _ ← interpretFile γtl σtl₀ "lib/stdlib.psl"
+  libpath ← string ^$ getDataFileName $ chars "lib/stdlib.psl"
+  σtl :* _ ← interpretFile γtl σtl₀ libpath
   v ← fst ^$ interpretFileMain γtl σtl fn
   pprint $ ppHeader "RESULT"
   pprint v
@@ -573,8 +578,9 @@ psliMainExample = do
     [ ppHeader "INTERPRETING EXAMPLE:"
     , ppString fn
     ]
-  let path = "examples/" ⧺ fn ⧺ ".psl"
-  σtl :* _ ← interpretFile γtl σtl₀ "lib/stdlib.psl"
+  path ← string ^$ getDataFileName $ chars $ "examples/" ⧺ fn ⧺ ".psl"
+  libpath ← string ^$ getDataFileName $ chars "lib/stdlib.psl"
+  σtl :* _ ← interpretFile γtl σtl₀ libpath
   v ← fst ^$ interpretFileMain γtl σtl path
   pprint $ ppHeader "RESULT"
   pprint v
@@ -588,8 +594,10 @@ psliMainTest = do
   let γtl = initializeEnv os
   out ""
   pprint $ ppHeader "TESTING INTERPRETER"
-  σtl :* _ ← interpretFile γtl σtl₀ "lib/stdlib.psl"
-  indir "tests" $ do
+  libpath ← string ^$ getDataFileName $ chars "lib/stdlib.psl"
+  σtl :* _ ← interpretFile γtl σtl₀ libpath
+  testsdir ← string ^$ getDataFileName $ chars "tests"
+  indir testsdir $ do
     fns ← files
     vevs ← mapMOn fns $ \ fn → do
       initializeIO os

@@ -1,0 +1,26 @@
+-- input parties
+A[2] { encryption:256 reveals:E }
+B    { encryption:512 reveals:E }
+-- compute parties
+C[2]
+-- output parties
+O[2]
+
+connected { 
+  broadcast 
+  full: A,B,C
+  link: C->O
+}
+
+security { 
+  semi-honest 
+  trusted-setup 
+  pki: C,O
+  crand: A,B,C
+  corruptible: {
+    A,B,C: n/2
+    O: 1 
+    nodes: n/3 
+    C->O: 1
+  }
+}

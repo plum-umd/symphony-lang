@@ -40,8 +40,8 @@ def msort : list ℤ{isec:A,B} → list ℤ{yao:C}
 def msort xs = case xs 
   { [] → []
   ; [xy] →
-      let x = share{yao:A -> C} xy.A
-      let y = share{yao:B -> C} xy.B
+      let x = share{yao:A -> C} xy@A
+      let y = share{yao:B -> C} xy@B
       let b = x ≤ y
       in [ b ? x ◇ y ; b ? y ◇ x ]
   ; x₁∷x₂∷xs′ →

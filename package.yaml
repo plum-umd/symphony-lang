@@ -2,7 +2,7 @@ verbatim:
   cabal-version: 2.2
 
 name: psl
-version: 0.0.0.0
+version: 0.1.0.0
 
 default-extensions:
   - ConstraintKinds
@@ -44,8 +44,14 @@ ghc-options:
   - -Wno-partial-type-signatures
   - -j
 
+data-files:
+  - lib/*
+  - examples/*
+  - tests/*
+
 library:
-  source-dirs: src
+  source-dirs: 
+    - src
   dependencies:
     - aeson
     - base

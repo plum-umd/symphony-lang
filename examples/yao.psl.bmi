@@ -1,0 +1,47 @@
+implementation {
+  file:     yao.cpp                 -- implementation source
+  datatype: yao_share_t             -- datatype symbol name
+}
+
+security {
+  parties:     n=2                  -- works for exactly 2 parties
+  corruptible: n<=1                 -- up to 1 parties corruptible
+}
+
+semi-honest {
+  XOR {
+    impl:   yao_semi_honest_xor     -- operation name + function symbol name
+    gates:  200                     -- for resource estimation
+    rounds: 2                       -- for resource estimation
+  }
+  AND {
+    impl:   yao_semi_honest_and     -- operation name + function symbol name
+    gates:  1000                    -- for resource estimation
+    rounds: 10                      -- for resource estimation
+  }
+  convert gmw {
+    to:     yao_semi_honest_gmw_to  -- function symbol name (to)
+    from:   yao_semi_honest_gmw_fr  -- function symbol name (from)
+    gates:  1000
+    rounds: 24
+  }
+}
+
+malicious {
+  XOR {
+    impl:   yao_malicious_xor       -- operation name + function symbol name
+    gates:  800                     -- for resource estimation
+    rounds: 8                       -- for resource estimation
+  }
+  AND {
+    impl:   yao_malicious_and       -- operation name + function symbol name
+    gates:  8000                    -- for resource estimation
+    rounds: 80                      -- for resource estimation
+  }
+  convert gmw {
+    to:     yao_malicious_gmw_to    -- function symbol name (to)
+    from:   yao_malicious_gmw_fr    -- function symbol name (from)
+    gates:  8000
+    rounds: 192
+  }
+}

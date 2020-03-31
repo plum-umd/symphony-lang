@@ -1,0 +1,9 @@
+def main • =
+  let y = ref 100
+  let f = fun x → x + !y
+  do  y ≔ 200
+  let y = ref 300
+  in
+  f 10
+
+def expected = 210
