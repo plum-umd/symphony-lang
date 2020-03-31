@@ -1,28 +1,9 @@
 principal A
 principal B
 
-def replace
-  : nat{bgw:this} -- index
-  -> nat{bgw:this} -- to insert
-  -> list (nat{bgw:this})
-  -> list (nat{bgw:this})
-def replace ix x arr =
-  case arr
-  { [] -> []
-  ; y::ys ->
-      if reveal {this} (ix == 0)
-      then
-        x::ys
-      else
-        y::(replace (ix - 1) x ys)
-  }
-
-def main : unit -> nat{bgw:A,B}
 def main () =
   par {A,B}
-    let a = sequenceKnownness {A} (par {A} (1 :: 2 :: 3 :: []))
-    let a' = map (fun x -> share {bgw:A -> this} x) a
-    in
-      replace (share {bgw:A -> this} (par {A} 2))
-              (share {bgw:A -> this} (par {A} 10))
-              a'
+    let b = share {yao:A -> this} (par {A} true)
+    in if b
+         then 0
+         else 1

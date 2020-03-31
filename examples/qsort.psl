@@ -2,77 +2,77 @@ principal A
 principal B
 
 -- TODO
--- replace nat by real
+-- replace functional array implementation by arrays once done
+-- generalize to 64 players
 
 def index
   : nat{bgw:this}
-  -> list nat{bgw:this}
-  -> nat{bgw:this}
+  -> list flt{bgw:this}
+  -> flt{bgw:this}
 def index i xs =
   case xs
-  { [] -> share {bgw:A -> this} 0
+  { [] -> 0.0
   ; x::xs ->
-    if reveal {this} (i == 0)
-    then x
-    else index (i - 1) xs
+    i == 0 ? x >< index (i - 1) xs
   }
 
+
 def replace
-  : nat{bgw:this} -- index
+  : int{bgw:this} -- index
   -> nat{bgw:this} -- to insert
-  -> list nat{bgw:this}
-  -> list nat{bgw:this}
+  -> list flt{bgw:this}
+  -> list flt{bgw:this}
 def replace ix x arr =
   case arr
   { [] -> []
   ; y::ys ->
-    if reveal {this} (ix == 0)
-    then x::ys
-    else y::(replace (ix - 1) x ys)
+    let h = ix == 0 ? x >< y
+    in h :: replace (ix - 1) x ys
   }
 
 def swap
    : nat{bgw:this}
   -> nat{bgw:this}
-  -> list nat{bgw:this}
-  -> list nat{bgw:this}
+  -> list flt{bgw:this}
+  -> list flt{bgw:this}
 def swap i j arr =
   let l = index i arr
   let r = index j arr
   in
     replace i r (replace j l arr)
 
+
+def condArray
+  : bool{bgw:this}
+  -> list flt{bgw:this}
+  -> list flt{bgw:this}
+  -> list flt{bgw:this}
+def condArray b xs ys =
+  case xs, ys
+  { [], [] -> []
+  ; x::xs, y::ys ->
+    (b ? x >< y) :: condArray b xs ys
+  }
+
+
 -- Swap the two indices in the array iff the condition is true
 def condSwap
   : bool{bgw:this}
   -> nat{bgw:this}
   -> nat{bgw:this}
-  -> list nat{bgw:this}
-  -> list nat{bgw:this}
+  -> list flt{bgw:this}
+  -> list flt{bgw:this}
 def condSwap cond i j arr =
-  -- TODO no reveal
-  if reveal {this} cond
-  then
-    swap i j arr
-  else
-    arr
+  condArray cond (swap i j arr) arr
 
-def boolToInt : bool{bgw:this} -> nat{bgw:this}
-def boolToInt b = 
-  -- TODO no reveal
-  if reveal {this} b
-  then
-    share {bgw:A -> this} 1
-  else
-    share {bgw:A -> this} 0
 
 def partLoop
   : nat -- remaining iterations
   -> nat{bgw:this}
   -> nat{bgw:this}
   -> nat{bgw:this}
-  -> list nat{bgw:this}
-  -> list nat{bgw:this} * nat{bgw:this}
+  -> list flt{bgw:this}
+  -> list flt{bgw:this} * nat{bgw:this}
 def partLoop n i j hi arr =
   if n == 0
   then
@@ -80,20 +80,18 @@ def partLoop n i j hi arr =
   else
     let cond = index j arr < index hi arr
     let arr = condSwap cond i j arr
-    let i' = i + boolToInt cond
-    let j' =
-      if reveal {this} (j < hi)
-      then j + 1
-      else j
+    let i' = i + (cond ? 1 >< 0)
+    let j' = (j < hi) ? j + 1 >< j
     in
       partLoop (n - 1) i' j' hi arr
+
 
 def partition
   : nat -- the size of the entire list
   -> nat{bgw:this}
   -> nat{bgw:this}
-  -> list nat{bgw:this}
-  -> list nat{bgw:this} * nat{bgw:this}
+  -> list flt{bgw:this}
+  -> list flt{bgw:this} * nat{bgw:this}
 def partition n lo hi arr =
   -- TODO rand-range not working for bgw
   -- let r = rand-range nat{bgw:this} (lo,hi) in
@@ -101,33 +99,34 @@ def partition n lo hi arr =
   let arr', pivot = partLoop n lo lo hi arr
   in (swap pivot hi arr', pivot)
 
+
 def quickSort
   : nat -- iterations remaining
   -> nat{bgw:this} -- lo
   -> nat{bgw:this} -- hi
-  -> list nat{bgw:this}
-  -> list nat{bgw:this}
+  -> list flt{bgw:this}
+  -> list flt{bgw:this}
 def quickSort n lo hi arr =
-  if (n == 0) || (reveal {this} (lo >= hi))
+  if n == 0
   then arr
   else
     let partitioned, pivot = partition n lo hi arr
-    in
+    let sorted =
       quickSort (n - 1) (pivot + 1) hi
         (quickSort (n - 1) lo (pivot - 1) partitioned)
+    in
+      condArray (lo >= hi) arr sorted
+
 
 def main : unit -> {inp:A,B;rev:A,B} list nat{bgw:A,B}
 def main () =
   par {A,B}
-    let a = sequenceKnownness {A} (par {A} read (list int) "qsort-input.txt")
-    let b = sequenceKnownness {B} (par {B} read (list int) "qsort-input.txt")
+    let a = sequenceKnownness {A} (par {A} read (list flt) "qsort-input.txt")
+    let b = sequenceKnownness {B} (par {B} read (list flt) "qsort-input.txt")
     let a' = map (fun x -> share {bgw:A -> this} x) a
     let b' = map (fun x -> share {bgw:B -> this} x) b
     let inps = append a' b'
-    let n = 9 -- TODO this should be the length of the merged list
 
-    let slo = share {bgw:A -> this} 0
-    let shi = share {bgw:A -> this} n
+    let n = length inps
     in
-    -- partition n slo shi inps
-    quickSort 10 slo shi inps
+      map (fun x -> reveal{A,B} x) (quickSort n 0 (n - 1) inps)
