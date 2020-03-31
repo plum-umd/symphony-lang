@@ -96,3 +96,5 @@ sudo make install
 ```
 
 After doing this, you can run `psli` from anywhere.
+
+You can also build the `psl` Docker image by running `make docker`.
