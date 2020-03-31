@@ -36,7 +36,7 @@ copy_vpath_files = \
   done \
 $(prevent_an_empty_line)
 
-datadir_psldir = $(datadir)/psl
+data_psldir = $(datadir)/psl
 
 hs_files =
 
@@ -45,7 +45,7 @@ libexec_psl_SCRIPTS += psli
 
 libexec_psldir = $(libexecdir)/psl
 
-nobase_dist_datadir_psl_DATA =
+nobase_dist_data_psl_DATA =
 
 psli_files =
 psli_files += $(hs_files)
