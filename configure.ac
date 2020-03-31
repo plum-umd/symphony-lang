@@ -82,6 +82,7 @@ dnl   ])
 [
 
 ]GATBPS_CONFIG_FILE([Dockerfile])[
+]GATBPS_CONFIG_FILE([package.yaml])[
 
 ]dnl end_includes
 [
