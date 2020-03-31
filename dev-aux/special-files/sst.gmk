@@ -16,6 +16,8 @@ sst_downloads = \
   dev-aux/special-files.gmk \
   m4/DEFINE_AR.m4 \
   m4/DEFINE_AWK.m4 \
+  m4/DEFINE_CC.m4 \
+  m4/DEFINE_CXX.m4 \
   m4/DEFINE_DOCKER.m4 \
   m4/DEFINE_GIT.m4 \
   m4/DEFINE_GREP.m4 \
