@@ -41,6 +41,7 @@ sst_downloads = \
   src/bash/functions/autogen/autogen_am_include.bash \
   src/bash/functions/autogen/autogen_am_start.bash \
   src/bash/functions/autogen/autogen_am_var_append.bash \
+  src/bash/functions/autogen/autogen_am_var_append_files.bash \
   src/bash/functions/autogen/autogen_c_cpp_tests.bash \
   src/bash/functions/autogen/autogen_downloads.bash \
   src/bash/functions/autogen/autogen_gitbundles.bash \

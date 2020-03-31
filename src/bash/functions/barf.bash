@@ -6,6 +6,7 @@
 if [[ "$(type -t \
 barf)" != function ]]; then
 barf() {
+  set +x
 
   local i
   local x
