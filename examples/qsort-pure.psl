@@ -93,9 +93,8 @@ def partition
   -> list flt{bgw:this}
   -> list flt{bgw:this} * nat{bgw:this}
 def partition n lo hi arr =
-  -- TODO rand-range not working for bgw
-  -- let r = rand-range nat{bgw:this} (lo,hi) in
-  -- let arr = condSwap true r hi arr in
+  let r = rand-range int{bgw:this} (lo,hi) in
+  let arr = condSwap true r hi arr in
   let arr', pivot = partLoop n lo lo hi arr
   in (swap pivot hi arr', pivot)
 
@@ -118,7 +117,7 @@ def quickSort n lo hi arr =
       condArray (lo >= hi) arr sorted
 
 
-def main : unit -> {inp:A,B;rev:A,B} list nat{bgw:A,B}
+def main : unit -> {inp:A,B;rev:A,B} list nat
 def main () =
   par {A,B}
     let a = sequenceKnownness {A} (par {A} read (list flt) "qsort-input.txt")
