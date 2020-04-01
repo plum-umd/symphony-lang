@@ -129,15 +129,15 @@ lexer = lexerBasic puns kws prim ops
       , "sqrt"
       ]
 
-testLexer ∷ IO ()
-testLexer = rtimeIO "" $ do
-  s₁ ← read "files/pantheon/lib.psl"
-  tokenizeIOMain lexer $ tokens s₁
-  s₂ ← read "files/pantheon/euclid.psl"
-  tokenizeIOMain lexer $ tokens s₂
-  s₃ ← read "files/pantheon/simple.psl"
-  tokenizeIOMain lexer $ tokens s₃
-  return ()
+-- testLexer ∷ IO ()
+-- testLexer = rtimeIO "" $ do
+--   s₁ ← read "files/pantheon/lib.psl"
+--   tokenizeIOMain lexer $ tokens s₁
+--   s₂ ← read "files/pantheon/euclid.psl"
+--   tokenizeIOMain lexer $ tokens s₂
+--   s₃ ← read "files/pantheon/simple.psl"
+--   tokenizeIOMain lexer $ tokens s₃
+--   return ()
 
 ----------
 -- Kind --
@@ -826,10 +826,11 @@ cpTLs = cpMany pTL
 
 testParserExample ∷ 𝕊 → IO ()
 testParserExample fn = do
-  s ← read $ "examples/" ⧺ fn ⧺ ".psl"
+  let path = "examples/" ⧺ fn ⧺ ".psl"
+  s ← read fn
   let ts = tokens s
-  ls ← tokenizeIO lexer ts
-  _tls ← parseIO cpTLs ls
+  ls ← tokenizeIO lexer path ts
+  _tls ← parseIO cpTLs path ls
   out $ "DONE: " ⧺ fn
 
 testParser ∷ IO ()

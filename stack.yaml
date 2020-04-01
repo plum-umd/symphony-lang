@@ -1,4 +1,4 @@
-resolver: lts-14.7
+resolver: lts-14.27
 extra-deps:
   - git: https://github.com/uvm-plaid/uvmhs.git
-    commit: 06280e58a265590e5b1be61814c795a5562ebe3f
+    commit: 71851306c8d4ed5650c4a2f9b817c71acb1b8efa

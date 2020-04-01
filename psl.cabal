@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 83ab35af15698187db2ea7b9c746f277fdec114022407045cb88eb61c039fc46
+-- hash: 0913a6510caa92c41a46a1675e674d2d21d3e33cdbf15176613a777196f48abf
 
 name:           psl
 version:        0.1.0.0
@@ -69,6 +69,42 @@ data-files:
     tests/underflow-int.psl
     tests/underflow-nat.psl
     tests/uninspecting-par.psl
+    examples-data/A/atq-data.txt
+    examples-data/A/cmp-input.txt
+    examples-data/A/euclid.txt
+    examples-data/A/msort-input.txt
+    examples-data/A/partial-diverge-in.txt
+    examples-data/A/pfold.txt
+    examples-data/A/prins.txt
+    examples-data/A/qsort-input.txt
+    examples-data/A_0/atq-data.txt
+    examples-data/A_1/atq-data.txt
+    examples-data/B/atq-data.txt
+    examples-data/B/atq-queries.txt
+    examples-data/B/atq-targets.txt
+    examples-data/B/cmp-input.txt
+    examples-data/B/euclid.txt
+    examples-data/B/Interpreter.hs
+    examples-data/B/msort-input.txt
+    examples-data/B/partial-diverge-in.txt
+    examples-data/B/pfold.txt
+    examples-data/B/prins.txt
+    examples-data/B/qsort-input.txt
+    examples-data/B_0/atq-data.txt
+    examples-data/B_0/atq-queries.txt
+    examples-data/B_0/atq-targets.txt
+    examples-data/B_1/atq-data.txt
+    examples-data/B_1/atq-queries.txt
+    examples-data/B_1/atq-targets.txt
+    examples-data/Cost/in.txt
+    examples-data/Ctr_0/in.txt
+    examples-data/Ctr_1/in.txt
+    examples-data/Ctr_2/in.txt
+    examples-data/Ctr_3/in.txt
+    examples-data/Ctr_4/in.txt
+    examples-data/Ctr_5/in.txt
+    examples-data/Ctr_6/in.txt
+    examples-data/Ctr_7/in.txt
 
 library
   exposed-modules:
