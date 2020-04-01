@@ -39,3 +39,4 @@ instance Pretty Val where
     PrinV ρe → pretty ρe
     PrinSetV ρs → pretty ρs
     LocV ℓ → ppApp (ppCon "loc") [pretty ℓ]
+    ArrayV ṽs → pretty ṽs
