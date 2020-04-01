@@ -390,7 +390,7 @@ def diagonal_matrix_gen z v = foldr v
 
 -- m : user parameter: number of constraint parties
 def m : nat
-def m = 2n
+def m = 8n
 
 -- n : user parameter: dimension of the constraint system
 def n : nat
@@ -655,7 +655,7 @@ def main : unit ->{ inp : Ctr, Cost; rev : Out } (list out_sec)
 def main () =
   -- read_vec: reads an input vector on a principal's machine
   -- let read_vec = fun () -> read (list flt) "in.txt" in
-  let read_vec = fun () -> [ 1.0 ; 2.0 ] in -- DEBUG:
+  let read_vec = fun () -> [ 1.0 ; 2.0; 3.0; 4.0; 5.0; 6.0; 7.0; 8.0 ] in -- DEBUG:
 
   -- FANCY MPC: Ctr and Cost send the data in the list to Out. This
   -- may change if the PSL model of isec's changes as a result of
