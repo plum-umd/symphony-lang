@@ -466,22 +466,24 @@ def matrix_inverse_lt l =
   -- PSL: can we add syntactic sugar for sequencing?
   -- PSL: can we add syntactic sugar for loops? In particular for
   -- loops with no accumulator?
-  fold-f ()
+  let _ = 
+  foldr (range 0 (n - 1n))
+    ()
     (fun k ->
       -- For diagonal entries, take the reciprocal
-      l_inv := matrix_set l_inv (k, k) (matrix_get l_inv (k, k)) ;
+      do l_inv = matrix_set !l_inv (k, k) (matrix_get !l_inv (k, k)) 
 
       -- For non-diagonal entries, solve L * L_inv = I
-      fold-f ()
-        (let sum = ref 0n in
-          fold-f ()
+      foldr (range (k + 1n) (n - 1n)) )
+        ()
+        (fun j ->
+          let sum = ref 0n in
+          foldr (range k (j - 1n))
+            ()
             (fun i ->
-              sum := sum -
-                (metrix_get l (j, i)) * (matrix_get l_inv (i, k)) )
-            (range k (j - 1n)) )
-        (range (k + 1n) (n - 1n)) )
-    (range 0 (n - 1n)) ;
-  l_inv
+              do sum = !sum -
+                (metrix_get l (j, i)) * (matrix_get !l_inv (i, k)) ) ) in
+  !l_inv
 
 -- TODO: replace with list syntax
 
@@ -493,42 +495,42 @@ def cholesky_decomposition m =
   let l = ref (zero_mat n) in -- n x n zero matrix
 
   -- Calculate the top diagonal element of L
-  l := matrix_set l (0, 0) (sqrt (matrix_get m (0, 0))) ;
+  do l = matrix_set !l (0, 0) (sqrt (matrix_get m (0, 0))) 
 
   -- Calculate the rest of the first column of L
-  fold-f ()
+  let _ = 
+  foldr (range 1n (n - 1n))
+    ()
     (fun j ->
-      l := matrix_set l (j, 0n)
-        ((matrix_get m (j, 0n)) / (matrix_get l (0n, 0n))) )
-    (range 1n (n - 1n)) ;
+      do l = matrix_set l (j, 0n) (
+        ((matrix_get m (j, 0n)) / (matrix_get l (0n, 0n))) ) ) in
 
   -- Iterate through the remaining columns
-  fold-f ()
+  let _ = 
+  foldr (range 1n (n - 1n))
+    ()
     (fun i ->
       -- First calculate the diagonal element for this column
       let sum = ref 0n in
-      fold-f ()
+      let _ = 
+      foldr (range 0n (i - 1n))
+        ()
         (fun j ->
-          sum := sum + (matrix_get l (i, j)) * (matrix_get l (i, j)) )
-        (range 0n (i - 1n)) ;
+          do sum = !sum + (matrix_get !l (i, j)) * (matrix_get !l (i, j)) ) in
 
-      l := matrix_set (i, i) (sqrt ((matrix_get m (i, i)) - sum)) ;
+      do l = matrix_set (i, i) (sqrt ((matrix_get m (i, i)) - !sum))
 
       -- Now fill in the remaining entries in this column
       if_then (i < n - 1n)
-        (fold-f ()
+        (foldr (range (i + 1n) (n - 1n))
+          ()
           (fun j ->
-            sum := 0n ;
-            fold-f ()
+            do sum = 0n
+            foldr (range 0n (i - 1n))
+              ()
               (fun k ->
-                sum := sum + (matrix_get l (i, k)) * (matrix_get l (j, k))
-              )
-              (range 0n (i - 1n))
-          )
-          (range (i + 1n) (n - 1n))
-        )
-    )
-    (range 1n (n - 1n)) ;
+                do sum = !sum + (
+                  matrix_get !l (i, k)) * (matrix_get !l (j, k)) ) ) ) ) in
   l
 
 -- Listing 8: Inverse of a positive definite Hermitian matrix
