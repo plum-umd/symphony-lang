@@ -1,28 +1,22 @@
 cabal-version: 2.2
 
--- This file has been generated from package.yaml by hpack version 0.31.2.
+-- This file has been generated from package.yaml by hpack version 0.33.0.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 6bd36c54ce55cfa848f9629df5e031d3c22cfd1ca9ee21d1ec39fde430758327
+-- hash: 0913a6510caa92c41a46a1675e674d2d21d3e33cdbf15176613a777196f48abf
 
 name:           psl
 version:        0.1.0.0
 build-type:     Simple
 data-files:
     lib/stdlib.psl
-    examples/#karmarkar-decl.psl#
     examples/arg-par-contains.psl
-    examples/arg-par-contains.psl~
     examples/assoc-map.psl
     examples/atq.psl
-    examples/bak.txt
     examples/bind-fp-const.psl
-    examples/bind-fp-const.psl~
     examples/bind-shares.psl
-    examples/bind-shares.psl~
     examples/cmp-fn-flt.psl
-    examples/cmp-fn-flt.psl~
     examples/cmp-tutorial.psl
     examples/cmp-tutorial.psl.html
     examples/cmp-tutorial.psl.pdf
@@ -31,52 +25,29 @@ data-files:
     examples/cmp.psl.pdf
     examples/concat.psl
     examples/cont-monad.psl
-    examples/cont_monad.psl~
     examples/db-stats.psl
     examples/elim-sec-ls.psl
-    examples/elim-sec-ls.psl~
     examples/empty-par-diverge.psl
-    examples/empty-par-diverge.psl~
     examples/euclid-dh.psl
     examples/euclid.psl
-    examples/gcd.sec
-    examples/gcd.sec~
     examples/indy-pars.psl
-    examples/indy-pars.psl~
     examples/karmarkar-decl.psl
-    examples/karmarkar-decl.psl~
     examples/karmarkar-setup.psl
-    examples/karmarkar-setup.psl~
     examples/karmarkar-silly.psl
-    examples/karmarkar-silly.psl~
     examples/karmarkar-simple.psl
-    examples/karmarkar-simple.psl~
     examples/karmarkar.psl
-    examples/karmarkar.psl~
     examples/mill.psl.sec
     examples/msort.psl
     examples/mult-depth-test.psl
-    examples/notes.md
-    examples/notes.md~
     examples/partial-diverge.psl
-    examples/partial-diverge.psl~
     examples/pfold.psl
     examples/qsort-pure.psl
     examples/rand.psl
     examples/reshare.psl
-    examples/reshare.psl~
     examples/share-ls.psl
-    examples/share-ls.psl~
-    examples/single-share.psl
-    examples/single-share.psl~
-    examples/ssec-ineq-ssec.psl~
     examples/ssec-other-ssec.psl
     examples/ssec-shr.psl
-    examples/ssec-shr.psl~
     examples/sumprod.psl
-    examples/test.psl~
-    examples/todo.txt
-    examples/todo.txt~
     examples/uninspecting-par.psl
     examples/vector.psl
     examples/yao.psl.bmi
@@ -98,6 +69,42 @@ data-files:
     tests/underflow-int.psl
     tests/underflow-nat.psl
     tests/uninspecting-par.psl
+    examples-data/A/atq-data.txt
+    examples-data/A/cmp-input.txt
+    examples-data/A/euclid.txt
+    examples-data/A/msort-input.txt
+    examples-data/A/partial-diverge-in.txt
+    examples-data/A/pfold.txt
+    examples-data/A/prins.txt
+    examples-data/A/qsort-input.txt
+    examples-data/A_0/atq-data.txt
+    examples-data/A_1/atq-data.txt
+    examples-data/B/atq-data.txt
+    examples-data/B/atq-queries.txt
+    examples-data/B/atq-targets.txt
+    examples-data/B/cmp-input.txt
+    examples-data/B/euclid.txt
+    examples-data/B/Interpreter.hs
+    examples-data/B/msort-input.txt
+    examples-data/B/partial-diverge-in.txt
+    examples-data/B/pfold.txt
+    examples-data/B/prins.txt
+    examples-data/B/qsort-input.txt
+    examples-data/B_0/atq-data.txt
+    examples-data/B_0/atq-queries.txt
+    examples-data/B_0/atq-targets.txt
+    examples-data/B_1/atq-data.txt
+    examples-data/B_1/atq-queries.txt
+    examples-data/B_1/atq-targets.txt
+    examples-data/Cost/in.txt
+    examples-data/Ctr_0/in.txt
+    examples-data/Ctr_1/in.txt
+    examples-data/Ctr_2/in.txt
+    examples-data/Ctr_3/in.txt
+    examples-data/Ctr_4/in.txt
+    examples-data/Ctr_5/in.txt
+    examples-data/Ctr_6/in.txt
+    examples-data/Ctr_7/in.txt
 
 library
   exposed-modules:
