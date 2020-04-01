@@ -1,21 +1,24 @@
 principal Hosts[128]
 principal C[2]
 
+principal A
+principal B
+
 -- using yao for now until further clarification on how to specify closer
 
--- type Key1 = int{yao:C}
--- type Key2 = int{yao:C}
+-- type Key1 = int{bgv:C}
+-- type Key2 = int{bgv:C}
 -- type Key = (Key1, Key2)
 
--- type S = int{yao:C}
--- type L = int{yao:C}
+-- type S = int{bgv:C}
+-- type L = int{bgv:C}
 
 -- type Value = (S, L)
 
--- type Count = int{yao:C}
--- type Median = int{yao:C}
--- type Mean = float{yao:C}
--- type StdDev = float{yao:C}
+-- type Count = int{bgv:C}
+-- type Median = int{bgv:C}
+-- type Mean = float{bgv:C}
+-- type StdDev = float{bgv:C}
 
 -- type Stats = Stats Median Mean StdDev
 
@@ -23,33 +26,22 @@ principal C[2]
 --               | ThresholdNotMet
 --               | Success
 
--- def thresholdNotMet : Response
--- bug, must add argument to this function
--- def thresholdNotMet _ = R (L ())
-
--- def summary : Count -> Stats -> Stats -> Response
--- def summary c s0 s1 = L (c, s0, s1)
-
--- def success : Response
--- bug, must add argument to this function
--- def success _ = R (R ())
-
 
 -- data Input = Query Key | Insert Key Value
 
 -- type Database = [(Key, [Value])]
 
+def thresholdNotMet : Response
+def thresholdNotMet = R (L ())
+
+def summary : Count -> Stats -> Stats -> Response
+def summary c s0 s1 = L (c, s0, s1)
+
+def success : Response
+def success = R (R ())
+
 def threshold : int
 def threshold = 5
-
-def update : Key -> Value -> Database -> Database
-def update k v db = case db
-  { [] -> (k, v::[])
-  ; (k', vs)::rest ->
-      if k == k'
-      then (k, v::vs)::rest
-      else (k', vs)::update k v rest
-  }
 
 
 def bgvminmax
@@ -64,20 +56,28 @@ def med : list int{bgv:C} -> int{bgv:C}
 def med = median bgvminmax 0
 
 
-def sum : list float -> float
-def sum = foldr (fun x y -> x + y) 0.0
+def sum : list int{bgv:C} -> int{bgv:C}
+def sum = foldr (fun x y -> x + y) 0
 
 
-def mean : list int{bgv:C} -> float{bgv:C}
+def sumf : list flt{bgv:C} -> flt{bgv:C}
+def sumf = foldr (fun x y -> x + y) 0.0
+
+
+def mean : list int{bgv:C} -> flt{bgv:C}
 def mean xs = to_flt (sum xs) / to_flt (length xs)
 
 
-def stddev : list float -> float
+def meanf : list flt{bgv:C} -> flt{bgv:C}
+def meanf xs = (sumf xs) / to_flt (length xs)
+
+
+def stddev : list int{bgv:C} -> flt{bgv:C}
 def stddev xs =
   let m = mean xs
   let square = fun x -> x * x
-  let diffs = map (fun x -> square (x - m)) xs
-  in sqrt (mean diffs)
+  let diffs = map (fun x -> square (to_flt x - m)) xs
+  in sqrt (meanf diffs)
 
 
 def natminmax : nat -> nat -> (nat * nat)
@@ -99,12 +99,67 @@ def floatminmax x y = if x < y then x, y else y, x
 -- def stats : list int#32{yao:C} -> Stats
 -- def stats xs = (median xs, mean xs, stdDev xs)
 
+
+def eqlPair
+  : int{bgv:this} * int{bgv:this}
+  -> int{bgv:this} * int{bgv:this}
+  -> bool{bgv:this}
+def eqlPair x y =
+  let x0, x1 = x
+  let y0, y1 = y
+  in (x0 == y0) && (x1 == y1)
+
+
+def condPair
+  : bool{bgv:this}
+  -> int{bgv:this} * int{bgv:this}
+  -> int{bgv:this} * int{bgv:this}
+  -> int{bgv:this} * int{bgv:this}
+def condPair b x y =
+  let x0, x1 = x
+  let y0, y1 = y
+  in (b ? x0 >< y0), (b ? x1 >< y1)
+
+
+def condArray
+  : bool{bgv:this}
+  -> list int{bgv:this}
+  -> list flt{bgv:this}
+  -> list flt{bgv:this}
+def condArray b xs ys =
+  case xs, ys
+  { [], xs -> xs
+  ; xs, [] -> xs
+  ; x::xs, y::ys ->
+    condPair b x y :: condArray b xs ys
+  }
+
+
+def update : Key -> Value -> Database -> Database
+def update k v db = case db
+  { [] -> (k, v::[]) :: []
+  ; (k', vs)::rest ->
+    if reveal{this} (eqlPair k k')
+    then
+      ((k, v::vs)::rest)
+    else
+      ((k', vs)::update k v rest)
+  }
+
+
+def sharePair : int{A} * int{A} -> int{bgv:this} * int {bgv:this}
+def sharePair p =
+  let x = (par {A} fst p)
+  let y = (par {A} snd p)
+  in share{bgv:A -> this} x, share{bgv:A -> this} y
+
+
 def query : Key -> Database -> Response
 def query k db = case db
   { [] -> thresholdNotMet
   ; (k', vs)::rest ->
     let count = length vs
-    in if and (k == k') (count > threshold)
+    in if (k == k') && (count > threshold)
        then summary count (stats (map fst vs))
                           (stats (map snd vs))
        else if k == k'
@@ -112,20 +167,38 @@ def query k db = case db
             else query k rest
   }
 
+
 -- def respond : Response -> Database -> Database
 -- def respond = respond
 -- How do we handle IO?
 
-def handler : Input -> Database -> (Database * Response)
--- Bug: the following is commented out because it does not compile due to parser
-def handler input db = case input
-  { L x -> (update k x db, success _)
+
+def handler : Key -> Input -> Database -> (Database * Response)
+def handler k input db = case input
+  { L x -> (update k x db, success)
   ; _ -> (db, query k db)
   }
 
+
 def main : unit -> list float
 def main () =
+  par {A,B}
+    let db = []
+    let k0 = (par {A} 3, 5)
+    let v0 = (par {A} 7, 9)
+    let q0 = sharePair v0
+    let db = handler (sharePair k0) (L q0) db
+
+    -- let k1 = (par {A} 2, 4)
+    -- let v1 = (par {A} 1, 2)
+    -- let db = update (sharePair k1) (sharePair v1) db
+
+    in db
+
+
+  -- let db = update (2, 4) (0, 0) db
+  -- in db
   -- let l = 100 :: 2 :: 3 :: 4 :: 5 :: 1000 :: 8 :: 9 :: 99 :: []
-  let l = 1.0 :: 2.0 :: 3.0 :: 4.0 :: 5.0 :: 6.0 :: 7.0 :: 8.0 :: 9.0 :: 10.0 :: []
   -- in sort natminmax l
-  in stddev l
+  -- in stddev l
+  -- in thresholdNotMet
