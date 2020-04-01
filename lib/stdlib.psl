@@ -319,30 +319,39 @@ def content-init default n =
     (false, default) :: content-init default (n - 1)
 
 
--- def vector-init : a -> (bool{P} -> a -> a -> a) -> nat -> vector{P} a
+-- def vec-init : a -> (bool{P} -> a -> a -> a) -> nat -> vec{P} a
 def vec-init default swap n =
   let tswap = tag-swap swap
   in
     default, tswap, content-init default n
 
 
-def content-write swap cond n y xs =
+def content-over swap cond n f xs =
   case xs
   { [] -> []
   ; cell::xs' ->
     let (tag, x) = cell
     in
-      swap (cond && (n == 0) && tag) (tag, y) cell
-        :: content-write swap cond (n - 1) y xs'
+      swap (cond && (n == 0) && tag) (tag, f x) cell
+        :: content-over swap cond (n - 1) f xs'
   }
 
 
--- def vector : nat{P} -> a -> vector{P} a -> vector{P} a
-def vec-cond-write cond n y vec =
+def vec-cond-over cond n f vec =
   let default, swap, xs = vec
-  in default, swap, (content-write swap cond n y xs)
+  in default, swap, (content-over swap cond n f xs)
+
+
+-- def vec : nat{P} -> a -> vec{P} a -> vec{P} a
+def vec-cond-write cond n y vec =
+  vec-cond-over cond n (fun _ -> y) vec
+
+
+-- apply function f to the specified index
+def vec-over = vec-cond-over true
 
 def vec-write = vec-cond-write true
+
 
 def not b = b ? false >< true
 
@@ -373,7 +382,7 @@ def resize-content n xs =
   }
 
 
--- def resize : nat{P} -> vector{P} a -> vector{P} a
+-- def resize : nat{P} -> vec{P} a -> vec{P} a
 def vec-resize n vec =
   let default, swap, xs = vec
   in default, swap, (resize-content n xs)
@@ -483,3 +492,48 @@ def vec-reveal revealContent vec =
 
 
 
+---
+--- ASSOCIATIVE MAP LIBRARY
+---
+
+
+def map-init k-eql k-default v-default k-swap v-swap n =
+  let swap = fun b cell0 cell1 ->
+    let k0, v0 = cell0
+    let k1, v1 = cell1
+    in (k-swap b k0 k1, v-swap b v0 v1)
+  let default = (k-default, v-default)
+  in k-eql, v-default, v-swap, vec-init default swap n
+
+def map-read-help k-eql v-default v-swap k xs =
+  case xs
+  { [] -> 0, false, v-default
+  ; x::xs' ->
+    let (b, (k', v)) = x
+    let (i', b', v') = map-read-help k-eql v-default v-swap k xs'
+    let is-here = b && k-eql k k'
+    in int-swap is-here 0 (i' + 1), is-here || b', v-swap is-here v v'
+  }
+
+-- returns a tuple (i, b, v) where i is the vector index of the value,
+-- b is whether or not the read was successful
+-- v is the read value.
+def map-read-index k m =
+  let k-eql, v-default, v-swap, vec = m
+  in map-read-help k-eql v-default v-swap k (vec-content vec)
+
+def map-read k m =
+  let (_, b, v) = map-read-index k m
+  in (b, v)
+
+def map-insert-with f k v m =
+  let k-eql, v-default, v-swap, vec = m
+  let (i, b, _) = map-read-index k m
+  let f' = fun cell ->
+    let (k', v') = cell
+    in (k, f v v')
+
+  let vec = vec-cond-over b i f' vec
+  in k-eql, v-default, v-swap, vec-cond-push (not b) (k, v) vec
+
+def map-insert = map-insert-with (fun x _ -> x)

@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4a91ee642fa6dbc117b1782e5b932194fa70f49815503c8b973e1f9396b9312d
+-- hash: 83ab35af15698187db2ea7b9c746f277fdec114022407045cb88eb61c039fc46
 
 name:           psl
 version:        0.1.0.0
@@ -12,6 +12,7 @@ build-type:     Simple
 data-files:
     lib/stdlib.psl
     examples/arg-par-contains.psl
+    examples/assoc-map.psl
     examples/atq.psl
     examples/bind-fp-const.psl
     examples/bind-shares.psl

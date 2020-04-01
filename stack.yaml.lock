@@ -10,13 +10,13 @@ packages:
       sha256: b01565b8656d0b0c0325070aa33b17372bd4e036563fab67738a145e409826c6
     name: uvmhs
     version: 0.0.0.0
-    git: git@github.com:uvm-plaid/uvmhs.git
+    git: https://github.com/uvm-plaid/uvmhs.git
     pantry-tree:
       size: 135020
       sha256: 775e0d3dd59b80e827fc2ba40ec672cc110654d0971faf1fbdb3809f99204741
     commit: 06280e58a265590e5b1be61814c795a5562ebe3f
   original:
-    git: git@github.com:uvm-plaid/uvmhs.git
+    git: https://github.com/uvm-plaid/uvmhs.git
     commit: 06280e58a265590e5b1be61814c795a5562ebe3f
 snapshots:
 - completed:
