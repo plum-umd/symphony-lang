@@ -9,9 +9,9 @@ instance Pretty Val where
   pretty = \case
     BoolV b → pretty b
     StrV s → pretty s
-    NatV _ n → pretty n
-    IntV _ i → pretty i
-    FltV _ d → pretty d
+    NatV _ n → ppApp (ppCon "Nat") [pretty n]
+    IntV _ i → ppApp (ppCon "Int") [pretty i]
+    FltV _ d → ppApp (ppCon "Flt") [pretty d]
     BulV → ppCon "•"
     LV v → ppApp (ppCon "L") [pretty v]
     RV v → ppApp (ppCon "R") [pretty v]
