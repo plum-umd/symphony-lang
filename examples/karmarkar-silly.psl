@@ -228,16 +228,21 @@ def len l = foldr l 0n (const inc)
 def order = len
 
 -- get i l: the ith element of l
-def get l i = eliml_nat i
-  l
-  (fun l' -> case l'
-    { [ ] -> [ ]
-    ; x :: l'' -> l''
-    })
+def get l i =
+  (elim_nat i
+    (fun l' -> case l'
+      { [ ] -> "fail"
+      ; x :: l'' -> x
+      })
+    (fun g l' -> case l'
+      { [ ] -> "fail"
+      ; x :: l'' -> g l''
+      }) )
+    l
 
 -- set l i v: list l with the ith element updated to be v
 def setter l i v =
-  (eliml_nat i
+  (elim_nat i
     (fun l' -> case l'
       { [ ] -> [ ]
       ; x :: l' -> v :: l'
@@ -423,7 +428,7 @@ def nOnes = row_of_ones n
 
 -- dimensions_of m: dimensions of matrix m
 def dimensions_of m = case m
-  { [ ] -> (0, 0)
+  { [ ] -> (0n, 0n)
   ; rv :: m' -> (inc (len m'), len rv)
   }
 
@@ -455,7 +460,7 @@ def range m n =
   if n < m then [ ]
   else map (plus m)
     (elim_nat (n - m)
-       [ 0 ]
+       [ 0n ]
        (fun rng -> (len rng) :: rng))
 
 def matrix_get m (i, j) = get (get m i) j
@@ -470,7 +475,7 @@ def matrix_inverse_lt l =
   -- PSL: can we add syntactic sugar for loops? In particular for
   -- loops with no accumulator?
   seq
-  (iter (range 0 (n - 1n))
+  (iter (range 0n (n - 1n))
     (fun k ->
       -- For diagonal entries, take the reciprocal
       do l_inv := matrix_set !l_inv (k, k) (matrix_get !l_inv (k, k)) in
@@ -496,7 +501,7 @@ def cholesky_decomposition m =
   let l = ref (zero_mat n) in -- n x n zero matrix
 
   -- Calculate the top diagonal element of L
-  do l := matrix_set !l (0, 0) (sqrt (matrix_get m (0, 0))) in
+  do l := matrix_set !l (0n, 0n) (sqrt (matrix_get m (0n, 0n))) in
 
   -- Calculate the rest of the first column of L
   seq
