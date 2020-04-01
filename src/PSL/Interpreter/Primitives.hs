@@ -6,6 +6,7 @@ import PSL.Interpreter.Types
 import PSL.Interpreter.Truncating
 import PSL.Interpreter.Pretty ()
 import PSL.Syntax
+import PSL.Interpreter.Json
 
 valWithType ∷ Val → Val ∧ 𝕊
 valWithType v = v :* getType v
@@ -13,6 +14,11 @@ valWithType v = v :* getType v
 multDepth ∷ Prot → 𝕊 → ℕ
 multDepth p o = case (p, o) of
   (_, "TIMES") → 1
+  (_, "GT") -> 1
+  (_, "LT") -> 1
+  (_, "EQ") -> 1
+  (_, "GTE") -> 1
+  (_, "LTE") -> 1
   _ → 0 -- To be updated
 
 interpPrim ∷ (STACK) ⇒ 𝕊 → 𝐿 Val → IM (Val ∧ 𝕊)
