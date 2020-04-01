@@ -385,7 +385,37 @@ interpExp = wrapInterp $ \case
   SetE ρes → do
     ρvs ← prinExpValss *$ mapM interpPrinExp ρes
     introValP $ PrinSetV ρvs
-  -- RefE e' → 
+  RefE e' → do
+    ṽ ← interpExp e'
+    ℓ ← nextL iStateNextLocL
+    modifyL iStateStoreL $ \ σ → (ℓ ↦♮ ṽ) ⩌♮ σ 
+    introValP $ LocV ℓ
+  RefReadE e' → do 
+    ṽ ← interpExp e'
+    v ← elimValP ṽ
+    case v of
+      LocV ℓ → do
+        σ ← getL iStateStoreL
+        case σ ⋕? ℓ of
+          Some ṽ' → return ṽ'
+          None → throwIErrorCxt InternalIError "interpExp: RefReadE: ℓ ∉ dom(σ)" $ frhs
+            [ ("ℓ",pretty ℓ)
+            , ("dom(σ)",pretty $ keys𝑊 σ)
+            ]
+      _ → throwIErrorCxt TypeIError "interpExp: RefReadE: v ≠ LocV _" $ frhs
+        [ ("v",pretty v)
+        ]
+  RefWriteE e₁ e₂ → do
+    ṽ₁ ← interpExp e₁ 
+    ṽ₂ ← interpExp e₂
+    v₁ ← elimValP ṽ₁
+    case v₁ of
+      LocV ℓ → do
+        modifyL iStateStoreL $ \ σ → (ℓ ↦♮ ṽ₂) ⩌♮ σ
+        return ṽ₂
+      _ → throwIErrorCxt TypeIError "interpExp: RefWriteE: v₁ ≠ Loc ℓ" $ frhs
+        [ ("v₁",pretty v₁)
+        ]
   e → throwIErrorCxt NotImplementedIError "interpExp: not implemented" $ frhs
     [ ("e",pretty e)
     ]
@@ -505,7 +535,9 @@ interpretFileMain θ ωtl name path = do
   let expectedO = itlStateEnv ωtl' ⋕? var "expected"
   let fn = string $ HS.takeBaseName $ chars path
   if iParamsDoResources θ
-    then BS.writeFile (chars $ "resources/" ⧺ fn ⧺ ".res") $ JSON.encode $ jsonEvents $ iOutResEvs o
+    then do
+      touchDirs "resources"
+      BS.writeFile (chars $ "resources/" ⧺ fn ⧺ ".res") $ JSON.encode $ jsonEvents $ iOutResEvs o
     else skip
   return $ v :* expectedO
 

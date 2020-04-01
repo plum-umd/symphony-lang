@@ -26,6 +26,7 @@ data Val =
   | TCloV TVar Exp Env
   | PrinV PrinExpVal
   | PrinSetV (𝑃 PrinVal)
+  | LocV ℤ64
   deriving (Eq,Ord,Show)
 
 -- Distributed Values

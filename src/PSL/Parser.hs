@@ -79,6 +79,7 @@ lexer = lexerBasic puns kws prim ops
       , "fold","on"
       , "par"
       , "ref","array"
+      , "do"
       ]
     prim = list
       [ "yao","gmw","bgw","bgv","spdz"
