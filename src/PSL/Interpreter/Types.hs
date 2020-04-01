@@ -97,7 +97,7 @@ getTypeMPC = \case
   IntMV p _ → "int"⧺iprecisionSuffix p
   FltMV p _ → "flt"⧺fprecisionSuffix p
   PrinMV _ → "prin"
-  PairMV mv₁ mv₂ → (getTypeMPC mv₁) ⧺ " × " ⧺ (getTypeMPC mv₁)
+  PairMV mv₁ mv₂ → (getTypeMPC mv₁) ⧺ " × " ⧺ (getTypeMPC mv₂)
   LMV mv → "left " ⧺ (getTypeMPC mv)
   RMV mv → "right " ⧺ (getTypeMPC mv)
 
@@ -108,6 +108,14 @@ getTypeMPC = \case
 -- Value environment
 -- γ ∈ env
 type Env = 𝕏 ⇰ ValP
+
+-----------
+-- STORE --
+-----------
+
+-- Value Store
+-- σ ∈ store
+type Store = 𝑊 ValP
 
 -----------------
 -- CLOSURE CXT --

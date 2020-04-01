@@ -48,6 +48,7 @@ data-files:
   - lib/*
   - examples/*
   - tests/*
+  - examples-data/**/*
 
 library:
   source-dirs: 

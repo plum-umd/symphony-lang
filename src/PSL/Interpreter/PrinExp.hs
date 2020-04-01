@@ -35,7 +35,7 @@ interpPrinExp ρe = case ρe of
       _ → throwIErrorCxt TypeIError "interpPrinExp: ρev ≢ SetPEV _ _" $ frhs
         [ ("ρev",pretty ρev)
         ]
-  StarPE x → throwIErrorCxt NotImplementedIError "principal star" null
+  StarPE _x → throwIErrorCxt NotImplementedIError "principal star" null
     -- do
     -- ρev ← interpPrinVar x
     -- case ρev of

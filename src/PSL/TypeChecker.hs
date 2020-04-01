@@ -4,7 +4,7 @@ import UVMHS
 import AddToUVMHS
 
 import PSL.Syntax
-import PSL.Parser
+-- import PSL.Parser
 
 -----------------
 -- ENVIRONMENT --

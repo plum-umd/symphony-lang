@@ -4,32 +4,34 @@ principal C[2]
 principal A
 principal B
 
--- using yao for now until further clarification on how to specify closer
 
--- type Key1 = int{bgv:C}
--- type Key2 = int{bgv:C}
--- type Key = (Key1, Key2)
+def key-eql a b =
+  let (sa, ta) = a
+  let (sb, tb) = b
+  in (sa == sb) && (ta == tb)
 
--- type S = int{bgv:C}
--- type L = int{bgv:C}
+def key-default = (0, 0)
+def key-swap = pair-swap int-swap
 
--- type Value = (S, L)
+def cell-default = (0, 0)
+def cell-swap = pair-swap int-swap
 
--- type Count = int{bgv:C}
--- type Median = int{bgv:C}
--- type Mean = float{bgv:C}
--- type StdDev = float{bgv:C}
-
--- type Stats = Stats Median Mean StdDev
-
--- data Response = Summary Count Stats Stats
---               | ThresholdNotMet
---               | Success
+def val-default =
+  vec-init cell-default cell-swap 10
+def val-swap = vec-swap
 
 
--- data Input = Query Key | Insert Key Value
+def db-init n =
+  map-init
+    key-eql
+    key-default
+    val-default
+    key-swap
+    val-swap
+    n
 
--- type Database = [(Key, [Value])]
+def singleton-row v =
+  vec-push v (vec-init cell-default cell-swap 10)
 
 def thresholdNotMet : Response
 def thresholdNotMet = R (L ())
@@ -44,107 +46,33 @@ def threshold : int
 def threshold = 5
 
 
-def bgvminmax
-   : int{bgv:C}
-  -> int{bgv:C}
-  -> (int{bgv:C} * int{bgv:C})
-def bgvminmax x y =
-  if x < y then x, y else y, x
+-- def med : vec{bgv:C} int -> int{bgv:C}
+def med vec =
+  let t, r = vec-median int-minmax vec
+  in t ? r >< 0
 
 
-def med : list int{bgv:C} -> int{bgv:C}
-def med = median bgvminmax 0
+-- def mean : vec{bgv:C} int -> vec{bgv:C} flt{bgv:C}
+def mean xs = to_flt (vec-int-sum xs) / to_flt (vec-length xs)
 
 
-def sum : list int{bgv:C} -> int{bgv:C}
-def sum = foldr (fun x y -> x + y) 0
+-- def meanf : vec{bgv:C} flt -> vec{bgv:C} flt{bgv:C}
+def meanf xs = (vec-flt-sum xs) / to_flt (vec-length xs)
 
 
-def sumf : list flt{bgv:C} -> flt{bgv:C}
-def sumf = foldr (fun x y -> x + y) 0.0
-
-
-def mean : list int{bgv:C} -> flt{bgv:C}
-def mean xs = to_flt (sum xs) / to_flt (length xs)
-
-
-def meanf : list flt{bgv:C} -> flt{bgv:C}
-def meanf xs = (sumf xs) / to_flt (length xs)
-
-
-def stddev : list int{bgv:C} -> flt{bgv:C}
+-- def stddev : vec{bgv:C} int -> flt{bgv:C}
 def stddev xs =
   let m = mean xs
   let square = fun x -> x * x
-  let diffs = map (fun x -> square (to_flt x - m)) xs
+  let diffs = vec-map flt-swap (fun x -> square (to_flt x - m)) xs
   in sqrt (meanf diffs)
 
 
-def natminmax : nat -> nat -> (nat * nat)
-def natminmax x y = if x < y then x, y else y, x
-
-
-def floatminmax : float -> float -> (float * float)
-def floatminmax x y = if x < y then x, y else y, x
-
-
-
-
-
-
--- def mean : list int#32{yao:C} -> Mean
-
--- def stdDev : list int#32{yao:C} -> StdDev
-
--- def stats : list int#32{yao:C} -> Stats
--- def stats xs = (median xs, mean xs, stdDev xs)
-
-
-def eqlPair
-  : int{bgv:this} * int{bgv:this}
-  -> int{bgv:this} * int{bgv:this}
-  -> bool{bgv:this}
-def eqlPair x y =
-  let x0, x1 = x
-  let y0, y1 = y
-  in (x0 == y0) && (x1 == y1)
-
-
-def condPair
-  : bool{bgv:this}
-  -> int{bgv:this} * int{bgv:this}
-  -> int{bgv:this} * int{bgv:this}
-  -> int{bgv:this} * int{bgv:this}
-def condPair b x y =
-  let x0, x1 = x
-  let y0, y1 = y
-  in (b ? x0 >< y0), (b ? x1 >< y1)
-
-
-def condArray
-  : bool{bgv:this}
-  -> list int{bgv:this}
-  -> list flt{bgv:this}
-  -> list flt{bgv:this}
-def condArray b xs ys =
-  case xs, ys
-  { [], xs -> xs
-  ; xs, [] -> xs
-  ; x::xs, y::ys ->
-    condPair b x y :: condArray b xs ys
-  }
-
-
-def update : Key -> Value -> Database -> Database
-def update k v db = case db
-  { [] -> (k, v::[]) :: []
-  ; (k', vs)::rest ->
-    if reveal{this} (eqlPair k k')
-    then
-      ((k, v::vs)::rest)
-    else
-      ((k', vs)::update k v rest)
-  }
+def update : bool -> Key -> Value -> Database -> Database
+def update cond k v db =
+  map-cond-insert-with (fun new old -> vec-append old new)
+    cond
+    k (singleton-row v) db
 
 
 def sharePair : int{A} * int{A} -> int{bgv:this} * int {bgv:this}
@@ -154,51 +82,67 @@ def sharePair p =
   in share{bgv:A -> this} x, share{bgv:A -> this} y
 
 
+def stats-default : Stats
+def stats-default = (0, 0.0, 0.0)
+
+def stats-swap b x y =
+  let medx, meanx, stdevx = x
+  let medy, meany, stdevy = y
+  in (b ? medx >< medy, b ? meanx >< meany, b ? stdevx >< stdevy)
+
+def response-default : Count * Stats * Stats
+def response-default = 0, stats-default, stats-default
+
+def response-swap b x y =
+  let cx, sx, tx = x
+  let cy, sy, ty = y
+  in (b ? cx >< cy, stats-swap b sx sy, stats-swap b tx ty)
+
+-- output is pair of tag (threshold achieved?) and response
+def output-swap b x y =
+  let tx, rx = x
+  let ty, ry = y
+  in (b ? tx >< ty, response-swap b rx ry)
+
+-- def stats : vec{bgv:C} int -> Stats{bgv:C}
+def stats vec =
+  (med vec, mean vec, stddev vec)
+
+
 def query : Key -> Database -> Response
-def query k db = case db
-  { [] -> thresholdNotMet
-  ; (k', vs)::rest ->
-    let count = length vs
-    in if (k == k') && (count > threshold)
-       then summary count (stats (map fst vs))
-                          (stats (map snd vs))
-       else if k == k'
-            then thresholdNotMet
-            else query k rest
-  }
-
-
--- def respond : Response -> Database -> Database
--- def respond = respond
--- How do we handle IO?
+def query k db =
+  let t, xs = map-read k db
+  let n = vec-length xs
+  let threshold-met = n >= threshold
+  in
+    threshold-met,
+    response-swap threshold-met
+      (vec-length xs,
+        stats (vec-map int-swap fst xs),
+        stats (vec-map int-swap snd xs))
+      response-default
 
 
 def handler : Key -> Input -> Database -> (Database * Response)
-def handler k input db = case input
-  { L x -> (update k x db, success)
-  ; _ -> (db, query k db)
-  }
+def handler k input db =
+  let is-query, v = input
+  let db' = update (not is-query) k v db
+  let qr = query k db
+  in
+    db',
+    output-swap is-query
+      qr
+      (false, response-default)
 
 
 def main : unit -> list float
 def main () =
   par {A,B}
-    let db = []
-    let k0 = (par {A} 3, 5)
-    let v0 = (par {A} 7, 9)
-    let q0 = sharePair v0
-    let db = handler (sharePair k0) (L q0) db
-
-    -- let k1 = (par {A} 2, 4)
-    -- let v1 = (par {A} 1, 2)
-    -- let db = update (sharePair k1) (sharePair v1) db
-
-    in db
-
-
-  -- let db = update (2, 4) (0, 0) db
-  -- in db
-  -- let l = 100 :: 2 :: 3 :: 4 :: 5 :: 1000 :: 8 :: 9 :: 99 :: []
-  -- in sort natminmax l
-  -- in stddev l
-  -- in thresholdNotMet
+    let db = db-init 20
+    let db, _ = handler (2, 4) (false, (10, 999)) db
+    let db, _ = handler (2, 4) (false, (15, 25)) db
+    let db, _ = handler (2, 4) (false, (44, 35)) db
+    let db, _ = handler (2, 4) (false, (13, 404)) db
+    let db, _ = handler (2, 4) (false, (29, 5)) db
+    let _, r = handler (2, 4) (true, (0, 0)) db
+    in r

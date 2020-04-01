@@ -105,12 +105,28 @@ def stddev xs =
   in sqrt (mean diffs)
 
 
-def natminmax : nat -> nat -> (nat * nat)
-def natminmax x y = if x < y then x, y else y, x
+def pair-swap swap b xs ys =
+  let x0, x1 = xs
+  let y0, y1 = ys
+  in (swap b x0 y0, swap b x1 y1)
 
 
-def floatminmax : float -> float -> (float * float)
-def floatminmax x y = if x < y then x, y else y, x
+def int-swap b x y = b ? x >< y
+def bool-swap b x y = b ? x >< y
+def flt-swap b x y = b ? x >< y
+
+
+-- def nat-minmax : nat -> nat -> (nat * nat)
+def nat-minmax x y =
+  pair-swap nat-swap (x < y) (x, y) (y, x)
+
+-- def int-minmax : int -> int -> (int * int)
+def int-minmax x y =
+  pair-swap int-swap (x < y) (x, y) (y, x)
+
+-- def flt-minmax : float -> float -> (float * float)
+def flt-minmax x y =
+  pair-swap flt-swap (x < y) (x, y) (y, x)
 
 
 def split : nat -> list a -> (list a * list a)
@@ -296,11 +312,6 @@ def msort xs = case xs
 ---
 
 
-def int-swap b x y = b ? x >< y
-def bool-swap b x y = b ? x >< y
-def flt-swap b x y = b ? x >< y
-
-
 -- given a swap function for type a, build swap for bool * a
 -- def tag-swap : (bool{P} -> a -> a -> a) 
 --             -> (bool{P} -> bool{P} * a -> bool{P} * a -> bool{P} * a)
@@ -321,9 +332,7 @@ def content-init default n =
 
 -- def vec-init : a -> (bool{P} -> a -> a -> a) -> nat -> vec{P} a
 def vec-init default swap n =
-  let tswap = tag-swap swap
-  in
-    default, tswap, content-init default n
+  default, swap, content-init default n
 
 
 def content-over swap cond n f xs =
@@ -339,7 +348,7 @@ def content-over swap cond n f xs =
 
 def vec-cond-over cond n f vec =
   let default, swap, xs = vec
-  in default, swap, (content-over swap cond n f xs)
+  in default, swap, (content-over (tag-swap swap) cond n f xs)
 
 
 -- def vec : nat{P} -> a -> vec{P} a -> vec{P} a
@@ -367,7 +376,7 @@ def content-push swap flag cond y xs =
 
 def vec-cond-push cond x vec =
   let default, swap, xs = vec
-  in default, swap, (content-push swap true cond x xs)
+  in default, swap, (content-push (tag-swap swap) true cond x xs)
 
 def vec-push = vec-cond-push true
 
@@ -419,7 +428,7 @@ def content-read default swap n xs =
 
 def vec-read n vec =
   let default, swap, xs = vec
-  in content-read default swap n xs
+  in content-read default (tag-swap swap) n xs
 
 
 def content-swap swap b xs ys =
@@ -432,7 +441,7 @@ def content-swap swap b xs ys =
 def vec-swap b vecx vecy =
   let default, swap, xs = vecx
   let _, _, ys = vecy
-  in default, swap, content-swap swap b xs ys
+  in default, swap, content-swap (tag-swap swap) b xs ys
 
 -- def vec-content : vec{P} a -> list (bool{P} * a{P})
 def vec-content vec =
@@ -473,7 +482,7 @@ def share-as-vec-content knowers shareFlag shareContent default n xs =
 --                 -> (bool{P} -> a{P} -> a{P} -> a{P})
 --                 -> list a -> nat -> vec{P} a
 def share-as-vec knowers shareFlag shareContent default swap n xs =
-  default, tag-swap swap,
+  default, swap,
       share-as-vec-content knowers shareFlag shareContent default n xs
 
 
@@ -489,7 +498,63 @@ def vec-reveal revealContent vec =
   in map snd filtered
 
 
+def content-fold swap-val f acc xs =
+  case xs
+  { [] -> acc
+  ; cell::xs' ->
+    let t, x = cell
+    let acc' = content-fold swap-val f acc xs'
+    in swap-val t (f x acc') acc'
+  }
 
+def vec-fold swap-val f acc vec =
+  let _, _, xs = vec
+  in content-fold swap-val f acc xs
+
+def vec-int-sum =
+  vec-fold int-swap (fun x y -> x + y) 0
+
+def vec-flt-sum =
+  vec-fold flt-swap (fun x y -> x + y) 0.0
+
+def vec-int-product=
+  vec-fold int-swap (fun x y -> x * y) 1
+
+def content-map f xs =
+  case xs
+  { [] -> []
+  ; cell::xs' ->
+    let t, x = cell
+    in (t, f x) :: content-map f xs'
+  }
+
+def vec-map val-swap f vec =
+  let default, _, xs = vec
+  in (f default, val-swap, content-map f xs)
+
+
+def tag-minmax swap minmax x y =
+  let tx, xx = x
+  let ty, yy = y
+
+  let r0, r1 =
+    pair-swap swap
+      (tx && ty)
+      (minmax xx yy)
+      (pair-swap swap tx (xx, yy) (yy, xx))
+  in
+  (tx || ty, r0), (tx && ty, r1)
+
+
+-- Oblivious friendly sort. Always O(n^2)
+-- def vec-sort : (a -> a -> (a * a)) -> vec a -> vec a
+def vec-sort minmax vec =
+  let default, swap, xs = vec
+  in (default, swap, sort (tag-minmax swap minmax) xs)
+
+-- def vec-median : (a -> a -> (a * a)) -> a -> vec a -> a
+def vec-median minmax xs =
+  vec-read (vec-length xs / 2) (vec-sort minmax xs)
 
 
 ---
@@ -526,14 +591,16 @@ def map-read k m =
   let (_, b, v) = map-read-index k m
   in (b, v)
 
-def map-insert-with f k v m =
+def map-cond-insert-with f cond k v m =
   let k-eql, v-default, v-swap, vec = m
   let (i, b, _) = map-read-index k m
   let f' = fun cell ->
     let (k', v') = cell
     in (k, f v v')
 
-  let vec = vec-cond-over b i f' vec
-  in k-eql, v-default, v-swap, vec-cond-push (not b) (k, v) vec
+  let vec = vec-cond-over (cond && b) i f' vec
+  in k-eql, v-default, v-swap, vec-cond-push (cond && not b) (k, v) vec
+
+def map-insert-with f = map-cond-insert-with f true
 
 def map-insert = map-insert-with (fun x _ -> x)
