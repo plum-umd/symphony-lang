@@ -49,34 +49,25 @@ dnl
 
 ]AC_CHECK_PROGS([STACK], [stack])[
 
-]dnl
-dnl AC_CACHE_CHECK(
-dnl   [if stack is the correct one],
-dnl   [psl_cv_stack_check],
-dnl   [
-dnl     case "$STACK" in
-dnl       "stack") ;;
-dnl       *)
-dnl 	printf 'no\n'
-dnl         AC_MSG_ERROR(
-dnl [Cannot find stack.
-dnl Installation instructions: https://www.haskell.org/downloads/])
-dnl       ;;
-dnl     esac
-dnl 
-dnl     case "`stack --help`" in
-dnl       *'The Haskell Tool Stack'*) ;;
-dnl       *)
-dnl         printf 'no\n'
-dnl         AC_MSG_ERROR(
-dnl [The "stack" program does not appear to be the correct one.
-dnl Try using "./configure STACK=/path/to/stack".])
-dnl       ;;
-dnl     esac
-dnl 
-dnl     psl_cv_stack_check=yes
-dnl   ])
-[
+]AC_CACHE_CHECK(
+  [if stack is the correct one],
+  [psl_cv_stack_check],
+  [
+    psl_cv_stack_check=no
+    case "$STACK" in
+      "stack")
+        case "`stack --help`" in
+          *'The Haskell Tool Stack'*) psl_cv_stack_check=yes ;;
+        esac
+      ;;
+    esac
+  ])[
+]AS_IF([test "x$psl_cv_stack_check" != "xyes"], [
+  AC_MSG_ERROR(
+[Haskell Stack is not installed.
+Follow these installation instructions: https://www.haskell.org/downloads/.
+If it is installed, use "./configure STACK=/path/to/stack".])
+])[
 
 ]dnl begin_includes
 [
