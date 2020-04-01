@@ -43,13 +43,13 @@ def fold-f i f xs = case xs
   ; ⟪p|x⟫⧺xs′ → f p x (fold-f i f xs′)
   }
 
-def reveal_ls P l = 
-  case (reveal{ P } l)
+def send_ls P0 P1 l = 
+  case (send{ P0 -> P1 } l)
   { [ ] -> [ ]
-  ; x :: l' -> x :: (reveal_ls P l') 
+  ; x :: l' -> x :: (send_ls P0 P1 l') 
   }
 
-def reveal_prins P x = reveal{ P } x
+def reveal_prins p x = reveal { p } x
 
 -- shr_spdz: a first-order operation that shares over SPDZ
 def shr_spdz P0 P1 x = share{ spdz : P0 -> P1 } x
@@ -59,7 +59,7 @@ def shr_spdz P0 P1 x = share{ spdz : P0 -> P1 } x
 -- and: non-infix Boolean conjunction
 def and b0 b1 = b0 && b1
 
-def not b = !b
+def not b = b ? false >< true
 
 -- BEGIN library for types with equality:
 
@@ -88,7 +88,7 @@ def square a = a * a
 
 def max muxer a b = muxer (a <= b) b a
 
-def max_spdz = mux
+def max_spdz = max mux
 
 def abs_val_real a = max mux a (-1.0 * a)
 
@@ -326,10 +326,10 @@ def row_of_ones : nat -> list real
 def row_of_ones = const_vec 1.0
 
 -- mult_mat_vec : multiply a matrix of secrets and a point
-def matrix_vec_mult_gen z m pt = map (dot_prod z pt) m
+def matrix_vec_mult_gen z m pt = map (dot_prod_gen z pt) m
 
 -- mult_mat: product of row matrix and column matrix
-def matrix_mult_gen z m0 m1 = map (fun v -> map (dot_prod z v) m1) m0 
+def matrix_mult_gen z m0 m1 = map (fun v -> map (dot_prod_gen z v) m1) m0 
 
 -- part_ith a i l: l partitioned into the first i - elements, ith elt,
 -- and the everything after element i. a is a default elt, which
@@ -429,7 +429,9 @@ def dimensions_of m = case m
 
 -- nz_prod z u l: the product of non-z entries in l, with
 -- multiplicative unit u
-def nz_prod z one l = prod (filter (compose (eq z) not) l) one
+def nz_prod z one l = foldr l
+  one
+  (fun x -> mult (mux (x == z) one x))
 
 def nz_prod_vec = nz_prod shr0 shr1
 
@@ -471,7 +473,7 @@ def matrix_inverse_lt l =
   (iter (range 0 (n - 1n))
     (fun k ->
       -- For diagonal entries, take the reciprocal
-      do l_inv := matrix_set !l_inv (k, k) (matrix_get !l_inv (k, k)) 
+      do l_inv := matrix_set !l_inv (k, k) (matrix_get !l_inv (k, k)) in
 
       -- For non-diagonal entries, solve L * L_inv = I
       iter (range (k + 1n) (n - 1n))
@@ -480,6 +482,7 @@ def matrix_inverse_lt l =
           iter (range k (j - 1n))
             (fun i ->
               do sum := !sum - (metrix_get l (j, i)) * (matrix_get !l_inv (i, k))
+              in
               () ) ) ) )
   !l_inv
 
@@ -493,14 +496,14 @@ def cholesky_decomposition m =
   let l = ref (zero_mat n) in -- n x n zero matrix
 
   -- Calculate the top diagonal element of L
-  do l := matrix_set !l (0, 0) (sqrt (matrix_get m (0, 0))) 
+  do l := matrix_set !l (0, 0) (sqrt (matrix_get m (0, 0))) in
 
   -- Calculate the rest of the first column of L
   seq
   (iter (range 1n (n - 1n))
     (fun j ->
       do l := matrix_set l (j, 0n) (
-        ((matrix_get m (j, 0n)) / (matrix_get l (0n, 0n))) )
+        ((matrix_get m (j, 0n)) / (matrix_get l (0n, 0n))) ) in
       () ) )
 
   -- Iterate through the remaining columns
@@ -512,21 +515,21 @@ def cholesky_decomposition m =
       seq
       (iter (range 0n (i - 1n))
         (fun j ->
-          do sum := !sum + (matrix_get !l (i, j)) * (matrix_get !l (i, j))
+          do sum := !sum + (matrix_get !l (i, j)) * (matrix_get !l (i, j)) in
           () ) )
 
-      (do l := matrix_set (i, i) (sqrt ((matrix_get m (i, i)) - !sum))
+      (do l := matrix_set (i, i) (sqrt ((matrix_get m (i, i)) - !sum)) in
 
       -- Now fill in the remaining entries in this column
-      if_then (i < n - 1n)
+      if (i < n - 1n) then
         (iter (range (i + 1n) (n - 1n))
           (fun j ->
-            do sum := 0n
+            do sum := 0n in
             iter (range 0n (i - 1n))
               (fun k ->
-                do sum := !sum +
-                  (matrix_get !l (i, k)) * (matrix_get !l (j, k))
-                () ) ) ) ) ) )
+                do sum := !sum + (matrix_get !l (i, k)) * (matrix_get !l (j, k)) in
+                () ) ) )
+        else () ) ) )
     l)
 
 -- Listing 8: Inverse of a positive definite Hermitian matrix
@@ -545,25 +548,25 @@ def karmarkar_iteration initial_point a c =
   -- Dimensions of D: n x n
   let d = diagonal_matrix initial_point in
   -- Dimensions of cprime: n x 1
-  let cprime = matrix_scalar_vec_mult_spdz d c in
+  let cprime = matrix_vec_mult d c in
   -- Dimensions of AD: m x n
-  let ad = matrix_mult_spdz a d in
+  let ad = matrix_mult a d in
 
   -- Construct B
   -- Dimensions of B: (m + 1) x n
   let b = concat ad [ row_of_ones n ] in -- append a row of ones onto AD
 
   -- Dimensions of BBT: (m + 1) x (m + 1)
-  let bbt = matrix_mult_spdz b (transpose b) in
+  let bbt = matrix_mult b (transpose b) in
   -- Dimensions of BBTInv: (m + 1) x (m + 1)
   let bbtinv = matrix_inverse_pdh bbt in
 
   -- Project C onto B's nullspace
   -- Dimensions of cp: n x 1
   let cp = minus_vecs cprime
-    (matrix_scalar_vec_mult_spdz (transpose b)
-      (matrix_scalar_vec_mult_spdz bbtinv
-        (matrix_scalar_vec_mult_spdz b c') ) ) in
+    (matrix_vec_mult (transpose b)
+      (matrix_vec_mult bbtinv
+        (matrix_vec_mult b c') ) ) in
 
   -- Calculate a unit vector of cp
   -- Dimensions of unitcp: n x 1
@@ -582,8 +585,8 @@ def karmarkar_iteration initial_point a c =
 
   -- Transform the point back
   -- Dimensions of b: n x 1
-  let b = scalar_vec_div (matrix_scalar_vec_mult_spdz d bprime)
-    (dot_prod (row_of_ones n) (matrix_scalar_vec_mult_spdz d bprime)) in
+  let b = scalar_vec_div (matrix_vec_mult d bprime)
+    (dot_prod (row_of_ones n) (matrix_vec_mult d bprime)) in
   b
 
 -- Listing 7: Loop for Karmarkar's Algorithm
@@ -602,23 +605,37 @@ def karmarkar_loop a c =
     (magn (ceil (log_2_real (abs_val_real p)))) +
     n * (magn (ceil (log_2_real (to_flt n)))) in
   let max_iterations = 12n * n * l in
-  let max_iterations = shr_w_comp { Cost } 1n in -- DEBUG CODE
+  let max_iterations = 1n in -- DEBUG:
 
   -- If this initial point is an optimal solution, return
+  -- DEBUG for resource estimation:
   mux_ls ((dot_prod c x) < epsilon)
     x
-  (eliml_sec_nat_ls { Cost } max_iterations
+  (elim_nat max_iterations
     x
     (fun x -> 
       let x' = karmarkar_iteration x a c in
 
       -- if we are within the stopping condition in the current
       -- iteration, return
-      if_then 
+      let g = 
         ((((dot_prod c x) - (dot_prod c x')) /
-           (max_spdz shr1 (dot_prod c x)) ) < epsilon )
-        x'
-      x') )
+           (max_spdz shr1 (dot_prod c x)) ) < epsilon ) in
+      x' ) )
+
+  -- actual version that represents early return
+  -- (eliml_sec_nat_ls { Cost } max_iterations
+  --   x
+  --   (fun x -> 
+  --     let x' = karmarkar_iteration x a c in
+
+  --     -- if we are within the stopping condition in the current
+  --     -- iteration, return
+  --     if_then 
+  --       ((((dot_prod c x) - (dot_prod c x')) /
+  --          (max_spdz shr1 (dot_prod c x)) ) < epsilon )
+  --       x'
+  --     x') )
 
 -- main: entry point; Ctr, Cost read inputs and run the algorithm,
 -- distributes results to Out
@@ -634,16 +651,16 @@ def main () =
   let soln = par { Ctr, Cost, Out } (map
     (reveal_prins { Out })
     -- Ctr and Cost reveal the list structure of the point to Out:
-    (reveal_ls { Ctr, Cost, Out }
+    (send_ls comps { Out }
       -- Ctr and Cost compute the solution point:
       (par { Ctr, Cost } karmarkar_loop
         -- read in the matrix of constraints and share them
         (fold-f
           [ ]
-          (fun Q ctr -> cons (map (shr_w_comp { Q }) (reveal_ls comps ctr)))
+          (fun Q ctr -> cons (map (shr_w_comp { Q }) (send_ls { Q } comps ctr)))
           (solo { Ctr } as c in read_vec ()) )
         -- read in the vector of costs and share them
         (map (shr_w_comp { Cost })
-          (reveal_ls comps (par { Cost } read_vec ())) ) ) ) ) in
+          (send_ls { Cost } comps (par { Cost } read_vec ())) ) ) ) ) in
   -- Ctr and Cost forget the structure of the solution
-  par { Out } reveal_ls { Out } soln
+  par { Out } send_ls comps { Out } soln
