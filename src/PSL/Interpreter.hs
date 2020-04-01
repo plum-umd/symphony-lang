@@ -151,14 +151,11 @@ interpApp ∷ (STACK) ⇒ ValP → ValP → IM ValP
 interpApp ṽ₁ ṽ₂ = do
   v₁ ← elimValP ṽ₁
   case v₁ of 
-    CloV selfO ψ e ξ → do
+    CloV selfO ψ e γ → do
       let selfγ = case selfO of
             None → id
             Some self → bindVar self ṽ₁
-      m <- askL iCxtModeL
-      -- we should be able to only capture values, not modes, in closures, and
-      -- then `restrictMode m` isn't necessary anymore.
-      compose [localL iCxtCloL ξ, restrictMode m, bindPat ψ ṽ₂,selfγ] $ interpExp e
+      compose [localL iCxtEnvL γ,bindPat ψ ṽ₂,selfγ] $ interpExp e
     _ → throwIErrorCxt TypeIError "interpExp: AppE: v₁ ≢ CloV _ _ _ _" $ frhs
       [ ("v₁",pretty v₁)
       ]
@@ -211,28 +208,18 @@ interpExp = wrapInterp $ \case
     ṽ ← interpExp e'
     interpCase ṽ ψes
   LamE selfO ψs e' → do
-    ξ ← askL iCxtCloL
+    γ ← askL iCxtEnvL
     (ψ :* ψs') ← error𝑂 (view unconsL $ ψs) (throwIErrorCxt TypeIError "interpExp: LamE: view unconsL $ ψs ≡ None" $ frhs
                                              [ ("ψs",pretty ψs)
                                              ])
     let e'' = if ψs' ≡ Nil
               then e'
               else siphon e' $ LamE None ψs' e'
-      in introValP $ CloV selfO ψ e'' ξ
+      in introValP $ CloV selfO ψ e'' γ
   AppE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
     interpApp ṽ₁ ṽ₂
-  -- TLamE
-  -- TAppE
-  -- SoloE ρes e' → do
-  --   ρvs ← prinExpValss ^$ mapM interpPrinExp ρes
-  --   ρṽs ← mapMOn (iter ρvs) $ \ ρv → 
-  --     restrictMode (SecM ρv) $ do
-  --       ṽ ← interpExp e'
-  --       v ← elimValP ṽ
-  --       return $ ρv ↦ v
-  --   return $ ISecVP $ dict ρṽs
   ParE ρes e' → do
     ρvs ← prinExpValss *$ mapM interpPrinExp ρes
     if ρvs ≡ pø 
@@ -398,6 +385,7 @@ interpExp = wrapInterp $ \case
   SetE ρes → do
     ρvs ← prinExpValss *$ mapM interpPrinExp ρes
     introValP $ PrinSetV ρvs
+  -- RefE e' → 
   e → throwIErrorCxt NotImplementedIError "interpExp: not implemented" $ frhs
     [ ("e",pretty e)
     ]
@@ -495,28 +483,28 @@ initializeIO os = exec
       Some seed → R.setStdGen $ R.mkStdGen $ HS.fromIntegral seed
   ]
 
-initializeEnv ∷ Options → ITLEnv
-initializeEnv os = flip compose γtl₀
-  [ if optDoResources os then update itlEnvDoResourcesL True else id
+initializeEnv ∷ Options → IParams
+initializeEnv os = flip compose θ₀
+  [ if optDoResources os then update iParamsDoResourcesL True else id
   ]
 
-interpretFile ∷ ITLEnv → ITLState → 𝕊 → 𝕊 → IO (ITLState ∧ IOut)
-interpretFile γtl σtl name path = do
+interpretFile ∷ IParams → ITLState → 𝕊 → 𝕊 → IO (ITLState ∧ IOut)
+interpretFile θ ωtl name path = do
   s ← read path
   let ts = tokens s
   ls ← tokenizeIO lexer name ts
   tls ← parseIO cpTLs name ls
-  σtl' :* o :* () ← runITLMIO γtl σtl $ eachWith interpTL tls
-  return $ σtl' :* o
+  ωtl' :* o :* () ← runITLMIO θ ωtl name $ eachWith interpTL tls
+  return $ ωtl' :* o
 
-interpretFileMain ∷ ITLEnv → ITLState → 𝕊 → 𝕊 → IO (ValP ∧ 𝑂 ValP)
-interpretFileMain γtl σtl name path = do
-  σtl' :* _ ← interpretFile γtl σtl name path
-  let main = itlStateEnv σtl' ⋕! var "main"
-  o :* v ← evalITLMIO γtl σtl' $ hijack $ asTLM $ interpApp main $ AllVP BulV
-  let expectedO = itlStateEnv σtl' ⋕? var "expected"
+interpretFileMain ∷ IParams → ITLState → 𝕊 → 𝕊 → IO (ValP ∧ 𝑂 ValP)
+interpretFileMain θ ωtl name path = do
+  ωtl' :* _ ← interpretFile θ ωtl name path
+  let main = itlStateEnv ωtl' ⋕! var "main"
+  o :* v ← evalITLMIO θ ωtl' name $ hijack $ asTLM $ interpApp main $ AllVP BulV
+  let expectedO = itlStateEnv ωtl' ⋕? var "expected"
   let fn = string $ HS.takeBaseName $ chars path
-  if itlEnvDoResources γtl
+  if iParamsDoResources θ
     then BS.writeFile (chars $ "resources/" ⧺ fn ⧺ ".res") $ JSON.encode $ jsonEvents $ iOutResEvs o
     else skip
   return $ v :* expectedO
@@ -548,15 +536,15 @@ psliMainRun = do
     [t] → return t
     _ → failIO "ERROR: Too many files specified as target. Correct usage: psli run [<arguments>] <file>"
   initializeIO os
-  let γtl = initializeEnv os
+  let θ = initializeEnv os
   out ""
   pprint $ ppHorizontal
     [ ppHeader "INTERPRETING FILE:"
     , ppString fn
     ]
   libpath ← string ^$ getDataFileName $ chars "lib/stdlib.psl"
-  σtl :* _ ← interpretFile γtl σtl₀ "lib:stdlib.psl" libpath
-  v ← fst ^$ interpretFileMain γtl σtl fn fn
+  ωtl :* _ ← interpretFile θ ωtl₀ "lib:stdlib.psl" libpath
+  v ← fst ^$ interpretFileMain θ ωtl fn fn
   pprint $ ppHeader "RESULT"
   pprint v
 
@@ -568,7 +556,7 @@ psliMainExample = do
     [t] → return t
     _ → failIO "ERROR: Too many files specified as target. Correct usage: psli example [<arguments>] <name>"
   initializeIO os
-  let γtl = initializeEnv os
+  let θ = initializeEnv os
   out ""
   pprint $ ppHorizontal 
     [ ppHeader "INTERPRETING EXAMPLE:"
@@ -576,8 +564,8 @@ psliMainExample = do
     ]
   path ← string ^$ getDataFileName $ chars $ "examples/" ⧺ fn ⧺ ".psl"
   libpath ← string ^$ getDataFileName $ chars "lib/stdlib.psl"
-  σtl :* _ ← interpretFile γtl σtl₀ "lib:stdlib.psl" libpath
-  v ← fst ^$ interpretFileMain γtl σtl (concat ["example:",fn,".psl"]) path
+  ωtl :* _ ← interpretFile θ ωtl₀ "lib:stdlib.psl" libpath
+  v ← fst ^$ interpretFileMain θ ωtl (concat ["example:",fn,".psl"]) path
   pprint $ ppHeader "RESULT"
   pprint v
 
@@ -587,17 +575,17 @@ psliMainTest = do
   case ts of
     [] → skip
     _ → failIO "ERROR: Command does not accept targets. Correct usage: psli test [<arguments>]"
-  let γtl = initializeEnv os
+  let θ = initializeEnv os
   out ""
   pprint $ ppHeader "TESTING INTERPRETER"
   libpath ← string ^$ getDataFileName $ chars "lib/stdlib.psl"
-  σtl :* _ ← interpretFile γtl σtl₀ "lib:stdlib.psl" libpath
+  ωtl :* _ ← interpretFile θ ωtl₀ "lib:stdlib.psl" libpath
   testsdir ← string ^$ getDataFileName $ chars "tests"
   indir testsdir $ do
     fns ← files
     vevs ← mapMOn fns $ \ fn → do
       initializeIO os
-      (fn :*) ^$ interpretFileMain γtl σtl (concat ["test:",fn]) fn
+      (fn :*) ^$ interpretFileMain θ ωtl (concat ["test:",fn]) fn
     pprint $ ppVertical
       [ ppHeader "TESTS"
       , concat

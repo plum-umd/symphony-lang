@@ -6,6 +6,7 @@ import PSL.Interpreter.Types
 import PSL.Interpreter.Truncating
 import PSL.Interpreter.Pretty ()
 import PSL.Syntax
+import PSL.Interpreter.Json
 
 valWithType ∷ Val → Val ∧ 𝕊
 valWithType v = v :* getType v

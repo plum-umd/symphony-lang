@@ -1,3 +1,7 @@
+def main • = •
+def expected = •
+
+{-
 def main • =
   let y = array[10] 0
   let f = fun x → x + y.0 + y.9
@@ -9,4 +13,4 @@ def main • =
   f 1
 
 def expected = 111
-
+-}
