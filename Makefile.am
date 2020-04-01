@@ -58,6 +58,7 @@ share_psldir = $(datadir)/psl
 
 .PHONY: FORCE
 .PHONY: docker
+.PHONY: stack-check
 
 COMMIT:
 	bash build-aux/COMMIT.bash >COMMIT$(TMPEXT)
@@ -72,6 +73,14 @@ FORCE:
 VERSION:
 	bash build-aux/VERSION.bash >VERSION$(TMPEXT)
 	mv VERSION$(TMPEXT) VERSION
+
+stack-check: FORCE
+	@case '$(STACK_MISSING)' in \
+	  'yes') \
+	    printf 'Haskell Stack is not available. Please install it and re-run ./configure.\n' >&2; \
+	    exit 1; \
+	  ;; \
+	esac
 
 docker: Dockerfile
 docker: dist-gzip
@@ -89,7 +98,7 @@ docker: dist-gzip
 
 mostlyclean-local: psli/clean
 
-psli: $(psli_files)
+psli: $(psli_files) stack-check
 	{ \
 	  $(copy_vpath_files); \
 	  $(STACK) build || exit; \
@@ -98,7 +107,7 @@ psli: $(psli_files)
 	  mv $@$(TMPEXT) $@ || exit; \
 	}
 
-psli/clean: FORCE
+psli/clean: stack-check
 	{ \
 	  $(copy_vpath_files); \
 	  $(STACK) clean --full || :; \

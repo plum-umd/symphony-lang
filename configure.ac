@@ -67,7 +67,8 @@ dnl
 [Haskell Stack is not installed.
 Follow these installation instructions: https://www.haskell.org/downloads/.
 If it is installed, use "./configure STACK=/path/to/stack".
-The Docker image can be build without Stack being installed.])
+The Docker image can be built without Stack being installed.])
+  AC_SUBST([STACK_MISSING],[yes])
 ])[
 
 ]dnl begin_includes
