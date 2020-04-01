@@ -394,10 +394,10 @@ def m = 2n
 
 -- n : user parameter: dimension of the constraint system
 def n : nat
-def n = 2n
+def n = 8n
 
 -- Ctr[m]: parties that bring the constraints
-principal Ctr[2]
+principal Ctr[8]
 
 -- party that provides the cost vector:
 principal Cost
