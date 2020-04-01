@@ -298,6 +298,7 @@ def msort xs = case xs
 
 def int-swap b x y = b ? x >< y
 def bool-swap b x y = b ? x >< y
+def flt-swap b x y = b ? x >< y
 
 
 -- given a swap function for type a, build swap for bool * a
@@ -468,8 +469,8 @@ def share-as-vec knowers shareFlag shareContent default swap n xs =
 
 
 
--- def reveal-vec : (a{P} -> a) -> vec{P} a -> list a
-def reveal-vec revealContent vec =
+-- def vec-reveal : (a{P} -> a) -> vec{P} a -> list a
+def vec-reveal revealContent vec =
   let _, _, xs = vec
   let revealed = map (fun cell ->
     let t, x = cell

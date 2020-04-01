@@ -2,111 +2,65 @@ principal A
 principal B
 
 -- TODO
--- replace functional array implementation by arrays once done
 -- generalize to 64 players
+-- why does random selection not work?
 
 
-
-def index
-  : nat{bgw:this}
-  -> list flt{bgw:this}
-  -> flt{bgw:this}
-def index i xs =
-  case xs
-  { [] -> 0.0
-  ; x::xs ->
-    i == 0 ? x >< index (i - 1) xs
-  }
-
-
-def replace
-  : int{bgw:this} -- index
-  -> nat{bgw:this} -- to insert
-  -> list flt{bgw:this}
-  -> list flt{bgw:this}
-def replace ix x arr =
-  case arr
-  { [] -> []
-  ; y::ys ->
-    let h = ix == 0 ? x >< y
-    in h :: replace (ix - 1) x ys
-  }
-
-def swap
-   : nat{bgw:this}
-  -> nat{bgw:this}
-  -> list flt{bgw:this}
-  -> list flt{bgw:this}
-def swap i j arr =
-  let l = index i arr
-  let r = index j arr
+-- def swap-indexes
+--    : bool{bgw:this}
+--   -> nat{bgw:this}
+--   -> nat{bgw:this}
+--   -> vec{bgw:this} flt
+--   -> vec{bgw:this} flt
+def swap-indexes cond i j arr =
+  let _, l = vec-read i arr
+  let _, r = vec-read j arr
   in
-    replace i r (replace j l arr)
+    vec-cond-write cond i r (vec-cond-write cond j l arr)
 
 
-def condArray
-  : bool{bgw:this}
-  -> list flt{bgw:this}
-  -> list flt{bgw:this}
-  -> list flt{bgw:this}
-def condArray b xs ys =
-  case xs, ys
-  { [], [] -> []
-  ; x::xs, y::ys ->
-    (b ? x >< y) :: condArray b xs ys
-  }
-
-
--- Swap the two indices in the array iff the condition is true
-def condSwap
-  : bool{bgw:this}
-  -> nat{bgw:this}
-  -> nat{bgw:this}
-  -> list flt{bgw:this}
-  -> list flt{bgw:this}
-def condSwap cond i j arr =
-  condArray cond (swap i j arr) arr
-
-
-def partLoop
-  : nat -- remaining iterations
-  -> nat{bgw:this}
-  -> nat{bgw:this}
-  -> nat{bgw:this}
-  -> list flt{bgw:this}
-  -> list flt{bgw:this} * nat{bgw:this}
+-- def partLoop
+--   : nat -- remaining iterations
+--   -> nat{bgw:this}
+--   -> nat{bgw:this}
+--   -> nat{bgw:this}
+--   -> vec{bgw:this} flt
+--   -> vec{bgw:this} flt * nat{bgw:this}
 def partLoop n i j hi arr =
   if n == 0
   then
     arr, i
   else
-    let cond = index j arr < index hi arr
-    let arr = condSwap cond i j arr
+    let _, x = vec-read j arr
+    let _, y = vec-read hi arr
+    let cond = x < y
+    let arr = swap-indexes cond i j arr
     let i' = i + (cond ? 1 >< 0)
     let j' = (j < hi) ? j + 1 >< j
     in
       partLoop (n - 1) i' j' hi arr
 
 
-def partition
-  : nat -- the size of the entire list
-  -> nat{bgw:this}
-  -> nat{bgw:this}
-  -> list flt{bgw:this}
-  -> list flt{bgw:this} * nat{bgw:this}
+-- def partition
+--   : nat -- the size of the entire list
+--   -> nat{bgw:this}
+--   -> nat{bgw:this}
+--   -> vec{bgw:this} flt
+--   -> vec{bgw:this} flt * nat{bgw:this}
 def partition n lo hi arr =
-  let r = rand-range int{bgw:this} (lo,hi) in
-  let arr = condSwap true r hi arr in
+  -- TODO why do the following lines not work?
+  -- let r = rand-range int{bgw:this} (lo,hi) in
+  -- let arr = swap-indexes true r hi arr in
   let arr', pivot = partLoop n lo lo hi arr
-  in (swap pivot hi arr', pivot)
+  in (swap-indexes true pivot hi arr', pivot)
 
 
-def quickSort
-  : nat -- iterations remaining
-  -> nat{bgw:this} -- lo
-  -> nat{bgw:this} -- hi
-  -> list flt{bgw:this}
-  -> list flt{bgw:this}
+-- def quickSort
+--   : nat -- iterations remaining
+--   -> nat{bgw:this} -- lo
+--   -> nat{bgw:this} -- hi
+--   -> vec{bgw:this} flt
+--   -> vec{bgw:this} flt
 def quickSort n lo hi arr =
   if n == 0
   then arr
@@ -116,18 +70,23 @@ def quickSort n lo hi arr =
       quickSort (n - 1) (pivot + 1) hi
         (quickSort (n - 1) lo (pivot - 1) partitioned)
     in
-      condArray (lo >= hi) arr sorted
+      vec-swap (lo >= hi) arr sorted
 
 
-def main : unit -> {inp:A,B;rev:A,B} list nat
+def main : unit -> {inp:A,B ; rev:A,B} (list flt)
 def main () =
   par {A,B}
-    let a = sequenceKnownness {A} (par {A} read (list flt) "qsort-input.txt")
-    let b = sequenceKnownness {B} (par {B} read (list flt) "qsort-input.txt")
-    let a' = map (fun x -> share {bgw:A -> this} x) a
-    let b' = map (fun x -> share {bgw:B -> this} x) b
-    let inps = append a' b'
+    let sbool = fun P -> (fun x -> share{bgw:P -> this} x)
+    let sflt = fun P -> (fun x -> share{bgw:P -> this} x)
+    let rflt = fun f -> reveal {this} f
 
-    let n = length inps
+    let a = share-as-vec A (sbool A) (sflt A) 0.0 flt-swap 10
+      (par {A} read (list flt) "qsort-input.txt")
+    let b = share-as-vec B (sbool B) (sflt B) 0.0 flt-swap 10
+      (par {B} read (list flt) "qsort-input.txt")
+
+    let inps = vec-append a b
+
+    let n = vec-capacity inps
     in
-      map (fun x -> reveal{A,B} x) (quickSort n 0 (n - 1) inps)
+      vec-reveal rflt (quickSort n 0 (n - 1) inps)

@@ -17,4 +17,4 @@ def main () =
 
     let ix = share{yao:B -> this} (par {B} 7)
     in
-    reveal-vec rint (vec-append xs' ys')
+    vec-reveal rint (vec-append xs' ys')
