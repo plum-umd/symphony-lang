@@ -3,6 +3,6 @@ def main • =
   let x = true
   let y = false
   in
-  (x && true) ∧ (y || false) || false
+  (x && not false) ∧ (y || false) || false
 
 def expected = false
