@@ -59,7 +59,8 @@ def shr_spdz P0 P1 x = share{ spdz : P0 -> P1 } x
 -- and: non-infix Boolean conjunction
 def and b0 b1 = b0 && b1
 
-def not b = b ? false >< true
+-- def not b = b ? false >< true
+def neg b = not b
 
 -- BEGIN library for types with equality:
 
@@ -231,11 +232,11 @@ def order = len
 def get l i =
   (elim_nat i
     (fun l' -> case l'
-      { [ ] -> "fail"
+      { [ ] -> err "get: 0th of empty list"
       ; x :: l'' -> x
       })
     (fun g l' -> case l'
-      { [ ] -> "fail"
+      { [ ] -> err "get: ith of non-empty list"
       ; x :: l'' -> g l''
       }) )
     l
@@ -244,12 +245,12 @@ def get l i =
 def setter l i v =
   (elim_nat i
     (fun l' -> case l'
-      { [ ] -> [ ]
+      { [ ] -> err "set: setting 0th of empty list"
       ; x :: l' -> v :: l'
       })
     (fun s l' -> case l'
-     { [ ] -> [ ]
-     ; x :: l'' -> x :: (s l')
+     { [ ] -> err "set : setting ith of non-empty list"
+     ; x :: l'' -> x :: (s l'')
      }) )
     l
 
@@ -334,7 +335,9 @@ def row_of_ones = const_vec 1.0
 def matrix_vec_mult_gen z m pt = map (dot_prod_gen z pt) m
 
 -- mult_mat: product of row matrix and column matrix
-def matrix_mult_gen z m0 m1 = map (fun v -> map (dot_prod_gen z v) m1) m0 
+def matrix_mult_gen z m0 m1 =
+  let m1t = transpose m1 in
+  map (fun v -> map (dot_prod_gen z v) m1t) m0 
 
 -- part_ith a i l: l partitioned into the first i - elements, ith elt,
 -- and the everything after element i. a is a default elt, which
@@ -461,7 +464,7 @@ def range m n =
   else map (plus m)
     (elim_nat (n - m)
        [ 0n ]
-       (fun rng -> (len rng) :: rng))
+       (fun rng -> snoc (len rng) rng) )
 
 def matrix_get m (i, j) = get (get m i) j
 
@@ -478,15 +481,19 @@ def matrix_inverse_lt l =
   (iter (range 0n (n - 1n))
     (fun k ->
       -- For diagonal entries, take the reciprocal
-      do l_inv := matrix_set !l_inv (k, k) (matrix_get !l_inv (k, k)) in
+      do l_inv := matrix_set !l_inv (k, k) (shr1 / (matrix_get !l_inv (k, k))) in
 
       -- For non-diagonal entries, solve L * L_inv = I
       iter (range (k + 1n) (n - 1n))
         (fun j ->
-          let sum = ref 0n in
+          let sum = ref shr0 in
           iter (range k (j - 1n))
             (fun i ->
-              do sum := !sum - (metrix_get l (j, i)) * (matrix_get !l_inv (i, k))
+              -- let _ = "inverse_lt: pre get into l at " + (j, i) in
+              let _ = matrix_get l (j, i) in
+              -- let _ = err "inverse_lt: pre get into l_inv" in
+              let _ = matrix_get !l_inv (i, k) in
+              do sum := !sum - (matrix_get l (j, i)) * (matrix_get !l_inv (i, k))
               in
               () ) ) ) )
   !l_inv
@@ -507,8 +514,7 @@ def cholesky_decomposition m =
   seq
   (iter (range 1n (n - 1n))
     (fun j ->
-      do l := matrix_set l (j, 0n) (
-        ((matrix_get m (j, 0n)) / (matrix_get l (0n, 0n))) ) in
+      do l := matrix_set !l (j, 0n) ((matrix_get m (j, 0n)) / (matrix_get !l (0n, 0n)) ) in
       () ) )
 
   -- Iterate through the remaining columns
@@ -516,26 +522,26 @@ def cholesky_decomposition m =
    (iter (range 1n (n - 1n))
     (fun i ->
       -- First calculate the diagonal element for this column
-      let sum = ref 0n in
+      let sum = ref shr0 in
       seq
       (iter (range 0n (i - 1n))
         (fun j ->
           do sum := !sum + (matrix_get !l (i, j)) * (matrix_get !l (i, j)) in
           () ) )
 
-      (do l := matrix_set (i, i) (sqrt ((matrix_get m (i, i)) - !sum)) in
+      (do l := matrix_set !l (i, i) (sqrt ((matrix_get m (i, i)) - !sum)) in
 
       -- Now fill in the remaining entries in this column
       if (i < n - 1n) then
         (iter (range (i + 1n) (n - 1n))
           (fun j ->
-            do sum := 0n in
+            do sum := shr0 in
             iter (range 0n (i - 1n))
               (fun k ->
                 do sum := !sum + (matrix_get !l (i, k)) * (matrix_get !l (j, k)) in
                 () ) ) )
-        else () ) ) )
-    l)
+      else () ) ) )
+    !l)
 
 -- Listing 8: Inverse of a positive definite Hermitian matrix
 def matrix_inverse_pdh : num -> matrix -> matrix
@@ -559,10 +565,11 @@ def karmarkar_iteration initial_point a c =
 
   -- Construct B
   -- Dimensions of B: (m + 1) x n
-  let b = concat ad [ row_of_ones n ] in -- append a row of ones onto AD
+  let b = snoc (row_of_ones n) ad in -- append a row of ones onto AD
 
   -- Dimensions of BBT: (m + 1) x (m + 1)
   let bbt = matrix_mult b (transpose b) in
+
   -- Dimensions of BBTInv: (m + 1) x (m + 1)
   let bbtinv = matrix_inverse_pdh bbt in
 
@@ -571,7 +578,7 @@ def karmarkar_iteration initial_point a c =
   let cp = minus_vecs cprime
     (matrix_vec_mult (transpose b)
       (matrix_vec_mult bbtinv
-        (matrix_vec_mult b c') ) ) in
+        (matrix_vec_mult b cprime) ) ) in
 
   -- Calculate a unit vector of cp
   -- Dimensions of unitcp: n x 1
@@ -590,7 +597,7 @@ def karmarkar_iteration initial_point a c =
 
   -- Transform the point back
   -- Dimensions of b: n x 1
-  let b = scalar_vec_div (matrix_vec_mult d bprime)
+  let b = div_vec (matrix_vec_mult d bprime)
     (dot_prod (row_of_ones n) (matrix_vec_mult d bprime)) in
   b
 
@@ -656,7 +663,7 @@ def main () =
   let soln = par { Ctr, Cost, Out } (map
     (reveal_prins { Out })
     -- Ctr and Cost reveal the list structure of the point to Out:
-    (send_ls comps { Out }
+    (send_ls { Cost } { Ctr, Cost, Out }
       -- Ctr and Cost compute the solution point:
       (par { Ctr, Cost } karmarkar_loop
         -- read in the matrix of constraints and share them
@@ -668,4 +675,22 @@ def main () =
         (map (shr_w_comp { Cost })
           (send_ls { Cost } comps (par { Cost } read_vec ())) ) ) ) ) in
   -- Ctr and Cost forget the structure of the solution
-  par { Out } send_ls comps { Out } soln
+  soln
+
+  -- DEBUG:
+  -- let soln = par { Ctr, Cost, Out } (map
+  --   (reveal_prins { Out })
+  --   -- Ctr and Cost reveal the list structure of the point to Out:
+  --   (send_ls { Cost } { Out }
+  --     -- Ctr and Cost compute the solution point:
+  --     (par { Ctr, Cost } karmarkar_loop
+  --       -- read in the matrix of constraints and share them
+  --       (fold-f
+  --         [ ]
+  --         (fun Q ctr -> cons (map (shr_w_comp { Q }) (send_ls { Q } comps ctr)))
+  --         (solo { Ctr } as c in read_vec ()) )
+  --       -- read in the vector of costs and share them
+  --       (map (shr_w_comp { Cost })
+  --         (send_ls { Cost } comps (par { Cost } read_vec ())) ) ) ) ) in
+  -- -- Ctr and Cost forget the structure of the solution
+  -- par { Out } send_ls { Cost } { Out } soln
