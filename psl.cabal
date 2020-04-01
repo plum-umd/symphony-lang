@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3706dbddd027ecb7c5b5096068105035c51d43e1ae82952f2f2c0e5cba0da3d3
+-- hash: 0913a6510caa92c41a46a1675e674d2d21d3e33cdbf15176613a777196f48abf
 
 name:           psl
 version:        0.1.0.0
@@ -12,6 +12,7 @@ build-type:     Simple
 data-files:
     lib/stdlib.psl
     examples/arg-par-contains.psl
+    examples/assoc-map.psl
     examples/atq.psl
     examples/bind-fp-const.psl
     examples/bind-shares.psl
@@ -40,15 +41,15 @@ data-files:
     examples/mult-depth-test.psl
     examples/partial-diverge.psl
     examples/pfold.psl
-    examples/qsort.psl
+    examples/qsort-pure.psl
     examples/rand.psl
     examples/reshare.psl
     examples/share-ls.psl
     examples/ssec-other-ssec.psl
     examples/ssec-shr.psl
     examples/sumprod.psl
-    examples/test.psl
     examples/uninspecting-par.psl
+    examples/vector.psl
     examples/yao.psl.bmi
     tests/andor.psl
     tests/arrays.psl
