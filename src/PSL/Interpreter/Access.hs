@@ -130,6 +130,8 @@ restrictValPRecVal v = case v of
   TCloV _ _ _ → return v
   PrinV _ → return v
   PrinSetV _ → return v
+  LocV _ → return v
+  ArrayV ṽs → ArrayV ∘ vec ^$ mapMOn (list ṽs) restrictValP
 
 unShareValPsMode ∷ Mode → 𝐿 ValP → 𝑂 (𝐿 Val ∧ 𝑂 (Prot ∧ 𝑃 PrinVal ∧ ℕ))
 unShareValPsMode m ṽs = case ṽs of
