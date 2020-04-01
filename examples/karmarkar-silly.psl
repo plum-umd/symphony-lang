@@ -38,16 +38,11 @@ def ite guard tc fc = if guard then tc else fc
 
 def mux guard tc fc = guard ? tc ◇ fc
 
-def pdecons a f xy = case xy
-  { ⟪⟫ → a
-  ; ⟪Q.x⟫⧺xy′ → f Q x 
-  }
-
-def pfold : ∀ A:☆,P:ℙ. A → ((Q:ℙ | Q⊆P) → ℤ{Q} → A → A) → ℤ{isec:P} →{sec:P} A
-def pfold i f xy = case xy
-  { ⟪⟫ → i
-  ; ⟪Q.x⟫⧺xy′ → f Q x (pfold i f xy′)
-  }
+-- def pfold : ∀ A:☆,P:ℙ. A → ((Q:ℙ | Q⊆P) → ℤ{Q} → A → A) → ℤ{isec:P} →{sec:P} A
+-- def pfold i f xy = case xy
+--   { ⟪⟫ → i
+--   ; ⟪Q.x⟫⧺xy′ → f Q x (pfold i f xy′)
+--   }
 
 def reveal_ls P l = 
   case (reveal{ P } l)
@@ -58,7 +53,7 @@ def reveal_ls P l =
 def reveal_prins P x = reveal{ P } x
 
 -- shr_spdz: a first-order operation that shares over SPDZ
-def shr_spdz P x = share{ spdz : P } x
+def shr_spdz P0 P x = share{ spdz : P0 -> P } x
 
 -- BEGIN library for Boolean
 
@@ -125,6 +120,10 @@ def elim_nat m z s =
 -- PSL: add syntactic sugar for this?
 def eliml_nat : nat -> t -> (t -> t) -> t
 def eliml_nat n z s = (elim_nat n id (compose s)) z
+
+def seq e0 e1 =
+  let _ = e0 in
+  e1
 
 -- monad for building a value and a continuation. Type is
 -- cont a b = (a -> a, b)
@@ -194,6 +193,9 @@ def foldr l acc f = case l
   ; x :: l' -> f x (foldr l' acc f)
   } 
 
+-- iter: fold over the unit
+def iter l f = foldr l () (fun x () -> f x)
+
 -- filter test l: l, filtered down to elements that satisfy test
 def filter test l = foldr l
   [ ]
@@ -235,17 +237,17 @@ def get l i = eliml_nat i
     })
 
 -- set l i v: list l with the ith element updated to be v
-def set l i v = eliml_nat i
-  (let rest = case l
-   { [ ] -> [ ]
-   ; x :: l' -> v :: l'
-   })
-  (fun l' -> case l'
-   { [ ] -> [ ]
-   ; x :: l'' -> x :: 
-   }
-  )
-  
+def setter l i v =
+  (eliml_nat i
+    (fun l' -> case l'
+      { [ ] -> [ ]
+      ; x :: l' -> v :: l'
+      })
+    (fun s l' -> case l'
+     { [ ] -> [ ]
+     ; x :: l'' -> x :: (s l')
+     }) )
+    l
 
 -- map: map operation for the list functor
 def map : (t -> u) -> list t -> list u
@@ -292,9 +294,6 @@ def eq_vecs = eq_lists
 -- mux_ls: multiplex over a pair of lists:
 def mux_ls guard l0 l1 = zip_map (mux guard) l0 l1
 
-def eliml_sec_nat_ls = eliml_sec_nat mux_ls
-  (shr_w_comp 0n) (shr_w_comp 1n) 
-
 -- prod: the product over a list of numerics
 def prod v one = foldr v one mult
 
@@ -303,7 +302,6 @@ def sum v z = foldr v z plus
 
 -- dot_prod: take the dot product of two points
 def dot_prod_gen z p0 p1 = sum (zip_map mult p0 p1) z
-def dot_prod = dot_prod_gen shr0
 
 -- pt_diff: subtract one point from another
 def minus_vecs : point -> point -> point
@@ -401,20 +399,24 @@ principal Cost
 principal Out
 
 -- comps: the parties that do computation, Ctr and Cost
-def comps = set(Ctr,Cost)
-
--- shr_w_ctrs: share data with the parties performing computation
-def shr_w_ctrs = shr_spdz set(Ctr)
+-- def comps = set(Ctr,Cost)
+def comps = { Ctr, Cost }
 
 -- shr_w_comp: share data with the parties performing computation
-def shr_w_comp = shr_spdz comps
+def shr_w_comp = shr_spdz { this } comps
 
 -- shr0, shr1: shares of constants that are often reused:
-def shr0 = shr_w_comp 0.0 in
-def shr1 = shr_w_comp 1.0 in
+def shr0 = shr_w_comp 0.0 
+def shr1 = shr_w_comp 1.0 
      
+def eliml_sec_nat_ls = eliml_sec_nat mux_ls
+  (shr_w_comp 0n) (shr_w_comp 1n) 
+
+def dot_prod = dot_prod_gen shr0
+
 -- matrix_mult: multiply matrices of SPDZ shares
 def matrix_mult = matrix_mult_gen shr0 
+
 -- matrix_vec_mult: multiply matrix and vector of SPDZ shares
 def matrix_vec_mult = matrix_vec_mult_gen shr0 
 
@@ -457,7 +459,7 @@ def range m n =
 
 def matrix_get m (i, j) = get (get m i) j
 
-def matrix_set m (i, j) v = set m i (set (get m i) j v)
+def matrix_set m (i, j) v = setter m i (setter (get m i) j v)
 
 -- Listing 9: Inverse of a lower triangular matrix
 def matrix_inverse_lt l =
@@ -466,22 +468,22 @@ def matrix_inverse_lt l =
   -- PSL: can we add syntactic sugar for sequencing?
   -- PSL: can we add syntactic sugar for loops? In particular for
   -- loops with no accumulator?
-  fold-f ()
+  seq
+  (iter (range 0 (n - 1n))
     (fun k ->
       -- For diagonal entries, take the reciprocal
-      l_inv := matrix_set l_inv (k, k) (matrix_get l_inv (k, k)) ;
+      do l_inv := matrix_set !l_inv (k, k) (matrix_get !l_inv (k, k)) 
 
       -- For non-diagonal entries, solve L * L_inv = I
-      fold-f ()
-        (let sum = ref 0n in
-          fold-f ()
+      iter (range (k + 1n) (n - 1n))
+        (fun j ->
+          let sum = ref 0n in
+          iter (range k (j - 1n))
             (fun i ->
-              sum := sum -
-                (metrix_get l (j, i)) * (matrix_get l_inv (i, k)) )
-            (range k (j - 1n)) )
-        (range (k + 1n) (n - 1n)) )
-    (range 0 (n - 1n)) ;
-  l_inv
+              do sum := (
+                !sum - (metrix_get l (j, i)) * (matrix_get !l_inv (i, k)) )
+              () ) ) ) )
+  !l_inv
 
 -- TODO: replace with list syntax
 
@@ -493,43 +495,41 @@ def cholesky_decomposition m =
   let l = ref (zero_mat n) in -- n x n zero matrix
 
   -- Calculate the top diagonal element of L
-  l := matrix_set l (0, 0) (sqrt (matrix_get m (0, 0))) ;
+  do l := matrix_set !l (0, 0) (sqrt (matrix_get m (0, 0))) 
 
   -- Calculate the rest of the first column of L
-  fold-f ()
+  seq
+  (iter (range 1n (n - 1n))
     (fun j ->
-      l := matrix_set l (j, 0n)
+      do l := matrix_set l (j, 0n) (
         ((matrix_get m (j, 0n)) / (matrix_get l (0n, 0n))) )
-    (range 1n (n - 1n)) ;
+      () ) )
 
   -- Iterate through the remaining columns
-  fold-f ()
+  (seq
+   (iter (range 1n (n - 1n))
     (fun i ->
       -- First calculate the diagonal element for this column
       let sum = ref 0n in
-      fold-f ()
+      seq
+      (iter (range 0n (i - 1n))
         (fun j ->
-          sum := sum + (matrix_get l (i, j)) * (matrix_get l (i, j)) )
-        (range 0n (i - 1n)) ;
+          do sum := !sum + (matrix_get !l (i, j)) * (matrix_get !l (i, j))
+          () ) )
 
-      l := matrix_set (i, i) (sqrt ((matrix_get m (i, i)) - sum)) ;
+      (do l := matrix_set (i, i) (sqrt ((matrix_get m (i, i)) - !sum))
 
       -- Now fill in the remaining entries in this column
       if_then (i < n - 1n)
-        (fold-f ()
+        (iter (range (i + 1n) (n - 1n))
           (fun j ->
-            sum := 0n ;
-            fold-f ()
+            do sum := 0n
+            iter (range 0n (i - 1n))
               (fun k ->
-                sum := sum + (matrix_get l (i, k)) * (matrix_get l (j, k))
-              )
-              (range 0n (i - 1n))
-          )
-          (range (i + 1n) (n - 1n))
-        )
-    )
-    (range 1n (n - 1n)) ;
-  l
+                do sum := !sum +
+                  (matrix_get !l (i, k)) * (matrix_get !l (j, k))
+                () ) ) ) ) ) )
+    l)
 
 -- Listing 8: Inverse of a positive definite Hermitian matrix
 def matrix_inverse_pdh : num -> matrix -> matrix
@@ -632,21 +632,21 @@ def main () =
   -- FANCY MPC: Ctr and Cost send the data in the list to Out. This
   -- may change if the PSL model of isec's changes as a result of
   -- issue #31
-  let soln = { par : Ctr, Cost, Out } (map
-    (reveal_prins set(Out))
+  let soln = par { Ctr, Cost, Out } (map
+    (reveal_prins { Out })
     -- Ctr and Cost reveal the list structure of the point to Out:
-    (reveal_ls set(Ctr,Cost,Out)
+    (reveal_ls { Ctr, Cost, Out }
       -- Ctr and Cost compute the solution point:
-      ({ par : Ctr, Cost } karmarkar_loop
+      (par { Ctr, Cost } karmarkar_loop
         -- read in the matrix of constraints and share them
         (pfold 
           [ ]
           (fun Q ctr -> cons
             (mult_diag_vec pt
             (map shr_w_comp (reveal_ls comps ctr)) ) )
-          ({ par : Ctr } read_vec ()) )
+          (par { Ctr } read_vec ()) )
         -- read in the vector of costs and share them
         (map shr_w_comp
-          (reveal_ls comps ({ par : Cost } read_vec ())) ) ) ) ) in
+          (reveal_ls comps (par { Cost } read_vec ())) ) ) ) ) in
   -- Ctr and Cost forget the structure of the solution
-  { par : Out } reveal_ls set(Out) soln
+  par { Out } reveal_ls { Out } soln
