@@ -1,0 +1,18 @@
+principal A
+principal B
+
+
+def main () =
+
+  par {A,B}
+    let sbool = (fun x -> share{yao:A -> this} x)
+    let sint = (fun x -> share{yao:A -> this} x)
+
+
+    let xs = (par {A} 0::1::2::3::4::[])
+
+    let xs' = share-as-vec {A} sbool sint 0 int-swap 10 xs
+
+    let ix = share{yao:B -> this} (par {B} 2)
+    in
+    reveal {A,B} (snd (vec-read ix xs'))

@@ -144,6 +144,29 @@ def snd p = case p
   { (_,s) → s
   }
 
+
+def rangen-help : nat -> nat -> list nat
+def rangen-help n goal =
+  if n == goal
+  then []
+  else n :: rangen-help (n+1) goal
+
+def rangen : nat -> list nat
+def rangen n = rangen-help 0 n
+
+
+def reverse-help : list a -> list a -> list a
+def reverse-help xs acc =
+  case xs
+  { [] -> acc
+  ; (x::xs') -> reverse-help xs' (x::acc)
+  }
+
+
+def reverse : list a -> list a
+def reverse xs = reverse-help xs []
+
+
 -- Convert a known list into a list of known objects.
 -- The list will contain the first `n` elements of the known list.
 -- If `n` exceeds the length of the list, the list will be padded with default.
@@ -245,3 +268,197 @@ def msort xs = case xs
       in merge ys₁ ys₂
   }
 -- Merge sort end
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+--- VECTOR LIBRARY
+---
+
+
+def int-swap b x y = b ? x >< y
+def bool-swap b x y = b ? x >< y
+
+
+-- given a swap function for type a, build swap for bool * a
+-- def tag-swap : (bool{P} -> a -> a -> a) 
+--             -> (bool{P} -> bool{P} * a -> bool{P} * a -> bool{P} * a)
+def tag-swap swap =
+  fun b x y ->
+    let tx, x' = x
+    let ty, y' = y
+    in (b ? tx >< ty), (swap b x' y')
+
+
+-- def init-content : nat -> a -> array{P} a
+def content-init default n =
+  if n == 0
+  then []
+  else
+    (false, default) :: content-init default (n - 1)
+
+
+-- def vector-init : a -> (bool{P} -> a -> a -> a) -> nat -> vector{P} a
+def vec-init default swap n =
+  let tswap = tag-swap swap
+  in
+    default, tswap, content-init default n
+
+
+def content-write swap cond n y xs =
+  case xs
+  { [] -> []
+  ; cell::xs' ->
+    let (tag, x) = cell
+    in
+      swap (cond && (n == 0) && tag) (tag, y) cell
+        :: content-write swap cond (n - 1) y xs'
+  }
+
+
+-- def vector : nat{P} -> a -> vector{P} a -> vector{P} a
+def vec-cond-write cond n y vec =
+  let default, swap, xs = vec
+  in default, swap, (content-write swap cond n y xs)
+
+def vec-write = vec-cond-write true
+
+def not b = b ? false >< true
+
+def content-push swap flag cond y xs =
+  case xs
+  { [] -> []
+  ; cell::xs' ->
+    let (tag, x) = cell
+    in
+      swap (cond && not tag && flag) (true, y) cell
+        :: content-push swap tag cond y xs'
+  }
+
+def vec-cond-push cond x vec =
+  let default, swap, xs = vec
+  in default, swap, (content-push swap true cond x xs)
+
+def vec-push = vec-cond-push true
+
+
+def resize-content n xs =
+  case xs
+  { [] -> []
+  ; cell::xs ->
+    let (tag, x) = cell
+    in
+      (n > 0, x) :: resize-content (n - 1) xs
+  }
+
+
+-- def resize : nat{P} -> vector{P} a -> vector{P} a
+def vec-resize n vec =
+  let default, swap, xs = vec
+  in default, swap, (resize-content n xs)
+
+
+def content-size xs =
+  case xs
+  { [] -> 0
+  ; cell::xs ->
+    let (tag, x) = cell
+    let diff = tag ? 1 >< 0
+    in
+      diff + content-size xs
+  }
+
+
+def vec-length vec =
+  let default, swap, xs = vec
+  in content-size xs
+
+def vec-capacity vec =
+  let _, _, xs = vec
+  in length xs
+
+
+def content-read default swap n xs =
+  case xs
+  { [] -> false, default
+  ; cell::xs' ->
+    let tl = content-read default swap (n - 1) xs'
+    in swap (n == 0) cell tl
+  }
+
+
+def vec-read n vec =
+  let default, swap, xs = vec
+  in content-read default swap n xs
+
+
+def content-swap swap b xs ys =
+  case xs, ys
+  { [], [] -> []
+  ; x::xs, y::ys -> swap b x y :: content-swap swap b xs ys
+  }
+
+
+def vec-swap b vecx vecy =
+  let default, swap, xs = vecx
+  let _, _, ys = vecy
+  in default, swap, content-swap swap b xs ys
+
+-- def vec-content : vec{P} a -> list (bool{P} * a{P})
+def vec-content vec =
+  let _, _, xs = vec
+  in xs
+
+def vec-append xs ys =
+  foldr (fun c acc ->
+    let r, x = c
+    in vec-cond-push r x acc) xs (reverse (vec-content ys))
+
+
+def int-vec-init = vec-init 0 (fun b x y -> b ? x >< y)
+
+
+
+
+
+
+-- def sequenceKnownnessN :
+  -- forall knowers:prin.
+  -- int -> int -> (list int){ssec:knowers} -> list (int{ssec:knowers})
+def share-as-vec-content knowers shareFlag shareContent default n xs =
+  if n == 0
+  then []
+  else
+    let flag = par {knowers} case xs
+                   { [] -> false
+                   ; x::_ -> true
+                   }
+    let head = par {knowers} case xs
+                    { [] -> default
+                    ; x::_ -> x
+                    }
+    let sflag = shareFlag flag
+    let shead = shareContent head
+    in (sflag, shead) :: share-as-vec-content
+      knowers shareFlag shareContent default (n - 1) (par {knowers} tail xs)
+
+
+
+-- def share-as-vec : P
+--                 -> (bool -> bool{P})
+--                 -> (a -> a{P})
+--                 -> a
+--                 -> (bool{P} -> a{P} -> a{P} -> a{P})
+--                 -> list a -> nat -> vec{P} a
+def share-as-vec knowers shareFlag shareContent default swap n xs =
+  default, tag-swap swap, share-as-vec-content knowers shareFlag shareContent default n xs
