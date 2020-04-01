@@ -1,6 +1,6 @@
 def main • =
   let x = 2.5
   let y = 3.0
-  in (x ^ y, x * y, x / y, x % y)
+  in (x ^ y, x * y, x / y, x - y)
 
-def expected = (15.625,7.5,0.8333333333333334,2.5)
+def expected = (15.625,7.5,0.8333333333333334,-0.5)

@@ -22,11 +22,11 @@ data Val =
   | PairV ValP ValP
   | NilV
   | ConsV ValP ValP
-  | CloV (𝑂 Var) Pat Exp ICloCxt
-  | TCloV TVar Exp ICloCxt
-  -- | ShareV ValS
+  | CloV (𝑂 Var) Pat Exp Env
+  | TCloV TVar Exp Env
   | PrinV PrinExpVal
   | PrinSetV (𝑃 PrinVal)
+  | LocV ℤ64
   deriving (Eq,Ord,Show)
 
 -- Distributed Values
@@ -52,55 +52,6 @@ data ValMPC =
   | RMV ValMPC
   deriving (Eq,Ord,Show)
 
-------------------
--- TYPES OUTPUT --
-------------------
-
-iprecisionSuffix ∷ IPrecision → 𝕊
-iprecisionSuffix = \case
-  InfIPr → ""
-  FixedIPr n₁ n₂ → concat ["#",show𝕊 n₁,".",show𝕊 n₂]
-
-fprecisionSuffix ∷ FPrecision → 𝕊
-fprecisionSuffix (FixedFPr n) = concat ["#",show𝕊 n]
-
-iPrecFrFPrec ∷ FPrecision → IPrecision
-iPrecFrFPrec (FixedFPr pr) = FixedIPr pr 0
-
-fPrecFrIPrec ∷ IPrecision → FPrecision
-fPrecFrIPrec = \case
-  InfIPr → FixedFPr 64
-  FixedIPr n₁ n₂ → FixedFPr $ n₁ + n₂
-
-getType ∷ Val → 𝕊
-getType = \case
-  BoolV _ → "bool"
-  StrV _ → "string"
-  NatV p _ → "nat"⧺iprecisionSuffix p
-  IntV p _ → "int"⧺iprecisionSuffix p
-  FltV p _ → "flt"⧺fprecisionSuffix p
-  BulV → "bul"
-  LV _ → "left"
-  RV _ → "right"
-  PairV _ _ → "pair"
-  NilV → "list"
-  ConsV _ _ → "list"
-  CloV _ _ _ _ → "clo"
-  TCloV _ _ _ → "tclo"
-  PrinV _ → "prin"
-  PrinSetV _ → "prinset"
-
-getTypeMPC ∷ ValMPC → 𝕊
-getTypeMPC = \case
-  BoolMV _ → "bool"
-  NatMV p _ → "nat"⧺iprecisionSuffix p
-  IntMV p _ → "int"⧺iprecisionSuffix p
-  FltMV p _ → "flt"⧺fprecisionSuffix p
-  PrinMV _ → "prin"
-  PairMV mv₁ mv₂ → (getTypeMPC mv₁) ⧺ " × " ⧺ (getTypeMPC mv₂)
-  LMV mv → "left " ⧺ (getTypeMPC mv)
-  RMV mv → "right " ⧺ (getTypeMPC mv)
-
 -----------------
 -- ENVIRONMENT --
 -----------------
@@ -108,6 +59,14 @@ getTypeMPC = \case
 -- Value environment
 -- γ ∈ env
 type Env = 𝕏 ⇰ ValP
+
+makePrisms ''Val
+
+makePrisms ''ValP
+makePrettySum ''ValP
+
+makePrisms ''ValMPC
+makePrettySum ''ValMPC
 
 -----------
 -- STORE --
@@ -117,77 +76,62 @@ type Env = 𝕏 ⇰ ValP
 -- σ ∈ store
 type Store = 𝑊 ValP
 
------------------
--- CLOSURE CXT --
------------------
+-------------
+-- PARAMAS --
+-------------
 
--- ξ ∈ clo-cxt
-data ICloCxt = ICloCxt
-  { iCloCxtEnv ∷ Env
-  , iCloCxtMode ∷ Mode
+-- Interpreter Params
+-- θ ∈ params
+data IParams = IParams
+  { iParamsDoResources ∷ 𝔹
   } deriving (Eq,Ord,Show)
+makeLenses ''IParams
+makePrettySum ''IParams
 
---------------------------------
--- INTERPRETER TOPLEVEL STATE --
---------------------------------
+θ₀ ∷ IParams
+θ₀ = IParams False
 
--- γ ∈ itlenv
-data ITLEnv = ITLEnv
-  { itlEnvDoResources ∷ 𝔹
-  }
+-------------
+-- CONTEXT --
+-------------
 
-γtl₀ ∷ ITLEnv
-γtl₀ = ITLEnv False
-
--- σ ∈ itlstate
-data ITLState = ITLState
-  { itlStateEnv ∷ Env
-  , itlStateDeclPrins ∷ Prin ⇰ PrinKind
-  } deriving (Eq,Ord,Show)
-
-σtl₀ ∷ ITLState
-σtl₀ = ITLState dø dø
-
------------------------------
--- INTERPRETER ENVIRONMENT --
------------------------------
-
--- ξ̇ ∈ cxt
+-- Interpreter Dynamic Context
+-- ξ ∈ cxt
 data ICxt = ICxt
-  { iCxtParams ∷ ITLEnv
+  { iCxtParams ∷ IParams
   , iCxtSource ∷ 𝑂 FullContext
   , iCxtDeclPrins ∷ Prin ⇰ PrinKind
-  , iCxtClo ∷ ICloCxt
-  }
+  , iCxtEnv ∷ Env
+  , iCxtMode ∷ Mode
+  } deriving (Show)
 makeLenses ''ICxt 
-
-ξ₀ ∷ ICxt
-ξ₀ = ICxt γtl₀ None dø $ ICloCxt dø TopM
-
-makePrisms ''Val
-makePrettySum ''ValP
-makePrisms ''ValP
-makePrettySum ''ValMPC
-makePrisms ''ValMPC
-makePrettySum ''ITLEnv
-makeLenses ''ITLEnv
-makePrettySum ''ITLState
-makeLenses ''ITLState
-makePrettySum ''ICloCxt
-makeLenses ''ICloCxt
-
-iCxtEnvL ∷ ICxt ⟢ Env
-iCxtEnvL = iCloCxtEnvL ⊚ iCxtCloL
-
-iCxtModeL ∷ ICxt ⟢ Mode
-iCxtModeL = iCloCxtModeL ⊚ iCxtCloL
+makePrettySum ''ICxt
 
 iCxtDoResourcesL ∷ ICxt ⟢ 𝔹
-iCxtDoResourcesL = itlEnvDoResourcesL ⊚ iCxtParamsL
+iCxtDoResourcesL = iParamsDoResourcesL ⊚ iCxtParamsL
 
-------------------------
--- INTERPRETER OUTPUT --
-------------------------
+ξ₀ ∷ ICxt
+ξ₀ = ICxt θ₀ None dø dø TopM
+
+-----------
+-- STATE --
+-----------
+
+-- Interpreter State
+-- ω ∈ state
+data IState = IState
+  { iStateStore ∷ Store
+  , iStateNextLoc ∷ ℤ64
+  } deriving (Eq,Ord,Show)
+makeLenses ''IState
+makePrettySum ''IState
+
+ω₀ ∷ IState
+ω₀ = IState wø $ 𝕫64 1
+
+------------
+-- OUTPUT --
+------------
 
 data ResEv = ResEv
   { resEvProt ∷ Prot
@@ -211,9 +155,9 @@ instance Null IOut where null = IOut dø
 instance Append IOut where IOut res₁ ⧺ IOut res₂ = IOut $ res₁ + res₂
 instance Monoid IOut
 
------------------------
--- INTERPRETER ERROR --
------------------------
+-----------
+-- ERROR --
+-----------
 
 data IErrorClass = 
     SyntaxIError 
@@ -243,54 +187,62 @@ throwIError es ec em vals =
     , ppVertical $ mapOn vals $ \ (n :* v) → ppHorizontal [ppString n,ppString "=",v]
     ]
 
-guardErr ∷ Bool -> IM () -> IM ()
+guardErr ∷ (Monad m,MonadError IError m) ⇒ Bool -> m () -> m ()
 guardErr x im = case x of
   True → skip
   False → im
 
-error𝑂 ∷ 𝑂 a -> IM a -> IM a
+error𝑂 ∷ (Monad m,MonadError IError m) ⇒ 𝑂 a -> m a -> m a
 error𝑂 e er = case e of
   Some x → return x
   None → er
+
+--------------------
+-- TOPLEVEL STATE --
+--------------------
+
+-- ωtl ∈ tl-state
+data ITLState = ITLState
+  { itlStateDeclPrins ∷ Prin ⇰ PrinKind
+  , itlStateEnv ∷ Env
+  , itlStateExp ∷ IState
+  } deriving (Eq,Ord,Show)
+makeLenses ''ITLState
+makePrettySum ''ITLState
+
+ωtl₀ ∷ ITLState
+ωtl₀ = ITLState dø dø ω₀
 
 ----------------------
 -- EXPRESSION MONAD --
 ----------------------
 
-newtype IM a = IM { unIM ∷ RWST ICxt IOut () (ErrorT IError IO) a }
+newtype IM a = IM { unIM ∷ RWST ICxt IOut IState (ErrorT IError IO) a }
   deriving
   ( Functor
   , Return,Bind,Monad
   , MonadReader ICxt
   , MonadWriter IOut
-  , MonadState ()
+  , MonadState IState
   , MonadError IError
   , MonadIO
   )
 
-mkIM ∷ (ICxt → IO (IError ∨ (IOut ∧ a))) → IM a
-mkIM f = IM $ mkRWST $ \ γ () → ErrorT $ do
-  rox ← f γ
-  return $ case rox of
-    Inl r → Inl r
-    Inr (o :* x) → Inr $ () :* o :* x
+mkIM ∷ (ICxt → IState → IO (IError ∨ (IState ∧ IOut ∧ a))) → IM a
+mkIM f = IM $ mkRWST $ ErrorT ∘∘ f
 
-runIM ∷ ICxt → IM a → IO (IError ∨ (IOut ∧ a))
-runIM γ xM = do
-  rox ← unErrorT $ runRWST γ () $ unIM xM
-  return $ case rox of
-    Inl r → Inl r
-    Inr (() :* o :* x) → Inr (o :* x)
+runIM ∷ ICxt → IState → IM a → IO (IError ∨ (IState ∧ IOut ∧ a))
+runIM ξ ω = unErrorT ∘ runRWST ξ ω ∘ unIM
 
 --------------------
 -- TOPLEVEL MONAD --
 --------------------
 
-newtype ITLM a = ITLM { unITLM ∷ RWST ITLEnv IOut ITLState (ErrorT IError IO) a }
+newtype ITLM a = ITLM { unITLM ∷ RWST IParams IOut ITLState (ErrorT IError IO) a }
   deriving
   ( Functor
   , Return,Bind,Monad
-  , MonadReader ITLEnv
+  , MonadReader IParams
   , MonadWriter IOut
   , MonadState ITLState
   , MonadError IError
@@ -301,44 +253,47 @@ printError ∷ IError → IO ()
 printError (IError rsO cs rc rm) = pprint $ ppVertical $ concat
   [ single𝐼 $ ppHeader $ show𝕊 rc
   , elim𝑂 empty𝐼 (single𝐼 ∘ pretty) rsO
-  -- UNCOMMENT TO SEE DUMPED VALUES
   , single𝐼 $ rm
   , single𝐼 $ pretty cs
   ]
 
-mkITLM ∷ (ITLEnv → ITLState → IO (IError ∨ (ITLState ∧ IOut ∧ a))) → ITLM a
-mkITLM f = ITLM $ mkRWST $ \ γ σ → ErrorT $ f γ σ
+mkITLM ∷ (IParams → ITLState → IO (IError ∨ (ITLState ∧ IOut ∧ a))) → ITLM a
+mkITLM f = ITLM $ mkRWST $ \ θ ωtl → ErrorT $ f θ ωtl
 
-runITLM ∷ ITLEnv → ITLState → ITLM a → IO (IError ∨ (ITLState ∧ IOut ∧ a))
-runITLM γ σ xM = unErrorT $ runRWST γ σ $ unITLM xM
+runITLM ∷ IParams → ITLState → ITLM a → IO (IError ∨ (ITLState ∧ IOut ∧ a))
+runITLM θ ωtl xM = unErrorT $ runRWST θ ωtl $ unITLM xM
 
-runITLMIO ∷ ITLEnv → ITLState → ITLM a → IO (ITLState ∧ IOut ∧ a)
-runITLMIO γ σ xM = runITLM γ σ xM ≫= \case
-  Inl e → printError e ≫ abortIO
+runITLMIO ∷ IParams → ITLState → 𝕊 → ITLM a → IO (ITLState ∧ IOut ∧ a)
+runITLMIO θ ωtl name xM = runITLM θ ωtl xM ≫= \case
   Inr x → return x
+  Inl e → do 
+    pprint $ ppHorizontal [ppErr ">",ppBD $ ppString name]
+    printError e 
+    abortIO
 
-evalITLM ∷ ITLEnv → ITLState → ITLM a → IO (IError ∨ a)
-evalITLM γ σ = mapp snd ∘ runITLM γ σ
+evalITLM ∷ IParams → ITLState → ITLM a → IO (IError ∨ a)
+evalITLM θ ωtl = mapp snd ∘ runITLM θ ωtl
 
-evalITLMIO ∷ ITLEnv → ITLState → ITLM a → IO a
-evalITLMIO γ σ = map snd ∘ runITLMIO γ σ
+evalITLMIO ∷ IParams → ITLState → 𝕊 → ITLM a → IO a
+evalITLMIO θ ωtl name = map snd ∘ runITLMIO θ ωtl name
 
 asTLM ∷ IM a → ITLM a
-asTLM xM = mkITLM $ \ γtl σ → do
-  let ds = itlStateDeclPrins σ
+asTLM xM = mkITLM $ \ θ ωtl → do
+  let ds = itlStateDeclPrins ωtl
       -- princpal declarations as values
-      γ' = dict $ mapOn (iter $ itlStateDeclPrins σ) $ \ (ρ :* κ) → case κ of
+      γ' = dict $ mapOn (iter $ itlStateDeclPrins ωtl) $ \ (ρ :* κ) → case κ of
         SinglePK → (var ρ ↦) $  AllVP $ PrinV $ ValPEV $ SinglePV ρ
         SetPK n → (var ρ ↦) $  AllVP $ PrinV $ SetPEV n ρ
       -- top-level defs
-      γ = itlStateEnv σ
+      γ = itlStateEnv ωtl
       ξ = compose 
             [ update iCxtEnvL (γ' ⩌ γ)
             , update iCxtDeclPrinsL ds
-            , update iCxtParamsL γtl
+            , update iCxtParamsL θ
             ]
             ξ₀
-  rox ← runIM ξ xM
+      ω = itlStateExp ωtl
+  rox ← runIM ξ ω xM
   return $ case rox of
     Inl r → Inl r
-    Inr (o :* x) → Inr $ σ :* o :* x
+    Inr (ω' :* o :* x) → Inr $ update itlStateExpL ω' ωtl :* o :* x
