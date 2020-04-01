@@ -117,9 +117,9 @@ bindPatO ψ ṽ = case ψ of
     ρvs ← abort𝑂 $ view prinSetVL v
     ρ :* ρs ← abort𝑂 $ pmin ρvs
     ρv ← success $ introValP $ PrinV $ ValPEV ρ
-    ρvs ← success $ introValP $ PrinSetV ρs
+    ρvs' ← success $ introValP $ PrinSetV ρs
     let f₁ = bindVar x ρv
-    f₂ ← bindPatO ψ' ρvs
+    f₂ ← bindPatO ψ' ρvs'
     return $ f₂ ∘ f₁
   AscrP _ψ _τ → bindPatO ψ ṽ
   WildP → return id
@@ -302,9 +302,6 @@ interpExp = wrapInterp $ \case
           , ("ρs",pretty ρs)
           ]
       TopM → skip
-      _ → (throwIErrorCxt TypeIError "interpExp: RevealE: m ∉ {PSecM _, TopM}" $ frhs
-          [ ("m",pretty m)
-          ])
     ṽ ← interpExp e'
     case ṽ of
       ShareVP φ ρs md sv {- | ρs ≡ ρvs₁ -} → do
@@ -328,9 +325,6 @@ interpExp = wrapInterp $ \case
           , ("ρs",pretty ρs)
           ]
       TopM → skip
-      _ → (throwIErrorCxt TypeIError "interpExp: SendE: m ∉ {PSecM _, TopM}" $ frhs
-          [ ("m",pretty m)
-          ])
     ṽ ← interpExp e'
     case ṽ of
       SSecVP ρs v | ρvs₁ ⊆ ρs → return $ SSecVP ρvs₂ v
@@ -362,6 +356,7 @@ interpExp = wrapInterp $ \case
       ℤT ip → io $ IntMV ip ∘ trPrInt ip ∘ int ^$ R.randomIO @ℤ64
       𝔽T fp → io $ FltMV fp ^$ R.randomIO @𝔻
       𝔹T → io $ BoolMV ^$ R.randomIO @𝔹
+      _ → error "TODO: not implemented"
     return $ wrap v
   RandRangeE τ e → do
     wrap :* τ' ← case τ of
@@ -380,6 +375,7 @@ interpExp = wrapInterp $ \case
       (ℕT ip,NatV ip₁ n₁,NatV ip₂ n₂) | (ip₁ ≡ ip) ⩓ (ip₂ ≡ ip) → io $ NatMV ip ∘ nat ^$ (R.randomRIO @ℕ64) (HS.fromIntegral n₁,HS.fromIntegral n₂)
       (ℤT ip,IntV ip₁ i₁,IntV ip₂ i₂) | (ip₁ ≡ ip) ⩓ (ip₂ ≡ ip) → io $ IntMV ip ∘ int ^$ (R.randomRIO @ℤ64) (HS.fromIntegral i₁,HS.fromIntegral i₂)
       (𝔽T fp,FltV fp₁ d₁,FltV fp₂ d₂) | (fp₁ ≡ fp) ⩓ (fp₂ ≡ fp) → io $ FltMV fp ^$ (R.randomRIO @𝔻) (d₁,d₂)
+      _ → error "TODO: not implemented"
     return $ wrap v'
   -- InferE
   -- HoleE
@@ -504,18 +500,18 @@ initializeEnv os = flip compose γtl₀
   [ if optDoResources os then update itlEnvDoResourcesL True else id
   ]
 
-interpretFile ∷ ITLEnv → ITLState → 𝕊 → IO (ITLState ∧ IOut)
-interpretFile γtl σtl path = do
+interpretFile ∷ ITLEnv → ITLState → 𝕊 → 𝕊 → IO (ITLState ∧ IOut)
+interpretFile γtl σtl name path = do
   s ← read path
   let ts = tokens s
-  ls ← tokenizeIO lexer ts
-  tls ← parseIO cpTLs ls
+  ls ← tokenizeIO lexer name ts
+  tls ← parseIO cpTLs name ls
   σtl' :* o :* () ← runITLMIO γtl σtl $ eachWith interpTL tls
   return $ σtl' :* o
 
-interpretFileMain ∷ ITLEnv → ITLState → 𝕊 → IO (ValP ∧ 𝑂 ValP)
-interpretFileMain γtl σtl path = do
-  σtl' :* _ ← interpretFile γtl σtl path
+interpretFileMain ∷ ITLEnv → ITLState → 𝕊 → 𝕊 → IO (ValP ∧ 𝑂 ValP)
+interpretFileMain γtl σtl name path = do
+  σtl' :* _ ← interpretFile γtl σtl name path
   let main = itlStateEnv σtl' ⋕! var "main"
   o :* v ← evalITLMIO γtl σtl' $ hijack $ asTLM $ interpApp main $ AllVP BulV
   let expectedO = itlStateEnv σtl' ⋕? var "expected"
@@ -559,8 +555,8 @@ psliMainRun = do
     , ppString fn
     ]
   libpath ← string ^$ getDataFileName $ chars "lib/stdlib.psl"
-  σtl :* _ ← interpretFile γtl σtl₀ libpath
-  v ← fst ^$ interpretFileMain γtl σtl fn
+  σtl :* _ ← interpretFile γtl σtl₀ "lib:stdlib.psl" libpath
+  v ← fst ^$ interpretFileMain γtl σtl fn fn
   pprint $ ppHeader "RESULT"
   pprint v
 
@@ -580,8 +576,8 @@ psliMainExample = do
     ]
   path ← string ^$ getDataFileName $ chars $ "examples/" ⧺ fn ⧺ ".psl"
   libpath ← string ^$ getDataFileName $ chars "lib/stdlib.psl"
-  σtl :* _ ← interpretFile γtl σtl₀ libpath
-  v ← fst ^$ interpretFileMain γtl σtl path
+  σtl :* _ ← interpretFile γtl σtl₀ "lib:stdlib.psl" libpath
+  v ← fst ^$ interpretFileMain γtl σtl (concat ["example:",fn,".psl"]) path
   pprint $ ppHeader "RESULT"
   pprint v
 
@@ -595,13 +591,13 @@ psliMainTest = do
   out ""
   pprint $ ppHeader "TESTING INTERPRETER"
   libpath ← string ^$ getDataFileName $ chars "lib/stdlib.psl"
-  σtl :* _ ← interpretFile γtl σtl₀ libpath
+  σtl :* _ ← interpretFile γtl σtl₀ "lib:stdlib.psl" libpath
   testsdir ← string ^$ getDataFileName $ chars "tests"
   indir testsdir $ do
     fns ← files
     vevs ← mapMOn fns $ \ fn → do
       initializeIO os
-      (fn :*) ^$ interpretFileMain γtl σtl fn
+      (fn :*) ^$ interpretFileMain γtl σtl (concat ["test:",fn]) fn
     pprint $ ppVertical
       [ ppHeader "TESTS"
       , concat
@@ -641,7 +637,7 @@ pslMainInfo = do
 
 interpreterMain ∷ IO ()
 interpreterMain = do
-  map list args ≫= \case
+  map list askArgs ≫= \case
     "run" :& as → localArgs as $ psliMainRun
     "example" :& as → localArgs as $ psliMainExample
     "test" :& as → localArgs as psliMainTest

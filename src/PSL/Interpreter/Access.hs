@@ -112,11 +112,11 @@ restrictValPRecVal v = case v of
   FltV _ _ → return v
   BulV → return v
   LV ṽ → do
-    v ← restrictValP ṽ
-    return $ LV v
+    v' ← restrictValP ṽ
+    return $ LV v'
   RV ṽ → do
-    v ← restrictValP ṽ
-    return $ RV v
+    v' ← restrictValP ṽ
+    return $ RV v'
   PairV ṽ₁ ṽ₂ → do
     v₁ ← restrictValP ṽ₁
     v₂ ← restrictValP ṽ₂
@@ -126,7 +126,6 @@ restrictValPRecVal v = case v of
     v₁ ← restrictValP ṽ₁
     v₂ ← restrictValP ṽ₂
     return $ ConsV v₁ v₂
-  ConsV _ _ → return v
   CloV _ _ _ _  → return v
   TCloV _ _ _ → return v
   PrinV _ → return v
@@ -145,6 +144,7 @@ unShareValPsMode m ṽs = case ṽs of
         return (valFrMPC v,Some $ φ :* ρs :* md)
       AllVP v → return (v,None)
       ISecVP _ → abort
+      UnknownVP → error "TODO: not implemented"
     vs :* φρsO₂ ← unShareValPsMode m ṽs'
     φρsO ← case (φρsO₁,φρsO₂) of
       (None,_) → return φρsO₂
@@ -195,5 +195,6 @@ valFrMPC = \case
   IntMV pr i → IntV pr i
   FltMV pr d → FltV pr d
   PrinMV pe → PrinV pe
+  _ → error "TODO: not implemented"
   -- PairMV v₁ v₂ → PairV (valFrMCP v₁) $ valFrMPC v₂
 
