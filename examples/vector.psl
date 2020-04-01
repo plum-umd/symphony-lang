@@ -5,14 +5,16 @@ principal B
 def main () =
 
   par {A,B}
-    let sbool = (fun x -> share{yao:A -> this} x)
-    let sint = (fun x -> share{yao:A -> this} x)
+    let sbool = fun P -> (fun x -> share{yao:P -> this} x)
+    let sint = fun P -> (fun x -> share{yao:P -> this} x)
+    let rint = fun i -> reveal {this} i
 
+    let xs = (par {A} 0::1::2::3::[])
+    let ys = (par {B} 5::6::7::8::[])
 
-    let xs = (par {A} 0::1::2::3::4::[])
+    let xs' = share-as-vec A (sbool A) (sint A) 0 int-swap 10 xs
+    let ys' = share-as-vec B (sbool B) (sint B) 0 int-swap 10 ys
 
-    let xs' = share-as-vec {A} sbool sint 0 int-swap 10 xs
-
-    let ix = share{yao:B -> this} (par {B} 2)
+    let ix = share{yao:B -> this} (par {B} 7)
     in
-    reveal {A,B} (snd (vec-read ix xs'))
+    reveal-vec rint (vec-append xs' ys')

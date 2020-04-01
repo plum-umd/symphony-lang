@@ -54,6 +54,16 @@ def map : (a -> b) -> list a -> list b
 def map f xs = foldr (fun x ys -> f x :: ys) [] xs
 
 
+def filter : (a -> bool) -> list a -> list a
+def filter p xs =
+  case xs
+  { [] -> []
+  ; (x::xs') -> if p x
+                then x :: filter p xs'
+                else filter p xs'
+  }
+
+
 -- Compute the length of a list.
 def length : list int -> int
 def length = foldr (fun _ n -> n+1) 0
@@ -427,14 +437,6 @@ def vec-append xs ys =
 
 def int-vec-init = vec-init 0 (fun b x y -> b ? x >< y)
 
-
-
-
-
-
--- def sequenceKnownnessN :
-  -- forall knowers:prin.
-  -- int -> int -> (list int){ssec:knowers} -> list (int{ssec:knowers})
 def share-as-vec-content knowers shareFlag shareContent default n xs =
   if n == 0
   then []
@@ -461,4 +463,22 @@ def share-as-vec-content knowers shareFlag shareContent default n xs =
 --                 -> (bool{P} -> a{P} -> a{P} -> a{P})
 --                 -> list a -> nat -> vec{P} a
 def share-as-vec knowers shareFlag shareContent default swap n xs =
-  default, tag-swap swap, share-as-vec-content knowers shareFlag shareContent default n xs
+  default, tag-swap swap,
+      share-as-vec-content knowers shareFlag shareContent default n xs
+
+
+
+-- def reveal-vec : (a{P} -> a) -> vec{P} a -> list a
+def reveal-vec revealContent vec =
+  let _, _, xs = vec
+  let revealed = map (fun cell ->
+    let t, x = cell
+    in reveal {this} t, revealContent x) xs
+  let filtered = filter (fun cell ->
+    let t, x = cell in t) revealed
+  in map snd filtered
+
+
+
+
+
