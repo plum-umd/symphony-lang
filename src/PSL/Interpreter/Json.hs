@@ -39,6 +39,8 @@ getType = \case
   TCloV _ _ _ → "tclo"
   PrinV _ → "prin"
   PrinSetV _ → "prinset"
+  LocV _ → "loc"
+  ArrayV _ → "array"
 
 getTypeMPC ∷ ValMPC → 𝕊
 getTypeMPC = \case

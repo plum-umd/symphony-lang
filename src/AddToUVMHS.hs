@@ -17,3 +17,6 @@ success xM = FailT $ Some ^$ xM
 
 touchDirs ∷ 𝕊 → IO ()
 touchDirs = Directory.createDirectoryIfMissing True ∘ chars
+
+iterS ∷ (ToIter a t,Sized t) ⇒ t → 𝐼S a
+iterS xs = 𝐼S (size xs) $ iter xs

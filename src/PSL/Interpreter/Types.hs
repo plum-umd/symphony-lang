@@ -27,6 +27,7 @@ data Val =
   | PrinV PrinExpVal
   | PrinSetV (𝑃 PrinVal)
   | LocV ℤ64
+  | ArrayV (𝕍 ValP)
   deriving (Eq,Ord,Show)
 
 -- Distributed Values

@@ -1,6 +1,5 @@
 def main • = •
 def expected = •
-
 {-
 def main • =
   let y = array[10] 0
