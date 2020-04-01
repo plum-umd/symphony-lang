@@ -9,12 +9,11 @@ def main () =
     let sint = fun P -> (fun x -> share{yao:P -> this} x)
     let rint = fun i -> reveal {this} i
 
-    let xs = (par {A} 0::1::2::3::[])
+    let xs = (par {A} 1::2::3::[])
     let ys = (par {B} 5::6::7::8::[])
 
     let xs' = share-as-vec A (sbool A) (sint A) 0 int-swap 10 xs
     let ys' = share-as-vec B (sbool B) (sint B) 0 int-swap 10 ys
 
     let ix = share{yao:B -> this} (par {B} 7)
-    in
-    vec-reveal rint (vec-append xs' ys')
+    in vec-median int-minmax (vec-append xs' ys')
