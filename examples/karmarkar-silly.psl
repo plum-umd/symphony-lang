@@ -38,11 +38,10 @@ def ite guard tc fc = if guard then tc else fc
 
 def mux guard tc fc = guard ? tc ◇ fc
 
--- def pfold : ∀ A:☆,P:ℙ. A → ((Q:ℙ | Q⊆P) → ℤ{Q} → A → A) → ℤ{isec:P} →{sec:P} A
--- def pfold i f xy = case xy
---   { ⟪⟫ → i
---   ; ⟪Q.x⟫⧺xy′ → f Q x (pfold i f xy′)
---   }
+def fold-f i f xs = case xs
+  { ⟪⟫ → i
+  ; ⟪p|x⟫⧺xs′ → f p x (fold-f i f xs′)
+  }
 
 def reveal_ls P l = 
   case (reveal{ P } l)
@@ -53,7 +52,7 @@ def reveal_ls P l =
 def reveal_prins P x = reveal{ P } x
 
 -- shr_spdz: a first-order operation that shares over SPDZ
-def shr_spdz P0 P x = share{ spdz : P0 -> P } x
+def shr_spdz P0 P1 x = share{ spdz : P0 -> P1 } x
 
 -- BEGIN library for Boolean
 
@@ -403,14 +402,14 @@ principal Out
 def comps = { Ctr, Cost }
 
 -- shr_w_comp: share data with the parties performing computation
-def shr_w_comp = shr_spdz { this } comps
+def shr_w_comp sender = shr_spdz sender comps
 
 -- shr0, shr1: shares of constants that are often reused:
-def shr0 = shr_w_comp 0.0 
-def shr1 = shr_w_comp 1.0 
+def shr0 = shr_w_comp { Cost } 0.0 
+def shr1 = shr_w_comp { Cost } 1.0 
      
-def eliml_sec_nat_ls = eliml_sec_nat mux_ls
-  (shr_w_comp 0n) (shr_w_comp 1n) 
+def eliml_sec_nat_ls sender = eliml_sec_nat mux_ls
+  (shr_w_comp sender 0n) (shr_w_comp sender 1n) 
 
 def dot_prod = dot_prod_gen shr0
 
@@ -604,12 +603,12 @@ def karmarkar_loop a c =
     (magn (ceil (log_2_real (abs_val_real p)))) +
     n * (magn (ceil (log_2_real (to_flt n)))) in
   let max_iterations = 12n * n * l in
-  let max_iterations = shr_w_comp 1n in -- DEBUG CODE
+  let max_iterations = shr_w_comp { Cost } 1n in -- DEBUG CODE
 
   -- If this initial point is an optimal solution, return
   mux_ls ((dot_prod c x) < epsilon)
     x
-  (eliml_sec_nat_ls max_iterations
+  (eliml_sec_nat_ls { Cost } max_iterations
     x
     (fun x -> 
       let x' = karmarkar_iteration x a c in
@@ -639,14 +638,14 @@ def main () =
       -- Ctr and Cost compute the solution point:
       (par { Ctr, Cost } karmarkar_loop
         -- read in the matrix of constraints and share them
-        (pfold 
+        (fold-f
           [ ]
           (fun Q ctr -> cons
             (mult_diag_vec pt
-            (map shr_w_comp (reveal_ls comps ctr)) ) )
+            (map (shr_w_comp { Q }) (reveal_ls comps ctr)) ) )
           (par { Ctr } read_vec ()) )
         -- read in the vector of costs and share them
-        (map shr_w_comp
+        (map (shr_w_comp { Cost })
           (reveal_ls comps (par { Cost } read_vec ())) ) ) ) ) in
   -- Ctr and Cost forget the structure of the solution
   par { Out } reveal_ls { Out } soln
