@@ -2,6 +2,8 @@ module PSL.Interpreter.ReadType where
 
 import UVMHS
 
+import Paths_psl
+
 import PSL.Syntax
 
 import PSL.Interpreter.Types
@@ -57,4 +59,6 @@ parseInputType ρ τ s = case τ of
     ]
 
 readType ∷ (STACK) ⇒ PrinVal → Type → 𝕊 → IM Val
-readType ρ τA fn = parseInputType ρ τA $ ioUNSAFE $ read $ "examples-data/" ⧺ prinDataPath ρ ⧺ "/" ⧺ fn
+readType ρ τA fn = parseInputType ρ τA $ ioUNSAFE $ do
+  path ← string ^$ getDataFileName $ chars $ "examples-data/" ⧺ prinDataPath ρ ⧺ "/" ⧺ fn
+  read path

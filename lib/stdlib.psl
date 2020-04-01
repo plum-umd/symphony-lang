@@ -361,9 +361,6 @@ def vec-over = vec-cond-over true
 
 def vec-write = vec-cond-write true
 
-
-def not b = b ? false >< true
-
 def content-push swap flag cond y xs =
   case xs
   { [] -> []
