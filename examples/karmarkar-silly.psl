@@ -479,8 +479,7 @@ def matrix_inverse_lt l =
           let sum = ref 0n in
           iter (range k (j - 1n))
             (fun i ->
-              do sum := (
-                !sum - (metrix_get l (j, i)) * (matrix_get !l_inv (i, k)) )
+              do sum := !sum - (metrix_get l (j, i)) * (matrix_get !l_inv (i, k))
               () ) ) ) )
   !l_inv
 
@@ -626,8 +625,9 @@ def karmarkar_loop a c =
 def main : unit ->{ inp : Ctr, Cost; rev : Out } (list out_sec)
 def main () =
   -- read_vec: reads an input vector on a principal's machine
-  let read_vec = fun () -> read (list flt) "in.txt" in
-  
+  -- let read_vec = fun () -> read (list flt) "in.txt" in
+  let read_vec = fun () -> [ 1.0 ; 2.0 ] in -- DEBUG:
+
   -- FANCY MPC: Ctr and Cost send the data in the list to Out. This
   -- may change if the PSL model of isec's changes as a result of
   -- issue #31
@@ -640,10 +640,8 @@ def main () =
         -- read in the matrix of constraints and share them
         (fold-f
           [ ]
-          (fun Q ctr -> cons
-            (mult_diag_vec pt
-            (map (shr_w_comp { Q }) (reveal_ls comps ctr)) ) )
-          (par { Ctr } read_vec ()) )
+          (fun Q ctr -> cons (map (shr_w_comp { Q }) (reveal_ls comps ctr)))
+          (solo { Ctr } as c in read_vec ()) )
         -- read in the vector of costs and share them
         (map (shr_w_comp { Cost })
           (reveal_ls comps (par { Cost } read_vec ())) ) ) ) ) in
