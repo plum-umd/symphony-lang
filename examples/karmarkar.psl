@@ -652,10 +652,9 @@ def karmarkar_loop a c =
 
       -- if we are within the stopping condition in the current
       -- iteration, return
-      let g = shr0 == shr0 in
-        -- DEBUG:
-        -- ((((dot_prod c x) - (dot_prod c x')) /
-        --      (max_spdz shr1 (dot_prod c x)) ) < epsilon ) in
+      let g =
+        ((((dot_prod c x) - (dot_prod c x')) /
+             (max_spdz shr1 (dot_prod c x)) ) < epsilon ) in
       if_then_ls g x'
       x') )
 
