@@ -530,6 +530,19 @@ interpExp = wrapInterp $ \case
       IntV _ i → introValP $ NatV p $ trPrNat p $ natΩ i
       _ → throwIErrorCxt TypeIError "interpExp: ToIntE: v ∉ {NatV _ n}" null
   DefaultE → introValP DefaultV
+  BlockE e → do
+    κ :* ṽ ← 
+      localizeL iStateMPCContL null $ 
+      localL iCxtMPCPathConditionL null $ 
+      interpExp e
+    mfoldrOnFrom κ ṽ $ \ (_pc :* _v̂ᴿ) _v̂' → undefined
+  ReturnE e → do
+    ṽ ← interpExp e
+    (φ,ρs,_,v̂) ← error𝑂 (view shareVPL ṽ) $
+      throwIErrorCxt TypeIError "interpExp: ReturnE: ṽ ≠ ShareVP _ _ _ _" null
+    pc ← askL iCxtMPCPathConditionL
+    modifyL iStateMPCContL $ \ κ → (pc :* Share φ ρs v̂) :& κ
+    introValP BulV
   _ → throwIErrorCxt NotImplementedIError "interpExp: not implemented" null
 
 ---------------

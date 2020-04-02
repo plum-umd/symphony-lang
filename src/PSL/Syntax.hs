@@ -282,6 +282,7 @@ data ExpR =
   | ToNatE IPrecision Exp                    -- nat#n.n               /  nat#n.n
   | DefaultE                                 -- ⊥                     /  _|_
   | BlockE Exp                               -- block e               /  block e
+  | ReturnE Exp                              -- return e              /  return e
   deriving (Eq,Ord,Show)
   -- [e₁;…;eₙ] ≜ e₁ ∷ ⋯ ∷ eₙ ∷ []
 makePrettySum ''ExpR

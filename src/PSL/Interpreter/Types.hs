@@ -72,6 +72,14 @@ makePrettySum ''ValP
 makePrisms ''ValMPC
 makePrettySum ''ValMPC
 
+data Share = Share
+  { shareProtocol ∷ Prot
+  , sharePrincipals ∷ 𝑃 PrinVal
+  , shareValue ∷ ValMPC
+  } deriving (Eq,Ord,Show)
+makeLenses ''Share
+makePrettySum ''Share
+
 -----------
 -- STORE --
 -----------
@@ -108,7 +116,7 @@ data ICxt = ICxt
   , iCxtDeclPrins ∷ Prin ⇰ PrinKind
   , iCxtEnv ∷ Env
   , iCxtMode ∷ Mode
-  , iCxtMPCPathCondition ∷ 𝐿 (𝔹 ∧ ValMPC)
+  , iCxtMPCPathCondition ∷ 𝐿 (𝔹 ∧ Share)
   } deriving (Show)
 makeLenses ''ICxt 
 makePrettySum ''ICxt
@@ -131,7 +139,7 @@ iCxtIsExampleL = iParamsIsExampleL ⊚ iCxtParamsL
 data IState = IState
   { iStateStore ∷ Store
   , iStateNextLoc ∷ ℤ64
-  , iStateMPCCont ∷ 𝐿 (𝐿 (𝔹 ∧ ValMPC) ∧ ValP)
+  , iStateMPCCont ∷ 𝐿 (𝐿 (𝔹 ∧ Share) ∧ Share)
   } deriving (Eq,Ord,Show)
 makeLenses ''IState
 makePrettySum ''IState
