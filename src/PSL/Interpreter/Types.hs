@@ -17,6 +17,7 @@ data Val =
   | IntV IPrecision ℤ
   | FltV FPrecision 𝔻
   | BulV
+  | PairV ValP ValP
   | LV ValP
   | RV ValP
   | NilV
@@ -35,6 +36,7 @@ data ValP =
     SSecVP (𝑃 PrinVal) Val
   | ISecVP (PrinVal ⇰ Val)
   | ShareVP Prot (𝑃 PrinVal) ℕ ValMPC
+  | LocVP Mode ℤ64
   | AllVP Val
   | UnknownVP
   | PairVP ValP ValP
@@ -85,12 +87,13 @@ type Store = 𝑊 ValP
 -- θ ∈ params
 data IParams = IParams
   { iParamsDoResources ∷ 𝔹
+  , iParamsIsExample ∷ 𝔹
   } deriving (Eq,Ord,Show)
 makeLenses ''IParams
 makePrettySum ''IParams
 
 θ₀ ∷ IParams
-θ₀ = IParams False
+θ₀ = IParams False False
 
 -------------
 -- CONTEXT --
@@ -110,6 +113,9 @@ makePrettySum ''ICxt
 
 iCxtDoResourcesL ∷ ICxt ⟢ 𝔹
 iCxtDoResourcesL = iParamsDoResourcesL ⊚ iCxtParamsL
+
+iCxtIsExampleL ∷ ICxt ⟢ 𝔹
+iCxtIsExampleL = iParamsIsExampleL ⊚ iCxtParamsL
 
 ξ₀ ∷ ICxt
 ξ₀ = ICxt θ₀ None dø dø TopM

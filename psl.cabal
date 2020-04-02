@@ -4,13 +4,14 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 74bd4154f6d7c973d361e1c6d73dd4102cd58e39e9fa93585691ed060347ee65
+-- hash: b789d896ffab3bc89a648b09c2e0486754d4f68bcd7d843fdee8d453344dee11
 
 name:           psl
 version:        0.1.0.0
 build-type:     Simple
 data-files:
     lib/stdlib.psl
+    examples/alias.psl
     examples/arg-par-contains.psl
     examples/assoc-map.psl
     examples/atq.psl
@@ -46,6 +47,7 @@ data-files:
     examples/rand.psl
     examples/reshare.psl
     examples/share-ls.psl
+    examples/simple-write.psl
     examples/ssec-other-ssec.psl
     examples/ssec-shr.psl
     examples/sumprod.psl
@@ -71,42 +73,42 @@ data-files:
     tests/underflow-int.psl
     tests/underflow-nat.psl
     tests/uninspecting-par.psl
-    examples-data/A/atq-data.txt
-    examples-data/A/cmp-input.txt
-    examples-data/A/euclid.txt
-    examples-data/A/msort-input.txt
-    examples-data/A/partial-diverge-in.txt
-    examples-data/A/pfold.txt
-    examples-data/A/prins.txt
-    examples-data/A/qsort-input.txt
-    examples-data/A_0/atq-data.txt
-    examples-data/A_1/atq-data.txt
-    examples-data/B/atq-data.txt
-    examples-data/B/atq-queries.txt
-    examples-data/B/atq-targets.txt
-    examples-data/B/cmp-input.txt
-    examples-data/B/euclid.txt
-    examples-data/B/Interpreter.hs
-    examples-data/B/msort-input.txt
-    examples-data/B/partial-diverge-in.txt
-    examples-data/B/pfold.txt
-    examples-data/B/prins.txt
-    examples-data/B/qsort-input.txt
-    examples-data/B_0/atq-data.txt
-    examples-data/B_0/atq-queries.txt
-    examples-data/B_0/atq-targets.txt
-    examples-data/B_1/atq-data.txt
-    examples-data/B_1/atq-queries.txt
-    examples-data/B_1/atq-targets.txt
-    examples-data/Cost/in.txt
-    examples-data/Ctr_0/in.txt
-    examples-data/Ctr_1/in.txt
-    examples-data/Ctr_2/in.txt
-    examples-data/Ctr_3/in.txt
-    examples-data/Ctr_4/in.txt
-    examples-data/Ctr_5/in.txt
-    examples-data/Ctr_6/in.txt
-    examples-data/Ctr_7/in.txt
+    examples-input/A/atq-data.txt
+    examples-input/A/cmp-input.txt
+    examples-input/A/euclid.txt
+    examples-input/A/msort-input.txt
+    examples-input/A/partial-diverge-in.txt
+    examples-input/A/pfold.txt
+    examples-input/A/prins.txt
+    examples-input/A/qsort-input.txt
+    examples-input/A_0/atq-data.txt
+    examples-input/A_1/atq-data.txt
+    examples-input/B/atq-data.txt
+    examples-input/B/atq-queries.txt
+    examples-input/B/atq-targets.txt
+    examples-input/B/cmp-input.txt
+    examples-input/B/euclid.txt
+    examples-input/B/Interpreter.hs
+    examples-input/B/msort-input.txt
+    examples-input/B/partial-diverge-in.txt
+    examples-input/B/pfold.txt
+    examples-input/B/prins.txt
+    examples-input/B/qsort-input.txt
+    examples-input/B_0/atq-data.txt
+    examples-input/B_0/atq-queries.txt
+    examples-input/B_0/atq-targets.txt
+    examples-input/B_1/atq-data.txt
+    examples-input/B_1/atq-queries.txt
+    examples-input/B_1/atq-targets.txt
+    examples-input/Cost/in.txt
+    examples-input/Ctr_0/in.txt
+    examples-input/Ctr_1/in.txt
+    examples-input/Ctr_2/in.txt
+    examples-input/Ctr_3/in.txt
+    examples-input/Ctr_4/in.txt
+    examples-input/Ctr_5/in.txt
+    examples-input/Ctr_6/in.txt
+    examples-input/Ctr_7/in.txt
 
 library
   exposed-modules:
@@ -137,6 +139,7 @@ library
     , directory
     , filepath
     , random
+    , text
     , uvmhs
   default-language: Haskell2010
 

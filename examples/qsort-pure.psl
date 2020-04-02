@@ -81,9 +81,9 @@ def main () =
     let rflt = fun f -> reveal {this} f
 
     let a = share-as-vec A (sbool A) (sflt A) 0.0 flt-swap 10
-      (par {A} read (list flt) "qsort-input.txt")
+      (par {A} read (list flt) from "qsort-input.txt")
     let b = share-as-vec B (sbool B) (sflt B) 0.0 flt-swap 10
-      (par {B} read (list flt) "qsort-input.txt")
+      (par {B} read (list flt) from "qsort-input.txt")
 
     let inps = vec-append a b
 

@@ -73,7 +73,8 @@ bindPatO ψ ṽ = case ψ of
   VarP x → return $ bindVar x ṽ
   BulP → return id
   TupP ψ₁ ψ₂ → do
-    (ṽ₁,ṽ₂) ← abort𝑂 $ view pairVPL ṽ
+    v ← success $ elimValP ṽ
+    (ṽ₁,ṽ₂) ← abort𝑂 $ view pairVL v
     f₁ ← bindPatO ψ₁ ṽ₁ 
     f₂ ← bindPatO ψ₂ ṽ₂
     return $ f₂ ∘ f₁
@@ -331,6 +332,17 @@ interpExp = wrapInterp $ \case
         [ ("v",pretty v)
         , ("m",pretty m)
         ]
+  WriteE e₁ e₂ → do
+    ṽ₁ ← interpExp e₁
+    ṽ₂ ← interpExp e₂
+    v₁ ← elimValP ṽ₁
+    v₂ ← elimValP ṽ₂
+    m ← askL iCxtModeL
+    case (m,v₂) of
+      (SecM ρs,StrV fn) | [ρ] ← tohs $ list ρs → do
+        writeVal ρ v₁ fn
+        introValP $ BulV
+      _ → throwIErrorCxt TypeIError "interpExp: WriteE: m ≠ SecM {ρ}" null
   RandE τ → do
     wrap :* τ' ← case τ of
       ShareT φ ρes τ' → do
@@ -389,7 +401,7 @@ interpExp = wrapInterp $ \case
     ṽ ← interpExp e
     ℓ ← nextL iStateNextLocL
     modifyL iStateStoreL $ \ σ → (ℓ ↦♮ ṽ) ⩌♮ σ 
-    introValP $ LocV ℓ
+    locValP ℓ
   RefReadE e → do 
     ṽ ← interpExp e
     v ← elimValP ṽ
@@ -397,7 +409,7 @@ interpExp = wrapInterp $ \case
       LocV ℓ → do
         σ ← getL iStateStoreL
         case σ ⋕? ℓ of
-          Some ṽ' → return ṽ'
+          Some ṽ' → restrictValP ṽ'
           None → throwIErrorCxt InternalIError "interpExp: RefReadE: ℓ ∉ dom(σ)" $ frhs
             [ ("ℓ",pretty ℓ)
             , ("dom(σ)",pretty $ keys𝑊 σ)
@@ -425,7 +437,7 @@ interpExp = wrapInterp $ \case
         ℓ ← nextL iStateNextLocL
         ṽ ← introValP $ ArrayV $ vec $ list $ repeat n ṽ₂
         modifyL iStateStoreL $ \ σ → (ℓ ↦♮ ṽ) ⩌♮ σ
-        introValP $ LocV ℓ
+        locValP ℓ
       _ → throwIErrorCxt TypeIError "interpExp: ArrayE: v₁ ≠ IntV _ i" $ frhs
         [ ("v₁",pretty v₁) 
         ]
@@ -442,7 +454,7 @@ interpExp = wrapInterp $ \case
             v' ← elimValP ṽ'
             case v' of
               ArrayV ṽs → case ṽs ⋕? natΩ64 n of
-                Some ṽ → return ṽ
+                Some ṽ → restrictValP ṽ
                 None → throwIErrorCxt TypeIError "interpExp: ArrayReadE: n ∉ dom(ṽs)" $ frhs
                   [ ("n",pretty n)
                   , ("dom(ṽs)",pretty $ (0,size ṽs - 𝕟64 1))
@@ -663,7 +675,7 @@ psliMainExample = do
     [t] → return t
     _ → failIO "ERROR: Too many files specified as target. Correct usage: psli example [<arguments>] <name>"
   initializeIO os
-  let θ = initializeEnv os
+  let θ = update iParamsIsExampleL True $ initializeEnv os
   out ""
   pprint $ ppHorizontal 
     [ ppHeader "INTERPRETING EXAMPLE:"

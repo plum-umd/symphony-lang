@@ -263,6 +263,7 @@ data ExpR =
   | SendE (𝐿 PrinExp) (𝐿 PrinExp) Exp        -- send {P→P} e          /  send{P->P} e
   | AscrE Exp Type                           -- e:τ                   /  e:τ
   | ReadE Type Exp                           -- read τ e              /  read τ e
+  | WriteE Exp Exp                           -- write e               /  write e
   | RandE Type                               -- rand τ                /  rand τ
   | RandRangeE Type Exp                      -- rand-range τ e        /  rand-range τ e
   | InferE                                   -- _                     /  _

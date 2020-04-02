@@ -13,7 +13,7 @@ psli: build
 all-examples: psli
 	./psli example $(FLAGS) euclid
 	./psli example $(FLAGS) msort
-	./psli example $(FLAGS) qsort
+	./psli example $(FLAGS) qsort-pure
 	# ./psli example db-stats
 	./psli example $(FLAGS) atq
 	./psli example karmarkar

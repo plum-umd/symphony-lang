@@ -41,3 +41,4 @@ instance Pretty Val where
     PrinSetV ρs → pretty ρs
     LocV ℓ → ppApp (ppCon "loc") [pretty ℓ]
     ArrayV ṽs → pretty ṽs
+    PairV ṽ₁ ṽ₂ → pretty $ pretty ṽ₁ :* ṽ₂

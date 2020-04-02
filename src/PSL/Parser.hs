@@ -80,6 +80,7 @@ lexer = lexerBasic puns kws prim ops
       , "par"
       , "ref","array"
       , "do"
+      , "read","write","from","to"
       ]
     prim = list
       [ "yao","gmw","bgw","bgv","spdz"
@@ -95,7 +96,7 @@ lexer = lexerBasic puns kws prim ops
       , "ℤ","int"
       , "𝔽","flt"
       , "list"
-      , "read","rand","rand-range"
+      , "rand","rand-range"
       , "inp","rev"
       -- , "par","sec"
       , "∞","inf"
@@ -666,15 +667,24 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntax ":"
       τ ← pType
       return $ \ e → AscrE e τ
-  -- read τ
+  -- read τ from e
   , fmixPrefix levelAPP $ do
       cpSyntax "read"
       τ ← pType
+      cpSyntax "from"
       return $ ReadE τ
+  -- write e to e
+  , fmixPrefix levelAPP $ do 
+      cpSyntax "write" 
+      e ← pExp
+      cpSyntax "to"
+      return $ WriteE e
+  -- rand e
   , fmixTerminal $ do
       cpSyntax "rand"
       τ ← pType
       return $ RandE τ
+  -- rand-range τ e
   , fmixPrefix levelAPP $ do
       cpSyntax "rand-range"
       τ ← pType

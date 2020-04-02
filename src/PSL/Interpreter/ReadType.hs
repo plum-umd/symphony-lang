@@ -1,6 +1,7 @@
 module PSL.Interpreter.ReadType where
 
 import UVMHS
+import AddToUVMHS
 
 import Paths_psl
 
@@ -8,6 +9,7 @@ import PSL.Syntax
 
 import PSL.Interpreter.Types
 import PSL.Interpreter.Truncating
+import PSL.Interpreter.Access
 
 import qualified Text.Read as HS
 
@@ -59,6 +61,45 @@ parseInputType ρ τ s = case τ of
     ]
 
 readType ∷ (STACK) ⇒ PrinVal → Type → 𝕊 → IM Val
-readType ρ τA fn = parseInputType ρ τA $ ioUNSAFE $ do
-  path ← string ^$ getDataFileName $ chars $ "examples-data/" ⧺ prinDataPath ρ ⧺ "/" ⧺ fn
-  read path
+readType ρ τA fn = do
+  b ← askL iCxtIsExampleL
+  path ← 
+    if b
+    then io $ string ^$ getDataFileName $ chars $ concat ["examples-input/",prinDataPath ρ,"/",fn]
+    else return $ concat ["data-input/",prinDataPath ρ,"/",fn]
+  parseInputType ρ τA *$ io $ read path
+
+serializeVal ∷ Val → IM (𝐼 𝕊)
+serializeVal = \case
+  IntV _ i → return $ single $ show𝕊 i
+  NatV _ n → return $ single $ show𝕊 n
+  BoolV b → return $ single $ show𝕊 b
+  PairV ṽ₁ ṽ₂ → do
+    v₁ ← elimValP ṽ₁
+    v₂ ← elimValP ṽ₂
+    s₁ ← serializeVal v₁
+    s₂ ← serializeVal v₂
+    return $ concat [s₁,single "\n",s₂]
+  ConsV ṽ₁ ṽ₂ → do
+    v₁ ← elimValP ṽ₁
+    v₂ ← elimValP ṽ₂
+    s₁ ← serializeVal v₁
+    s₂ ← serializeVal v₂
+    return $ concat [s₁,single "\n",s₂]
+  NilV → return null
+  PrinV (ValPEV ρv) → case ρv of
+    SinglePV ρ → return $ single ρ
+    AccessPV ρ n → return $ single $ concat [ρ,".",show𝕊 n]
+  v → throwIErrorCxt NotImplementedIError "serializeVal" $ frhs
+    [ ("v",pretty v) ]
+
+writeVal ∷ (STACK) ⇒ PrinVal → Val → 𝕊 → IM ()
+writeVal ρ v fn = do
+  b ← askL iCxtIsExampleL
+  let path =
+        if b
+        then concat ["examples-output/",prinDataPath ρ,"/",fn]
+        else concat ["data-output/",prinDataPath ρ,"/",fn]
+  io $ touchDirs $ pathDir path
+  o ← concat ^$ serializeVal v
+  io $ write path o

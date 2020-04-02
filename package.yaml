@@ -48,7 +48,7 @@ data-files:
   - lib/*
   - examples/*
   - tests/*
-  - examples-data/**/*
+  - examples-input/**/*
 
 library:
   source-dirs: 
@@ -64,6 +64,7 @@ library:
     - aeson
     - bytestring
     - random
+    - text
 
 executables:
   psli:

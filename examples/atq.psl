@@ -143,11 +143,11 @@ def send-results results ps = case ps
 def main : 𝟙 →{inp:A,B;rev:A,B} list ℤ{ssec:any}
 def main • =
   let xs-pre : (list ℤ){isec:A,B}
-  let xs-pre = solo {A,B} as α in read (list ℤ) "atq-data.txt"
+  let xs-pre = solo {A,B} as α in read (list ℤ) from "atq-data.txt"
   let qs-pre : (list ℤ){isec:B}
-  let qs-pre = solo {B} as α in read (list ℤ) "atq-queries.txt"
+  let qs-pre = solo {B} as α in read (list ℤ) from "atq-queries.txt"
   let ts-pre : (list ℙ){isec:B}
-  let ts-pre = solo {B} as α in read (list ℙ) "atq-targets.txt"
+  let ts-pre = solo {B} as α in read (list ℙ) from "atq-targets.txt"
 
   let xs : list ℤ{bgw:A,B}
   let xs = par {A,B} msort (concat (fold-f [] (λ P x i → (p-lists P {A,B} x 0) ∷ i) xs-pre))
