@@ -90,6 +90,14 @@ def stats-swap b x y =
   let medy, meany, stdevy = y
   in (b ? medx >< medy, b ? meanx >< meany, b ? stdevx >< stdevy)
 
+def stats-reveal P x =
+  let md, mn, std = x
+  in (reveal {P} md, reveal {P} mn, reveal {P} std)
+
+def response-reveal P x =
+  let (c, s, t) = x
+  in (reveal {P} c, stats-reveal P s, stats-reveal P t)
+
 def response-default : Count * Stats * Stats
 def response-default = 0, stats-default, stats-default
 
@@ -135,14 +143,27 @@ def handler k input db =
       (false, response-default)
 
 
+def share-key x =
+  share {bgv:A -> A,B} (par {A} fst x),
+  share {bgv:A -> A,B} (par {A} snd x)
+
+
+def share-query x =
+  share {bgv:A -> A,B} (par {A} fst x),
+  ( share {bgv:A -> A,B} (par {A} fst (snd x))
+  , share {bgv:A -> A,B} (par {A} snd (snd x))
+  )
+
+
 def main : unit -> list float
 def main () =
   par {A,B}
     let db = db-init 20
-    let db, _ = handler (2, 4) (false, (10, 999)) db
-    let db, _ = handler (2, 4) (false, (15, 25)) db
-    let db, _ = handler (2, 4) (false, (44, 35)) db
-    let db, _ = handler (2, 4) (false, (13, 404)) db
-    let db, _ = handler (2, 4) (false, (29, 5)) db
-    let _, r = handler (2, 4) (true, (0, 0)) db
-    in r
+    let kA = share-key (par {A} (2, 4))
+    let db, _ = handler kA (share-query (par {A} (false, (10, 999)))) db
+    let db, _ = handler kA (share-query (par {A} (false, (15, 25)))) db
+    let db, _ = handler kA (share-query (par {A} (false, (44, 35)))) db
+    let db, _ = handler kA (share-query (par {A} (false, (13, 404)))) db
+    let db, _ = handler kA (share-query (par {A} (false, (29, 5)))) db
+    let _, (t, r) = handler kA (share-query (par {A} (true, (0, 0)))) db
+    in response-reveal A r
