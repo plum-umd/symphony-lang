@@ -280,6 +280,7 @@ data ExpR =
   | SizeE Exp                                -- size e                /  size e
   | ToIntE IPrecision Exp                    -- int#n.n               /  int#n.n
   | ToNatE IPrecision Exp                    -- nat#n.n               /  nat#n.n
+  | DefaultE                                 -- ⊥                     /  _|_
   deriving (Eq,Ord,Show)
   -- [e₁;…;eₙ] ≜ e₁ ∷ ⋯ ∷ eₙ ∷ []
 makePrettySum ''ExpR

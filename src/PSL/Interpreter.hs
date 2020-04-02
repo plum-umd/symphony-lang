@@ -529,6 +529,7 @@ interpExp = wrapInterp $ \case
     case v of
       IntV _ i → introValP $ NatV p $ trPrNat p $ natΩ i
       _ → throwIErrorCxt TypeIError "interpExp: ToIntE: v ∉ {NatV _ n}" null
+  DefaultE → introValP DefaultV
   _ → throwIErrorCxt NotImplementedIError "interpExp: not implemented" null
 
 ---------------

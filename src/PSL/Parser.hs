@@ -58,6 +58,7 @@ lexer = lexerBasic puns kws prim ops
       , "#"
       , "|"
       , "!","≔",":="
+      , "⊥","_|_"
       ]
     kws = list
       [ "primitive"
@@ -727,7 +728,9 @@ pExp = fmixfixWithContext "exp" $ concat
   -- e.e ← e
   , fmixInfixR levelUPDATE $ do concat [cpSyntax "←",cpSyntax "<-"] ; return ArrayWriteE
   -- size e
-  , fmixPrefix levelAPP $ do cpSyntax "size" ; return $ SizeE
+  , fmixPrefix levelAPP $ do cpSyntax "size" ; return SizeE
+  -- ⊥
+  , fmixTerminal $ do concat [cpSyntax "⊥",cpSyntax "_|_"] ; return DefaultE
   -- prim[⊙](e,…,e)
   , fmixInfixL levelPLUS $ do concat [cpSyntax "∨",cpSyntax "||"] ; return $ \ e₁ e₂ → PrimE "OR" $ list [e₁,e₂]
   , fmixInfixL levelTIMES $ do concat [cpSyntax "∧",cpSyntax "&&"] ; return $ \ e₁ e₂ → PrimE "AND" $ list [e₁,e₂]

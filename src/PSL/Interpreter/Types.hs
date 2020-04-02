@@ -28,6 +28,7 @@ data Val =
   | PrinSetV (𝑃 PrinVal)
   | LocV ℤ64
   | ArrayV (𝕍 ValP)
+  | DefaultV
   deriving (Eq,Ord,Show)
 
 -- Distributed Values
@@ -51,8 +52,8 @@ data ValMPC =
   | FltMV FPrecision 𝔻
   | PrinMV PrinExpVal
   | PairMV ValMPC ValMPC
-  | LMV ValMPC
-  | RMV ValMPC
+  | SumMV 𝔹 ValMPC ValMPC
+  | DefaultMV
   deriving (Eq,Ord,Show)
 
 -----------------

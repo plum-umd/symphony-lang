@@ -33,6 +33,8 @@ syn match pantheonPunctuation "\v\|"
 syn match pantheonPunctuation "\v!"
 syn match pantheonPunctuation "\v≔"
 syn match pantheonPunctuation "\v:\="
+syn match pantheonPunctuation "\v⊥"
+syn match pantheonPunctuation "\v_\|_"
 
 syn match pantheonOperator "\v•"
 syn match pantheonOperator "\v\(\)"

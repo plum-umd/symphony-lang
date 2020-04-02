@@ -155,6 +155,7 @@ restrictValPRecVal v = case v of
     v₁ ← restrictValP ṽ₁
     v₂ ← restrictValP ṽ₂
     return $ PairV v₁ v₂
+  DefaultV → return DefaultV
 
 unShareValPsMode ∷ Mode → 𝐿 ValP → 𝑂 (𝐿 Val ∧ 𝑂 (Prot ∧ 𝑃 PrinVal ∧ ℕ))
 unShareValPsMode m ṽs = case ṽs of
