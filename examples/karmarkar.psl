@@ -129,33 +129,6 @@ def seq e0 e1 =
 -- cont a b = (a -> a, b)
 -- where cont a is a monad.
 
--- monadic return:
-def cont_return a = (id, a)
-
--- monadic bind:
-def cont_bind (f, a) g =
-  let (f0, b) = g a in
-  (compose f0 f, b)
-
--- cont_run : cont a a -> a: get an a value:
-def cont_run = uncurry apply
-
-def cont_join m = cont_bind (g, a) id
-
-def cont_seq (f, a) v = cont_bind (f, a) (const v)
-
--- if_then guard tc: an if-then branch 
-def if_then guard tc rest = (mux guard tc, rest)
-
--- eliml_sec_nat: eliminate a secure nat. Just does this by iterating
--- up to some bound.
-def max_nat = 0n
-def eliml_sec_nat muxer encz encone n z s = cont_run (snd
-  (eliml_nat max_nat
-    (n, cont_return z)
-    (fun (n', v) ->
-      (n' - encone, cont_join ((muxer (n' == encz) v), s v)) ) ) )
-
 -- nat_log: logarithm over nats. Diverges at 0n.
 def nat_log : nat -> nat -> nat
 def nat_log b n =
@@ -279,6 +252,43 @@ def zip_lists l0 l1 =
 def zip_map : (t -> u -> v) -> list t -> list u -> list v
 def zip_map f l0 l1 = map (uncurry f) (zip_lists l0 l1)
 
+-- mux_ls: multiplex over a pair of lists:
+def mux_ls guard l0 l1 = zip_map (mux guard) l0 l1
+
+-- monadic return:
+def cont_return a = (id, a)
+
+-- monadic bind:
+def cont_bind (f, a) g =
+  let (f0, b) = g a in
+  (compose f0 f, b)
+
+-- cont_run : cont a a -> a: get an a value:
+def cont_run = uncurry apply
+
+def cont_join m = cont_bind m id
+
+def cont_seq (f, a) v = cont_bind (f, a) (const v)
+
+-- if_then guard tc: an if-then branch 
+def if_then muxer guard tc rest = ((muxer guard tc), rest)
+
+-- if_then guard tc: an if-then branch 
+def if_then_ls = if_then mux_ls
+
+-- eliml_sec_nat: eliminate a secure nat. Iterates up to a constant
+-- bound.
+def max_nat = 1n
+def eliml_sec_nat muxer encz encone n z s = cont_run (snd
+  (eliml_nat max_nat
+    (n, cont_return z)
+    (fun (n', cv) ->
+      (n' - encone,
+       cont_bind
+         (cont_bind cv
+           ((fun v -> (muxer (n' == encz) v), v)) )
+         s) ) ) )
+
 -- transpose: shift matrix between row major and column major order
 def transpose : list (list t) -> list (list t)
 def transpose m = foldr m
@@ -295,9 +305,6 @@ def all_true l = foldr l true and
 def eq_lists v0 v1 = all_true (zip_map eq v0 v1)
 
 def eq_vecs = eq_lists
-
--- mux_ls: multiplex over a pair of lists:
-def mux_ls guard l0 l1 = zip_map (mux guard) l0 l1
 
 -- prod: the product over a list of numerics
 def prod v one = foldr v one mult
@@ -624,31 +631,33 @@ def karmarkar_loop a c =
   -- DEBUG for resource estimation:
   mux_ls ((dot_prod c x) < epsilon)
     x
-  (elim_nat max_iterations
-    x
-    (fun x -> 
-      let x' = karmarkar_iteration x a c in
-
-      -- if we are within the stopping condition in the current
-      -- iteration, return
-      let g = 
-        ((((dot_prod c x) - (dot_prod c x')) /
-           (max_spdz shr1 (dot_prod c x)) ) < epsilon ) in
-      x' ) )
-
-  -- actual version that represents early return
-  -- (eliml_sec_nat_ls { Cost } max_iterations
+  -- simple one that's close enough for resource estimation
+  -- (elim_nat max_iterations
   --   x
   --   (fun x -> 
   --     let x' = karmarkar_iteration x a c in
 
   --     -- if we are within the stopping condition in the current
   --     -- iteration, return
-  --     if_then 
+  --     let g = 
   --       ((((dot_prod c x) - (dot_prod c x')) /
-  --          (max_spdz shr1 (dot_prod c x)) ) < epsilon )
-  --       x'
-  --     x') )
+  --          (max_spdz shr1 (dot_prod c x)) ) < epsilon ) in
+  --     x' ) )
+
+  -- actual version that represents early return
+  (eliml_sec_nat_ls { Cost } max_iterations
+    x
+    (fun x -> 
+      let x' = karmarkar_iteration x a c in
+
+      -- if we are within the stopping condition in the current
+      -- iteration, return
+      let g = shr0 == shr0 in
+        -- DEBUG:
+        -- ((((dot_prod c x) - (dot_prod c x')) /
+        --      (max_spdz shr1 (dot_prod c x)) ) < epsilon ) in
+      if_then_ls g x'
+      x') )
 
 -- main: entry point; Ctr, Cost read inputs and run the algorithm,
 -- distributes results to Out
