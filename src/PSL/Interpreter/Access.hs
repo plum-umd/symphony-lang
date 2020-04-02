@@ -170,7 +170,7 @@ unShareValPsMode m ṽs = case ṽs of
         return (valFrMPC v,Some $ φ :* ρs :* md)
       AllVP v → return (v,None)
       ISecVP _ → abort
-      PairVP _ _ → error "TODO: not implemented"
+      PairVP vp₁ vp₂ → return $ (PairV vp₁ vp₂, None)
       LocVP _ _ → error "TODO: not implemented"
       UnknownVP → error "TODO: not implemented"
     vs :* φρsO₂ ← unShareValPsMode m ṽs'

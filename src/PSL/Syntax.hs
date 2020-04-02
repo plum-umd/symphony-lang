@@ -241,6 +241,7 @@ data ExpR =
   | FltE FPrecision 𝔻                        -- d#n                   /  d#n
   | BulE                                     -- •                     /  ()
   | IfE Exp Exp Exp                          -- if e then e else e    /  if e then e else e
+  | MuxE Exp Exp Exp                         -- mux e then e else e   /  mux e then e else e
   | LE Exp                                   -- L e                   /  L e
   | RE Exp                                   -- R e                   /  R e
   | TupE Exp Exp                             -- e,e                   /  e,e

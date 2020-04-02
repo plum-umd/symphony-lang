@@ -68,7 +68,7 @@ lexer = lexerBasic puns kws prim ops
       , "Λ","abs"
       , "∀","forall"
       , "let","in"
-      , "if","then","else"
+      , "if","mux","then","else"
       , "case"
       , "reveal"
       , "share"
@@ -538,6 +538,14 @@ pExp = fmixfixWithContext "exp" $ concat
       e₂ ← pExp
       cpSyntax "else"
       return $ IfE e₁ e₂
+  -- mux e then e else e
+  , fmixPrefix levelIF $ do
+      cpSyntax "mux"
+      e₁ ← pExp
+      cpSyntax "then"
+      e₂ ← pExp
+      cpSyntax "else"
+      return $ MuxE e₁ e₂
   -- L e
   , fmixPrefix levelAPP $ do cpSyntax "L" ; return LE
   -- R e

@@ -68,6 +68,8 @@ def remove-dups :
 def remove-dups qs = case qs
   { [] → []
   ; (a,(q,t))∷qs' →
+--    let h = mux (elem-triple (q,t) qs') then (false, (-1,{Dummy})) else (a,(q,t))
+--    in h∷(remove-dups qs')
     let b = elem-triple (q,t) qs'
     let a' = b ? false ◇ a
     let q' = b ? -1 ◇ q

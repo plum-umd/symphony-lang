@@ -62,6 +62,7 @@ data-files:
     tests/flt-arith.psl
     tests/fold.psl
     tests/micro-let.psl
+    tests/mux.psl
     tests/natfold.psl
     tests/overflow-int.psl
     tests/overflow-nat.psl

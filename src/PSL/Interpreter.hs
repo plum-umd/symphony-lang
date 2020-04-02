@@ -167,6 +167,24 @@ interpApp ṽ₁ ṽ₂ = do
 wrapInterp ∷ (STACK) ⇒ (ExpR → IM ValP) → Exp → IM ValP
 wrapInterp f e = localL iCxtSourceL (Some $ annotatedTag e) $ f $ extract e
 
+typeDirectedMux :: (STACK) ⇒ 𝔹 → ValP → ValP → IM ValP
+typeDirectedMux b ṽ₂ ṽ₃ = do
+  (vs :* φρsO) ← unShareValPs $ list [ṽ₂, ṽ₃]
+  let Some (v₂ :* vs') = uncons𝑆 $ stream𝐿 vs
+  let Some (v₃ :* _) = uncons𝑆 vs'
+  v ← case (v₂, v₃) of
+        (NilV, NilV) → return NilV
+        (PairV p₁₁ p₁₂, PairV p₂₁ p₂₂) → do
+          l ← typeDirectedMux b p₁₁ p₂₁
+          r ← typeDirectedMux b p₁₂ p₂₂
+          return $ PairV l r
+        (ConsV c₁₁ c₁₂, ConsV c₂₁ c₂₂) → do
+          h ← typeDirectedMux b c₁₁ c₂₁
+          t ← typeDirectedMux b c₁₂ c₂₂
+          return $ ConsV h t
+        _ → fst ^⋅ (interpPrim "COND" $ list [BoolV b, v₂, v₃])
+  reShareValP φρsO v
+
 interpExp ∷ (STACK) ⇒ Exp → IM ValP
 interpExp = wrapInterp $ \case
   VarE x → restrictValP *$ interpVar x
@@ -185,6 +203,21 @@ interpExp = wrapInterp $ \case
     if b
       then interpExp e₂
       else interpExp e₃
+  MuxE e₁ e₂ e₃ → do
+    ṽ₁ ← interpExp e₁
+    case ṽ₁ of
+      ShareVP _ _ _ _ → do
+        (vs₁ :* _φρsO) ← unShareValPs $ list [ṽ₁]
+        let Some (v₁ :* _) = uncons𝑆 $ stream𝐿 vs₁
+        b ← error𝑂 (view boolVL v₁) (throwIErrorCxt TypeIError "interpExp: MuxE: view boolVL v₁ ≡ None" $ frhs
+                                    [ ("v₁",pretty v₁)
+                                    ])
+        ṽ₂ ← interpExp e₂
+        ṽ₃ ← interpExp e₃
+        typeDirectedMux b ṽ₂ ṽ₃
+      _ → throwIErrorCxt TypeIError "interpExp: MuxE: ṽ₁ ≢ ShareVP _ _ _ _" $ frhs
+          [ ("ṽ₁",pretty ṽ₁)
+          ]
   LE e → do
     ṽ ← interpExp e
     introValP $ LV ṽ
