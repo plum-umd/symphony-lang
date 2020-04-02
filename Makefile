@@ -4,17 +4,19 @@ STACK_ARGS :=
 
 ARGS       :=
 
+FLAGS      := 
+
 psli: build
 	rm -f psli
 	ln -s `stack path --dist-dir`/build/psli/psli ./
 
 all-examples: psli
-	./psli example euclid
-	./psli example msort
-	./psli example qsort
+	./psli example $(FLAGS) euclid
+	./psli example $(FLAGS) msort
+	./psli example $(FLAGS) qsort
 	# ./psli example db-stats
-	./psli example atq
-	# ./psli example karmarkar
+	./psli example $(FLAGS) atq
+	./psli example karmarkar
 
 .stack-work:
 	stack setup

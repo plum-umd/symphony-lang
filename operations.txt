@@ -33,14 +33,15 @@ Karmakar (reals, binary64 as per iee08)
 
 DB-Stats (unsigned ints, 32 bit | reals, binary64 as per iee08)
   BGV
-    Cond(S,S,S) (unsigned ints)
+    Cond(S,S,S) (unsigned ints, reals)
     S ≡ S       (unsigned ints)
     S < S       (unsigned ints)
-    S - S       (unsigned ints, looks like it might not be possible to underflow)
-    -- (↓ used only for avg and std-dev over lists of secrets with secret lengths)
-    S + S       (unsigned ints)
-    S * S       (unsigned ints)
-    S / S       (unsigned ints to reals)
+    S - S       (unsigned ints, reals)
+    S + S       (unsigned ints, reals)
+    S * S       (unsigned ints, reals)
+    S / S       (unsigned ints to reals, reals)
+    sqrt S      (reals)
+    to_flt      (unsigned int to real)
 
 ATQ (ints, 32 bit)
   BGW, SPDZ

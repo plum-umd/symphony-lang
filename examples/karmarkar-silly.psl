@@ -38,34 +38,29 @@ def ite guard tc fc = if guard then tc else fc
 
 def mux guard tc fc = guard ? tc ◇ fc
 
-def pdecons a f xy = case xy
-  { ⟪⟫ → a
-  ; ⟪Q.x⟫⧺xy′ → f Q x 
-  }
-
-def pfold : ∀ A:☆,P:ℙ. A → ((Q:ℙ | Q⊆P) → ℤ{Q} → A → A) → ℤ{isec:P} →{sec:P} A
-def pfold i f xy = case xy
+def fold-f i f xs = case xs
   { ⟪⟫ → i
-  ; ⟪Q.x⟫⧺xy′ → f Q x (pfold i f xy′)
+  ; ⟪p|x⟫⧺xs′ → f p x (fold-f i f xs′)
   }
 
-def reveal_ls P l = 
-  case (reveal{ P } l)
+def send_ls P0 P1 l = 
+  case (send{ P0 -> P1 } l)
   { [ ] -> [ ]
-  ; x :: l' -> x :: (reveal_ls P l') 
+  ; x :: l' -> x :: (send_ls P0 P1 l') 
   }
 
-def reveal_prins P x = reveal{ P } x
+def reveal_prins p x = reveal { p } x
 
 -- shr_spdz: a first-order operation that shares over SPDZ
-def shr_spdz P x = share{ spdz : P } x
+def shr_spdz P0 P1 x = share{ spdz : P0 -> P1 } x
 
 -- BEGIN library for Boolean
 
 -- and: non-infix Boolean conjunction
 def and b0 b1 = b0 && b1
 
-def not b = !b
+-- def not b = b ? false >< true
+def neg b = not b
 
 -- BEGIN library for types with equality:
 
@@ -94,7 +89,7 @@ def square a = a * a
 
 def max muxer a b = muxer (a <= b) b a
 
-def max_spdz = mux
+def max_spdz = max mux
 
 def abs_val_real a = max mux a (-1.0 * a)
 
@@ -125,6 +120,10 @@ def elim_nat m z s =
 -- PSL: add syntactic sugar for this?
 def eliml_nat : nat -> t -> (t -> t) -> t
 def eliml_nat n z s = (elim_nat n id (compose s)) z
+
+def seq e0 e1 =
+  let _ = e0 in
+  e1
 
 -- monad for building a value and a continuation. Type is
 -- cont a b = (a -> a, b)
@@ -194,6 +193,9 @@ def foldr l acc f = case l
   ; x :: l' -> f x (foldr l' acc f)
   } 
 
+-- iter: fold over the unit
+def iter l f = foldr l () (fun x () -> f x)
+
 -- filter test l: l, filtered down to elements that satisfy test
 def filter test l = foldr l
   [ ]
@@ -227,25 +229,30 @@ def len l = foldr l 0n (const inc)
 def order = len
 
 -- get i l: the ith element of l
-def get l i = eliml_nat i
-  l
-  (fun l' -> case l'
-    { [ ] -> [ ]
-    ; x :: l'' -> l''
-    })
+def get l i =
+  (elim_nat i
+    (fun l' -> case l'
+      { [ ] -> err "get: 0th of empty list"
+      ; x :: l'' -> x
+      })
+    (fun g l' -> case l'
+      { [ ] -> err "get: ith of non-empty list"
+      ; x :: l'' -> g l''
+      }) )
+    l
 
 -- set l i v: list l with the ith element updated to be v
-def set l i v = eliml_nat i
-  (let rest = case l
-   { [ ] -> [ ]
-   ; x :: l' -> v :: l'
-   })
-  (fun l' -> case l'
-   { [ ] -> [ ]
-   ; x :: l'' -> x :: 
-   }
-  )
-  
+def setter l i v =
+  (elim_nat i
+    (fun l' -> case l'
+      { [ ] -> err "set: setting 0th of empty list"
+      ; x :: l' -> v :: l'
+      })
+    (fun s l' -> case l'
+     { [ ] -> err "set : setting ith of non-empty list"
+     ; x :: l'' -> x :: (s l'')
+     }) )
+    l
 
 -- map: map operation for the list functor
 def map : (t -> u) -> list t -> list u
@@ -292,9 +299,6 @@ def eq_vecs = eq_lists
 -- mux_ls: multiplex over a pair of lists:
 def mux_ls guard l0 l1 = zip_map (mux guard) l0 l1
 
-def eliml_sec_nat_ls = eliml_sec_nat mux_ls
-  (shr_w_comp 0n) (shr_w_comp 1n) 
-
 -- prod: the product over a list of numerics
 def prod v one = foldr v one mult
 
@@ -303,7 +307,6 @@ def sum v z = foldr v z plus
 
 -- dot_prod: take the dot product of two points
 def dot_prod_gen z p0 p1 = sum (zip_map mult p0 p1) z
-def dot_prod = dot_prod_gen shr0
 
 -- pt_diff: subtract one point from another
 def minus_vecs : point -> point -> point
@@ -329,10 +332,12 @@ def row_of_ones : nat -> list real
 def row_of_ones = const_vec 1.0
 
 -- mult_mat_vec : multiply a matrix of secrets and a point
-def matrix_vec_mult_gen z m pt = map (dot_prod z pt) m
+def matrix_vec_mult_gen z m pt = map (dot_prod_gen z pt) m
 
 -- mult_mat: product of row matrix and column matrix
-def matrix_mult_gen z m0 m1 = map (fun v -> map (dot_prod z v) m1) m0 
+def matrix_mult_gen z m0 m1 =
+  let m1t = transpose m1 in
+  map (fun v -> map (dot_prod_gen z v) m1t) m0 
 
 -- part_ith a i l: l partitioned into the first i - elements, ith elt,
 -- and the everything after element i. a is a default elt, which
@@ -385,14 +390,14 @@ def diagonal_matrix_gen z v = foldr v
 
 -- m : user parameter: number of constraint parties
 def m : nat
-def m = 2n
+def m = 8n
 
 -- n : user parameter: dimension of the constraint system
 def n : nat
-def n = 2n
+def n = 8n
 
 -- Ctr[m]: parties that bring the constraints
-principal Ctr[2]
+principal Ctr[8]
 
 -- party that provides the cost vector:
 principal Cost
@@ -401,20 +406,24 @@ principal Cost
 principal Out
 
 -- comps: the parties that do computation, Ctr and Cost
-def comps = set(Ctr,Cost)
-
--- shr_w_ctrs: share data with the parties performing computation
-def shr_w_ctrs = shr_spdz set(Ctr)
+-- def comps = set(Ctr,Cost)
+def comps = { Ctr, Cost }
 
 -- shr_w_comp: share data with the parties performing computation
-def shr_w_comp = shr_spdz comps
+def shr_w_comp sender = shr_spdz sender comps
 
 -- shr0, shr1: shares of constants that are often reused:
-def shr0 = shr_w_comp 0.0 in
-def shr1 = shr_w_comp 1.0 in
+def shr0 = shr_w_comp { Cost } 0.0 
+def shr1 = shr_w_comp { Cost } 1.0 
      
+def eliml_sec_nat_ls sender = eliml_sec_nat mux_ls
+  (shr_w_comp sender 0n) (shr_w_comp sender 1n) 
+
+def dot_prod = dot_prod_gen shr0
+
 -- matrix_mult: multiply matrices of SPDZ shares
 def matrix_mult = matrix_mult_gen shr0 
+
 -- matrix_vec_mult: multiply matrix and vector of SPDZ shares
 def matrix_vec_mult = matrix_vec_mult_gen shr0 
 
@@ -422,13 +431,15 @@ def nOnes = row_of_ones n
 
 -- dimensions_of m: dimensions of matrix m
 def dimensions_of m = case m
-  { [ ] -> (0, 0)
+  { [ ] -> (0n, 0n)
   ; rv :: m' -> (inc (len m'), len rv)
   }
 
 -- nz_prod z u l: the product of non-z entries in l, with
 -- multiplicative unit u
-def nz_prod z one l = prod (filter (compose (eq z) not) l) one
+def nz_prod z one l = foldr l
+  one
+  (fun x -> mult (mux (x == z) one x))
 
 def nz_prod_vec = nz_prod shr0 shr1
 
@@ -452,12 +463,12 @@ def range m n =
   if n < m then [ ]
   else map (plus m)
     (elim_nat (n - m)
-       [ 0 ]
-       (fun rng -> (len rng) :: rng))
+       [ 0n ]
+       (fun rng -> snoc (len rng) rng) )
 
 def matrix_get m (i, j) = get (get m i) j
 
-def matrix_set m (i, j) v = set m i (set (get m i) j v)
+def matrix_set m (i, j) v = setter m i (setter (get m i) j v)
 
 -- Listing 9: Inverse of a lower triangular matrix
 def matrix_inverse_lt l =
@@ -466,22 +477,26 @@ def matrix_inverse_lt l =
   -- PSL: can we add syntactic sugar for sequencing?
   -- PSL: can we add syntactic sugar for loops? In particular for
   -- loops with no accumulator?
-  fold-f ()
+  seq
+  (iter (range 0n (n - 1n))
     (fun k ->
       -- For diagonal entries, take the reciprocal
-      l_inv := matrix_set l_inv (k, k) (matrix_get l_inv (k, k)) ;
+      do l_inv := matrix_set !l_inv (k, k) (shr1 / (matrix_get !l_inv (k, k))) in
 
       -- For non-diagonal entries, solve L * L_inv = I
-      fold-f ()
-        (let sum = ref 0n in
-          fold-f ()
+      iter (range (k + 1n) (n - 1n))
+        (fun j ->
+          let sum = ref shr0 in
+          iter (range k (j - 1n))
             (fun i ->
-              sum := sum -
-                (metrix_get l (j, i)) * (matrix_get l_inv (i, k)) )
-            (range k (j - 1n)) )
-        (range (k + 1n) (n - 1n)) )
-    (range 0 (n - 1n)) ;
-  l_inv
+              -- let _ = "inverse_lt: pre get into l at " + (j, i) in
+              let _ = matrix_get l (j, i) in
+              -- let _ = err "inverse_lt: pre get into l_inv" in
+              let _ = matrix_get !l_inv (i, k) in
+              do sum := !sum - (matrix_get l (j, i)) * (matrix_get !l_inv (i, k))
+              in
+              () ) ) ) )
+  !l_inv
 
 -- TODO: replace with list syntax
 
@@ -493,43 +508,40 @@ def cholesky_decomposition m =
   let l = ref (zero_mat n) in -- n x n zero matrix
 
   -- Calculate the top diagonal element of L
-  l := matrix_set l (0, 0) (sqrt (matrix_get m (0, 0))) ;
+  do l := matrix_set !l (0n, 0n) (sqrt (matrix_get m (0n, 0n))) in
 
   -- Calculate the rest of the first column of L
-  fold-f ()
+  seq
+  (iter (range 1n (n - 1n))
     (fun j ->
-      l := matrix_set l (j, 0n)
-        ((matrix_get m (j, 0n)) / (matrix_get l (0n, 0n))) )
-    (range 1n (n - 1n)) ;
+      do l := matrix_set !l (j, 0n) ((matrix_get m (j, 0n)) / (matrix_get !l (0n, 0n)) ) in
+      () ) )
 
   -- Iterate through the remaining columns
-  fold-f ()
+  (seq
+   (iter (range 1n (n - 1n))
     (fun i ->
       -- First calculate the diagonal element for this column
-      let sum = ref 0n in
-      fold-f ()
+      let sum = ref shr0 in
+      seq
+      (iter (range 0n (i - 1n))
         (fun j ->
-          sum := sum + (matrix_get l (i, j)) * (matrix_get l (i, j)) )
-        (range 0n (i - 1n)) ;
+          do sum := !sum + (matrix_get !l (i, j)) * (matrix_get !l (i, j)) in
+          () ) )
 
-      l := matrix_set (i, i) (sqrt ((matrix_get m (i, i)) - sum)) ;
+      (do l := matrix_set !l (i, i) (sqrt ((matrix_get m (i, i)) - !sum)) in
 
       -- Now fill in the remaining entries in this column
-      if_then (i < n - 1n)
-        (fold-f ()
+      if (i < n - 1n) then
+        (iter (range (i + 1n) (n - 1n))
           (fun j ->
-            sum := 0n ;
-            fold-f ()
+            do sum := shr0 in
+            iter (range 0n (i - 1n))
               (fun k ->
-                sum := sum + (matrix_get l (i, k)) * (matrix_get l (j, k))
-              )
-              (range 0n (i - 1n))
-          )
-          (range (i + 1n) (n - 1n))
-        )
-    )
-    (range 1n (n - 1n)) ;
-  l
+                do sum := !sum + (matrix_get !l (i, k)) * (matrix_get !l (j, k)) in
+                () ) ) )
+      else () ) ) )
+    !l)
 
 -- Listing 8: Inverse of a positive definite Hermitian matrix
 def matrix_inverse_pdh : num -> matrix -> matrix
@@ -547,25 +559,26 @@ def karmarkar_iteration initial_point a c =
   -- Dimensions of D: n x n
   let d = diagonal_matrix initial_point in
   -- Dimensions of cprime: n x 1
-  let cprime = matrix_scalar_vec_mult_spdz d c in
+  let cprime = matrix_vec_mult d c in
   -- Dimensions of AD: m x n
-  let ad = matrix_mult_spdz a d in
+  let ad = matrix_mult a d in
 
   -- Construct B
   -- Dimensions of B: (m + 1) x n
-  let b = concat ad [ row_of_ones n ] in -- append a row of ones onto AD
+  let b = snoc (row_of_ones n) ad in -- append a row of ones onto AD
 
   -- Dimensions of BBT: (m + 1) x (m + 1)
-  let bbt = matrix_mult_spdz b (transpose b) in
+  let bbt = matrix_mult b (transpose b) in
+
   -- Dimensions of BBTInv: (m + 1) x (m + 1)
   let bbtinv = matrix_inverse_pdh bbt in
 
   -- Project C onto B's nullspace
   -- Dimensions of cp: n x 1
   let cp = minus_vecs cprime
-    (matrix_scalar_vec_mult_spdz (transpose b)
-      (matrix_scalar_vec_mult_spdz bbtinv
-        (matrix_scalar_vec_mult_spdz b c') ) ) in
+    (matrix_vec_mult (transpose b)
+      (matrix_vec_mult bbtinv
+        (matrix_vec_mult b cprime) ) ) in
 
   -- Calculate a unit vector of cp
   -- Dimensions of unitcp: n x 1
@@ -584,8 +597,8 @@ def karmarkar_iteration initial_point a c =
 
   -- Transform the point back
   -- Dimensions of b: n x 1
-  let b = scalar_vec_div (matrix_scalar_vec_mult_spdz d bprime)
-    (dot_prod (row_of_ones n) (matrix_scalar_vec_mult_spdz d bprime)) in
+  let b = div_vec (matrix_vec_mult d bprime)
+    (dot_prod (row_of_ones n) (matrix_vec_mult d bprime)) in
   b
 
 -- Listing 7: Loop for Karmarkar's Algorithm
@@ -604,49 +617,80 @@ def karmarkar_loop a c =
     (magn (ceil (log_2_real (abs_val_real p)))) +
     n * (magn (ceil (log_2_real (to_flt n)))) in
   let max_iterations = 12n * n * l in
-  let max_iterations = shr_w_comp 1n in -- DEBUG CODE
+  let max_iterations = 156n in -- DEBUG:
 
   -- If this initial point is an optimal solution, return
+  -- DEBUG for resource estimation:
   mux_ls ((dot_prod c x) < epsilon)
     x
-  (eliml_sec_nat_ls max_iterations
+  (elim_nat max_iterations
     x
     (fun x -> 
       let x' = karmarkar_iteration x a c in
 
       -- if we are within the stopping condition in the current
       -- iteration, return
-      if_then 
+      let g = 
         ((((dot_prod c x) - (dot_prod c x')) /
-           (max_spdz shr1 (dot_prod c x)) ) < epsilon )
-        x'
-      x') )
+           (max_spdz shr1 (dot_prod c x)) ) < epsilon ) in
+      x' ) )
+
+  -- actual version that represents early return
+  -- (eliml_sec_nat_ls { Cost } max_iterations
+  --   x
+  --   (fun x -> 
+  --     let x' = karmarkar_iteration x a c in
+
+  --     -- if we are within the stopping condition in the current
+  --     -- iteration, return
+  --     if_then 
+  --       ((((dot_prod c x) - (dot_prod c x')) /
+  --          (max_spdz shr1 (dot_prod c x)) ) < epsilon )
+  --       x'
+  --     x') )
 
 -- main: entry point; Ctr, Cost read inputs and run the algorithm,
 -- distributes results to Out
 def main : unit ->{ inp : Ctr, Cost; rev : Out } (list out_sec)
 def main () =
   -- read_vec: reads an input vector on a principal's machine
-  let read_vec = fun () -> read (list flt) "in.txt" in
-  
+  -- let read_vec = fun () -> read (list flt) "in.txt" in
+  let read_vec = fun () -> [ 1.0 ; 2.0; 3.0; 4.0; 5.0; 6.0; 7.0; 8.0 ] in -- DEBUG:
+
   -- FANCY MPC: Ctr and Cost send the data in the list to Out. This
   -- may change if the PSL model of isec's changes as a result of
   -- issue #31
-  let soln = { par : Ctr, Cost, Out } (map
-    (reveal_prins set(Out))
+  let soln = par { Ctr, Cost, Out } (map
+    (reveal_prins { Out })
     -- Ctr and Cost reveal the list structure of the point to Out:
-    (reveal_ls set(Ctr,Cost,Out)
+    (send_ls { Cost } { Ctr, Cost, Out }
       -- Ctr and Cost compute the solution point:
-      ({ par : Ctr, Cost } karmarkar_loop
+      (par { Ctr, Cost } karmarkar_loop
         -- read in the matrix of constraints and share them
-        (pfold 
+        (fold-f
           [ ]
-          (fun Q ctr -> cons
-            (mult_diag_vec pt
-            (map shr_w_comp (reveal_ls comps ctr)) ) )
-          ({ par : Ctr } read_vec ()) )
+          (fun Q ctr -> cons (map (shr_w_comp { Q }) (send_ls { Q } comps ctr)))
+          (solo { Ctr } as c in read_vec ()) )
         -- read in the vector of costs and share them
-        (map shr_w_comp
-          (reveal_ls comps ({ par : Cost } read_vec ())) ) ) ) ) in
+        (map (shr_w_comp { Cost })
+          (send_ls { Cost } comps (par { Cost } read_vec ())) ) ) ) ) in
   -- Ctr and Cost forget the structure of the solution
-  { par : Out } reveal_ls set(Out) soln
+  soln
+
+  -- DEBUG:
+  -- let soln = par { Ctr, Cost, Out } (map
+  --   (reveal_prins { Out })
+  --   -- Ctr and Cost reveal the list structure of the point to Out:
+  --   (send_ls { Cost } { Out }
+  --     -- Ctr and Cost compute the solution point:
+  --     (par { Ctr, Cost } karmarkar_loop
+  --       -- read in the matrix of constraints and share them
+  --       (fold-f
+  --         [ ]
+  --         (fun Q ctr -> cons (map (shr_w_comp { Q }) (send_ls { Q } comps ctr)))
+  --         (solo { Ctr } as c in read_vec ()) )
+  --       -- read in the vector of costs and share them
+  --       (map (shr_w_comp { Cost })
+  --         (send_ls { Cost } comps (par { Cost } read_vec ())) ) ) ) ) in
+  -- -- Ctr and Cost forget the structure of the solution
+  -- par { Out } send_ls { Cost } { Out } soln

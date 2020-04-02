@@ -79,6 +79,7 @@ lexer = lexerBasic puns kws prim ops
       , "fold","on"
       , "par"
       , "ref","array"
+      , "do"
       ]
     prim = list
       [ "yao","gmw","bgw","bgv","spdz"
@@ -118,7 +119,7 @@ lexer = lexerBasic puns kws prim ops
       , "^"
       , "?"
       , "◇","><"
-      , "!","¬"
+      , "not","¬"
       , "||","∨"
       , "&&","∧"
       , "true","false"
@@ -717,7 +718,7 @@ pExp = fmixfixWithContext "exp" $ concat
   -- prim[⊙](e,…,e)
   , fmixInfixL levelPLUS $ do concat [cpSyntax "∨",cpSyntax "||"] ; return $ \ e₁ e₂ → PrimE "OR" $ list [e₁,e₂]
   , fmixInfixL levelTIMES $ do concat [cpSyntax "∧",cpSyntax "&&"] ; return $ \ e₁ e₂ → PrimE "AND" $ list [e₁,e₂]
-  , fmixPrefix levelEXP $ do concat [cpSyntax "!",cpSyntax "¬"] ; return $ \ e → PrimE "NOT" $ list [e]
+  , fmixPrefix levelEXP $ do concat [cpSyntax "not",cpSyntax "¬"] ; return $ \ e → PrimE "NOT" $ list [e]
   , fmixInfixL levelPLUS $ do cpSyntax "+" ; return $ \ e₁ e₂ → PrimE "PLUS" $ list [e₁,e₂]
   , fmixInfixL levelPLUS $ do cpSyntax "-" ; return $ \ e₁ e₂ → PrimE "MINUS" $ list [e₁,e₂]
   , fmixInfixL levelTIMES $ do concat [cpSyntax "×",cpSyntax "*"] ; return $ \ e₁ e₂ → PrimE "TIMES" $ list [e₁,e₂]
