@@ -1,130 +1,11 @@
--- m : number of constraint parties
-def m : nat
-def m = 2n
+-- BEGIN definitions appropriate for general-purpose library modules
 
--- Ctr: parties that bring the constraints
-principal Ctr[2]
+-- err msg: throw an error message
+def err msg = msg + 0
 
--- party that provides the cost vector:
-principal Cost
+-- BEGIN library for general functions:
 
--- party that gets the output:
-principal Out
-
--- reals: IEEE64
--- def real : type
--- def real = flt[64]
--- PSL: support type definitions
-
--- PSL: BEGIN ops that need to be supported
-
-def flt_eq : flt -> flt -> bool
-def flt_eq x y = true
-
-def spdz_sqrt : real{ spdz : Ctr, Cost } -> real{ spdz : Ctr, Cost }
-
--- PSL: END ops that need to be supported
-
--- ctr: the type of constraints. An independent secret vector.
--- def ctr : type
--- def ctr = list (real{ isec : Ctr })
-
--- costs: the type of cost vectors:
--- def costs : type
--- def costs = list (real{ ssec : Cost })
-
--- comp_shr: a real secret-shared between all compute parties
--- def comp_shr : type
--- def comp_shr = real{ spdz : Ctr, Cost }
-
--- def comp_shr_bool : type
--- def comp_shr_bool = bool{ spdz: Ctr, Cost }
-
--- out_sec: a secret known only to the output party
--- def out_sec : type
--- def out_sec = real{ ssec : Out }
-
--- shr_cost_w_comp: 
-def shr_cost_w_comp : real{ ssec : Cost } -> comp_shr
-def shr_cost_w_comp x = share{ spdz : Ctr, Cost } x
-
-def shr_ctr_w_comp : real{ spdz : Ctr } -> comp_shr
-def shr_cost_w_comp x = share{ spdz : Ctr, Cost } x
-
--- shr_pub_w_comp: make shares of a public real
-def shr_pub_w_comp : real -> comp_shr
-def shr_pub_w_comp x = share{ spdz : Ctr, Cost } x
-
--- public_bool: booleans known to everyone
--- def public_bool : type
--- def public_bool = bool{ ssec: Ctr, Cost, Out }
-
--- release_bool: publicly reveal a bool shared between all compute
--- parties
-def release_bool : comp_shr_bool -> public_bool
-def release_bool x = reveal{ Ctr, Cost, Out } x
-
--- public_nat: nats known to everyone
--- def public_nat : type 
--- def public_nat = nat{ ssec: Ctr, Cost, Out }
-
--- release_bool: publicly reveal a nat shared between all compute
--- parties
-def release_nat : comp_shr_nat -> public_nat
-def release_nat n = reveal{ Ctr, Cost, Out } n
-
--- point: a point the comp_shrensional space of a constraint
--- def point : type 
--- def point = list comp_shr
-
--- secretMat: a matrix of additive shares of reals
--- def secretMat : type
--- def secretMat = list point
-
--- ltMat: a lower-trignular matrix of additive shares of reals in
--- row-major order
--- def ltMat : type
--- def ltMat = list ((list comp_shr) * comp_shr)
-
--- ltMat: a lower-triangular matrix of additive shares in column-major
--- order
--- def colLtMat : type
--- def colLtMat = list (comp_shr * (list comp_shr))
-
--- library functions for numeric types
-
--- plus: non-infix sum
-def plus m n = m + n
-
--- minus: non-infix substraction
-def minus m n = m - n
-
--- inc n: increment of n
-def inc : nat -> nat
-def inc = plus 1n
-
--- dec n: decrement of n
-def dec : nat -> nat
-def dec n = n - 1n
-
--- mult: infix multiplication of nats
-def mult m n = m * n
-
--- square: multiple a number with itself:
-def square a = a * a
-
--- elim_nats: form for eliminating (folding over) nats
-def elim_nats : nat -> t -> (t -> t) -> t
-def elim_nats m z s = 
-  if m ≡ 0n then z
-  else s (elim_nats (dec m) z s)
-
--- elim_natsl: analog of fold right, for nats
-def elim_natsl : nat -> t -> (t -> t) -> t
-def eliml_natl n z s = 
-  (elim_nats n id (compose s)) z
-
--- library functions for functions:
+def apply f a = f a
 
 def compose : (t0 -> t1) -> (t1 -> t2) -> (t0 -> t2)
 def compose f g x = g (f x)
@@ -132,8 +13,7 @@ def compose f g x = g (f x)
 def const : t -> u -> t
 def const x y = x
 
-def curry : (a * b -> c) -> (a -> b -> c)
-def curry f x y = f (a, b)
+def flip f x y = f y x
 
 def id : t -> t
 def id x = x
@@ -141,7 +21,162 @@ def id x = x
 def uncurry : (a -> b -> c) -> (a * b -> c)
 def uncurry f (a, b) = f a b
 
--- library functions for lists:
+def pair x y = (x, y)
+
+def fst (x, y) = x
+
+def snd (x, y) = y
+
+def elim_sum f g x = case x
+  { L x' -> f x'
+  ; R y' -> g y'
+  }
+
+-- BEGIN library for security-sensitive operations:
+
+def ite guard tc fc = if guard then tc else fc
+
+def mux guard tc fc = guard ? tc ◇ fc
+
+def fold-f i f xs = case xs
+  { ⟪⟫ → i
+  ; ⟪p|x⟫⧺xs′ → f p x (fold-f i f xs′)
+  }
+
+def send_ls P0 P1 l = 
+  case (send{ P0 -> P1 } l)
+  { [ ] -> [ ]
+  ; x :: l' -> x :: (send_ls P0 P1 l') 
+  }
+
+def reveal_prins p x = reveal { p } x
+
+-- shr_spdz: a first-order operation that shares over SPDZ
+def shr_spdz P0 P1 x = share{ spdz : P0 -> P1 } x
+
+-- BEGIN library for Boolean
+
+-- and: non-infix Boolean conjunction
+def and b0 b1 = b0 && b1
+
+-- def not b = b ? false >< true
+def neg b = not b
+
+-- BEGIN library for types with equality:
+
+-- eq: non-infix equality test
+def eq x y = x == y
+
+-- BEGIN library for a numeric typeclass
+
+-- plus: non-infix sum
+def plus m n = m + n
+
+-- minus: non-infix subtraction
+def minus m n = m - n
+
+-- mult: non-infix multiplication 
+def mult m n = m * n
+
+-- div: non-infix division
+def div m n = m / n
+
+-- exp: non-infix exponentiation
+def exp m n = m ^ n
+
+-- square: multiple a number with itself:
+def square a = a * a
+
+def max muxer a b = muxer (a <= b) b a
+
+def max_spdz = max mux
+
+def abs_val_real a = max mux a (-1.0 * a)
+
+-- TODO: define these properly
+def log_2_real = id
+
+def magn x = 1n
+
+-- BEGIN library for nats:
+
+-- inc n: increment of nat n
+def inc : nat -> nat
+def inc = plus 1n
+
+-- def inc n = 1n + n
+
+-- dec n: decrement of nat n
+def dec : nat -> nat
+def dec n = n - 1n
+
+-- elim_nat: form for eliminating (folding over) nats
+def elim_nat : nat -> t -> (t -> t) -> t
+def elim_nat m z s = 
+  if m ≡ 0n then z
+  else s (elim_nat (dec m) z s)
+
+-- eliml_nat: analog of fold right, for nats
+-- PSL: add syntactic sugar for this?
+def eliml_nat : nat -> t -> (t -> t) -> t
+def eliml_nat n z s = (elim_nat n id (compose s)) z
+
+def seq e0 e1 =
+  let _ = e0 in
+  e1
+
+-- monad for building a value and a continuation. Type is
+-- cont a b = (a -> a, b)
+-- where cont a is a monad.
+
+-- monadic return:
+def cont_return a = (id, a)
+
+-- monadic bind:
+def cont_bind (f, a) g =
+  let (f0, b) = g a in
+  (compose f0 f, b)
+
+-- cont_run : cont a a -> a: get an a value:
+def cont_run = uncurry apply
+
+def cont_join m = cont_bind (g, a) id
+
+def cont_seq (f, a) v = cont_bind (f, a) (const v)
+
+-- if_then guard tc: an if-then branch 
+def if_then guard tc rest = (mux guard tc, rest)
+
+-- eliml_sec_nat: eliminate a secure nat. Just does this by iterating
+-- up to some bound.
+def max_nat = 0n
+def eliml_sec_nat muxer encz encone n z s = cont_run (snd
+  (eliml_nat max_nat
+    (n, cont_return z)
+    (fun (n', v) ->
+      (n' - encone, cont_join ((muxer (n' == encz) v), s v)) ) ) )
+
+-- nat_log: logarithm over nats. Diverges at 0n.
+def nat_log : nat -> nat -> nat
+def nat_log b n =
+  if n == 1n then 0n
+  else inc (nat_log b (n / b))
+
+def ceil_fn f f_inv n =
+  let n' = f n in
+  n' + (if n == f_inv n' then 0n else 1n)
+
+def log_2_ceil = ceil_fn (nat_log 2n) (exp 2n)
+
+-- BEGIN library for floats:
+
+-- sqrt: implementation of the Babylonian method for computing sqrt
+def sqrt_steps = 5n
+def babylonian_sqrt x = eliml_nat sqrt_steps
+  1.0
+  (fun s -> (s + x / s) / 2.0)
+
+-- BEGIN library for list:
 
 -- cons: non-infix list cons
 def cons : t -> list t -> list t
@@ -149,417 +184,513 @@ def cons x l = x :: l
 
 -- const_vec t a n: a vector of constant a of size n
 def const_vec : t -> nat -> list t
-def const_vec c n = elim_nats n [ ] (cons c)
+def const_vec c n = elim_nat n [ ] (cons c)
 
 -- foldr: right fold, the list eliminator
 def foldr : list t -> acc -> (t -> acc -> acc) -> acc
 def foldr l acc f = case l
-{ [ ] -> acc
-; x :: l' -> f x (foldr l' acc f)
-}
+  { [ ] -> acc
+  ; x :: l' -> f x (foldr l' acc f)
+  } 
+
+-- iter: fold over the unit
+def iter l f = foldr l () (fun x () -> f x)
+
+-- filter test l: l, filtered down to elements that satisfy test
+def filter test l = foldr l
+  [ ]
+  (fun x rest -> if test x then x :: rest else rest)
 
 -- foldr_tl: right fold with access to the tail of the list
 def foldr_tl : list t -> acc -> (t -> list t -> acc -> acc) -> acc
-def foldr_tl l i f =
-  let (_, a) = foldr l ([ ], i) (fun x (l', b) -> (x :: l', f x l' b)) in
-  a
+def foldr_tl l i f = snd
+  (foldr l ([ ], i) (fun x (l', b) -> (x :: l', f x l' b)))
 
+-- decons_ls: first-order case syntax 
 def decons_ls : list t -> u -> (t -> list t -> u) -> u
-def decons_ls l a0 f = foldr_tl l a0 (fun x ls -> const (f x ls))
-  
--- foldl: left fold
-def foldl : list t -> acc -> (t -> acc -> acc) -> acc
-def foldl l acc f = (foldr l id (fun x -> compose (f x))) acc
+def decons_ls l a0 f = case l
+  { [ ] -> a0
+  ; x :: l' -> f x l'
+  }
 
+-- foldl: left fold
+-- PSL: add syntactic sugar for this?
+def foldl : list t -> acc -> (t -> acc -> acc) -> acc
+def foldl l acc0 f = (foldr l id (fun x acc -> compose acc (f x))) acc0
+
+-- concat l0 l1: concatenation of l0 and l1
 def concat : list t -> list t -> list t
 def concat l0 l1 = foldr l0 l1 cons
 
+-- len l: length of list l
 def len : list t -> nat
-def len l = foldr l 0 (fun x -> inc)
+def len l = foldr l 0n (const inc)
+
+def order = len
+
+-- get i l: the ith element of l
+def get l i =
+  (elim_nat i
+    (fun l' -> case l'
+      { [ ] -> err "get: 0th of empty list"
+      ; x :: l'' -> x
+      })
+    (fun g l' -> case l'
+      { [ ] -> err "get: ith of non-empty list"
+      ; x :: l'' -> g l''
+      }) )
+    l
+
+-- set l i v: list l with the ith element updated to be v
+def setter l i v =
+  (elim_nat i
+    (fun l' -> case l'
+      { [ ] -> err "set: setting 0th of empty list"
+      ; x :: l' -> v :: l'
+      })
+    (fun s l' -> case l'
+     { [ ] -> err "set : setting ith of non-empty list"
+     ; x :: l'' -> x :: (s l'')
+     }) )
+    l
 
 -- map: map operation for the list functor
 def map : (t -> u) -> list t -> list u
 def map f l = foldr l [ ] (compose f cons)
 
--- rev l: the reverse of list l
+-- rev_ls l: the reverse of list l
 def rev_ls : list t -> list t
 def rev_ls l = foldl l [ ] cons
 
 def snoc : t -> list t -> list t
-def snoc x l = foldr l [ x ] cons
+def snoc x l = concat l [ x ]
 
 -- zip_lists pt0 pt1: the zip of points p0 and p1
 def zip_lists : list t -> list u -> list (t * u)
 def zip_lists l0 l1 =
-  let zip0 = foldr l0
+  (foldr l0
     (const [ ])
-    (fun x z0 l -> decons_ls l
-       [ ]
-       (fun y l' -> (x, y) :: z0 l') ) in
-  zip0 l1
+    (fun x z0 l -> case l
+      { [ ] -> [ ]
+      ; y :: l' -> (x, y) :: z0 l'
+      }) )
+    l1
 
-def zip_map : list t -> list u -> (t -> u -> v) -> list v
-def zip_map l0 l1 f = map (uncurry f) (zip_lists l0 l1)
+def zip_map : (t -> u -> v) -> list t -> list u -> list v
+def zip_map f l0 l1 = map (uncurry f) (zip_lists l0 l1)
 
--- point_div x pt: divide each entry in pt by x
-def point_div : comp_shr -> point -> point
-def point_div x = map (fun a -> a / x) 
+-- transpose: shift matrix between row major and column major order
+def transpose : list (list t) -> list (list t)
+def transpose m = foldr m
+  (const_vec [ ]
+    (case m
+     { [ ] -> 0n
+     ; v :: m' -> len v
+     }) )
+  (zip_map cons)
 
--- vec_div: divide a vector of reals by a constant
-def vec_div : real -> list real -> list real
-def vec_div a = map (fun x -> x / a)
+def all_true : list bool -> bool
+def all_true l = foldr l true and
 
--- nzProd a: the product of all non-zero entries in a vector:
-def nzProd : list (real{ ssec : p }) -> real{ ssec : p }
-def nzProd l = foldr l
-  (shr_pub_w_comp 1.0)
-  (fun x -> if x == 0.0 then id else mult x)
+def eq_lists v0 v1 = all_true (zip_map eq v0 v1)
 
--- pt_diff: subtract one point from another
-def pt_diff : point -> point -> point
-def pt_diff pt0 pt1 = zip_map pt0 pt1 minus
+def eq_vecs = eq_lists
 
--- sum: sum of a list of secret reals
-def sum : point -> comp_shr
+-- mux_ls: multiplex over a pair of lists:
+def mux_ls guard l0 l1 = zip_map (mux guard) l0 l1
+
+-- prod: the product over a list of numerics
+def prod v one = foldr v one mult
+
+-- sum: the sum over a list of numerics
 def sum v z = foldr v z plus
 
 -- dot_prod: take the dot product of two points
-def dot_prod p0 p1 = sum (zip_map p0 p1 mult)
+def dot_prod_gen z p0 p1 = sum (zip_map mult p0 p1) z
 
--- pt_cost : evaluate the cost of a point
-def pt_cost : costs -> point -> comp_shr
-def pt_cost c = dot_prod (map shr_costs_w_comp c) 0.0
+-- pt_diff: subtract one point from another
+def minus_vecs : point -> point -> point
+def minus_vecs v0 v1 = zip_map minus v0 v1 
 
--- l2norm v: the L2 norm of a vector of shares
+-- scalar_vec_mult a v: scalar product of a and v
+def scalar_vec_mult a = map (mult a)
+
+-- scalar_vec_div: divide a vector of reals by a constant
+def div_vec : real -> list real -> list real
+def div_vec v a = map (flip div a) v
+
+-- l2norm z v: the L2 norm of a vector of numerics with zero element z
 def l2norm : point -> comp_shr
-def l2norm pt = spdz_sqrt (sum (map square pt) (shr_pub_w_comp 0.0))
+def l2norm z v = babylonian_sqrt (sum (map square v) z)
 
--- zeros_vec: a vector of zeroes
+-- zeros_vec: a vector of floating-point zeroes
 def zeros_vec : nat -> list real
 def zeros_vec = const_vec 0.0
 
--- onesVec: a vector of real ones
-def onesVec : nat -> list real
-def onesVec = const_vec 1.0
+-- row_of_ones: a vector of real ones
+def row_of_ones : nat -> list real
+def row_of_ones = const_vec 1.0
 
--- shift_major: shift matrix between row major and column major order
-def shift_major : nat -> list (list t) -> list (list t)
-def shift_major c m = foldr m
-  (const_vec [ ] c)
-  (fun v acc -> map cons (zip_lists v acc))
+-- mult_mat_vec : multiply a matrix of secrets and a point
+def matrix_vec_mult_gen z m pt = map (dot_prod_gen z pt) m
 
--- n : parameter: number of variables in the constraint system
-def n : nat
-def n = 2n
+-- mult_mat: product of row matrix and column matrix
+def matrix_mult_gen z m0 m1 =
+  let m1t = transpose m1 in
+  map (fun v -> map (dot_prod_gen z v) m1t) m0 
 
--- row_major: put given matrix in row-major order
-def row_major : secretMat -> secretMat
-def row_major = shift_major m
-
--- col_major: put given matrix in column-major order
-def col_major : secretMat -> secretMat
-def col_major = shift_major n
-
--- diagonal_matrix p: the diagonal matrix of a point
-def diagonal_matrix : point -> secretMat
-def diagonal_matrix pt = foldr pt
-  [ ]
-  (fun d m' ->
-    let n' = len pt' in
-    (d :: (zeros_vec n')) :: (row_major
-      ((zeros_vec n')) :: (col_major (diagonal_matrix pt')))
-  )
-
--- prod_mat_pt : multiply a matrix of secrets and a point
-def prod_mat_pt : secretMat -> point -> point
-def prod_mat_pt m pt = foldr pt
-  [ ]
-  (fun f v p -> (map (fun g -> dot_prod v) m1) :: p)
-
--- prod_mat: product of matrices of secrets
-def prod_mat : secretMat -> secretMat -> secretMat
-def prod_mat m0 m1 = row_major
-  (foldr (col_major m1)
-     [ ]
-     (fun f c m' -> (prod_mat_pt m0 c) :: m') )
-
--- prod_mat_rowms: product of two matrices in row-major form
-def prod_mat_rowms : secretMat -> secretMat -> secretMat
-def prod_mat_rowms m0 m1 = prod_mat m0 (shift_major m1)
-
--- shr_cost: share a (secret) cost among all non-output parties
-def shr_cost : real{ ssec : Cost } -> comp_shr
-def shr_cost x = share{ spdz : Ctr, Cost } x
-
-def all_true : list public_bool -> public_bool
-def all_true l = foldr l true (fun x acc -> x && acc)
-
-def max : comp_shr -> comp_shr -> comp_shr_bool
-def max m n = if m <= n then n else m
-
--- is_zero_vec v: test if v is the vector of shares of 0
-def is_zero_vec : point -> public_bool
-def is_zero_vec p = all_true
-  (map
-    (fun f x -> release_bool (x == (shr_pub_w_comp 0.0)))
-    p)
-
--- transpose m: the transposition of matrix t
-def transpose : list (list t) -> list (list t)
-def transpose n m = foldr m
-  (const_vec [ ] n)
-  (fun v acc -> map
-    (compose (uncurry cons))
-    (zip_lists v acc) )
-
--- sqMat: square matrix: a matrix with explicit diagonal elements
--- def sqMat : type
--- def sqMat = list (point * comp_shr * point)
-
--- partition i a l: l partitioned into the first i - elements, ith
--- elt, and the everything after element i. a is a default elt, which
+-- part_ith a i l: l partitioned into the first i - elements, ith elt,
+-- and the everything after element i. a is a default elt, which
 -- should never be used.
 def part_ith : nat -> t -> list t -> (list t) * t * (list t)
-def part_ith a i l = eliml_nat i
-  (fun (hd, tl) -> case tl
-     { [ ] -> (rev_ls hd, a, tl)
-     ; b :: l' -> (rev_ls hd, b, l')
-     })
-  ([ ], l)
-  (fun (rev_hd, tl) -> case tl
-   { [ ] -> (rev_hd, tl)
-   ; x :: tl' -> (x :: rev_hd, tl')
-   })
+def part_ith a i l =
+  let (first_i, rem) =
+    eliml_nat i
+      ([ ], l)
+      (fun (front, tl) -> case tl
+        { [ ] -> (front, tl) -- should never be used
+        ; hd :: tl' -> (hd :: front, tl)
+        }) in
+  let (ith, tl) = case rem
+    { [ ] -> (a, rem) -- should never be used
+    ; b :: rem' -> (b, rem')
+    } in
+  (first_i, ith, tl)
 
--- square m: matrix m coerced into a square matrix
-def square : secretMat -> sqMat
-def squareMat m =
-  let (_, m') = foldl m
-    (0, [ ])
-    (fun rv (i, acc) -> (inc i, (part_ith (shr_pub_w_comp 0.0) rv i) :: acc)) in
-  rev_ls m'
+-- squareMat m: matrix m coerced into a square matrix
+def squareMat d m = rev_ls (snd
+  (foldl m
+    (0n, [ ])
+    (fun rv (i, acc) -> (inc i, (part_ith d i rv) :: acc)) ) )
 
--- cholesky m: the Cholesky decomposition of matrix m, in column-major
--- order, computed using the Cholesky-Crout algorithm
-def cholesky : sqMat -> ltMat
-def cholesky m =
-  let (m', _) = foldl m -- fold over each column in the matrix,
-    ([ ], [ ])
-    (fun (top, diag, bot) (tri, base) ->
-      -- deconstruct the maintained base box 
-      let (jth_row', base') = elim_decons base
-        ([ ], const_vec [ ] (len bot))
-        (fun x tl -> (x, tl)) in
-      -- diag': the diagonal elt of the solution
-      let diag' = sqrt (diag - (dot_prod jth_row' jth_row')) in
-      -- tri': the upper triangle, extended
-      let tri' = snoc (diag', [ ])
-        (map (fun ((d, tl), jth_elt) -> (d, snoc jth_elt tl))
-          (zip_lists tri jth_row')) in
-      -- the base box, extended
-      let base'' = map 
-        (fun (rv', elt) -> snoc ((diag - (dot_prod rv' jth_row')) / diag') rv')
-        (zip_lists base' bot) in
-      (tri', base'')) in
-  m'
-
-def ne_single : t -> (t * list t)
-def ne_single x = (x, [ ])
-
-def ne_cons : t -> (t * list t) -> (t * list t)
-def ne_cons x (y, l) = (x, y :: l)
-
-def ne_to_list : (t * list t) -> list t
-def ne_to_list = uncurry cons
-
-def shr_add_inv : comp_shr -> comp_shr
-def shr_add_inv x = (shr_pub_w_comp 0.0) - x
-
--- col_lt_to_row: convert a row-major LT-matrix to be column major
-def col_lt_to_row : colLtMat -> ltMat
--- BILL: define
-
--- row_lt_to_col: convert a row-major LT-matrix to be column major
-def row_lt_to_col : ltMat -> colLtMat
--- BILL: deprecated?
-
--- lt_inverse m: the inverse of lower-triangular matrix m 
-def lt_inverse : ltMat -> ltMat
-def lt_inverse l = foldr_tl l -- fold over the LT matrix
+-- col_lt_to_row m: LT matrix m in col-major form, converted to
+-- row-major form
+def col_lt_to_row m = foldr m
   [ ]
-  (fun (d, cv) tl -> snoc
-    -- fold over the tail of the current column and the rest of the matrix
-    (foldl (zip_lists cv (col_lt_to_row tl))
-      (d, [ ])
-      (fun (x, (rv, y)) cv' ->
-        let dprod = dot_prod (cons rv y) ((uncurry cons) cv') in
-        snoc ((shr_add_inv dprod) / y) cv' ) ) )
+  (fun (hd, bot) acc -> ([ ], hd) ::
+    (zip_map (fun b (ls, rt) -> (b :: ls, rt)) bot acc) )
 
--- BILL: fix defn of lt_inverse
-
--- lt_lift d l: lower-triangular matrix l, lifted into a matrix by
--- padding copies of default element d
+-- lt_lift d l: LT matrix l, lifted into a matrix by padding copies of
+-- default element d
 def lt_lift : t -> list (t * (list t)) -> list (list t)
-def lt_lift d l =
-  let (_, m) = foldl l
+def lt_lift d l = rev_ls (snd
+  (foldl l
     ([ ], [ ])
-    (fun (hd, tl) (buf, m) -> (d :: buf, (concat buf (hd :: tl)) :: m) ) in
-  rev_ls m
+    (fun (hd, tl) (buf, m) -> (d :: buf, (concat buf (hd :: tl)) :: m) ) ) )
 
--- inverse m: the inverse matrix of m
-def inverse : nat -> secretMat -> secretMat
-def inverse n m =
-  let l_inv = lt_lift (shr_pub_w_comp 0.0)
-    (lt_inverse (cholesky (squareMat (shift_major m)))) in
-  prod_mat (transpose linv) l_inv
+-- diagonal_matrix_gen v: the diagonal matrix of vector v, with zero
+-- elt z
+def diagonal_matrix_gen z v = foldr v
+  [ ]
+  (fun x diag -> (x :: (const_vec z (len diag))) :: (map (cons z) diag))
 
-def prod_diag_pt : point -> point -> point
-def prod_diag_pt d p = zip_map d p mult 
+-- END: library code
 
-def pfold : ∀ A:☆,P:ℙ. A → ((Q:ℙ | Q⊆P) → ℤ{Q} → A → A) → ℤ{isec:P} →{sec:P} A
-def pfold i f xy = case xy
-  { ⟪⟫ → i
-  ; ⟪Q.x⟫⧺xy′ → f Q x (pfold i f xy′)
+-- BEGIN: application-specific code
+
+-- m : user parameter: number of constraint parties
+def m : nat
+def m = 8n
+
+-- n : user parameter: dimension of the constraint system
+def n : nat
+def n = 8n
+
+-- Ctr[m]: parties that bring the constraints
+principal Ctr[8]
+
+-- party that provides the cost vector:
+principal Cost
+
+-- party that gets the output:
+principal Out
+
+-- comps: the parties that do computation, Ctr and Cost
+-- def comps = set(Ctr,Cost)
+def comps = { Ctr, Cost }
+
+-- shr_w_comp: share data with the parties performing computation
+def shr_w_comp sender = shr_spdz sender comps
+
+-- shr0, shr1: shares of constants that are often reused:
+def shr0 = shr_w_comp { Cost } 0.0 
+def shr1 = shr_w_comp { Cost } 1.0 
+     
+def eliml_sec_nat_ls sender = eliml_sec_nat mux_ls
+  (shr_w_comp sender 0n) (shr_w_comp sender 1n) 
+
+def dot_prod = dot_prod_gen shr0
+
+-- matrix_mult: multiply matrices of SPDZ shares
+def matrix_mult = matrix_mult_gen shr0 
+
+-- matrix_vec_mult: multiply matrix and vector of SPDZ shares
+def matrix_vec_mult = matrix_vec_mult_gen shr0 
+
+def nOnes = row_of_ones n 
+
+-- dimensions_of m: dimensions of matrix m
+def dimensions_of m = case m
+  { [ ] -> (0n, 0n)
+  ; rv :: m' -> (inc (len m'), len rv)
   }
 
-def nOnes : list flt
-def nOnes = onesVec n 
+-- nz_prod z u l: the product of non-z entries in l, with
+-- multiplicative unit u
+def nz_prod z one l = foldr l
+  one
+  (fun x -> mult (mux (x == z) one x))
 
--- karmarkar_iter: an iteration of Karmarkar's algorithm
-def karmarkar_iter : ctr -> cost -> point -> point
-def karmarkar_iter a cost init_pt =
+def nz_prod_vec = nz_prod shr0 shr1
+
+def nz_prod_mat m = nz_prod_vec (map nz_prod_vec m)
+
+-- diagonal_matrix v: diagonal matrix of vector of SPDZ shares v
+def diagonal_matrix = diagonal_matrix_gen shr0
+
+def zero_vec = const_vec shr0 
+
+-- zero_pt: point of zero's
+def zero_pt = zero_vec n
+
+-- zero_mat: matrix of zeroes
+def zero_mat n = elim_nat n
+  [ ]
+  (cons (zero_vec n))
+
+-- range m n: the list of elements from m to n
+def range m n =
+  if n < m then [ ]
+  else map (plus m)
+    (elim_nat (n - m)
+       [ 0n ]
+       (fun rng -> snoc (len rng) rng) )
+
+def matrix_get m (i, j) = get (get m i) j
+
+def matrix_set m (i, j) v = setter m i (setter (get m i) j v)
+
+-- Listing 9: Inverse of a lower triangular matrix
+def matrix_inverse_lt l =
+  let n = order l in -- order of L
+  let l_inv = ref (zero_mat n) in -- n x n zero matrix
+  -- PSL: can we add syntactic sugar for sequencing?
+  -- PSL: can we add syntactic sugar for loops? In particular for
+  -- loops with no accumulator?
+  seq
+  (iter (range 0n (n - 1n))
+    (fun k ->
+      -- For diagonal entries, take the reciprocal
+      do l_inv := matrix_set !l_inv (k, k) (shr1 / (matrix_get !l_inv (k, k))) in
+
+      -- For non-diagonal entries, solve L * L_inv = I
+      iter (range (k + 1n) (n - 1n))
+        (fun j ->
+          let sum = ref shr0 in
+          iter (range k (j - 1n))
+            (fun i ->
+              -- let _ = "inverse_lt: pre get into l at " + (j, i) in
+              let _ = matrix_get l (j, i) in
+              -- let _ = err "inverse_lt: pre get into l_inv" in
+              let _ = matrix_get !l_inv (i, k) in
+              do sum := !sum - (matrix_get l (j, i)) * (matrix_get !l_inv (i, k))
+              in
+              () ) ) ) )
+  !l_inv
+
+-- TODO: replace with list syntax
+
+-- Listing 10: Cholesky decomposition of a positive definite Hermitian
+-- matrix
+def cholesky_decomposition m =
+  -- Initialize variables
+  let n = order m in -- order of m
+  let l = ref (zero_mat n) in -- n x n zero matrix
+
+  -- Calculate the top diagonal element of L
+  do l := matrix_set !l (0n, 0n) (sqrt (matrix_get m (0n, 0n))) in
+
+  -- Calculate the rest of the first column of L
+  seq
+  (iter (range 1n (n - 1n))
+    (fun j ->
+      do l := matrix_set !l (j, 0n) ((matrix_get m (j, 0n)) / (matrix_get !l (0n, 0n)) ) in
+      () ) )
+
+  -- Iterate through the remaining columns
+  (seq
+   (iter (range 1n (n - 1n))
+    (fun i ->
+      -- First calculate the diagonal element for this column
+      let sum = ref shr0 in
+      seq
+      (iter (range 0n (i - 1n))
+        (fun j ->
+          do sum := !sum + (matrix_get !l (i, j)) * (matrix_get !l (i, j)) in
+          () ) )
+
+      (do l := matrix_set !l (i, i) (sqrt ((matrix_get m (i, i)) - !sum)) in
+
+      -- Now fill in the remaining entries in this column
+      if (i < n - 1n) then
+        (iter (range (i + 1n) (n - 1n))
+          (fun j ->
+            do sum := shr0 in
+            iter (range 0n (i - 1n))
+              (fun k ->
+                do sum := !sum + (matrix_get !l (i, k)) * (matrix_get !l (j, k)) in
+                () ) ) )
+      else () ) ) )
+    !l)
+
+-- Listing 8: Inverse of a positive definite Hermitian matrix
+def matrix_inverse_pdh : num -> matrix -> matrix
+def matrix_inverse_pdh m =
+  let l = cholesky_decomposition m in
+  let l_inv = matrix_inverse_lt l in -- Invert the lower-triangular matrix
+  let m_inv = matrix_mult (transpose l_inv) l_inv in
+  m_inv
+
+-- Listing 6: Iteration for Karmarkar's Algorithm
+def karmarkar_iteration initial_point a c =
+  let (m, n) = dimensions_of a in
+  -- D is a matrix of zeros with the values of initial_point on the
+  -- diagonal
+  -- Dimensions of D: n x n
+  let d = diagonal_matrix initial_point in
+  -- Dimensions of cprime: n x 1
+  let cprime = matrix_vec_mult d c in
+  -- Dimensions of AD: m x n
+  let ad = matrix_mult a d in
+
+  -- Construct B
+  -- Dimensions of B: (m + 1) x n
+  let b = snoc (row_of_ones n) ad in -- append a row of ones onto AD
+
+  -- Dimensions of BBT: (m + 1) x (m + 1)
+  let bbt = matrix_mult b (transpose b) in
+
+  -- Dimensions of BBTInv: (m + 1) x (m + 1)
+  let bbtinv = matrix_inverse_pdh bbt in
+
+  -- Project C onto B's nullspace
+  -- Dimensions of cp: n x 1
+  let cp = minus_vecs cprime
+    (matrix_vec_mult (transpose b)
+      (matrix_vec_mult bbtinv
+        (matrix_vec_mult b cprime) ) ) in
+
+  -- Calculate a unit vector of cp
+  -- Dimensions of unitcp: n x 1
   let unit_cp =
-    -- c': vector: product of diagonal of initial point and cost
-    let c' = { par : Cost }
-      prod_diag_pt init_pt (map shr_cost cost) in
+    mux_ls (eq_vecs cp zero_pt) -- If cp is the zero vector
+      -- If cp is the zero vector, assign it to be 0
+      zero_pt
+      (div_vec zero_pt (l2norm shr0 cp)) in
 
-    -- ad: m * n matrix; product of constraints and diagonal matrix
-    let ad = { par : Ctr }
-      prod_diag_pt init_pt (map shr_ctr_w_comp a) in
+  -- Take a step of 1/3n in the direction of -cp, row_of_ones(n)/n is
+  -- the "transformed" initial point
+  -- Dimensions of bprime: n x 1
+  let bprime = minus_vecs
+    (div_vec (row_of_ones n) (to_flt n))
+    (scalar_vec_mult (1.0 / (3.0 * (to_flt n))) unit_cp) in
 
-    -- b: (m + 1) * n matrix
-    let b = pfold [ nOnes ] (fun Q -> cons) ad in
-    -- bt: n * (m + 1) matrix
-    let bt = transpose n b in
+  -- Transform the point back
+  -- Dimensions of b: n x 1
+  let b = div_vec (matrix_vec_mult d bprime)
+    (dot_prod (row_of_ones n) (matrix_vec_mult d bprime)) in
+  b
 
-    -- project c onto b's nullspace
-    let cp = pt_diff
-      c'
-      (prod_mat_rowms
-        bt
-        (prod_mat_rowms
-          (inverse (m + 1) (prod_mat_rowms b bt))
-          (prod_mat_pt b c'))) in
+-- Listing 7: Loop for Karmarkar's Algorithm
+def karmarkar_loop a c =
+  let (m, n) = dimensions_of a in
+  -- Epsilon is the stopping condition. This value should be close to
+  -- 0, so we choose 10^(-8)
+  let epsilon = 10.0 ^ -8.0 in
 
-    -- test if the projection is the 0 vector:
-    if is_zero_vec cp then const_vec (shr_pub_w_comp 0.0) n
-    else point_div (l2norm cp) cp in
+  -- x is our initial point
+  let x = div_vec (row_of_ones n) (to_flt n) in
 
-  -- take a step of 1/3 n in the direction of cp
-  let b' = point_diff
-    (map shr_pub_w_comp (vec_div (to_flt n) nOnes))
-    (point_div (shr_pub_w_comp (to_flt (3 * n))) unit_cp) in
+  -- product of non-zero entries in c and A
+  let p = (nz_prod_vec c) * (nz_prod_mat a) in
+  let l = (m + 1n) * n +
+    (magn (ceil (log_2_real (abs_val_real p)))) +
+    n * (magn (ceil (log_2_real (to_flt n)))) in
+  let max_iterations = 12n * n * l in
+  let max_iterations = 156n in -- DEBUG:
 
-  let db' = prod_diag_pt init_pt b' in
-  point_div (dot_prod (map shr_pub_with_comp nOnes) db') db'
+  -- If this initial point is an optimal solution, return
+  -- DEBUG for resource estimation:
+  mux_ls ((dot_prod c x) < epsilon)
+    x
+  (elim_nat max_iterations
+    x
+    (fun x -> 
+      let x' = karmarkar_iteration x a c in
 
--- Karmarkar's algorithm, main loop:
+      -- if we are within the stopping condition in the current
+      -- iteration, return
+      let g = 
+        ((((dot_prod c x) - (dot_prod c x')) /
+           (max_spdz shr1 (dot_prod c x)) ) < epsilon ) in
+      x' ) )
 
--- nat_log: logarithm over nats
-def nat_log : nat -> nat -> nat
-def nat_log b n =
-  if n == 1 then 0
-  else 1 + (nat_log b (n / 2))
+  -- actual version that represents early return
+  -- (eliml_sec_nat_ls { Cost } max_iterations
+  --   x
+  --   (fun x -> 
+  --     let x' = karmarkar_iteration x a c in
 
-def log_2_ceil : nat -> nat
-def log_2_ceil n = 
-  let n' = log 2 n in
-  let offset = 
-    if n == (2 ^ n') then 0
-    else 1 in
-  n' + offset
+  --     -- if we are within the stopping condition in the current
+  --     -- iteration, return
+  --     if_then 
+  --       ((((dot_prod c x) - (dot_prod c x')) /
+  --          (max_spdz shr1 (dot_prod c x)) ) < epsilon )
+  --       x'
+  --     x') )
 
-def karmarkar_loop : ctr -> costs -> point
-def karmarkar_loop a cost =
-  -- eps: defines the stopping condition for the loop. Constant
-  -- comes from the GFI:
-  let eps = 10.0 ^ (-8.0) in
-
-  -- init_pt: the initial point:
-  let init_pt = vec_div (to_flt n) nOnes in
-  let shr_init = { par : Ctr, Cost } map shr_pub_w_comp init_pt in
-  let pub_init_cost = reveal{ Ctr, Cost }
-    ({ par : Cost } dot_prod cost init_pt 0.0) in
-  let init_soln = { par : Ctr, Cost } flt_eq pub_init_cost 0.0 in
-
-  -- if the initial point is optimal, then return it:
-  (if init_soln then shr_init
-  else
-    -- karmarkar_rec: recurse on the number of iterations, which is
-    -- pre-computed from the constraints and costs:
-    let karmarkar_rec = elim_nats 
-      (let nzCostsProd = { par : Cost }
-        (let err2 = "err" + 3 in
-         foldr l
-           1.0 
-           (fun x -> if x == 0.0 then id else (float_prod x)) ) in
-       let nzCtrProd =
-         -- nzs: real{ isec : Ctr }: product of all non-zero entries in
-         -- each constraint
-         let nzs = { par : Ctr } 
-           (foldr a
-             1.0
-             (fun x -> if x == 0.0 then id else (float_prod x))) in
-         pfold
-           (shr_pub_w_ctrs 1.0)
-           (fun Q pnzs acc -> (share{ spdz : Ctr } pnzs) * acc)
-           nzs in
-       12 * n *
-        ((m + 1) * n +
-         (log_2_ceil (abs_val (ceil (release_nat (
-           (shr_cost_w_comp nzCostsProd) *
-           (shr_ctr_w_comp nzCtrProd)))))) +
-         n * (log_2_ceil n))
-      )
-      id
-      (fun f kr x ->
-        let x' = karmarkar_iter a cost x in
-        let stop =
-          let score = pt_cost cost x in
-            (score - (pt_cost cost x')) / (max 1.0 score) < eps in
-        if stop then x'
-        else kr x') in
-
-    -- compute from the initial point:
-    karmarkar_rec shr_init )
-
--- read_vec (): reads a vector of n input floats from a fixed file
-def read_vec : unit -> list flt
-def read_vec () = read (list flt) "in.txt"
-  
-def reveal_ls P l = 
-  case (reveal{ P } l)
-  { [ ] -> [ ]
-  ; x :: l' -> x :: (reveal_ls P l') 
-  }
-
--- main:
+-- main: entry point; Ctr, Cost read inputs and run the algorithm,
+-- distributes results to Out
 def main : unit ->{ inp : Ctr, Cost; rev : Out } (list out_sec)
 def main () =
-  -- each constraint party reads its input vector
-  -- let c = { Ctr } (read_vec ()) in
-  let c = { par : Ctr } [ 0.0 ; 0.1 ] in
+  -- read_vec: reads an input vector on a principal's machine
+  -- let read_vec = fun () -> read (list flt) "in.txt" in
+  let read_vec = fun () -> [ 1.0 ; 2.0; 3.0; 4.0; 5.0; 6.0; 7.0; 8.0 ] in -- DEBUG:
 
-  -- the cost party reads its input vector
-  -- let cost = { Cost } (read_vec ()) in
-  let cost = { par : Cost } [ 1.0 ; 1.1 ] in
+  -- FANCY MPC: Ctr and Cost send the data in the list to Out. This
+  -- may change if the PSL model of isec's changes as a result of
+  -- issue #31
+  let soln = par { Ctr, Cost, Out } (map
+    (reveal_prins { Out })
+    -- Ctr and Cost reveal the list structure of the point to Out:
+    (send_ls { Cost } { Ctr, Cost, Out }
+      -- Ctr and Cost compute the solution point:
+      (par { Ctr, Cost } karmarkar_loop
+        -- read in the matrix of constraints and share them
+        (fold-f
+          [ ]
+          (fun Q ctr -> cons (map (shr_w_comp { Q }) (send_ls { Q } comps ctr)))
+          (solo { Ctr } as c in read_vec ()) )
+        -- read in the vector of costs and share them
+        (map (shr_w_comp { Cost })
+          (send_ls { Cost } comps (par { Cost } read_vec ())) ) ) ) ) in
+  -- Ctr and Cost forget the structure of the solution
+  soln
 
-  -- Ctr and Cost send the data in the list to Out:
-  let soln = { par : Ctr, Cost, Out } (map
-    (fun x -> reveal{ Out } x)
-    -- Ctr and Cost reveal the structure of the list to Out:
-    (reveal_ls set(Ctr,Cost,Out)
-      -- Ctr and Cost run the algorithm:
-      ({ par : Ctr, Cost } karmarkar_loop c cost))) in
-  -- Ctr and Cost forget the structure of the list
-  { par : Out } reveal_ls set(Out) soln
+  -- DEBUG:
+  -- let soln = par { Ctr, Cost, Out } (map
+  --   (reveal_prins { Out })
+  --   -- Ctr and Cost reveal the list structure of the point to Out:
+  --   (send_ls { Cost } { Out }
+  --     -- Ctr and Cost compute the solution point:
+  --     (par { Ctr, Cost } karmarkar_loop
+  --       -- read in the matrix of constraints and share them
+  --       (fold-f
+  --         [ ]
+  --         (fun Q ctr -> cons (map (shr_w_comp { Q }) (send_ls { Q } comps ctr)))
+  --         (solo { Ctr } as c in read_vec ()) )
+  --       -- read in the vector of costs and share them
+  --       (map (shr_w_comp { Cost })
+  --         (send_ls { Cost } comps (par { Cost } read_vec ())) ) ) ) ) in
+  -- -- Ctr and Cost forget the structure of the solution
+  -- par { Out } send_ls { Cost } { Out } soln

@@ -16,7 +16,7 @@ all-examples: psli
 	./psli example $(FLAGS) qsort
 	# ./psli example db-stats
 	./psli example $(FLAGS) atq
-	# ./psli example karmarkar
+	./psli example karmarkar
 
 .stack-work:
 	stack setup
