@@ -9,10 +9,10 @@ dnl
 [
 
 ]GATBPS_CONFIG_FILE(
-  [src/posix-like/bin/psli.c.im])[
+  [src/posix-like/bin/psl.c.im])[
 
 ]GATBPS_CONFIG_LATER(
-  [src/posix-like/bin/psli.c])[
+  [src/posix-like/bin/psl.c])[
 
 ]dnl end_targets
 [
