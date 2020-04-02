@@ -617,7 +617,8 @@ def karmarkar_loop a c =
     (magn (ceil (log_2_real (abs_val_real p)))) +
     n * (magn (ceil (log_2_real (to_flt n)))) in
   let max_iterations = 12n * n * l in
-  let max_iterations = 156n in -- DEBUG:
+  let max_iterations = 156n in -- DEBUG: actual max iterations:
+  let max_iterations = 1n in -- DEBUG:
 
   -- If this initial point is an optimal solution, return
   -- DEBUG for resource estimation:
@@ -662,7 +663,7 @@ def main () =
   -- issue #31
   let soln = par { Ctr, Cost, Out } (map
     (reveal_prins { Out })
-    -- Ctr and Cost reveal the list structure of the point to Out:
+    -- Cost reveals the structure of the list to out:
     (send_ls { Cost } { Ctr, Cost, Out }
       -- Ctr and Cost compute the solution point:
       (par { Ctr, Cost } karmarkar_loop
@@ -675,22 +676,4 @@ def main () =
         (map (shr_w_comp { Cost })
           (send_ls { Cost } comps (par { Cost } read_vec ())) ) ) ) ) in
   -- Ctr and Cost forget the structure of the solution
-  soln
-
-  -- DEBUG:
-  -- let soln = par { Ctr, Cost, Out } (map
-  --   (reveal_prins { Out })
-  --   -- Ctr and Cost reveal the list structure of the point to Out:
-  --   (send_ls { Cost } { Out }
-  --     -- Ctr and Cost compute the solution point:
-  --     (par { Ctr, Cost } karmarkar_loop
-  --       -- read in the matrix of constraints and share them
-  --       (fold-f
-  --         [ ]
-  --         (fun Q ctr -> cons (map (shr_w_comp { Q }) (send_ls { Q } comps ctr)))
-  --         (solo { Ctr } as c in read_vec ()) )
-  --       -- read in the vector of costs and share them
-  --       (map (shr_w_comp { Cost })
-  --         (send_ls { Cost } comps (par { Cost } read_vec ())) ) ) ) ) in
-  -- -- Ctr and Cost forget the structure of the solution
-  -- par { Out } send_ls { Cost } { Out } soln
+  par { Out } send_ls { Out } { Out } soln
