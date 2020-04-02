@@ -4,14 +4,15 @@ import UVMHS
 
 import PSL.Parser
 import PSL.Interpreter.Types
+import PSL.Interpreter.Json
 
 instance Pretty Val where
   pretty = \case
     BoolV b → pretty b
     StrV s → pretty s
-    NatV _ n → ppApp (ppCon "Nat") [pretty n]
-    IntV _ i → ppApp (ppCon "Int") [pretty i]
-    FltV _ d → ppApp (ppCon "Flt") [pretty d]
+    NatV p n → ppApp (ppCon "nat") [ppString $ iprecisionSuffix p,pretty n]
+    IntV p i → ppApp (ppCon "int") [ppString $ iprecisionSuffix p,pretty i]
+    FltV _ d → ppApp (ppCon "ilt") [pretty d]
     BulV → ppCon "•"
     LV v → ppApp (ppCon "L") [pretty v]
     RV v → ppApp (ppCon "R") [pretty v]

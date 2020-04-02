@@ -184,11 +184,11 @@ interpExp = wrapInterp $ \case
     if b
       then interpExp e₂
       else interpExp e₃
-  LE e' → do
-    ṽ ← interpExp e'
+  LE e → do
+    ṽ ← interpExp e
     introValP $ LV ṽ
-  RE e' → do
-    ṽ ← interpExp e'
+  RE e → do
+    ṽ ← interpExp e
     introValP $ RV ṽ
   TupE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
@@ -199,32 +199,32 @@ interpExp = wrapInterp $ \case
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
     introValP $ ConsV ṽ₁ ṽ₂
-  LetTyE _ _ e' → interpExp e'
+  LetTyE _ _ e → interpExp e
   LetE ψ e₁ e₂ → do
     ṽ ← interpExp e₁
     bindPat ψ ṽ $ interpExp e₂
-  CaseE e' ψes → do
-    ṽ ← interpExp e'
+  CaseE e ψes → do
+    ṽ ← interpExp e
     interpCase ṽ ψes
-  LamE selfO ψs e' → do
+  LamE selfO ψs e → do
     γ ← askL iCxtEnvL
     (ψ :* ψs') ← error𝑂 (view unconsL $ ψs) (throwIErrorCxt TypeIError "interpExp: LamE: view unconsL $ ψs ≡ None" $ frhs
                                              [ ("ψs",pretty ψs)
                                              ])
-    let e'' = if ψs' ≡ Nil
-              then e'
-              else siphon e' $ LamE None ψs' e'
-      in introValP $ CloV selfO ψ e'' γ
+    let e' = if ψs' ≡ Nil
+              then e
+              else siphon e $ LamE None ψs' e
+      in introValP $ CloV selfO ψ e' γ
   AppE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
     interpApp ṽ₁ ṽ₂
-  ParE ρes e' → do
+  ParE ρes e → do
     ρvs ← prinExpValss *$ mapM interpPrinExp ρes
     if ρvs ≡ pø 
        then return UnknownVP
-       else restrictMode (SecM ρvs) $ interpExp e'
-  ShareE φ ρes₁ ρes₂ e' → do
+       else restrictMode (SecM ρvs) $ interpExp e
+  ShareE φ ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
     m ← askL iCxtModeL
@@ -236,7 +236,7 @@ interpExp = wrapInterp $ \case
         [ ("ρvs₂",pretty ρvs₂)
         , ("m",pretty m)
         ]
-    ṽ ← interpExp e'
+    ṽ ← interpExp e
     v ← case ṽ of
       SSecVP ρvs v | ρvs₁ ⊆ ρvs → return v
       AllVP v → return v
@@ -245,9 +245,9 @@ interpExp = wrapInterp $ \case
     tellL iOutResEvsL $ ResEv φ pø ρvs₁ ρvs₂ (getType v) "SHARE" 0 ↦ 1
     sv ← mpcFrVal v
     return $ ShareVP φ ρvs₂ 0 sv
-  AccessE e' ρ → do
+  AccessE e ρ → do
     ρv ← interpPrinExpSingle ρ
-    ṽ ← interpExp e'
+    ṽ ← interpExp e
     ρvs ← error𝑂 (view iSecVPL ṽ) (throwIErrorCxt TypeIError "interpExp: AccessE: view iSecVPL ṽ ≡ None" $ frhs
                                    [ ("ṽ",pretty ṽ)
                                    ])
@@ -257,9 +257,9 @@ interpExp = wrapInterp $ \case
                                          ])
     return $ SSecVP (single ρv) v
   BundleE ρes → do
-    ISecVP ^$ dict ^$ mapMOn (iter ρes) $ \ (ρ :* e') → do
+    ISecVP ^$ dict ^$ mapMOn (iter ρes) $ \ (ρ :* e) → do
       ρv ← interpPrinExpSingle ρ
-      ṽ ← restrictMode (SecM $ single ρv) $ interpExp e'
+      ṽ ← restrictMode (SecM $ single ρv) $ interpExp e
       (ρvs,v) ← error𝑂 (view sSecVPL ṽ) (throwIErrorCxt TypeIError "interpExp: BundleE: view sSecVPL ṽ ≡ None" $ frhs
                                          [ ("ṽ",pretty ṽ)
                                          ])
@@ -277,7 +277,7 @@ interpExp = wrapInterp $ \case
         [ ("ṽ₁",pretty ṽ₁)
         , ("ṽ₂",pretty ṽ₂)
         ]
-  RevealE {- ρes₁ -} ρes₂ e' → do
+  RevealE {- ρes₁ -} ρes₂ e → do
     -- ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
     m ← askL iCxtModeL
@@ -288,7 +288,7 @@ interpExp = wrapInterp $ \case
           , ("ρs",pretty ρs)
           ]
       TopM → skip
-    ṽ ← interpExp e'
+    ṽ ← interpExp e
     case ṽ of
       ShareVP φ ρs md sv {- | ρs ≡ ρvs₁ -} → do
         let v = valFrMPC sv
@@ -297,7 +297,7 @@ interpExp = wrapInterp $ \case
       _ → throwIErrorCxt TypeIError "interpExp: RevealE: ṽ ∉ {ShareVP _ _ _,SSecVP _ _}" $ frhs
         [ ("ṽ",pretty ṽ)
         ]
-  SendE ρes₁ ρes₂ e' → do
+  SendE ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
     guardErr (count ρvs₁ ≡ 1) $
@@ -311,7 +311,7 @@ interpExp = wrapInterp $ \case
           , ("ρs",pretty ρs)
           ]
       TopM → skip
-    ṽ ← interpExp e'
+    ṽ ← interpExp e
     case ṽ of
       SSecVP ρs v | ρvs₁ ⊆ ρs → return $ SSecVP ρvs₂ v
       AllVP v → return $ SSecVP ρvs₂ v
@@ -319,8 +319,8 @@ interpExp = wrapInterp $ \case
         [ ("ṽ",pretty ṽ)
         ]
   -- AscrE
-  ReadE τA e' → do
-    ṽ ← interpExp e'
+  ReadE τA e → do
+    ṽ ← interpExp e
     v ← elimValP ṽ
     m ← askL iCxtModeL
     case (v,m) of
@@ -385,13 +385,13 @@ interpExp = wrapInterp $ \case
   SetE ρes → do
     ρvs ← prinExpValss *$ mapM interpPrinExp ρes
     introValP $ PrinSetV ρvs
-  RefE e' → do
-    ṽ ← interpExp e'
+  RefE e → do
+    ṽ ← interpExp e
     ℓ ← nextL iStateNextLocL
     modifyL iStateStoreL $ \ σ → (ℓ ↦♮ ṽ) ⩌♮ σ 
     introValP $ LocV ℓ
-  RefReadE e' → do 
-    ṽ ← interpExp e'
+  RefReadE e → do 
+    ṽ ← interpExp e
     v ← elimValP ṽ
     case v of
       LocV ℓ → do
@@ -491,9 +491,33 @@ interpExp = wrapInterp $ \case
         [ ("v₁",pretty v₁)
         , ("v₂",pretty v₂)
         ]
-  e → throwIErrorCxt NotImplementedIError "interpExp: not implemented" $ frhs
-    [ ("e",pretty e)
-    ]
+  SizeE e → do
+    ṽ ← interpExp e
+    v ← elimValP ṽ
+    case v of
+      LocV ℓ → do
+        σ ← getL iStateStoreL
+        case σ ⋕? ℓ of
+          Some ṽ' → do
+            v' ← elimValP ṽ'
+            case v' of
+              ArrayV ṽs → introValP $ NatV InfIPr $ nat $ size ṽs
+              _ → throwIErrorCxt TypeIError "interpExp: SizeE: v' ≠ ArrayV _" null
+          _ → throwIErrorCxt TypeIError "interpExp: SizeE: ℓ ∉ dom(σ)" null
+      _ → throwIErrorCxt TypeIError "interpExp: SizeE: v ≠ LocV _" null
+  ToIntE p e → do
+    ṽ ← interpExp e
+    v ← elimValP ṽ
+    case v of
+      NatV _ n → introValP $ IntV p $ trPrInt p $ int n
+      _ → throwIErrorCxt TypeIError "interpExp: ToIntE: v ∉ {NatV _ n}" null
+  ToNatE p e → do
+    ṽ ← interpExp e
+    v ← elimValP ṽ
+    case v of
+      IntV _ i → introValP $ NatV p $ trPrNat p $ natΩ i
+      _ → throwIErrorCxt TypeIError "interpExp: ToIntE: v ∉ {NatV _ n}" null
+  _ → throwIErrorCxt NotImplementedIError "interpExp: not implemented" null
 
 ---------------
 -- TOP LEVEL --

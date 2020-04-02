@@ -128,6 +128,7 @@ lexer = lexerBasic puns kws prim ops
       , "abs_val"
       , "ceil"
       , "sqrt"
+      , "size"
       ]
 
 -- testLexer ∷ IO ()
@@ -715,6 +716,8 @@ pExp = fmixfixWithContext "exp" $ concat
   , fmixInfix levelACCESS $ do cpSyntax "." ; return ArrayReadE
   -- e.e ← e
   , fmixInfixR levelUPDATE $ do concat [cpSyntax "←",cpSyntax "<-"] ; return ArrayWriteE
+  -- size e
+  , fmixPrefix levelAPP $ do cpSyntax "size" ; return $ SizeE
   -- prim[⊙](e,…,e)
   , fmixInfixL levelPLUS $ do concat [cpSyntax "∨",cpSyntax "||"] ; return $ \ e₁ e₂ → PrimE "OR" $ list [e₁,e₂]
   , fmixInfixL levelTIMES $ do concat [cpSyntax "∧",cpSyntax "&&"] ; return $ \ e₁ e₂ → PrimE "AND" $ list [e₁,e₂]
@@ -730,6 +733,14 @@ pExp = fmixfixWithContext "exp" $ concat
   , fmixInfix levelCOMPARE $ do cpSyntax ">" ; return $ \ e₁ e₂ → PrimE "GT" $ list [e₁,e₂]
   , fmixInfix levelCOMPARE $ do concat [cpSyntax "≤",cpSyntax "<="] ; return $ \ e₁ e₂ → PrimE "LTE" $ list [e₁,e₂]
   , fmixInfix levelCOMPARE $ do concat [cpSyntax "≥",cpSyntax ">="] ; return $ \ e₁ e₂ → PrimE "GTE" $ list [e₁,e₂]
+  , fmixPrefix levelAPP $ do 
+      cpSyntax "int" 
+      ip ← pIPrecision
+      return $ ToIntE ip
+  , fmixPrefix levelAPP $ do 
+      cpSyntax "nat" 
+      ip ← pIPrecision
+      return $ ToNatE ip
   , fmixInfixR levelCOND $ do
       cpSyntax "?"
       e₂ ← pExp

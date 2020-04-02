@@ -6,6 +6,6 @@ def main • =
   do  y.1n ← 1000
   let y = array[10n] 20
   in
-  f 1
+  f 1 + int (size y)
 
-def expected = 111
+def expected = 121

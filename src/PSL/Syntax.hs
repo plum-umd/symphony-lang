@@ -276,6 +276,9 @@ data ExpR =
   | ArrayE Exp Exp                           -- array[e] e            /  array[e] e
   | ArrayReadE Exp Exp                       -- e.e                   /  e.e
   | ArrayWriteE Exp Exp                      -- e ← e                 /  e <- e
+  | SizeE Exp                                -- size e                /  size e
+  | ToIntE IPrecision Exp                    -- int#n.n               /  int#n.n
+  | ToNatE IPrecision Exp                    -- nat#n.n               /  nat#n.n
   deriving (Eq,Ord,Show)
   -- [e₁;…;eₙ] ≜ e₁ ∷ ⋯ ∷ eₙ ∷ []
 makePrettySum ''ExpR

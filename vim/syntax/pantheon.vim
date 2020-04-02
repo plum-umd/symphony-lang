@@ -147,6 +147,7 @@ syn match pantheonPrimitive "\v<rev>"
 " syn match pantheonPrimitive "\v<sec>"
 syn match pantheonPrimitive "\v<mpc>"
 syn match pantheonPrimitive "\v<all>"
+syn match pantheonPrimitive "\v<size>"
 
 syn match pantheonPrimitive "\v☆"
 syn match pantheonPrimitive "\vℙ"
