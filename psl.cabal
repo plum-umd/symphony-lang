@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: e4201864439f7e9a6df2cc09ce7bc912610612b5aa50b6234987d110ed691a1e
+-- hash: 992d19c53c40c39b6dc8b843c49ad141ed450a7b36b8b55642871a9e9e7d0383
 
 name:           psl
 version:        0.1.0.0
@@ -90,7 +90,6 @@ data-files:
     examples-input/B/atq-targets.txt
     examples-input/B/cmp-input.txt
     examples-input/B/euclid.txt
-    examples-input/B/Interpreter.hs
     examples-input/B/msort-input.txt
     examples-input/B/partial-diverge-in.txt
     examples-input/B/pfold.txt
@@ -134,7 +133,7 @@ library
   hs-source-dirs:
       src
   default-extensions: ConstraintKinds DataKinds ExplicitNamespaces FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase MonadComprehensions MultiParamTypeClasses NoImplicitPrelude OverloadedStrings PatternSynonyms PolyKinds QuantifiedConstraints RankNTypes RebindableSyntax ScopedTypeVariables StandaloneDeriving Strict StrictData TemplateHaskell TypeApplications TypeFamilies TypeOperators UndecidableInstances UndecidableSuperClasses UnicodeSyntax ViewPatterns
-  ghc-options: -Wall -Wno-orphans -Wno-partial-type-signatures -j
+  ghc-options: -Wall -Wno-orphans -Wno-partial-type-signatures -j -optP-Wno-nonportable-include-path
   build-depends:
       aeson
     , base
@@ -146,14 +145,14 @@ library
     , uvmhs
   default-language: Haskell2010
 
-executable psli
-  main-is: PSLI.hs
+executable psl
+  main-is: MainPSL.hs
   other-modules:
       Paths_psl
   hs-source-dirs:
       main
   default-extensions: ConstraintKinds DataKinds ExplicitNamespaces FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase MonadComprehensions MultiParamTypeClasses NoImplicitPrelude OverloadedStrings PatternSynonyms PolyKinds QuantifiedConstraints RankNTypes RebindableSyntax ScopedTypeVariables StandaloneDeriving Strict StrictData TemplateHaskell TypeApplications TypeFamilies TypeOperators UndecidableInstances UndecidableSuperClasses UnicodeSyntax ViewPatterns
-  ghc-options: -Wall -Wno-orphans -Wno-partial-type-signatures -j
+  ghc-options: -Wall -Wno-orphans -Wno-partial-type-signatures -j -optP-Wno-nonportable-include-path
   build-depends:
       base
     , psl

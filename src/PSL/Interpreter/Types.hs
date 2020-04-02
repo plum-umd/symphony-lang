@@ -108,6 +108,7 @@ data ICxt = ICxt
   , iCxtDeclPrins ∷ Prin ⇰ PrinKind
   , iCxtEnv ∷ Env
   , iCxtMode ∷ Mode
+  , iCxtMPCPathCondition ∷ 𝐿 (𝔹 ∧ ValMPC)
   } deriving (Show)
 makeLenses ''ICxt 
 makePrettySum ''ICxt
@@ -119,7 +120,7 @@ iCxtIsExampleL ∷ ICxt ⟢ 𝔹
 iCxtIsExampleL = iParamsIsExampleL ⊚ iCxtParamsL
 
 ξ₀ ∷ ICxt
-ξ₀ = ICxt θ₀ None dø dø TopM
+ξ₀ = ICxt θ₀ None dø dø TopM null
 
 -----------
 -- STATE --
@@ -130,12 +131,13 @@ iCxtIsExampleL = iParamsIsExampleL ⊚ iCxtParamsL
 data IState = IState
   { iStateStore ∷ Store
   , iStateNextLoc ∷ ℤ64
+  , iStateMPCCont ∷ 𝐿 (𝐿 (𝔹 ∧ ValMPC) ∧ ValP)
   } deriving (Eq,Ord,Show)
 makeLenses ''IState
 makePrettySum ''IState
 
 ω₀ ∷ IState
-ω₀ = IState wø $ 𝕫64 1
+ω₀ = IState wø (𝕫64 1) null
 
 ------------
 -- OUTPUT --

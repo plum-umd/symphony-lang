@@ -43,6 +43,7 @@ ghc-options:
   - -Wno-orphans
   - -Wno-partial-type-signatures
   - -j
+  - -optP-Wno-nonportable-include-path
 
 data-files:
   - lib/*
@@ -67,9 +68,9 @@ library:
     - text
 
 executables:
-  psli:
+  psl:
     source-dirs: main
-    main: PSLI.hs
+    main: MainPSL.hs
     dependencies:
       - base
       - psl

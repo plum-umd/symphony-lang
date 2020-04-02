@@ -121,6 +121,7 @@ syn match pantheonKeyword "\v<from>"
 syn match pantheonKeyword "\v<to>"
 syn match pantheonKeyword "\v<read>"
 syn match pantheonKeyword "\v<write>"
+syn match pantheonKeyword "\v<block>"
 
 
 syn match pantheonKeyword "\v∀"

@@ -34,8 +34,8 @@ import qualified Data.Version as Version
 -- VERSION --
 -------------
 
-psli_VERSION ∷ 𝕊
-psli_VERSION = concat $ inbetween "." $ map show𝕊 $ Version.versionBranch version
+psl_VERSION ∷ 𝕊
+psl_VERSION = concat $ inbetween "." $ map show𝕊 $ Version.versionBranch version
 
 ---------------
 -- VARIABLES --
@@ -637,24 +637,24 @@ parseOptions = do
   let os = compose fs options₀
   when (optVersion os) $ \ () → do
     out ""
-    out $ "psli version " ⧺ psli_VERSION
+    out $ "psl version " ⧺ psl_VERSION
   when (optHelp os) $ \ () → do
     out ""
-    out "Usage: psli [<command>] [<arguments>] [<target>]"
+    out "Usage: psl [<command>] [<arguments>] [<target>]"
     out ""
-    out $ string $ O.usageInfo (chars "psli [arguments]") usageInfoTop
-    out $ string $ O.usageInfo (chars "psli run [arguments] <file>") usageInfoRun
-    out $ string $ O.usageInfo (chars "psli example [arguments] <name>")  usageInfoRun
-    out $ string $ O.usageInfo (chars "psli test [arguments]") usageInfoRun
+    out $ string $ O.usageInfo (chars "psl [arguments]") usageInfoTop
+    out $ string $ O.usageInfo (chars "psl run [arguments] <file>") usageInfoRun
+    out $ string $ O.usageInfo (chars "psl example [arguments] <name>")  usageInfoRun
+    out $ string $ O.usageInfo (chars "psl test [arguments]") usageInfoRun
   return $ frhs (os,map string nos)
 
-psliMainRun ∷ IO ()
-psliMainRun = do
+pslMainRun ∷ IO ()
+pslMainRun = do
   (os,ts) ← tohs ^$ parseOptions
   fn ← case ts of
-    [] → failIO "ERROR: No file specified as target. Correct usage: psli run [<arguments>] <file>"
+    [] → failIO "ERROR: No file specified as target. Correct usage: psl run [<arguments>] <file>"
     [t] → return t
-    _ → failIO "ERROR: Too many files specified as target. Correct usage: psli run [<arguments>] <file>"
+    _ → failIO "ERROR: Too many files specified as target. Correct usage: psl run [<arguments>] <file>"
   initializeIO os
   let θ = initializeEnv os
   out ""
@@ -668,13 +668,13 @@ psliMainRun = do
   pprint $ ppHeader "RESULT"
   pprint v
 
-psliMainExample ∷ IO ()
-psliMainExample = do
+pslMainExample ∷ IO ()
+pslMainExample = do
   (os,ts) ← tohs ^$ parseOptions
   fn ← case ts of
-    [] → failIO "ERROR: No file specified as target. Correct usage: psli example [<arguments>] <name>"
+    [] → failIO "ERROR: No file specified as target. Correct usage: psl example [<arguments>] <name>"
     [t] → return t
-    _ → failIO "ERROR: Too many files specified as target. Correct usage: psli example [<arguments>] <name>"
+    _ → failIO "ERROR: Too many files specified as target. Correct usage: psl example [<arguments>] <name>"
   initializeIO os
   let θ = update iParamsIsExampleL True $ initializeEnv os
   out ""
@@ -689,12 +689,12 @@ psliMainExample = do
   pprint $ ppHeader "RESULT"
   pprint v
 
-psliMainTest ∷ IO ()
-psliMainTest = do
+pslMainTest ∷ IO ()
+pslMainTest = do
   (os,ts) ← tohs ^$ parseOptions
   case ts of
     [] → skip
-    _ → failIO "ERROR: Command does not accept targets. Correct usage: psli test [<arguments>]"
+    _ → failIO "ERROR: Command does not accept targets. Correct usage: psl test [<arguments>]"
   let θ = initializeEnv os
   out ""
   pprint $ ppHeader "TESTING INTERPRETER"
@@ -735,19 +735,19 @@ pslMainInfo ∷ IO ()
 pslMainInfo = do
   out ""
   out $ concat $ inbetween "\n" 
-    [ "psli is the interpreter for the PSL language developed by"
+    [ "psl is the interpreter for the PSL language developed by"
     , "the PANTHEON team, funded by IARPA for the HECTOR project."
     ]
   (_,ts) ← tohs ^$ parseOptions
   case ts of
     [] → skip
-    _ → failIO "ERROR: Command does not accept targets. Correct usage: psli [<arguments>]"
+    _ → failIO "ERROR: Command does not accept targets. Correct usage: psl [<arguments>]"
 
 interpreterMain ∷ IO ()
 interpreterMain = do
   map list askArgs ≫= \case
-    "run" :& as → localArgs as $ psliMainRun
-    "example" :& as → localArgs as $ psliMainExample
-    "test" :& as → localArgs as psliMainTest
+    "run" :& as → localArgs as $ pslMainRun
+    "example" :& as → localArgs as $ pslMainExample
+    "test" :& as → localArgs as pslMainTest
     Nil → localArgs (list ["--version","--help"]) pslMainInfo
     as → localArgs as pslMainInfo
