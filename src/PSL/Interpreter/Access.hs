@@ -69,6 +69,10 @@ restrictValP ∷ (STACK) ⇒ ValP → IM ValP
 restrictValP ṽ = do
   m ← askL iCxtModeL
   case (m,ṽ) of
+    (_,PairVP ṽ₁ ṽ₂) → do
+      ṽ₁' ← restrictValP ṽ₁
+      ṽ₂' ← restrictValP ṽ₂
+      return $ PairVP ṽ₁' ṽ₂'
     -- (SecM ρ, SSecVP ρs v) → do
     --   v' ← restrictValPRecVal v
     --   return $ SSecVP (single ρ ∩ ρs) v'
@@ -117,10 +121,10 @@ restrictValPRecVal v = case v of
   RV ṽ → do
     v' ← restrictValP ṽ
     return $ RV v'
-  PairV ṽ₁ ṽ₂ → do
-    v₁ ← restrictValP ṽ₁
-    v₂ ← restrictValP ṽ₂
-    return $ PairV v₁ v₂
+  -- PairV ṽ₁ ṽ₂ → do
+  --   v₁ ← restrictValP ṽ₁
+  --   v₂ ← restrictValP ṽ₂
+  --   return $ PairV v₁ v₂
   NilV → return v
   ConsV ṽ₁ ṽ₂ → do
     v₁ ← restrictValP ṽ₁
@@ -146,6 +150,7 @@ unShareValPsMode m ṽs = case ṽs of
         return (valFrMPC v,Some $ φ :* ρs :* md)
       AllVP v → return (v,None)
       ISecVP _ → abort
+      PairVP _ _ → error "TODO: not implemented"
       UnknownVP → error "TODO: not implemented"
     vs :* φρsO₂ ← unShareValPsMode m ṽs'
     φρsO ← case (φρsO₁,φρsO₂) of

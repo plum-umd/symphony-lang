@@ -19,7 +19,6 @@ data Val =
   | BulV
   | LV ValP
   | RV ValP
-  | PairV ValP ValP
   | NilV
   | ConsV ValP ValP
   | CloV (𝑂 Var) Pat Exp Env
@@ -38,6 +37,7 @@ data ValP =
   | ShareVP Prot (𝑃 PrinVal) ℕ ValMPC
   | AllVP Val
   | UnknownVP
+  | PairVP ValP ValP
   deriving (Eq,Ord,Show)
 
 -- Values used in circuits

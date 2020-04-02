@@ -32,7 +32,7 @@ getType = \case
   BulV → "bul"
   LV _ → "left"
   RV _ → "right"
-  PairV _ _ → "pair"
+  -- PairV _ _ → "pair"
   NilV → "list"
   ConsV _ _ → "list"
   CloV _ _ _ _ → "clo"

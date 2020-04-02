@@ -15,7 +15,7 @@ instance Pretty Val where
     BulV → ppCon "•"
     LV v → ppApp (ppCon "L") [pretty v]
     RV v → ppApp (ppCon "R") [pretty v]
-    PairV v₁ v₂ → ppInfl levelCOMMA (ppPun ",") (pretty v₁) $ pretty v₂
+    -- PairV v₁ v₂ → ppInfl levelCOMMA (ppPun ",") (pretty v₁) $ pretty v₂
     NilV → ppCon "[]"
     ConsV v₁ v₂ → ppInfr levelCONS (ppPun "∷") (pretty v₁) $ pretty v₂
     CloV _sxO _ψ _e _ξ → 

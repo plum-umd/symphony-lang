@@ -73,8 +73,7 @@ bindPatO ψ ṽ = case ψ of
   VarP x → return $ bindVar x ṽ
   BulP → return id
   TupP ψ₁ ψ₂ → do
-    v ← success $ elimValP ṽ
-    (ṽ₁,ṽ₂) ← abort𝑂 $ view pairVL v
+    (ṽ₁,ṽ₂) ← abort𝑂 $ view pairVPL ṽ
     f₁ ← bindPatO ψ₁ ṽ₁ 
     f₂ ← bindPatO ψ₂ ṽ₂
     return $ f₂ ∘ f₁
@@ -194,7 +193,7 @@ interpExp = wrapInterp $ \case
   TupE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
-    introValP $ PairV ṽ₁ ṽ₂
+    return $ PairVP ṽ₁ ṽ₂
   NilE → introValP NilV
   ConsE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
@@ -352,10 +351,11 @@ interpExp = wrapInterp $ \case
         return $ ShareVP φ ρvs 0 :* τ'
       _ → return $ AllVP ∘ valFrMPC :* τ
     ṽ ← interpExp e
-    v ← elimValP ṽ
     (ṽ₁,ṽ₂) ← 
-      elim𝑂 (throwIErrorCxt TypeIError "interpExp: ReadRangeE: Expected a pair argument" $ frhs [ ("v",pretty v) ]) return $
-      view pairVL v
+      elim𝑂 
+        (throwIErrorCxt TypeIError "interpExp: ReadRangeE: Expected a pair argument" $ 
+           frhs [ ("ṽ",pretty ṽ) ]) 
+           return $ view pairVPL ṽ
     v₁ ← elimValP ṽ₁
     v₂ ← elimValP ṽ₂
     v' ← case (τ',v₁,v₂) of
@@ -416,6 +416,19 @@ interpExp = wrapInterp $ \case
       _ → throwIErrorCxt TypeIError "interpExp: RefWriteE: v₁ ≠ Loc ℓ" $ frhs
         [ ("v₁",pretty v₁)
         ]
+  ArrayE e₁ e₂ → do
+    ṽ₁ ← interpExp e₁
+    ṽ₂ ← interpExp e₂
+    v₁ ← elimValP ṽ₁
+    case v₁ of
+      IntV _ i → do
+        ℓ ← nextL iStateNextLocL
+        ṽ ← introValP $ ArrayV $ vec $ list $ repeat (natΩ i) ṽ₂
+        modifyL iStateStoreL $ \ σ → (ℓ ↦♮ ṽ) ⩌♮ σ
+        introValP $ LocV ℓ
+      _ → throwIErrorCxt TypeIError "interpExp: ArrayE: v₁ ≠ IntV _ i" $ frhs
+        [ ("v₁",pretty v₁) 
+        ]
   e → throwIErrorCxt NotImplementedIError "interpExp: not implemented" $ frhs
     [ ("e",pretty e)
     ]
@@ -444,30 +457,6 @@ interpTLs = eachWith interpTL
 ----------
 -- MAIN --
 ----------
-
--- flagNames ∷ 𝑃 𝕊
--- flagNames = pow
---   [ "resources"
---   ]
--- 
--- paramNames ∷ 𝑃 𝕊
--- paramNames = pow
---   [ "seed"
---   ]
-
--- parseArgs ∷ 𝐿 𝕊 → 𝕊 ⇰ 𝕊
--- parseArgs = \case 
---   a₁ :& as → case list a₁ of
---     '-' :& '-' :& name | string name ∈ flagNames → 
---       let ps = parseArgs as
---       in (string name ↦ "") ⩌ ps
---     '-' :& '-' :& name | string name ∈ paramNames, a₂ :& as' ← as →
---       let ps = parseArgs as'
---       in (string name ↦ a₂) ⩌ ps
---     -- skip it
---     _ → parseArgs as
---   Nil → dø
-
 
 data Options = Options
   { optVersion ∷ 𝔹

@@ -1,10 +1,10 @@
 cabal-version: 2.2
 
--- This file has been generated from package.yaml by hpack version 0.33.0.
+-- This file has been generated from package.yaml by hpack version 0.31.2.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 0913a6510caa92c41a46a1675e674d2d21d3e33cdbf15176613a777196f48abf
+-- hash: 74bd4154f6d7c973d361e1c6d73dd4102cd58e39e9fa93585691ed060347ee65
 
 name:           psl
 version:        0.1.0.0
@@ -32,6 +32,7 @@ data-files:
     examples/euclid.psl
     examples/indy-pars.psl
     examples/karmarkar-decl.psl
+    examples/karmarkar-sane.psl
     examples/karmarkar-setup.psl
     examples/karmarkar-silly.psl
     examples/karmarkar-simple.psl
@@ -61,6 +62,7 @@ data-files:
     tests/natfold.psl
     tests/overflow-int.psl
     tests/overflow-nat.psl
+    tests/pairs-noloc.psl
     tests/refs.psl
     tests/reveal-ssec.psl
     tests/solo.psl
