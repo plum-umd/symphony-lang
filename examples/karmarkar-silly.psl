@@ -617,7 +617,7 @@ def karmarkar_loop a c =
     (magn (ceil (log_2_real (abs_val_real p)))) +
     n * (magn (ceil (log_2_real (to_flt n)))) in
   let max_iterations = 12n * n * l in
-  let max_iterations = 1n in -- DEBUG:
+  let max_iterations = 156n in -- DEBUG:
 
   -- If this initial point is an optimal solution, return
   -- DEBUG for resource estimation:
