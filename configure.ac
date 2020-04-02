@@ -50,7 +50,7 @@ dnl
 ]AC_CHECK_PROGS([STACK], [stack])[
 
 ]AC_CACHE_CHECK(
-  [if stack is the correct one],
+  [if stack is indeed The Haskell Tool Stack],
   [psl_cv_stack_check],
   [
     psl_cv_stack_check=no
