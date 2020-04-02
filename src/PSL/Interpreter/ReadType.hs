@@ -13,28 +13,46 @@ import PSL.Interpreter.Access
 
 import qualified Text.Read as HS
 
+primRead ∷ (HS.Read a) ⇒ 𝕊 → 𝑂 (𝕊 ∧ a)
+primRead s = case HS.reads $ chars s of
+  [(x,s')] → Some $ string s' :* x
+  _ → None
+
 prinDataPath ∷ PrinVal → 𝕊
 prinDataPath = \case
   SinglePV s → s
   AccessPV s i → s ⧺ "_" ⧺ show𝕊 i
 
-parseInputType ∷ (STACK) ⇒ PrinVal → Type → 𝕊 → IM Val
+parseInputType ∷ (STACK) ⇒ PrinVal → Type → 𝕊 → IM (𝕊 ∧ Val)
 parseInputType ρ τ s = case τ of
   ℤT pr → do
-    let i = HS.read $ chars s ∷ ℤ
-    return $ IntV pr $ trPrInt pr i
+    s' :* i ← error𝑂 (primRead @ ℤ s) $
+      throwIErrorCxt TypeIError "parseInputType: ℤT: could not parse" null
+    return $ (s' :*) $ IntV pr $ trPrInt pr i
   𝔽T pr → do
-    let d = HS.read $ chars s ∷ 𝔻
-    return $ FltV pr d
+    s' :* d ← error𝑂 (primRead @ 𝔻 s) $
+      throwIErrorCxt TypeIError "parseInputType: 𝔻T: could not parse" null
+    return $ (s' :*) $  FltV pr d
   𝔹T → do
-    let b = HS.read $ chars s ∷ 𝔹
-    return $ BoolV b
+    s' :* b ← error𝑂 (primRead @ 𝔹 s) $
+      throwIErrorCxt TypeIError "parseInputType: 𝔹T: could not parse" null
+    return $ (s' :*) $ BoolV b
   ListT τ' → do
-    vs ← mapM (parseInputType ρ τ') $ list $ filter (≢ "") $ splitOn𝕊 "\n" s
-    return $ foldrOnFrom vs NilV $ \ v₁ v₂ → ConsV (SSecVP (single ρ) v₁) $ SSecVP (single ρ) v₂
+    vs ← mapM (snd ^∘ parseInputType ρ τ') $ list $ filter (≢ "") $ splitOn𝕊 "\n" s
+    return $ (null :*) $ foldrOnFrom vs NilV $ \ v₁ v₂ → ConsV (SSecVP (single ρ) v₁) $ SSecVP (single ρ) v₂
+  τ₁ :×: τ₂ → do
+    s'  :* v₁ ← parseInputType ρ τ₁ s
+    s'' :* v₂ ← parseInputType ρ τ₂ s'
+    return $ (s'' :*) $ PairV (SSecVP (single ρ) v₁) $ SSecVP (single ρ) v₂
   ℙT → do
     kinds ← askL iCxtDeclPrinsL
-    PrinV ^$ case tohs $ list $ splitOn𝕊 "_" s of
+    s' :* l ← error𝑂 
+      (case primRead @ HS.Lexeme s of
+         Some (s' :* HS.Ident n) → Some (s' :* string n)
+         _ → None
+      ) $
+      throwIErrorCxt TypeIError "parseInputType: ℙT: could not parse" null
+    (s' :*) ∘ PrinV ^$ case tohs $ list $ splitOn𝕊 "_" l of
       [ρ'] → case kinds ⋕? ρ' of
         Some ρκ → return $ case ρκ of
           SinglePK → ValPEV $ SinglePV ρ'
@@ -67,7 +85,7 @@ readType ρ τA fn = do
     if b
     then io $ string ^$ getDataFileName $ chars $ concat ["examples-input/",prinDataPath ρ,"/",fn]
     else return $ concat ["data-input/",prinDataPath ρ,"/",fn]
-  parseInputType ρ τA *$ io $ read path
+  snd ^$ parseInputType ρ τA *$ io $ read path
 
 serializeVal ∷ Val → IM (𝐼 𝕊)
 serializeVal = \case

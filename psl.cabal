@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b789d896ffab3bc89a648b09c2e0486754d4f68bcd7d843fdee8d453344dee11
+-- hash: e4201864439f7e9a6df2cc09ce7bc912610612b5aa50b6234987d110ed691a1e
 
 name:           psl
 version:        0.1.0.0
@@ -47,6 +47,7 @@ data-files:
     examples/rand.psl
     examples/reshare.psl
     examples/share-ls.psl
+    examples/simple-read.psl
     examples/simple-write.psl
     examples/ssec-other-ssec.psl
     examples/ssec-shr.psl
@@ -81,6 +82,7 @@ data-files:
     examples-input/A/pfold.txt
     examples-input/A/prins.txt
     examples-input/A/qsort-input.txt
+    examples-input/A/simple-read.txt
     examples-input/A_0/atq-data.txt
     examples-input/A_1/atq-data.txt
     examples-input/B/atq-data.txt
@@ -94,6 +96,7 @@ data-files:
     examples-input/B/pfold.txt
     examples-input/B/prins.txt
     examples-input/B/qsort-input.txt
+    examples-input/B/simple-read.txt
     examples-input/B_0/atq-data.txt
     examples-input/B_0/atq-queries.txt
     examples-input/B_0/atq-targets.txt
