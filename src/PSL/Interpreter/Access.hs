@@ -193,7 +193,9 @@ unShareValPs ṽs = do
 
 reShareValP ∷ 𝑂 (Prot ∧ 𝑃 PrinVal ∧ ℕ) → Val → IM ValP
 reShareValP φρsO v =case φρsO of
-  None → introValP v
+  None → case v of
+    PairV p₁ p₂ → return $ PairVP p₁ p₂
+    _ → introValP v
   Some (φ :* ρs :* md) → do
     sv ← mpcFrVal v
     return $ ShareVP φ ρs md sv
