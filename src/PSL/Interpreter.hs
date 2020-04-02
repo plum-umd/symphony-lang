@@ -421,13 +421,75 @@ interpExp = wrapInterp $ \case
     ṽ₂ ← interpExp e₂
     v₁ ← elimValP ṽ₁
     case v₁ of
-      IntV _ i → do
+      NatV _ n → do
         ℓ ← nextL iStateNextLocL
-        ṽ ← introValP $ ArrayV $ vec $ list $ repeat (natΩ i) ṽ₂
+        ṽ ← introValP $ ArrayV $ vec $ list $ repeat n ṽ₂
         modifyL iStateStoreL $ \ σ → (ℓ ↦♮ ṽ) ⩌♮ σ
         introValP $ LocV ℓ
       _ → throwIErrorCxt TypeIError "interpExp: ArrayE: v₁ ≠ IntV _ i" $ frhs
         [ ("v₁",pretty v₁) 
+        ]
+  ArrayReadE e₁ e₂ → do
+    ṽ₁ ← interpExp e₁
+    ṽ₂ ← interpExp e₂
+    v₁ ← elimValP ṽ₁
+    v₂ ← elimValP ṽ₂
+    case (v₁,v₂) of
+      (LocV ℓ,NatV _ n) → do
+        σ ← getL iStateStoreL
+        case σ ⋕? ℓ of
+          Some ṽ' → do
+            v' ← elimValP ṽ'
+            case v' of
+              ArrayV ṽs → case ṽs ⋕? natΩ64 n of
+                Some ṽ → return ṽ
+                None → throwIErrorCxt TypeIError "interpExp: ArrayReadE: n ∉ dom(ṽs)" $ frhs
+                  [ ("n",pretty n)
+                  , ("dom(ṽs)",pretty $ (0,size ṽs - 𝕟64 1))
+                  ]
+              _ → throwIErrorCxt TypeIError "interpExp: ArrayReadE: v' ≠ ArrayV _" $ frhs
+                [ ("v'",pretty v') ]
+          None → throwIErrorCxt TypeIError "interpExp: ArrayReadE: ℓ ∉ dom(σ)" $ frhs 
+            [ ("ℓ",pretty ℓ)
+            , ("dom(σ)",pretty $ keys𝑊 σ)
+            ]
+      _ → throwIErrorCxt TypeIError "interpExp: ArrayReadE: (v₁,v₂) ≠ (LocV _,NatV _ _)" $ frhs
+        [ ("v₁",pretty v₁)
+        , ("v₂",pretty v₂)
+        ]
+  ArrayWriteE (extract → ArrayReadE e₁ e₂) e₃ → do
+    ṽ₁ ← interpExp e₁
+    ṽ₂ ← interpExp e₂
+    ṽ₃ ← interpExp e₃
+    v₁ ← elimValP ṽ₁
+    v₂ ← elimValP ṽ₂
+    case (v₁,v₂) of
+      (LocV ℓ,NatV _ n) → do
+        σ ← getL iStateStoreL
+        case σ ⋕? ℓ of
+          Some ṽ' → do
+            v' ← elimValP ṽ'
+            case v' of
+              ArrayV ṽs → 
+                if idxOK𝕍 ṽs $ natΩ64 n
+                   then do
+                     ṽ'' ← introValP $ ArrayV $ set𝕍 (natΩ64 n) ṽ₃ ṽs
+                     putL iStateStoreL $ (ℓ ↦♮ ṽ'') ⩌♮ σ
+                     return ṽ₃
+                    else do
+                      throwIErrorCxt TypeIError "interpExp: ArrayWriteE: n ∉ dom(ṽs)" $ frhs
+                        [ ("n",pretty n)
+                        , ("ṽs",pretty ṽs)
+                        ]
+              _ → throwIErrorCxt TypeIError "interpExp: ArrayWriteE: v' ≠ ArrayV _" $ frhs
+                [ ("v'",pretty v') ]
+          None → throwIErrorCxt TypeIError "interpExp: ArrayWriteE: ℓ ∉ dom(σ)" $ frhs 
+            [ ("ℓ",pretty ℓ)
+            , ("dom(σ)",pretty $ keys𝑊 σ)
+            ]
+      _ → throwIErrorCxt TypeIError "interpExp: ArrayWriteE: (v₁,v₂) ≠ (LocV _,NatV _ _)" $ frhs
+        [ ("v₁",pretty v₁)
+        , ("v₂",pretty v₂)
         ]
   e → throwIErrorCxt NotImplementedIError "interpExp: not implemented" $ frhs
     [ ("e",pretty e)
