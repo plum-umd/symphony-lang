@@ -82,7 +82,6 @@ VERSION:
 	bash build-aux/VERSION.bash >VERSION$(TMPEXT)
 	mv VERSION$(TMPEXT) VERSION
 
-
 docker: Dockerfile
 docker: dist-gzip
 	@case '$(DOCKER)' in \
@@ -109,7 +108,7 @@ psli: $(psli_files)
 	  mv $@$(TMPEXT) $@ || exit; \
 	}
 
-psli/clean:
+psli/clean: FORCE
 	{ \
 	  $(stack_check); \
 	  $(copy_vpath_files); \
