@@ -36,6 +36,15 @@ copy_vpath_files = \
   done \
 $(prevent_an_empty_line)
 
+stack_check = \
+  case '$(STACK_MISSING)' in \
+    'yes') \
+      printf 'Haskell Stack is not available. Please install it and re-run ./configure.\n' >&2; \
+      exit 1; \
+    ;; \
+  esac \
+$(prevent_an_empty_line)
+
 hs_files =
 
 libexec_psl_SCRIPTS =
@@ -58,7 +67,6 @@ share_psldir = $(datadir)/psl
 
 .PHONY: FORCE
 .PHONY: docker
-.PHONY: stack-check
 
 COMMIT:
 	bash build-aux/COMMIT.bash >COMMIT$(TMPEXT)
@@ -74,13 +82,6 @@ VERSION:
 	bash build-aux/VERSION.bash >VERSION$(TMPEXT)
 	mv VERSION$(TMPEXT) VERSION
 
-stack-check: FORCE
-	@case '$(STACK_MISSING)' in \
-	  'yes') \
-	    printf 'Haskell Stack is not available. Please install it and re-run ./configure.\n' >&2; \
-	    exit 1; \
-	  ;; \
-	esac
 
 docker: Dockerfile
 docker: dist-gzip
@@ -98,8 +99,9 @@ docker: dist-gzip
 
 mostlyclean-local: psli/clean
 
-psli: $(psli_files) stack-check
+psli: $(psli_files)
 	{ \
+	  $(stack_check); \
 	  $(copy_vpath_files); \
 	  $(STACK) build || exit; \
 	  x=`$(STACK) path --dist-dir` || exit; \
@@ -107,8 +109,9 @@ psli: $(psli_files) stack-check
 	  mv $@$(TMPEXT) $@ || exit; \
 	}
 
-psli/clean: stack-check
+psli/clean:
 	{ \
+	  $(stack_check); \
 	  $(copy_vpath_files); \
 	  $(STACK) clean --full || :; \
 	}
