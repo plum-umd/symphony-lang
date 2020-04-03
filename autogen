@@ -21,8 +21,8 @@ autogen_am_var_append_files \
 
 autogen_am_var_append_files \
   nobase_dist_share_psl_DATA \
-    examples-data/**/* \
     examples/**/* \
+    examples-input/**/* \
     lib/**/* \
     tests/**/* \
 ;

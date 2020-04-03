@@ -4,7 +4,7 @@
  */
 
 /*
- * This is a short wrapper program for the real psli program. The real
+ * This is a short wrapper program for the real psl program. The real
  * program gets installed to libexecdir and this one gets installed to
  * bindir. This lets us set psl_datadir and friends to the right paths
  * before running the real program. If some of these paths are already
@@ -41,5 +41,5 @@ int main(int const argc, char ** const argv) {
   xsetenv("psl_libdir", "{@}libdir{@}/psl", 0);
   xsetenv("psl_libexecdir", "{@}libexecdir{@}/psl", 0);
   xsetenv("psl_sysconfdir", "{@}sysconfdir{@}/psl", 0);
-  xexecv("{@}libexecdir{@}/psl/psli", argv);
+  xexecv("{@}libexecdir{@}/psl/psl", argv);
 }

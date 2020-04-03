@@ -5,9 +5,9 @@
 
 ## begin_variables
 
-bin_PROGRAMS += src/posix-like/bin/psli
+bin_PROGRAMS += src/posix-like/bin/psl
 
-src_posix_like_bin_psli_SOURCES =
-src_posix_like_bin_psli_SOURCES += src/posix-like/bin/psli.c
+src_posix_like_bin_psl_SOURCES =
+src_posix_like_bin_psl_SOURCES += src/posix-like/bin/psl.c
 
 ## end_variables

@@ -24,7 +24,7 @@ dnl
 ]AC_CONFIG_AUX_DIR([build-aux])[
 ]AC_CONFIG_MACRO_DIR([m4])[
 ]AC_CONFIG_MACRO_DIRS([m4])[
-]AC_CONFIG_SRCDIR([main/PSLI.hs])[
+]AC_CONFIG_SRCDIR([src/PSL.hs])[
 
 ]AM_INIT_AUTOMAKE([
   -Wall
@@ -40,7 +40,7 @@ dnl
 [
 
 ]m4_include([build-aux/autogen.ac])[
-]m4_include([src/posix-like/bin/psli.ac])[
+]m4_include([src/posix-like/bin/psl.ac])[
 
 ]dnl end_includes
 [

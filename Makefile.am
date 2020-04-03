@@ -6,13 +6,13 @@
 ## begin_variables
 
 EXTRA_DIST =
-EXTRA_DIST += $(psli_files)
+EXTRA_DIST += $(psl_files)
 EXTRA_DIST += COMMIT
 EXTRA_DIST += DATE
 EXTRA_DIST += VERSION
 
 MOSTLYCLEANFILES =
-MOSTLYCLEANFILES += psli
+MOSTLYCLEANFILES += psl
 
 TMPEXT = .tmp
 
@@ -20,7 +20,7 @@ bin_PROGRAMS =
 
 copy_vpath_files = \
   vpath_files=; \
-  for x in $(psli_files); do \
+  for x in $(psl_files); do \
     if test -r $$x; then \
       :; \
     else \
@@ -39,16 +39,16 @@ $(prevent_an_empty_line)
 hs_files =
 
 libexec_psl_SCRIPTS =
-libexec_psl_SCRIPTS += psli
+libexec_psl_SCRIPTS += psl
 
 libexec_psldir = $(libexecdir)/psl
 
 nobase_dist_share_psl_DATA =
 
-psli_files =
-psli_files += $(hs_files)
-psli_files += package.yaml
-psli_files += stack.yaml
+psl_files =
+psl_files += $(hs_files)
+psl_files += package.yaml
+psl_files += stack.yaml
 
 share_psldir = $(datadir)/psl
 
@@ -87,18 +87,18 @@ docker: dist-gzip
 	  $(DOCKER) tag psl:latest psl:$(PACKAGE_VERSION) || exit; \
 	}
 
-mostlyclean-local: psli/clean
+mostlyclean-local: psl/clean
 
-psli: $(psli_files)
+psl: $(psl_files)
 	{ \
 	  $(copy_vpath_files); \
 	  $(STACK) build || exit; \
 	  x=`$(STACK) path --dist-dir` || exit; \
-	  cp $$x/build/psli/psli $@$(TMPEXT) || exit; \
+	  cp $$x/build/psl/psl $@$(TMPEXT) || exit; \
 	  mv $@$(TMPEXT) $@ || exit; \
 	}
 
-psli/clean: FORCE
+psl/clean: FORCE
 	{ \
 	  $(copy_vpath_files); \
 	  $(STACK) clean --full || :; \
@@ -110,7 +110,7 @@ psli/clean: FORCE
 ## begin_includes
 
 include $(srcdir)/build-aux/autogen.am
-include $(srcdir)/src/posix-like/bin/psli.am
+include $(srcdir)/src/posix-like/bin/psl.am
 
 ## end_includes
 
