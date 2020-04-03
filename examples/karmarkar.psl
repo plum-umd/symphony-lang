@@ -13,6 +13,8 @@ def compose f g x = g (f x)
 def const : t -> u -> t
 def const x y = x
 
+def thunk x = fun () -> x
+
 def flip f x y = f y x
 
 def id : t -> t
@@ -121,6 +123,7 @@ def elim_nat m z s =
 def eliml_nat : nat -> t -> (t -> t) -> t
 def eliml_nat n z s = (elim_nat n id (compose s)) z
 
+-- seq: sequencing combinator
 def seq e0 e1 =
   let _ = e0 in
   e1
@@ -166,19 +169,6 @@ def foldr l acc f = case l
   ; x :: l' -> f x (foldr l' acc f)
   } 
 
--- iter: fold over the unit
-def iter l f = foldr l () (fun x () -> f x)
-
--- filter test l: l, filtered down to elements that satisfy test
-def filter test l = foldr l
-  [ ]
-  (fun x rest -> if test x then x :: rest else rest)
-
--- foldr_tl: right fold with access to the tail of the list
-def foldr_tl : list t -> acc -> (t -> list t -> acc -> acc) -> acc
-def foldr_tl l i f = snd
-  (foldr l ([ ], i) (fun x (l', b) -> (x :: l', f x l' b)))
-
 -- decons_ls: first-order case syntax 
 def decons_ls : list t -> u -> (t -> list t -> u) -> u
 def decons_ls l a0 f = case l
@@ -190,6 +180,9 @@ def decons_ls l a0 f = case l
 -- PSL: add syntactic sugar for this?
 def foldl : list t -> acc -> (t -> acc -> acc) -> acc
 def foldl l acc0 f = (foldr l id (fun x acc -> compose acc (f x))) acc0
+
+-- iter: fold over the unit
+def iter l f = foldl l () (fun x -> thunk (f x))
 
 -- concat l0 l1: concatenation of l0 and l1
 def concat : list t -> list t -> list t
@@ -268,26 +261,31 @@ def cont_run = uncurry apply
 
 def cont_join m = cont_bind m id
 
-def cont_seq (f, a) v = cont_bind (f, a) (const v)
+def cont_seq m cv = cont_bind m (const cv)
+
+def cont_seq' m v = cont_seq m (cont_return v)
 
 -- if_then guard tc: an if-then branch 
-def if_then muxer guard tc rest = ((muxer guard tc), rest)
+def if_then_ret muxer guard tc = ((muxer guard tc), ())
 
 -- if_then guard tc: an if-then branch 
-def if_then_ls = if_then mux_ls
+def if_then_ret_ls = if_then_ret mux_ls
 
--- eliml_sec_nat: eliminate a secure nat. Iterates up to a constant
--- bound.
-def max_nat = 1n
-def eliml_sec_nat muxer encz encone n z s = cont_run (snd
-  (eliml_nat max_nat
-    (n, cont_return z)
-    (fun (n', cv) ->
-      (n' - encone,
-       cont_bind
-         (cont_bind cv
-           ((fun v -> (muxer (n' == encz) v), v)) )
-         s) ) ) )
+-- iter_sec_nat: iterate up to bnd but in each iteration, check a
+-- secure nat n
+-- TODO: deprecate encrypted arguments?
+def iter_sec_nat muxer n bnd s rv = cont_run
+  (cont_seq'
+    (snd
+      (eliml_nat bnd
+        (n, cont_return ())
+        (fun (n', cv) ->
+          (n' - 1n,
+           cont_bind
+             (cont_bind cv
+               ((fun () -> (muxer (n' == 0n) !rv), ())) )
+             s) ) ) )
+    !rv)
 
 -- transpose: shift matrix between row major and column major order
 def transpose : list (list t) -> list (list t)
@@ -330,10 +328,6 @@ def div_vec v a = map (flip div a) v
 def l2norm : point -> comp_shr
 def l2norm z v = babylonian_sqrt (sum (map square v) z)
 
--- zeros_vec: a vector of floating-point zeroes
-def zeros_vec : nat -> list real
-def zeros_vec = const_vec 0.0
-
 -- row_of_ones: a vector of real ones
 def row_of_ones : nat -> list real
 def row_of_ones = const_vec 1.0
@@ -345,45 +339,6 @@ def matrix_vec_mult_gen z m pt = map (dot_prod_gen z pt) m
 def matrix_mult_gen z m0 m1 =
   let m1t = transpose m1 in
   map (fun v -> map (dot_prod_gen z v) m1t) m0 
-
--- part_ith a i l: l partitioned into the first i - elements, ith elt,
--- and the everything after element i. a is a default elt, which
--- should never be used.
-def part_ith : nat -> t -> list t -> (list t) * t * (list t)
-def part_ith a i l =
-  let (first_i, rem) =
-    eliml_nat i
-      ([ ], l)
-      (fun (front, tl) -> case tl
-        { [ ] -> (front, tl) -- should never be used
-        ; hd :: tl' -> (hd :: front, tl)
-        }) in
-  let (ith, tl) = case rem
-    { [ ] -> (a, rem) -- should never be used
-    ; b :: rem' -> (b, rem')
-    } in
-  (first_i, ith, tl)
-
--- squareMat m: matrix m coerced into a square matrix
-def squareMat d m = rev_ls (snd
-  (foldl m
-    (0n, [ ])
-    (fun rv (i, acc) -> (inc i, (part_ith d i rv) :: acc)) ) )
-
--- col_lt_to_row m: LT matrix m in col-major form, converted to
--- row-major form
-def col_lt_to_row m = foldr m
-  [ ]
-  (fun (hd, bot) acc -> ([ ], hd) ::
-    (zip_map (fun b (ls, rt) -> (b :: ls, rt)) bot acc) )
-
--- lt_lift d l: LT matrix l, lifted into a matrix by padding copies of
--- default element d
-def lt_lift : t -> list (t * (list t)) -> list (list t)
-def lt_lift d l = rev_ls (snd
-  (foldl l
-    ([ ], [ ])
-    (fun (hd, tl) (buf, m) -> (d :: buf, (concat buf (hd :: tl)) :: m) ) ) )
 
 -- diagonal_matrix_gen v: the diagonal matrix of vector v, with zero
 -- elt z
@@ -423,8 +378,9 @@ def shr_w_comp sender = shr_spdz sender comps
 def shr0 = shr_w_comp { Cost } 0.0 
 def shr1 = shr_w_comp { Cost } 1.0 
      
-def eliml_sec_nat_ls sender = eliml_sec_nat mux_ls
-  (shr_w_comp sender 0n) (shr_w_comp sender 1n) 
+def iter_sec_nat_spdz muxer = iter_sec_nat muxer 
+
+def iter_sec_nat_ls = iter_sec_nat_spdz mux_ls
 
 def dot_prod = dot_prod_gen shr0
 
@@ -433,8 +389,6 @@ def matrix_mult = matrix_mult_gen shr0
 
 -- matrix_vec_mult: multiply matrix and vector of SPDZ shares
 def matrix_vec_mult = matrix_vec_mult_gen shr0 
-
-def nOnes = row_of_ones n 
 
 -- dimensions_of m: dimensions of matrix m
 def dimensions_of m = case m
@@ -481,9 +435,6 @@ def matrix_set m (i, j) v = setter m i (setter (get m i) j v)
 def matrix_inverse_lt l =
   let n = order l in -- order of L
   let l_inv = ref (zero_mat n) in -- n x n zero matrix
-  -- PSL: can we add syntactic sugar for sequencing?
-  -- PSL: can we add syntactic sugar for loops? In particular for
-  -- loops with no accumulator?
   seq
   (iter (range 0n (n - 1n))
     (fun k ->
@@ -616,7 +567,7 @@ def karmarkar_loop a c =
   let epsilon = 10.0 ^ -8.0 in
 
   -- x is our initial point
-  let x = div_vec (row_of_ones n) (to_flt n) in
+  let x = ref (div_vec (row_of_ones n) (to_flt n)) in
 
   -- product of non-zero entries in c and A
   let p = (nz_prod_vec c) * (nz_prod_mat a) in
@@ -624,39 +575,21 @@ def karmarkar_loop a c =
     (magn (ceil (log_2_real (abs_val_real p)))) +
     n * (magn (ceil (log_2_real (to_flt n)))) in
   let max_iterations = 12n * n * l in
-  let max_iterations = 156n in -- DEBUG: actual max iterations:
-  let max_iterations = 1n in -- DEBUG:
 
   -- If this initial point is an optimal solution, return
-  -- DEBUG for resource estimation:
-  mux_ls ((dot_prod c x) < epsilon)
-    x
-  -- simple one that's close enough for resource estimation
-  -- (elim_nat max_iterations
-  --   x
-  --   (fun x -> 
-  --     let x' = karmarkar_iteration x a c in
+  mux_ls ((dot_prod c !x) < epsilon) !x
+  -- hand-computed bound
+  (iter_sec_nat_ls max_iterations 1n (fun i -> 
+    let x_new = karmarkar_iteration !x a c in cont_seq'
 
-  --     -- if we are within the stopping condition in the current
-  --     -- iteration, return
-  --     let g = 
-  --       ((((dot_prod c x) - (dot_prod c x')) /
-  --          (max_spdz shr1 (dot_prod c x)) ) < epsilon ) in
-  --     x' ) )
-
-  -- actual version that represents early return
-  (eliml_sec_nat_ls { Cost } max_iterations
-    x
-    (fun x -> 
-      let x' = karmarkar_iteration x a c in
-
-      -- if we are within the stopping condition in the current
-      -- iteration, return
-      let g =
-        ((((dot_prod c x) - (dot_prod c x')) /
-             (max_spdz shr1 (dot_prod c x)) ) < epsilon ) in
-      if_then_ls g x'
-      x') )
+    -- if we are within the stopping condition in the current
+    -- iteration, return
+    (if_then_ret_ls 
+      ((((dot_prod c !x) - (dot_prod c x_new)) /
+         (max_spdz shr1 (dot_prod c !x)) ) < epsilon )
+      x_new)
+    (do x := x_new in ()) )
+  x)
 
 -- main: entry point; Ctr, Cost read inputs and run the algorithm,
 -- distributes results to Out
