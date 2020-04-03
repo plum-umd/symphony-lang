@@ -43,12 +43,13 @@ ghc-options:
   - -Wno-orphans
   - -Wno-partial-type-signatures
   - -j
+  - -optP-Wno-nonportable-include-path
 
 data-files:
   - lib/*
   - examples/*
   - tests/*
-  - examples-data/**/*
+  - examples-input/**/*
 
 library:
   source-dirs: 
@@ -64,11 +65,12 @@ library:
     - aeson
     - bytestring
     - random
+    - text
 
 executables:
-  psli:
+  psl:
     source-dirs: main
-    main: PSLI.hs
+    main: MainPSL.hs
     dependencies:
       - base
       - psl

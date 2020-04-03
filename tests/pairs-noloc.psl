@@ -1,0 +1,10 @@
+principal A B
+
+def main • =
+  par {A,B} 
+    let z = par {A} 1,2
+    let x,y = par {B} z
+    in
+    42
+
+def expected = par {A,B} 42

@@ -241,6 +241,7 @@ data ExpR =
   | FltE FPrecision 𝔻                        -- d#n                   /  d#n
   | BulE                                     -- •                     /  ()
   | IfE Exp Exp Exp                          -- if e then e else e    /  if e then e else e
+  | MuxE Exp Exp Exp                         -- mux e then e else e   /  mux e then e else e
   | LE Exp                                   -- L e                   /  L e
   | RE Exp                                   -- R e                   /  R e
   | TupE Exp Exp                             -- e,e                   /  e,e
@@ -263,6 +264,7 @@ data ExpR =
   | SendE (𝐿 PrinExp) (𝐿 PrinExp) Exp        -- send {P→P} e          /  send{P->P} e
   | AscrE Exp Type                           -- e:τ                   /  e:τ
   | ReadE Type Exp                           -- read τ e              /  read τ e
+  | WriteE Exp Exp                           -- write e               /  write e
   | RandE Type                               -- rand τ                /  rand τ
   | RandRangeE Type Exp                      -- rand-range τ e        /  rand-range τ e
   | InferE                                   -- _                     /  _
@@ -276,6 +278,12 @@ data ExpR =
   | ArrayE Exp Exp                           -- array[e] e            /  array[e] e
   | ArrayReadE Exp Exp                       -- e.e                   /  e.e
   | ArrayWriteE Exp Exp                      -- e ← e                 /  e <- e
+  | SizeE Exp                                -- size e                /  size e
+  | ToIntE IPrecision Exp                    -- int#n.n               /  int#n.n
+  | ToNatE IPrecision Exp                    -- nat#n.n               /  nat#n.n
+  | DefaultE                                 -- ⊥                     /  _|_
+  | BlockE Exp                               -- block e               /  block e
+  | ReturnE Exp                              -- return e              /  return e
   deriving (Eq,Ord,Show)
   -- [e₁;…;eₙ] ≜ e₁ ∷ ⋯ ∷ eₙ ∷ []
 makePrettySum ''ExpR

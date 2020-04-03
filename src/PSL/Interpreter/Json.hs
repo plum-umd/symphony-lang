@@ -32,7 +32,7 @@ getType = \case
   BulV → "bul"
   LV _ → "left"
   RV _ → "right"
-  PairV _ _ → "pair"
+  -- PairV _ _ → "pair"
   NilV → "list"
   ConsV _ _ → "list"
   CloV _ _ _ _ → "clo"
@@ -41,6 +41,8 @@ getType = \case
   PrinSetV _ → "prinset"
   LocV _ → "loc"
   ArrayV _ → "array"
+  PairV _ _ → "pair"
+  DefaultV → "default"
 
 getTypeMPC ∷ ValMPC → 𝕊
 getTypeMPC = \case
@@ -50,8 +52,8 @@ getTypeMPC = \case
   FltMV p _ → "flt"⧺fprecisionSuffix p
   PrinMV _ → "prin"
   PairMV mv₁ mv₂ → (getTypeMPC mv₁) ⧺ " × " ⧺ (getTypeMPC mv₂)
-  LMV mv → "left " ⧺ (getTypeMPC mv)
-  RMV mv → "right " ⧺ (getTypeMPC mv)
+  SumMV _ _ _ → "sum"
+  DefaultMV → "default"
 
 
 stringProtocol ∷ Prot → 𝕊

@@ -32,7 +32,7 @@ def euclid a b =
 
 def main : 𝟙 → {inp:A,B;rev:E} ℤ{ssec:E}
 def main • =
-  let a = par {A} (read ℤ "euclid.txt")
-  let b = par {B} (read ℤ "euclid.txt")
+  let a = par {A} (read ℤ from "euclid.txt")
+  let b = par {B} (read ℤ from "euclid.txt")
   reveal{E} euclid (share{yao:A -> C,D} a)
                    (share{yao:B -> C,D} b)

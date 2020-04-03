@@ -64,7 +64,7 @@ def map f xs = case xs
 def main : 𝟙 →{inp:A,B;rev:E} list ℤ{ssec:E}
 def main • = 
   let xys-pre : (list ℤ){isec:A,B}
-  let xys-pre = solo {A,B} as α in read (list ℤ) "msort-input.txt"
+  let xys-pre = solo {A,B} as α in read (list ℤ) from "msort-input.txt"
   let xys : list ℤ{isec:A,B}
   let xys = preprocess-lists {A,B} 5 0 xys-pre
   in map (λ x → reveal{E} x) (msort xys)

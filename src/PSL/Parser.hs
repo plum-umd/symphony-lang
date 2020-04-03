@@ -58,6 +58,7 @@ lexer = lexerBasic puns kws prim ops
       , "#"
       , "|"
       , "!","≔",":="
+      , "⊥","_|_"
       ]
     kws = list
       [ "primitive"
@@ -67,7 +68,7 @@ lexer = lexerBasic puns kws prim ops
       , "Λ","abs"
       , "∀","forall"
       , "let","in"
-      , "if","then","else"
+      , "if","mux","then","else"
       , "case"
       , "reveal"
       , "share"
@@ -80,6 +81,8 @@ lexer = lexerBasic puns kws prim ops
       , "par"
       , "ref","array"
       , "do"
+      , "read","write","from","to"
+      , "block","return"
       ]
     prim = list
       [ "yao","gmw","bgw","bgv","spdz"
@@ -95,7 +98,7 @@ lexer = lexerBasic puns kws prim ops
       , "ℤ","int"
       , "𝔽","flt"
       , "list"
-      , "read","rand","rand-range"
+      , "rand","rand-range"
       , "inp","rev"
       -- , "par","sec"
       , "∞","inf"
@@ -128,6 +131,7 @@ lexer = lexerBasic puns kws prim ops
       , "abs_val"
       , "ceil"
       , "sqrt"
+      , "size"
       ]
 
 -- testLexer ∷ IO ()
@@ -534,6 +538,14 @@ pExp = fmixfixWithContext "exp" $ concat
       e₂ ← pExp
       cpSyntax "else"
       return $ IfE e₁ e₂
+  -- mux e then e else e
+  , fmixPrefix levelIF $ do
+      cpSyntax "mux"
+      e₁ ← pExp
+      cpSyntax "then"
+      e₂ ← pExp
+      cpSyntax "else"
+      return $ MuxE e₁ e₂
   -- L e
   , fmixPrefix levelAPP $ do cpSyntax "L" ; return LE
   -- R e
@@ -665,15 +677,24 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntax ":"
       τ ← pType
       return $ \ e → AscrE e τ
-  -- read τ
+  -- read τ from e
   , fmixPrefix levelAPP $ do
       cpSyntax "read"
       τ ← pType
+      cpSyntax "from"
       return $ ReadE τ
+  -- write e to e
+  , fmixPrefix levelAPP $ do 
+      cpSyntax "write" 
+      e ← pExp
+      cpSyntax "to"
+      return $ WriteE e
+  -- rand e
   , fmixTerminal $ do
       cpSyntax "rand"
       τ ← pType
       return $ RandE τ
+  -- rand-range τ e
   , fmixPrefix levelAPP $ do
       cpSyntax "rand-range"
       τ ← pType
@@ -715,6 +736,14 @@ pExp = fmixfixWithContext "exp" $ concat
   , fmixInfix levelACCESS $ do cpSyntax "." ; return ArrayReadE
   -- e.e ← e
   , fmixInfixR levelUPDATE $ do concat [cpSyntax "←",cpSyntax "<-"] ; return ArrayWriteE
+  -- size e
+  , fmixPrefix levelAPP $ do cpSyntax "size" ; return SizeE
+  -- ⊥
+  , fmixTerminal $ do concat [cpSyntax "⊥",cpSyntax "_|_"] ; return DefaultE
+  -- block e
+  , fmixPrefix levelLET $ do cpSyntax "block" ; return BlockE
+  -- return e
+  , fmixPrefix levelLET $ do cpSyntax "return" ; return ReturnE
   -- prim[⊙](e,…,e)
   , fmixInfixL levelPLUS $ do concat [cpSyntax "∨",cpSyntax "||"] ; return $ \ e₁ e₂ → PrimE "OR" $ list [e₁,e₂]
   , fmixInfixL levelTIMES $ do concat [cpSyntax "∧",cpSyntax "&&"] ; return $ \ e₁ e₂ → PrimE "AND" $ list [e₁,e₂]
@@ -730,6 +759,14 @@ pExp = fmixfixWithContext "exp" $ concat
   , fmixInfix levelCOMPARE $ do cpSyntax ">" ; return $ \ e₁ e₂ → PrimE "GT" $ list [e₁,e₂]
   , fmixInfix levelCOMPARE $ do concat [cpSyntax "≤",cpSyntax "<="] ; return $ \ e₁ e₂ → PrimE "LTE" $ list [e₁,e₂]
   , fmixInfix levelCOMPARE $ do concat [cpSyntax "≥",cpSyntax ">="] ; return $ \ e₁ e₂ → PrimE "GTE" $ list [e₁,e₂]
+  , fmixPrefix levelAPP $ do 
+      cpSyntax "int" 
+      ip ← pIPrecision
+      return $ ToIntE ip
+  , fmixPrefix levelAPP $ do 
+      cpSyntax "nat" 
+      ip ← pIPrecision
+      return $ ToNatE ip
   , fmixInfixR levelCOND $ do
       cpSyntax "?"
       e₂ ← pExp

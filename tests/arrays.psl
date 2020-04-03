@@ -1,15 +1,11 @@
-def main • = •
-def expected = •
-{-
 def main • =
-  let y = array[10] 0
-  let f = fun x → x + y.0 + y.9
-  do  y.0 ← 10
-  do  y.9 ← 100
-  do  y.1 ← 1000
-  let y = array[10] 20
+  let y = array[10n] 0
+  let f = fun x → x + y.0n + y.9n
+  do  y.0n ← 10
+  do  y.9n ← 100
+  do  y.1n ← 1000
+  let y = array[10n] 20
   in
-  f 1
+  f 1 + int (size y)
 
-def expected = 111
--}
+def expected = 121

@@ -38,6 +38,11 @@ introValP v = do
   m ← askL iCxtModeL
   return $ modeValP m v
 
+locValP ∷ (STACK) ⇒ ℤ64 → IM ValP
+locValP ℓ = do
+  m ← askL iCxtModeL
+  return $ LocVP m ℓ
+
 -- look at a value; fails if value has mode smaller than execution mode
 -- e.g., 
 -- ‣ if current mode is {par:A,B} and value is {ssec:C} this fails
@@ -49,12 +54,21 @@ elimValP ṽ = do
   m ← askL iCxtModeL
   case ṽ of
     SSecVP ρs v' → do
-      guardErr (m ⊑ SecM ρs) (throwIErrorCxt TypeIError "elimValP: m ⋢ PSecM ρs" $ frhs
-                               [ ("m",pretty m)
-                               , ("ρs",pretty ρs)
-                               ])
+      guardErr (m ⊑ SecM ρs) $
+        throwIErrorCxt TypeIError "elimValP: m ⋢ PSecM ρs" $ frhs
+          [ ("m",pretty m)
+          , ("ρs",pretty ρs)
+          ]
       return v'
     AllVP v' → return v'
+    PairVP ṽ₁ ṽ₂ → return $ PairV ṽ₁ ṽ₂
+    LocVP m' ℓ → do
+      guardErr (m ≡ m') $
+        throwIErrorCxt TypeIError "elimValP: m ≠ m'" $ frhs
+          [ ("m",pretty m)
+          , ("m'",pretty m')
+          ]
+      return $ LocV ℓ
     _ → throwIErrorCxt TypeIError "elimValP: ṽ ∉ {AllVP _,SSecVP _ _}" $ frhs
         [ ("ṽ",pretty ṽ)
         ]
@@ -69,6 +83,10 @@ restrictValP ∷ (STACK) ⇒ ValP → IM ValP
 restrictValP ṽ = do
   m ← askL iCxtModeL
   case (m,ṽ) of
+    (_,PairVP ṽ₁ ṽ₂) → do
+      ṽ₁' ← restrictValP ṽ₁
+      ṽ₂' ← restrictValP ṽ₂
+      return $ PairVP ṽ₁' ṽ₂'
     -- (SecM ρ, SSecVP ρs v) → do
     --   v' ← restrictValPRecVal v
     --   return $ SSecVP (single ρ ∩ ρs) v'
@@ -81,6 +99,7 @@ restrictValP ṽ = do
     -- (SecM ρ, AllVP v) → do
     --   v' ← restrictValPRecVal v
     --   return $ SSecVP (single ρ) v'
+    (_,LocVP m' _) | m ≡ m' → return ṽ
     (SecM ρs₁, SSecVP ρs₂ v) → do
       v' ← restrictValPRecVal v
       let ρs = ρs₁ ∩ ρs₂
@@ -117,10 +136,10 @@ restrictValPRecVal v = case v of
   RV ṽ → do
     v' ← restrictValP ṽ
     return $ RV v'
-  PairV ṽ₁ ṽ₂ → do
-    v₁ ← restrictValP ṽ₁
-    v₂ ← restrictValP ṽ₂
-    return $ PairV v₁ v₂
+  -- PairV ṽ₁ ṽ₂ → do
+  --   v₁ ← restrictValP ṽ₁
+  --   v₂ ← restrictValP ṽ₂
+  --   return $ PairV v₁ v₂
   NilV → return v
   ConsV ṽ₁ ṽ₂ → do
     v₁ ← restrictValP ṽ₁
@@ -132,6 +151,11 @@ restrictValPRecVal v = case v of
   PrinSetV _ → return v
   LocV _ → return v
   ArrayV ṽs → ArrayV ∘ vec ^$ mapMOn (list ṽs) restrictValP
+  PairV ṽ₁ ṽ₂ → do
+    v₁ ← restrictValP ṽ₁
+    v₂ ← restrictValP ṽ₂
+    return $ PairV v₁ v₂
+  DefaultV → return DefaultV
 
 unShareValPsMode ∷ Mode → 𝐿 ValP → 𝑂 (𝐿 Val ∧ 𝑂 (Prot ∧ 𝑃 PrinVal ∧ ℕ))
 unShareValPsMode m ṽs = case ṽs of
@@ -146,6 +170,8 @@ unShareValPsMode m ṽs = case ṽs of
         return (valFrMPC v,Some $ φ :* ρs :* md)
       AllVP v → return (v,None)
       ISecVP _ → abort
+      PairVP vp₁ vp₂ → return $ (PairV vp₁ vp₂, None)
+      LocVP _ _ → error "TODO: not implemented"
       UnknownVP → error "TODO: not implemented"
     vs :* φρsO₂ ← unShareValPsMode m ṽs'
     φρsO ← case (φρsO₁,φρsO₂) of
@@ -167,7 +193,9 @@ unShareValPs ṽs = do
 
 reShareValP ∷ 𝑂 (Prot ∧ 𝑃 PrinVal ∧ ℕ) → Val → IM ValP
 reShareValP φρsO v =case φρsO of
-  None → introValP v
+  None → case v of
+    PairV p₁ p₂ → return $ PairVP p₁ p₂
+    _ → introValP v
   Some (φ :* ρs :* md) → do
     sv ← mpcFrVal v
     return $ ShareVP φ ρs md sv

@@ -85,8 +85,8 @@ To run the build system, run the following command:
 make
 ```
 
-After doing this, the `psli` interpreter will be available in the
-current directory, and you can run it with `./psli`.
+After doing this, the `psl` interpreter will be available in the
+current directory, and you can run it with `./psl`.
 
 To install it to your system, run the following command, replacing
 `sudo` with any equivalent if necessary:
@@ -95,6 +95,6 @@ To install it to your system, run the following command, replacing
 sudo make install
 ```
 
-After doing this, you can run `psli` from anywhere.
+After doing this, you can run `psl` from anywhere.
 
 You can also build the `psl` Docker image by running `make docker`.

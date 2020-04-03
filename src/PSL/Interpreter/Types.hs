@@ -17,9 +17,9 @@ data Val =
   | IntV IPrecision ℤ
   | FltV FPrecision 𝔻
   | BulV
+  | PairV ValP ValP
   | LV ValP
   | RV ValP
-  | PairV ValP ValP
   | NilV
   | ConsV ValP ValP
   | CloV (𝑂 Var) Pat Exp Env
@@ -28,6 +28,7 @@ data Val =
   | PrinSetV (𝑃 PrinVal)
   | LocV ℤ64
   | ArrayV (𝕍 ValP)
+  | DefaultV
   deriving (Eq,Ord,Show)
 
 -- Distributed Values
@@ -36,8 +37,10 @@ data ValP =
     SSecVP (𝑃 PrinVal) Val
   | ISecVP (PrinVal ⇰ Val)
   | ShareVP Prot (𝑃 PrinVal) ℕ ValMPC
+  | LocVP Mode ℤ64
   | AllVP Val
   | UnknownVP
+  | PairVP ValP ValP
   deriving (Eq,Ord,Show)
 
 -- Values used in circuits
@@ -49,8 +52,8 @@ data ValMPC =
   | FltMV FPrecision 𝔻
   | PrinMV PrinExpVal
   | PairMV ValMPC ValMPC
-  | LMV ValMPC
-  | RMV ValMPC
+  | SumMV 𝔹 ValMPC ValMPC
+  | DefaultMV
   deriving (Eq,Ord,Show)
 
 -----------------
@@ -69,6 +72,14 @@ makePrettySum ''ValP
 makePrisms ''ValMPC
 makePrettySum ''ValMPC
 
+data Share = Share
+  { shareProtocol ∷ Prot
+  , sharePrincipals ∷ 𝑃 PrinVal
+  , shareValue ∷ ValMPC
+  } deriving (Eq,Ord,Show)
+makeLenses ''Share
+makePrettySum ''Share
+
 -----------
 -- STORE --
 -----------
@@ -85,12 +96,13 @@ type Store = 𝑊 ValP
 -- θ ∈ params
 data IParams = IParams
   { iParamsDoResources ∷ 𝔹
+  , iParamsIsExample ∷ 𝔹
   } deriving (Eq,Ord,Show)
 makeLenses ''IParams
 makePrettySum ''IParams
 
 θ₀ ∷ IParams
-θ₀ = IParams False
+θ₀ = IParams False False
 
 -------------
 -- CONTEXT --
@@ -104,6 +116,7 @@ data ICxt = ICxt
   , iCxtDeclPrins ∷ Prin ⇰ PrinKind
   , iCxtEnv ∷ Env
   , iCxtMode ∷ Mode
+  , iCxtMPCPathCondition ∷ 𝐿 (𝔹 ∧ Share)
   } deriving (Show)
 makeLenses ''ICxt 
 makePrettySum ''ICxt
@@ -111,8 +124,11 @@ makePrettySum ''ICxt
 iCxtDoResourcesL ∷ ICxt ⟢ 𝔹
 iCxtDoResourcesL = iParamsDoResourcesL ⊚ iCxtParamsL
 
+iCxtIsExampleL ∷ ICxt ⟢ 𝔹
+iCxtIsExampleL = iParamsIsExampleL ⊚ iCxtParamsL
+
 ξ₀ ∷ ICxt
-ξ₀ = ICxt θ₀ None dø dø TopM
+ξ₀ = ICxt θ₀ None dø dø TopM null
 
 -----------
 -- STATE --
@@ -123,12 +139,13 @@ iCxtDoResourcesL = iParamsDoResourcesL ⊚ iCxtParamsL
 data IState = IState
   { iStateStore ∷ Store
   , iStateNextLoc ∷ ℤ64
+  , iStateMPCCont ∷ 𝐿 (𝐿 (𝔹 ∧ Share) ∧ Share)
   } deriving (Eq,Ord,Show)
 makeLenses ''IState
 makePrettySum ''IState
 
 ω₀ ∷ IState
-ω₀ = IState wø $ 𝕫64 1
+ω₀ = IState wø (𝕫64 1) null
 
 ------------
 -- OUTPUT --

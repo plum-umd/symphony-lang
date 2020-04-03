@@ -1,0 +1,8 @@
+principal A B
+
+def main • =
+  do par {A} write (1,2) to "simple-write.txt"
+  do par {B} write [3,4,5,6] to "simple-write.txt"
+  in 42
+
+def expected = 42

@@ -34,8 +34,8 @@ import qualified Data.Version as Version
 -- VERSION --
 -------------
 
-psli_VERSION ∷ 𝕊
-psli_VERSION = concat $ inbetween "." $ map show𝕊 $ Version.versionBranch version
+psl_VERSION ∷ 𝕊
+psl_VERSION = concat $ inbetween "." $ map show𝕊 $ Version.versionBranch version
 
 ---------------
 -- VARIABLES --
@@ -167,6 +167,24 @@ interpApp ṽ₁ ṽ₂ = do
 wrapInterp ∷ (STACK) ⇒ (ExpR → IM ValP) → Exp → IM ValP
 wrapInterp f e = localL iCxtSourceL (Some $ annotatedTag e) $ f $ extract e
 
+typeDirectedMux :: (STACK) ⇒ 𝔹 → ValP → ValP → IM ValP
+typeDirectedMux b ṽ₂ ṽ₃ = do
+  (vs :* φρsO) ← unShareValPs $ list [ṽ₂, ṽ₃]
+  let Some (v₂ :* vs') = uncons𝑆 $ stream𝐿 vs
+  let Some (v₃ :* _) = uncons𝑆 vs'
+  v ← case (v₂, v₃) of
+        (NilV, NilV) → return NilV
+        (PairV p₁₁ p₁₂, PairV p₂₁ p₂₂) → do
+          l ← typeDirectedMux b p₁₁ p₂₁
+          r ← typeDirectedMux b p₁₂ p₂₂
+          return $ PairV l r
+        (ConsV c₁₁ c₁₂, ConsV c₂₁ c₂₂) → do
+          h ← typeDirectedMux b c₁₁ c₂₁
+          t ← typeDirectedMux b c₁₂ c₂₂
+          return $ ConsV h t
+        _ → fst ^⋅ (interpPrim "COND" $ list [BoolV b, v₂, v₃])
+  reShareValP φρsO v
+
 interpExp ∷ (STACK) ⇒ Exp → IM ValP
 interpExp = wrapInterp $ \case
   VarE x → restrictValP *$ interpVar x
@@ -185,47 +203,62 @@ interpExp = wrapInterp $ \case
     if b
       then interpExp e₂
       else interpExp e₃
-  LE e' → do
-    ṽ ← interpExp e'
+  MuxE e₁ e₂ e₃ → do
+    ṽ₁ ← interpExp e₁
+    case ṽ₁ of
+      ShareVP _ _ _ _ → do
+        (vs₁ :* _φρsO) ← unShareValPs $ list [ṽ₁]
+        let Some (v₁ :* _) = uncons𝑆 $ stream𝐿 vs₁
+        b ← error𝑂 (view boolVL v₁) (throwIErrorCxt TypeIError "interpExp: MuxE: view boolVL v₁ ≡ None" $ frhs
+                                    [ ("v₁",pretty v₁)
+                                    ])
+        ṽ₂ ← interpExp e₂
+        ṽ₃ ← interpExp e₃
+        typeDirectedMux b ṽ₂ ṽ₃
+      _ → throwIErrorCxt TypeIError "interpExp: MuxE: ṽ₁ ≢ ShareVP _ _ _ _" $ frhs
+          [ ("ṽ₁",pretty ṽ₁)
+          ]
+  LE e → do
+    ṽ ← interpExp e
     introValP $ LV ṽ
-  RE e' → do
-    ṽ ← interpExp e'
+  RE e → do
+    ṽ ← interpExp e
     introValP $ RV ṽ
   TupE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
-    introValP $ PairV ṽ₁ ṽ₂
+    return $ PairVP ṽ₁ ṽ₂
   NilE → introValP NilV
   ConsE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
     introValP $ ConsV ṽ₁ ṽ₂
-  LetTyE _ _ e' → interpExp e'
+  LetTyE _ _ e → interpExp e
   LetE ψ e₁ e₂ → do
     ṽ ← interpExp e₁
     bindPat ψ ṽ $ interpExp e₂
-  CaseE e' ψes → do
-    ṽ ← interpExp e'
+  CaseE e ψes → do
+    ṽ ← interpExp e
     interpCase ṽ ψes
-  LamE selfO ψs e' → do
+  LamE selfO ψs e → do
     γ ← askL iCxtEnvL
     (ψ :* ψs') ← error𝑂 (view unconsL $ ψs) (throwIErrorCxt TypeIError "interpExp: LamE: view unconsL $ ψs ≡ None" $ frhs
                                              [ ("ψs",pretty ψs)
                                              ])
-    let e'' = if ψs' ≡ Nil
-              then e'
-              else siphon e' $ LamE None ψs' e'
-      in introValP $ CloV selfO ψ e'' γ
+    let e' = if ψs' ≡ Nil
+              then e
+              else siphon e $ LamE None ψs' e
+      in introValP $ CloV selfO ψ e' γ
   AppE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
     interpApp ṽ₁ ṽ₂
-  ParE ρes e' → do
+  ParE ρes e → do
     ρvs ← prinExpValss *$ mapM interpPrinExp ρes
     if ρvs ≡ pø 
        then return UnknownVP
-       else restrictMode (SecM ρvs) $ interpExp e'
-  ShareE φ ρes₁ ρes₂ e' → do
+       else restrictMode (SecM ρvs) $ interpExp e
+  ShareE φ ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
     m ← askL iCxtModeL
@@ -237,7 +270,7 @@ interpExp = wrapInterp $ \case
         [ ("ρvs₂",pretty ρvs₂)
         , ("m",pretty m)
         ]
-    ṽ ← interpExp e'
+    ṽ ← interpExp e
     v ← case ṽ of
       SSecVP ρvs v | ρvs₁ ⊆ ρvs → return v
       AllVP v → return v
@@ -246,9 +279,9 @@ interpExp = wrapInterp $ \case
     tellL iOutResEvsL $ ResEv φ pø ρvs₁ ρvs₂ (getType v) "SHARE" 0 ↦ 1
     sv ← mpcFrVal v
     return $ ShareVP φ ρvs₂ 0 sv
-  AccessE e' ρ → do
+  AccessE e ρ → do
     ρv ← interpPrinExpSingle ρ
-    ṽ ← interpExp e'
+    ṽ ← interpExp e
     ρvs ← error𝑂 (view iSecVPL ṽ) (throwIErrorCxt TypeIError "interpExp: AccessE: view iSecVPL ṽ ≡ None" $ frhs
                                    [ ("ṽ",pretty ṽ)
                                    ])
@@ -258,9 +291,9 @@ interpExp = wrapInterp $ \case
                                          ])
     return $ SSecVP (single ρv) v
   BundleE ρes → do
-    ISecVP ^$ dict ^$ mapMOn (iter ρes) $ \ (ρ :* e') → do
+    ISecVP ^$ dict ^$ mapMOn (iter ρes) $ \ (ρ :* e) → do
       ρv ← interpPrinExpSingle ρ
-      ṽ ← restrictMode (SecM $ single ρv) $ interpExp e'
+      ṽ ← restrictMode (SecM $ single ρv) $ interpExp e
       (ρvs,v) ← error𝑂 (view sSecVPL ṽ) (throwIErrorCxt TypeIError "interpExp: BundleE: view sSecVPL ṽ ≡ None" $ frhs
                                          [ ("ṽ",pretty ṽ)
                                          ])
@@ -278,7 +311,7 @@ interpExp = wrapInterp $ \case
         [ ("ṽ₁",pretty ṽ₁)
         , ("ṽ₂",pretty ṽ₂)
         ]
-  RevealE {- ρes₁ -} ρes₂ e' → do
+  RevealE {- ρes₁ -} ρes₂ e → do
     -- ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
     m ← askL iCxtModeL
@@ -289,7 +322,7 @@ interpExp = wrapInterp $ \case
           , ("ρs",pretty ρs)
           ]
       TopM → skip
-    ṽ ← interpExp e'
+    ṽ ← interpExp e
     case ṽ of
       ShareVP φ ρs md sv {- | ρs ≡ ρvs₁ -} → do
         let v = valFrMPC sv
@@ -298,7 +331,7 @@ interpExp = wrapInterp $ \case
       _ → throwIErrorCxt TypeIError "interpExp: RevealE: ṽ ∉ {ShareVP _ _ _,SSecVP _ _}" $ frhs
         [ ("ṽ",pretty ṽ)
         ]
-  SendE ρes₁ ρes₂ e' → do
+  SendE ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
     guardErr (count ρvs₁ ≡ 1) $
@@ -312,7 +345,7 @@ interpExp = wrapInterp $ \case
           , ("ρs",pretty ρs)
           ]
       TopM → skip
-    ṽ ← interpExp e'
+    ṽ ← interpExp e
     case ṽ of
       SSecVP ρs v | ρvs₁ ⊆ ρs → return $ SSecVP ρvs₂ v
       AllVP v → return $ SSecVP ρvs₂ v
@@ -320,8 +353,8 @@ interpExp = wrapInterp $ \case
         [ ("ṽ",pretty ṽ)
         ]
   -- AscrE
-  ReadE τA e' → do
-    ṽ ← interpExp e'
+  ReadE τA e → do
+    ṽ ← interpExp e
     v ← elimValP ṽ
     m ← askL iCxtModeL
     case (v,m) of
@@ -332,6 +365,17 @@ interpExp = wrapInterp $ \case
         [ ("v",pretty v)
         , ("m",pretty m)
         ]
+  WriteE e₁ e₂ → do
+    ṽ₁ ← interpExp e₁
+    ṽ₂ ← interpExp e₂
+    v₁ ← elimValP ṽ₁
+    v₂ ← elimValP ṽ₂
+    m ← askL iCxtModeL
+    case (m,v₂) of
+      (SecM ρs,StrV fn) | [ρ] ← tohs $ list ρs → do
+        writeVal ρ v₁ fn
+        introValP $ BulV
+      _ → throwIErrorCxt TypeIError "interpExp: WriteE: m ≠ SecM {ρ}" null
   RandE τ → do
     wrap :* τ' ← case τ of
       ShareT φ ρes τ' → do
@@ -352,10 +396,11 @@ interpExp = wrapInterp $ \case
         return $ ShareVP φ ρvs 0 :* τ'
       _ → return $ AllVP ∘ valFrMPC :* τ
     ṽ ← interpExp e
-    v ← elimValP ṽ
     (ṽ₁,ṽ₂) ← 
-      elim𝑂 (throwIErrorCxt TypeIError "interpExp: ReadRangeE: Expected a pair argument" $ frhs [ ("v",pretty v) ]) return $
-      view pairVL v
+      elim𝑂 
+        (throwIErrorCxt TypeIError "interpExp: ReadRangeE: Expected a pair argument" $ 
+           frhs [ ("ṽ",pretty ṽ) ]) 
+           return $ view pairVPL ṽ
     v₁ ← elimValP ṽ₁
     v₂ ← elimValP ṽ₂
     v' ← case (τ',v₁,v₂) of
@@ -385,19 +430,19 @@ interpExp = wrapInterp $ \case
   SetE ρes → do
     ρvs ← prinExpValss *$ mapM interpPrinExp ρes
     introValP $ PrinSetV ρvs
-  RefE e' → do
-    ṽ ← interpExp e'
+  RefE e → do
+    ṽ ← interpExp e
     ℓ ← nextL iStateNextLocL
     modifyL iStateStoreL $ \ σ → (ℓ ↦♮ ṽ) ⩌♮ σ 
-    introValP $ LocV ℓ
-  RefReadE e' → do 
-    ṽ ← interpExp e'
+    locValP ℓ
+  RefReadE e → do 
+    ṽ ← interpExp e
     v ← elimValP ṽ
     case v of
       LocV ℓ → do
         σ ← getL iStateStoreL
         case σ ⋕? ℓ of
-          Some ṽ' → return ṽ'
+          Some ṽ' → restrictValP ṽ'
           None → throwIErrorCxt InternalIError "interpExp: RefReadE: ℓ ∉ dom(σ)" $ frhs
             [ ("ℓ",pretty ℓ)
             , ("dom(σ)",pretty $ keys𝑊 σ)
@@ -416,9 +461,122 @@ interpExp = wrapInterp $ \case
       _ → throwIErrorCxt TypeIError "interpExp: RefWriteE: v₁ ≠ Loc ℓ" $ frhs
         [ ("v₁",pretty v₁)
         ]
-  e → throwIErrorCxt NotImplementedIError "interpExp: not implemented" $ frhs
-    [ ("e",pretty e)
-    ]
+  ArrayE e₁ e₂ → do
+    ṽ₁ ← interpExp e₁
+    ṽ₂ ← interpExp e₂
+    v₁ ← elimValP ṽ₁
+    case v₁ of
+      NatV _ n → do
+        ℓ ← nextL iStateNextLocL
+        ṽ ← introValP $ ArrayV $ vec $ list $ repeat n ṽ₂
+        modifyL iStateStoreL $ \ σ → (ℓ ↦♮ ṽ) ⩌♮ σ
+        locValP ℓ
+      _ → throwIErrorCxt TypeIError "interpExp: ArrayE: v₁ ≠ IntV _ i" $ frhs
+        [ ("v₁",pretty v₁) 
+        ]
+  ArrayReadE e₁ e₂ → do
+    ṽ₁ ← interpExp e₁
+    ṽ₂ ← interpExp e₂
+    v₁ ← elimValP ṽ₁
+    v₂ ← elimValP ṽ₂
+    case (v₁,v₂) of
+      (LocV ℓ,NatV _ n) → do
+        σ ← getL iStateStoreL
+        case σ ⋕? ℓ of
+          Some ṽ' → do
+            v' ← elimValP ṽ'
+            case v' of
+              ArrayV ṽs → case ṽs ⋕? natΩ64 n of
+                Some ṽ → restrictValP ṽ
+                None → throwIErrorCxt TypeIError "interpExp: ArrayReadE: n ∉ dom(ṽs)" $ frhs
+                  [ ("n",pretty n)
+                  , ("dom(ṽs)",pretty $ (0,size ṽs - 𝕟64 1))
+                  ]
+              _ → throwIErrorCxt TypeIError "interpExp: ArrayReadE: v' ≠ ArrayV _" $ frhs
+                [ ("v'",pretty v') ]
+          None → throwIErrorCxt TypeIError "interpExp: ArrayReadE: ℓ ∉ dom(σ)" $ frhs 
+            [ ("ℓ",pretty ℓ)
+            , ("dom(σ)",pretty $ keys𝑊 σ)
+            ]
+      _ → throwIErrorCxt TypeIError "interpExp: ArrayReadE: (v₁,v₂) ≠ (LocV _,NatV _ _)" $ frhs
+        [ ("v₁",pretty v₁)
+        , ("v₂",pretty v₂)
+        ]
+  ArrayWriteE (extract → ArrayReadE e₁ e₂) e₃ → do
+    ṽ₁ ← interpExp e₁
+    ṽ₂ ← interpExp e₂
+    ṽ₃ ← interpExp e₃
+    v₁ ← elimValP ṽ₁
+    v₂ ← elimValP ṽ₂
+    case (v₁,v₂) of
+      (LocV ℓ,NatV _ n) → do
+        σ ← getL iStateStoreL
+        case σ ⋕? ℓ of
+          Some ṽ' → do
+            v' ← elimValP ṽ'
+            case v' of
+              ArrayV ṽs → 
+                if idxOK𝕍 ṽs $ natΩ64 n
+                   then do
+                     ṽ'' ← introValP $ ArrayV $ set𝕍 (natΩ64 n) ṽ₃ ṽs
+                     putL iStateStoreL $ (ℓ ↦♮ ṽ'') ⩌♮ σ
+                     return ṽ₃
+                    else do
+                      throwIErrorCxt TypeIError "interpExp: ArrayWriteE: n ∉ dom(ṽs)" $ frhs
+                        [ ("n",pretty n)
+                        , ("ṽs",pretty ṽs)
+                        ]
+              _ → throwIErrorCxt TypeIError "interpExp: ArrayWriteE: v' ≠ ArrayV _" $ frhs
+                [ ("v'",pretty v') ]
+          None → throwIErrorCxt TypeIError "interpExp: ArrayWriteE: ℓ ∉ dom(σ)" $ frhs 
+            [ ("ℓ",pretty ℓ)
+            , ("dom(σ)",pretty $ keys𝑊 σ)
+            ]
+      _ → throwIErrorCxt TypeIError "interpExp: ArrayWriteE: (v₁,v₂) ≠ (LocV _,NatV _ _)" $ frhs
+        [ ("v₁",pretty v₁)
+        , ("v₂",pretty v₂)
+        ]
+  SizeE e → do
+    ṽ ← interpExp e
+    v ← elimValP ṽ
+    case v of
+      LocV ℓ → do
+        σ ← getL iStateStoreL
+        case σ ⋕? ℓ of
+          Some ṽ' → do
+            v' ← elimValP ṽ'
+            case v' of
+              ArrayV ṽs → introValP $ NatV InfIPr $ nat $ size ṽs
+              _ → throwIErrorCxt TypeIError "interpExp: SizeE: v' ≠ ArrayV _" null
+          _ → throwIErrorCxt TypeIError "interpExp: SizeE: ℓ ∉ dom(σ)" null
+      _ → throwIErrorCxt TypeIError "interpExp: SizeE: v ≠ LocV _" null
+  ToIntE p e → do
+    ṽ ← interpExp e
+    v ← elimValP ṽ
+    case v of
+      NatV _ n → introValP $ IntV p $ trPrInt p $ int n
+      _ → throwIErrorCxt TypeIError "interpExp: ToIntE: v ∉ {NatV _ n}" null
+  ToNatE p e → do
+    ṽ ← interpExp e
+    v ← elimValP ṽ
+    case v of
+      IntV _ i → introValP $ NatV p $ trPrNat p $ natΩ i
+      _ → throwIErrorCxt TypeIError "interpExp: ToIntE: v ∉ {NatV _ n}" null
+  DefaultE → introValP DefaultV
+  BlockE e → do
+    κ :* ṽ ← 
+      localizeL iStateMPCContL null $ 
+      localL iCxtMPCPathConditionL null $ 
+      interpExp e
+    mfoldrOnFrom κ ṽ $ \ (_pc :* _v̂ᴿ) _v̂' → undefined
+  ReturnE e → do
+    ṽ ← interpExp e
+    (φ,ρs,_,v̂) ← error𝑂 (view shareVPL ṽ) $
+      throwIErrorCxt TypeIError "interpExp: ReturnE: ṽ ≠ ShareVP _ _ _ _" null
+    pc ← askL iCxtMPCPathConditionL
+    modifyL iStateMPCContL $ \ κ → (pc :* Share φ ρs v̂) :& κ
+    introValP BulV
+  _ → throwIErrorCxt NotImplementedIError "interpExp: not implemented" null
 
 ---------------
 -- TOP LEVEL --
@@ -444,30 +602,6 @@ interpTLs = eachWith interpTL
 ----------
 -- MAIN --
 ----------
-
--- flagNames ∷ 𝑃 𝕊
--- flagNames = pow
---   [ "resources"
---   ]
--- 
--- paramNames ∷ 𝑃 𝕊
--- paramNames = pow
---   [ "seed"
---   ]
-
--- parseArgs ∷ 𝐿 𝕊 → 𝕊 ⇰ 𝕊
--- parseArgs = \case 
---   a₁ :& as → case list a₁ of
---     '-' :& '-' :& name | string name ∈ flagNames → 
---       let ps = parseArgs as
---       in (string name ↦ "") ⩌ ps
---     '-' :& '-' :& name | string name ∈ paramNames, a₂ :& as' ← as →
---       let ps = parseArgs as'
---       in (string name ↦ a₂) ⩌ ps
---     -- skip it
---     _ → parseArgs as
---   Nil → dø
-
 
 data Options = Options
   { optVersion ∷ 𝔹
@@ -549,24 +683,24 @@ parseOptions = do
   let os = compose fs options₀
   when (optVersion os) $ \ () → do
     out ""
-    out $ "psli version " ⧺ psli_VERSION
+    out $ "psl version " ⧺ psl_VERSION
   when (optHelp os) $ \ () → do
     out ""
-    out "Usage: psli [<command>] [<arguments>] [<target>]"
+    out "Usage: psl [<command>] [<arguments>] [<target>]"
     out ""
-    out $ string $ O.usageInfo (chars "psli [arguments]") usageInfoTop
-    out $ string $ O.usageInfo (chars "psli run [arguments] <file>") usageInfoRun
-    out $ string $ O.usageInfo (chars "psli example [arguments] <name>")  usageInfoRun
-    out $ string $ O.usageInfo (chars "psli test [arguments]") usageInfoRun
+    out $ string $ O.usageInfo (chars "psl [arguments]") usageInfoTop
+    out $ string $ O.usageInfo (chars "psl run [arguments] <file>") usageInfoRun
+    out $ string $ O.usageInfo (chars "psl example [arguments] <name>")  usageInfoRun
+    out $ string $ O.usageInfo (chars "psl test [arguments]") usageInfoRun
   return $ frhs (os,map string nos)
 
-psliMainRun ∷ IO ()
-psliMainRun = do
+pslMainRun ∷ IO ()
+pslMainRun = do
   (os,ts) ← tohs ^$ parseOptions
   fn ← case ts of
-    [] → failIO "ERROR: No file specified as target. Correct usage: psli run [<arguments>] <file>"
+    [] → failIO "ERROR: No file specified as target. Correct usage: psl run [<arguments>] <file>"
     [t] → return t
-    _ → failIO "ERROR: Too many files specified as target. Correct usage: psli run [<arguments>] <file>"
+    _ → failIO "ERROR: Too many files specified as target. Correct usage: psl run [<arguments>] <file>"
   initializeIO os
   let θ = initializeEnv os
   out ""
@@ -580,15 +714,15 @@ psliMainRun = do
   pprint $ ppHeader "RESULT"
   pprint v
 
-psliMainExample ∷ IO ()
-psliMainExample = do
+pslMainExample ∷ IO ()
+pslMainExample = do
   (os,ts) ← tohs ^$ parseOptions
   fn ← case ts of
-    [] → failIO "ERROR: No file specified as target. Correct usage: psli example [<arguments>] <name>"
+    [] → failIO "ERROR: No file specified as target. Correct usage: psl example [<arguments>] <name>"
     [t] → return t
-    _ → failIO "ERROR: Too many files specified as target. Correct usage: psli example [<arguments>] <name>"
+    _ → failIO "ERROR: Too many files specified as target. Correct usage: psl example [<arguments>] <name>"
   initializeIO os
-  let θ = initializeEnv os
+  let θ = update iParamsIsExampleL True $ initializeEnv os
   out ""
   pprint $ ppHorizontal 
     [ ppHeader "INTERPRETING EXAMPLE:"
@@ -601,12 +735,12 @@ psliMainExample = do
   pprint $ ppHeader "RESULT"
   pprint v
 
-psliMainTest ∷ IO ()
-psliMainTest = do
+pslMainTest ∷ IO ()
+pslMainTest = do
   (os,ts) ← tohs ^$ parseOptions
   case ts of
     [] → skip
-    _ → failIO "ERROR: Command does not accept targets. Correct usage: psli test [<arguments>]"
+    _ → failIO "ERROR: Command does not accept targets. Correct usage: psl test [<arguments>]"
   let θ = initializeEnv os
   out ""
   pprint $ ppHeader "TESTING INTERPRETER"
@@ -647,19 +781,19 @@ pslMainInfo ∷ IO ()
 pslMainInfo = do
   out ""
   out $ concat $ inbetween "\n" 
-    [ "psli is the interpreter for the PSL language developed by"
+    [ "psl is the interpreter for the PSL language developed by"
     , "the PANTHEON team, funded by IARPA for the HECTOR project."
     ]
   (_,ts) ← tohs ^$ parseOptions
   case ts of
     [] → skip
-    _ → failIO "ERROR: Command does not accept targets. Correct usage: psli [<arguments>]"
+    _ → failIO "ERROR: Command does not accept targets. Correct usage: psl [<arguments>]"
 
 interpreterMain ∷ IO ()
 interpreterMain = do
   map list askArgs ≫= \case
-    "run" :& as → localArgs as $ psliMainRun
-    "example" :& as → localArgs as $ psliMainExample
-    "test" :& as → localArgs as psliMainTest
+    "run" :& as → localArgs as $ pslMainRun
+    "example" :& as → localArgs as $ pslMainExample
+    "test" :& as → localArgs as pslMainTest
     Nil → localArgs (list ["--version","--help"]) pslMainInfo
     as → localArgs as pslMainInfo
