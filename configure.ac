@@ -63,14 +63,21 @@ dnl
       ;;
     esac
   ])[
-]AS_IF([test "x$psl_cv_stack_check" != "xyes"], [
-  AC_MSG_WARN(
+
+] [case $psl_cv_stack_check in
+  yes)
+    STACK_MISSING=no
+  ;;
+  *)
+    STACK_MISSING=yes
+    ]AC_MSG_WARN(
 [Haskell Stack is not installed.
 Follow these installation instructions: https://www.haskell.org/downloads/.
 If it is installed, use "./configure STACK=/path/to/stack".
-The Docker image can be built without Stack being installed.])
-  AC_SUBST([STACK_MISSING],[yes])
-])[
+The Docker image can be built without Stack being installed.])[
+  ;;
+esac
+]AC_SUBST([STACK_MISSING])[
 
 ]dnl begin_includes
 [
