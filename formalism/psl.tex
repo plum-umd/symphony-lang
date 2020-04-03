@@ -707,15 +707,27 @@ present, the typing and compatibility judgments rely on knowing the
 precise makeup of a principal set. This would have to change to permit
 unknown principal sets whose contents are governed by set
 constraints. A simple manifestation of this point is that
-$\ereveal{\psi}{Q}{e}$ should be $\ereveal{\psi}{e_Q}{e}$
-where $e_Q$ is a principal set; likewise for $\kw{share}$
-and $\kw{par}$. We would also need dependent types; for example if we
+$\epar{P}{e}$ should become $\epar{e_P}{e}$ where $e_P$ is a principal
+set; likewise $\ereveal{\psi}{Q}{e}$ should be $\ereveal{\psi}{e_Q}{e}$
+where $e_Q$ is a principal set, and similarly for $\kw{share}$. In
+PSL, the construct \texttt{active-prins ()} can be used to recover the
+current set of active principals. 
+
+A consequence of the use of first-class principal sets in the above
+constructs is the need for dependent types. For example if we
 had a run-time principal set stored in variable $s$, then we need to
 express types like $\tnat^s$, which indicates a type compatible with
-all principals in $s$. One interesting point is that we would like
-set-indexed recursive datastrutures like lists, e.g., so that each
-element of a list could belong to a different principal. This
-generalized the fixed-size notion of wire bundles given above.
+all principals in $s$. Correspondingly 
+
+One interesting point is that we would like set-indexed recursive
+datastructures like lists, e.g., so that each element of a list could
+belong to a different principal. This generalizes the fixed-size
+notion of wire bundles given above.
+
+In addition to dependent types, it will be natural to also want
+polymorphic types. That is, while a dependently typed function will
+work for a particular run-time value of its type index, a polymorphic
+typed function will operate the same way for 
 
 \mwh{Refer to Wysteria as having these, and that we can use its
   metatheory for inspiration}
@@ -1097,10 +1109,14 @@ evaluate $\epar{P}{e}$. A $\kw{par}$ evaluates $e$ in mode
 $Q = m \cap P$ to produce $v$; i.e., only those principals in $P$
 \emph{also} present in $m$ will run $e$. Per \rulelab{E-ParEmp}, if
 $Q$ is empty, then no evaluation takes place, and $\vcrash$ is
-returned. (The alternative of running $e$ with $\emptyset$ as the
-mode is not equivalent; see discussion below.)  Otherwise, evaluation
+returned. %  (The alternative of running $e$ with $\emptyset$ as the
+% mode is not equivalent; see discussion below.) 
+Otherwise, evaluation
 takes place in mode $Q$ and its result $v$ is returned (which will be
 compatible with $m$ because it's compatible with $Q$, a subset).
+
+Section~\ref{sec:vis} below gives several examples to illustrate the
+effect of these rules on the visibility of shared values.
 
 Let's consider the remaining rules, which focus on multiparty
 computation. \rulelab{E-Share} models principal $A \in P$
@@ -1181,97 +1197,6 @@ as one of these will be stuck.
 % that terminate; we are not obligated to reason about non-terminating
 % programs. And in any case it's about ``real'' computations; not ones
 % that are contrived.
-
-\subsection{Understanding Visibility}
-
-Here are several examples illustrating how multi-party value
-visibility is managed by the semantics.
-
-\paragraph{Example 1}
-\begin{verbatim}
-par{A,B}
-  let x = par{B} (0,0) in
-  par{A} let y = #1 x in y
-\end{verbatim}
-Running this example will produce $\vcrash$, but since the value is never accessed by the program,
-this is a fine result. The pair bound in \texttt{x} is only visible to
-$B$, but is accessed in a block run only by $A$. When $x$ is looked up
-in that latter block, $A$ will have no specific value for it but the
-\texttt{\# 1} operation will be allowed to proceed, also producing
-$\vcrash$, as pairs are not located.
-
-\paragraph{Example 2}
-\begin{verbatim}
-(fun x -> par{C} x) 
-  (par{A,B,C} reveal{A,B}{C} (share{A,B}{A} 0))
-\end{verbatim}
-This program has $A$ share $0$ with itself and $B$, and then reveal
-the results of that share to $C$. These operationsn are 
-This is allowed by the type system. The $\kw{reveal}$ directs $A$ and
-$B$ to reveal their result to $C$. The result is returned from the
-$\kw{par}$ block and successful accessed by $C$ in the called function.
-
-\paragraph{Example 3}
-\begin{verbatim}
-par(A,B) 
-  let x = par(A) 0 in
-  let y = par(B) 1 in
-  par(A) 
-    let z = (x,y) in #1 z
-\end{verbatim}
-This program works because even though $y$ is not available at $A$
-where the pair is constructed, it is never accessed.
-
-\paragraph{Example 4}
-\begin{verbatim}
-par{A,B}
-  let x0 = par{B} 0 in
-  let x1 = (fun x -> par{A} (x,1)) x0 in
-  x0
-\end{verbatim}
-Running this program produces the value $0$ located at $B$. The
-variable \texttt{x1} will be bound to $\epair{\vcrash}{1}$, since the
-first element is not accessible at $A$, but this is not the value that
-is ultimately returned.
-
-\paragraph{Example 5}
-\begin{verbatim}
-let x = par{A,C} 0 in
-let f = par{A,B} fun y -> (x,y) in
-par{B} f 1
-\end{verbatim}
-This will create a variable located at $A$ and $C$; then it creates a
-closure at $A$ and $B$. This means that the call to \texttt{f} with
-only $B$ present, on the last line, will return a pair $\epair{0}{1}$
-where $0$ is located at $\emptyset$ (i.e., it is inaccessible to
-everyone) and $1$ is located at $B$. Note that the last line
-\texttt{par\{B\} f 1} would fail if changed to \texttt{par\{C\} f
-  1}. This is because the closure $f$ is not located at $C$ so it
-can't be called from there. If the last line was \texttt{par\{A\} f 1}
-then $\epair{0}{1}$ would be returned again, but this time $0$ and $1$
-would both be located at $A$.
-
-\subsection{Small-step Semantics}
-
-In preparation for the multi-threaded semantics, we need a small-step
-version of the big-step semantics presented above. Judgment
-$\seval{\env}{e}{m}{\env'}{e'}$ states that in mode $m$ and
-environment $\env$, expression $e$ steps to expression $e'$ and
-environment $\env'$. The rules are defined in
-Figure~\ref{fig:small-sem}. 
-
-We define \emph{evaluation contexts} $\ctxt$ at the bottom of the
-figure. Evaluation contexts define left-to-right, 
-call-by-value evaluation in the standard manner per the rule
-\rulelab{S-Ctxt}. We do not include context $\epar{P}{\ctxt}$ in the
-definition of contexts; i.e., \rulelab{S-Ctxt} does not cover
-evaluation within par blocks. Instead, this is handled by
-\rulelab{S-ParStep}, which is essentially a variation of
-\rulelab{S-Ctxt} but it adjusts the mode when evaluating $e$ according
-to $P$. Most of the rest of the rules are just the small-step versions
-of the previous big-step rules. One interesting rule is
-\rulelab{S-Reveal}---here we evaluate the contents of the share $e_0$
-in one fell swoop, using the big-step semantics.
 
 \begin{figure}
 $$
@@ -1502,6 +1427,98 @@ $$
 \caption{Operational Semantics (Single threaded, small step)}
 \label{fig:small-sem}
 \end{figure}
+
+\subsection{Small-step Semantics}
+
+In preparation for the multi-threaded semantics, we need a small-step
+version of the big-step semantics presented above. Judgment
+$\seval{\env}{e}{m}{\env'}{e'}$ states that in mode $m$ and
+environment $\env$, expression $e$ steps to expression $e'$ and
+environment $\env'$. The rules are defined in
+Figure~\ref{fig:small-sem}. 
+
+We define \emph{evaluation contexts} $\ctxt$ at the bottom of the
+figure. Evaluation contexts define left-to-right, 
+call-by-value evaluation in the standard manner per the rule
+\rulelab{S-Ctxt}. We do not include context $\epar{P}{\ctxt}$ in the
+definition of contexts; i.e., \rulelab{S-Ctxt} does not cover
+evaluation within par blocks. Instead, this is handled by
+\rulelab{S-ParStep}, which is essentially a variation of
+\rulelab{S-Ctxt} but it adjusts the mode when evaluating $e$ according
+to $P$. Most of the rest of the rules are just the small-step versions
+of the previous big-step rules. One interesting rule is
+\rulelab{S-Reveal}---here we evaluate the contents of the share $e_0$
+in one fell swoop, using the big-step semantics.
+
+\subsection{Understanding Visibility}
+\label{sec:vis}
+
+Here are several examples illustrating how multi-party value
+visibility is managed by the semantics.
+
+\paragraph{Example 1}
+\begin{verbatim}
+par{A,B}
+  let x = par{B} (0,0) in
+  par{A} let y = #1 x in y
+\end{verbatim}
+Running this example will produce $\vcrash$, but since the value is never accessed by the program,
+this is a fine result. The pair bound in \texttt{x} is only visible to
+$B$, but is accessed in a block run only by $A$. When $x$ is looked up
+in that latter block, $A$ will have no specific value for it but the
+\texttt{\# 1} operation will be allowed to proceed, also producing
+$\vcrash$, as pairs are not located.
+
+\paragraph{Example 2}
+\begin{verbatim}
+(fun x -> par{C} x) 
+  (par{A,B,C} reveal{A,B}{C} (share{A,B}{A} 0))
+\end{verbatim}
+This program has $A$ share $0$ with itself and $B$, and then reveal
+the results of that share to $C$. These operationsn are 
+This is allowed by the type system. The $\kw{reveal}$ directs $A$ and
+$B$ to reveal their result to $C$. The result is returned from the
+$\kw{par}$ block and successful accessed by $C$ in the called function.
+
+\paragraph{Example 3}
+\begin{verbatim}
+par(A,B) 
+  let x = par(A) 0 in
+  let y = par(B) 1 in
+  par(A) 
+    let z = (x,y) in #1 z
+\end{verbatim}
+This program works because even though $y$ is not available at $A$
+where the pair is constructed, it is never accessed.
+
+\paragraph{Example 4}
+\begin{verbatim}
+par{A,B}
+  let x0 = par{B} 0 in
+  let x1 = (fun x -> par{A} (x,1)) x0 in
+  x0
+\end{verbatim}
+Running this program produces the value $0$ located at $B$. The
+variable \texttt{x1} will be bound to $\epair{\vcrash}{1}$, since the
+first element is not accessible at $A$, but this is not the value that
+is ultimately returned.
+
+\paragraph{Example 5}
+\begin{verbatim}
+let x = par{A,C} 0 in
+let f = par{A,B} fun y -> (x,y) in
+par{B} f 1
+\end{verbatim}
+This will create a variable located at $A$ and $C$; then it creates a
+closure at $A$ and $B$. This means that the call to \texttt{f} with
+only $B$ present, on the last line, will return a pair $\epair{0}{1}$
+where $0$ is located at $\emptyset$ (i.e., it is inaccessible to
+everyone) and $1$ is located at $B$. Note that the last line
+\texttt{par\{B\} f 1} would fail if changed to \texttt{par\{C\} f
+  1}. This is because the closure $f$ is not located at $C$ so it
+can't be called from there. If the last line was \texttt{par\{A\} f 1}
+then $\epair{0}{1}$ would be returned again, but this time $0$ and $1$
+would both be located at $A$.
 
 \section{Semantics (Multi-threaded)}
 \label{sec:MTsemantics}
