@@ -57,7 +57,7 @@ dnl
     case "$STACK" in
       "") ;;
       *)
-        case "`stack --help`" in
+        case `eval " $STACK --help"` in
           *'The Haskell Tool Stack'*) psl_cv_stack_check=yes ;;
         esac
       ;;
