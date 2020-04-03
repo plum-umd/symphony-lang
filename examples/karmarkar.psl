@@ -38,7 +38,7 @@ def elim_sum f g x = case x
 
 def ite guard tc fc = if guard then tc else fc
 
-def mux guard tc fc = guard ? tc ◇ fc
+def mymux guard tc fc = guard ? tc ◇ fc
 
 def fold-f i f xs = case xs
   { ⟪⟫ → i
@@ -91,9 +91,9 @@ def square a = a * a
 
 def max muxer a b = muxer (a <= b) b a
 
-def max_spdz = max mux
+def max_spdz = max mymux
 
-def abs_val_real a = max mux a (-1.0 * a)
+def abs_val_real a = max mymux a (-1.0 * a)
 
 -- TODO: define these properly
 def log_2_real = id
@@ -122,11 +122,6 @@ def elim_nat m z s =
 -- PSL: add syntactic sugar for this?
 def eliml_nat : nat -> t -> (t -> t) -> t
 def eliml_nat n z s = (elim_nat n id (compose s)) z
-
--- seq: sequencing combinator
-def seq e0 e1 =
-  let _ = e0 in
-  e1
 
 -- monad for building a value and a continuation. Type is
 -- cont a b = (a -> a, b)
@@ -246,7 +241,7 @@ def zip_map : (t -> u -> v) -> list t -> list u -> list v
 def zip_map f l0 l1 = map (uncurry f) (zip_lists l0 l1)
 
 -- mux_ls: multiplex over a pair of lists:
-def mux_ls guard l0 l1 = zip_map (mux guard) l0 l1
+def mux_ls guard l0 l1 = zip_map (mymux guard) l0 l1
 
 -- monadic return:
 def cont_return a = (id, a)
@@ -273,7 +268,6 @@ def if_then_ret_ls = if_then_ret mux_ls
 
 -- iter_sec_nat: iterate up to bnd but in each iteration, check a
 -- secure nat n
--- TODO: deprecate encrypted arguments?
 def iter_sec_nat muxer n bnd s rv = cont_run
   (cont_seq'
     (snd
@@ -400,7 +394,7 @@ def dimensions_of m = case m
 -- multiplicative unit u
 def nz_prod z one l = foldr l
   one
-  (fun x -> mult (mux (x == z) one x))
+  (fun x -> mult (mymux (x == z) one x))
 
 def nz_prod_vec = nz_prod shr0 shr1
 
@@ -435,8 +429,7 @@ def matrix_set m (i, j) v = setter m i (setter (get m i) j v)
 def matrix_inverse_lt l =
   let n = order l in -- order of L
   let l_inv = ref (zero_mat n) in -- n x n zero matrix
-  seq
-  (iter (range 0n (n - 1n))
+  do (iter (range 0n (n - 1n))
     (fun k ->
       -- For diagonal entries, take the reciprocal
       do l_inv := matrix_set !l_inv (k, k) (shr1 / (matrix_get !l_inv (k, k))) in
@@ -447,13 +440,8 @@ def matrix_inverse_lt l =
           let sum = ref shr0 in
           iter (range k (j - 1n))
             (fun i ->
-              -- let _ = "inverse_lt: pre get into l at " + (j, i) in
-              let _ = matrix_get l (j, i) in
-              -- let _ = err "inverse_lt: pre get into l_inv" in
-              let _ = matrix_get !l_inv (i, k) in
-              do sum := !sum - (matrix_get l (j, i)) * (matrix_get !l_inv (i, k))
-              in
-              () ) ) ) )
+              sum := !sum - (matrix_get l (j, i)) * (matrix_get !l_inv (i, k))
+              ) ) ) ) in
   !l_inv
 
 -- TODO: replace with list syntax
@@ -466,40 +454,33 @@ def cholesky_decomposition m =
   let l = ref (zero_mat n) in -- n x n zero matrix
 
   -- Calculate the top diagonal element of L
-  do l := matrix_set !l (0n, 0n) (sqrt (matrix_get m (0n, 0n))) in
+  do l := matrix_set !l (0n, 0n) (sqrt (matrix_get m (0n, 0n))) 
 
   -- Calculate the rest of the first column of L
-  seq
-  (iter (range 1n (n - 1n))
+  do iter (range 1n (n - 1n))
     (fun j ->
-      do l := matrix_set !l (j, 0n) ((matrix_get m (j, 0n)) / (matrix_get !l (0n, 0n)) ) in
-      () ) )
+      l := matrix_set !l (j, 0n) ((matrix_get m (j, 0n)) / (matrix_get !l (0n, 0n)) ) )
 
   -- Iterate through the remaining columns
-  (seq
-   (iter (range 1n (n - 1n))
+  do iter (range 1n (n - 1n))
     (fun i ->
       -- First calculate the diagonal element for this column
       let sum = ref shr0 in
-      seq
-      (iter (range 0n (i - 1n))
+      do iter (range 0n (i - 1n))
         (fun j ->
-          do sum := !sum + (matrix_get !l (i, j)) * (matrix_get !l (i, j)) in
-          () ) )
-
-      (do l := matrix_set !l (i, i) (sqrt ((matrix_get m (i, i)) - !sum)) in
-
+          sum := !sum + (matrix_get !l (i, j)) * (matrix_get !l (i, j)) ) 
+      do l := matrix_set !l (i, i) (sqrt ((matrix_get m (i, i)) - !sum)) in
       -- Now fill in the remaining entries in this column
+      -- TODO: remove use of unit
       if (i < n - 1n) then
         (iter (range (i + 1n) (n - 1n))
           (fun j ->
             do sum := shr0 in
             iter (range 0n (i - 1n))
               (fun k ->
-                do sum := !sum + (matrix_get !l (i, k)) * (matrix_get !l (j, k)) in
-                () ) ) )
-      else () ) ) )
-    !l)
+                sum := !sum + (matrix_get !l (i, k)) * (matrix_get !l (j, k)) ) ) )
+      else () ) in
+    !l
 
 -- Listing 8: Inverse of a positive definite Hermitian matrix
 def matrix_inverse_pdh : num -> matrix -> matrix
@@ -523,7 +504,7 @@ def karmarkar_iteration initial_point a c =
 
   -- Construct B
   -- Dimensions of B: (m + 1) x n
-  let b = snoc (row_of_ones n) ad in -- append a row of ones onto AD
+  let b = concat ad [ row_of_ones n ] in -- append a row of ones onto AD
 
   -- Dimensions of BBT: (m + 1) x (m + 1)
   let bbt = matrix_mult b (transpose b) in
@@ -588,7 +569,7 @@ def karmarkar_loop a c =
       ((((dot_prod c !x) - (dot_prod c x_new)) /
          (max_spdz shr1 (dot_prod c !x)) ) < epsilon )
       x_new)
-    (do x := x_new in ()) )
+    (x := x_new) )
   x)
 
 -- main: entry point; Ctr, Cost read inputs and run the algorithm,
