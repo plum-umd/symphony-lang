@@ -85,6 +85,7 @@ lexer = lexerBasic puns kws prim ops
       , "proc","return"
       , "loop"
       , "when"
+      , "import"
       ]
     prim = list
       [ "yao","gmw","bgw","bgv","spdz"
@@ -879,6 +880,9 @@ pTL = cpNewWithContextRendered "tl" $ concat
        cpSyntax ":"
        τ ← pType
        return $ PrimTL x τ
+  , do cpSyntax "import"
+       s ← cpString
+       return $ ImportTL s
   ]
 
 cpTLs ∷ CParser TokenBasic (𝐿 TL)

@@ -311,5 +311,6 @@ data TLR =
   | DefnTL Var (𝐿 Pat) Exp   -- def x ψ₁ … = e   /  def x  ψ₁ … = e
   | PrinTL (𝐿 PrinDecl)      -- principal ρ …    /  principal ρ …
   | PrimTL Var Type          -- primitive x : τ  /  primitive x : τ
+  | ImportTL 𝕊               -- import "file"    /  import "file"
   deriving (Eq,Ord)
 makePrettySum ''TLR

@@ -758,6 +758,12 @@ interpTL tl = case extract tl of
           SinglePD ρ → ρ ↦ SinglePK
           ArrayPD ρ n → ρ ↦ SetPK n
     modifyL itlStateDeclPrinsL (kinds ⩌)
+  ImportTL path → do
+    s ← io $ read path
+    let ts = tokens s
+    ls ← io $ tokenizeIO lexer path ts
+    tls ← io $ parseIO cpTLs path ls
+    interpTLs tls
   _ → pptrace (annotatedTag tl) $ error "interpTL: not implemented"
 
 interpTLs ∷ 𝐿 TL → ITLM ()
@@ -841,7 +847,7 @@ interpretFile θ ωtl name path = do
   let ts = tokens s
   ls ← tokenizeIO lexer name ts
   tls ← parseIO cpTLs name ls
-  ωtl' :* o :* () ← runITLMIO θ ωtl name $ eachWith interpTL tls
+  ωtl' :* o :* () ← indir (pathDir path) $ runITLMIO θ ωtl name $ eachWith interpTL tls
   return $ ωtl' :* o
 
 interpretFileMain ∷ IParams → ITLState → 𝕊 → 𝕊 → IO (ValP ∧ 𝑂 ValP)

@@ -1,0 +1,3 @@
+import "mod-a.psl"
+
+def main • = plus1 5

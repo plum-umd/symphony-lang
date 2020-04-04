@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 31e96aa7cd055187a23044fb70bf9721b8c99003a90e2d2aabdcc8ad30f32fba
+-- hash: e88a03fcc252a51ed8384fbe20e43f591fbbb7f4825448daf779ee2097720f94
 
 name:           psl
 version:        0.1.0.0
@@ -39,6 +39,8 @@ data-files:
     examples/karmarkar-simple.psl
     examples/karmarkar.psl
     examples/mill.psl.sec
+    examples/mod-a.psl
+    examples/mod-b.psl
     examples/msort-new.psl
     examples/msort.psl
     examples/mult-depth-test.psl
@@ -62,6 +64,7 @@ data-files:
     tests/bind-shares.psl
     tests/flt-arith.psl
     tests/fold.psl
+    tests/loop.psl
     tests/micro-let.psl
     tests/mux-deep.psl
     tests/mux-pair.psl
@@ -70,6 +73,8 @@ data-files:
     tests/overflow-int.psl
     tests/overflow-nat.psl
     tests/pairs-noloc.psl
+    tests/proc1.psl
+    tests/proc2.psl
     tests/refs.psl
     tests/reveal-ssec.psl
     tests/solo.psl
@@ -78,6 +83,7 @@ data-files:
     tests/underflow-int.psl
     tests/underflow-nat.psl
     tests/uninspecting-par.psl
+    tests/when.psl
     examples-input/A/atq-data.txt
     examples-input/A/cmp-input.txt
     examples-input/A/euclid.txt
