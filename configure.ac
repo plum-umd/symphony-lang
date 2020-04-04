@@ -57,7 +57,9 @@ dnl
     case "$STACK" in
       "") ;;
       *)
-        case `eval " $STACK --help"` in
+        STACK_HELP=`eval " $STACK --help"`
+	printf '%s\n' "$STACK_HELP" >&]AS_MESSAGE_LOG_FD[
+        case $STACK_HELP in
           *'The Haskell Tool Stack'*) psl_cv_stack_check=yes ;;
         esac
       ;;
