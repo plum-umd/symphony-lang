@@ -52,7 +52,7 @@ dnl
 ]AC_CACHE_CHECK(
   [if stack is indeed The Haskell Tool Stack],
   [psl_cv_stack_check],
-  [
+  [[
     psl_cv_stack_check=no
     case "$STACK" in
       "") ;;
@@ -62,9 +62,9 @@ dnl
         esac
       ;;
     esac
-  ])[
+  ]])[
 
-] [case $psl_cv_stack_check in
+case $psl_cv_stack_check in
   yes)
     STACK_MISSING=no
   ;;
