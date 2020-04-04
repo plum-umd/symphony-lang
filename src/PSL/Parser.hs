@@ -82,7 +82,7 @@ lexer = lexerBasic puns kws prim ops
       , "ref","array"
       , "do"
       , "read","write","from","to"
-      , "block","return"
+      , "proc","return"
       ]
     prim = list
       [ "yao","gmw","bgw","bgv","spdz"
@@ -740,8 +740,8 @@ pExp = fmixfixWithContext "exp" $ concat
   , fmixPrefix levelAPP $ do cpSyntax "size" ; return SizeE
   -- ⊥
   , fmixTerminal $ do concat [cpSyntax "⊥",cpSyntax "_|_"] ; return DefaultE
-  -- block e
-  , fmixPrefix levelLET $ do cpSyntax "block" ; return BlockE
+  -- proc e
+  , fmixPrefix levelLET $ do cpSyntax "proc" ; return ProcE
   -- return e
   , fmixPrefix levelLET $ do cpSyntax "return" ; return ReturnE
   -- prim[⊙](e,…,e)

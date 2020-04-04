@@ -359,14 +359,16 @@ interpExp = wrapInterp $ \case
       else interpExp e₃
   MuxIfE e₁ e₂ e₃ → do
     ṽ₁ ← interpExp e₁
-    ṽ₂ ← interpExp e₂
-    ṽ₃ ← interpExp e₃
     si₁ :* vmpc₁ ← unShareValP ṽ₁
+    (md₁,bvmpc₁) ← error𝑂 (view baseMVL vmpc₁) $ throwIErrorCxt TypeIError "bad" null
+    b₁ ← error𝑂 (view boolMVL bvmpc₁) $ throwIErrorCxt TypeIError "bad" null
+    ṽ₂ ← mapEnvL iCxtMPCPathConditionL ((md₁:* b₁ :* si₁) :&) $ do
+      interpExp e₂
+    ṽ₃ ← mapEnvL iCxtMPCPathConditionL ((md₁:* not b₁ :* si₁) :&) $ do
+      interpExp e₃
     si₂ :* vmpc₂ ← unShareValP ṽ₂
     si₃ :* vmpc₃ ← unShareValP ṽ₃
     si ← joinShareInfos [si₁,si₂,si₃]
-    (md₁,bvmpc₁) ← error𝑂 (view baseMVL vmpc₁) $ throwIErrorCxt TypeIError "bad" null
-    b₁ ← error𝑂 (view boolMVL bvmpc₁) $ throwIErrorCxt TypeIError "bad" null
     vmpc' ← muxMPCVal md₁ si b₁ vmpc₂ vmpc₃
     reShareValP vmpc' si
   LE e → do
@@ -719,20 +721,25 @@ interpExp = wrapInterp $ \case
       IntV _ i → introValP $ NatV p $ trPrNat p $ natΩ i
       _ → throwIErrorCxt TypeIError "interpExp: ToIntE: v ∉ {NatV _ n}" null
   DefaultE → introValP DefaultV
-  BlockE e → do
+  ProcE e → do
     κ :* ṽ ← 
       localizeL iStateMPCContL null $ 
       localL iCxtMPCPathConditionL null $ 
       interpExp e
-    mfoldrOnFrom κ ṽ $ \ (_pc :* _v̂ᴿ) _v̂' → undefined
+    si₀ :* vmpc₀ ← unShareValP ṽ
+    si :* vmpc ← mfoldrOnFrom κ (si₀ :* vmpc₀) $ \ (pcᴿ :* si₁ :* vmpcᴿ₀) (si₂ :*  vmpc) →  do
+      si₃ ← joinShareInfo si₁ si₂
+      mfoldrOnFrom pcᴿ (si₃ :* vmpcᴿ₀) $ \ (mdᵖᶜ :* bᵖᶜ :* siᵖᶜ) (si :* vmpcᴿ) → do
+        si' ← joinShareInfo si siᵖᶜ
+        vmpc' ← muxMPCVal mdᵖᶜ si' bᵖᶜ vmpcᴿ vmpc
+        return $ si' :* vmpc'
+    reShareValP vmpc si
   ReturnE e → do
-    _ṽ ← interpExp e
-    -- (φ,ρs,_,v̂) ← error𝑂 (view shareVPL ṽ) $
-    --   throwIErrorCxt TypeIError "interpExp: ReturnE: ṽ ≠ ShareVP _ _ _ _" null
-    -- pc ← askL iCxtMPCPathConditionL
-    -- modifyL iStateMPCContL $ \ κ → (pc :* Share φ ρs v̂) :& κ
-    -- introValP BulV
-    undefined
+    ṽ ← interpExp e
+    si :* vmpc ← unShareValP ṽ
+    pc ← askL iCxtMPCPathConditionL
+    modifyL iStateMPCContL $ \ κ → (pc :* si :* vmpc) :& κ
+    introValP DefaultV
   _ → throwIErrorCxt NotImplementedIError "interpExp: not implemented" null
 
 ---------------

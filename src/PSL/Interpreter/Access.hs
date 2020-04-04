@@ -189,7 +189,8 @@ unShareValMode m = \case
     si ← joinShareInfo si₁ si₂
     return $ si :* ConsMV vmpc₁ vmpc₂
   DefaultV → return $ NotShared :* DefaultMV
-  _ → throwIErrorCxt NotImplementedIError "unShareValMode" null
+  v → throwIErrorCxt NotImplementedIError "unShareValMode" $ frhs
+    [ ("v",pretty v) ]
 
 unShareValPs ∷ (STACK) ⇒ 𝐿 ValP → IM (ShareInfo ∧ 𝐿 ValMPC)
 unShareValPs = mfoldrFromWith (NotShared :* null) $ \ ṽ (siᵢ :* vmpcs) → do
@@ -215,7 +216,7 @@ reShareValPShared φ ρs = \case
     ṽ₁ ← reShareValPShared φ ρs vmpc₁
     ṽ₂ ← reShareValPShared φ ρs vmpc₂
     introValP $ ConsV ṽ₁ ṽ₂
-  _ → error "TODO: not implemented"
+  DefaultMV → introValP DefaultV
 
 ----------------
 -- MPC VALUES --
