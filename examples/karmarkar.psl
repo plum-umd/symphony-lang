@@ -260,6 +260,8 @@ def cont_seq m cv = cont_bind m (const cv)
 
 def cont_seq' m v = cont_seq m (cont_return v)
 
+def if_then guard tc = if guard then tc else ()
+
 -- if_then guard tc: an if-then branch 
 def if_then_ret muxer guard tc = ((muxer guard tc), ())
 
@@ -472,14 +474,13 @@ def cholesky_decomposition m =
       do l := matrix_set !l (i, i) (sqrt ((matrix_get m (i, i)) - !sum)) in
       -- Now fill in the remaining entries in this column
       -- TODO: remove use of unit
-      if (i < n - 1n) then
+      if_then (i < n - 1n) 
         (iter (range (i + 1n) (n - 1n))
           (fun j ->
             do sum := shr0 in
             iter (range 0n (i - 1n))
               (fun k ->
-                sum := !sum + (matrix_get !l (i, k)) * (matrix_get !l (j, k)) ) ) )
-      else () ) in
+                sum := !sum + (matrix_get !l (i, k)) * (matrix_get !l (j, k)) ) ) ) ) in
     !l
 
 -- Listing 8: Inverse of a positive definite Hermitian matrix
