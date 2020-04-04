@@ -125,6 +125,7 @@ syn match pantheonKeyword "\v<write>"
 syn match pantheonKeyword "\v<proc>"
 syn match pantheonKeyword "\v<return>"
 syn match pantheonKeyword "\v<loop>"
+syn match pantheonKeyword "\v<when>"
 
 
 syn match pantheonKeyword "\v∀"
