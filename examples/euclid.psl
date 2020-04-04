@@ -94,13 +94,10 @@ def gcd gcd_rec (a, b) =
 def bnd_gcd = bound_int_fn gcd 93n -- 93: computed using some magic
                                    -- by-hand calculation
 
--- gcd': properly orders the arguments and calls the recursive
--- function.
-def gcd' a b = bnd_gcd (int-minmax a b)
-
 def main () =
   let a = par {A} 3 in
   let b = par {B} 6 in
-  reveal{E} gcd'
-    (share{yao:A -> C,D} a)
-    (share{yao:B -> C,D} b)
+  reveal{E} bnd_gcd
+    (int-minmax
+      (share{yao:A -> C,D} a)
+      (share{yao:B -> C,D} b) )
