@@ -601,3 +601,10 @@ def map-cond-insert-with f cond k v m =
 def map-insert-with f = map-cond-insert-with f true
 
 def map-insert = map-insert-with (fun x _ -> x)
+
+def loop-f f n =
+  if n ≡ 0n
+  then •
+  else 
+    do f •
+    in loop-f f (n - 1n)

@@ -83,6 +83,7 @@ lexer = lexerBasic puns kws prim ops
       , "do"
       , "read","write","from","to"
       , "proc","return"
+      , "loop"
       ]
     prim = list
       [ "yao","gmw","bgw","bgv","spdz"
@@ -821,6 +822,16 @@ pExp = fmixfixWithContext "exp" $ concat
       e ← pExp
       void $ cpOptional $ cpSyntax "in"
       return $ LetE (VarP $ var "") e
+  -- loop e in e
+  , fmixPrefix levelLET $ do
+      cpSyntax "loop"
+      e₁ ← pExp
+      cpSyntax "in"
+      return $ \ e₂ → 
+        AppE (siphon e₁ $
+              AppE (siphon e₁ $ VarE $ var "loop-f")
+                   (siphon e₁ $ LamE None (list [WildP]) e₂))
+             e₁
   ]
       
 ---------------
