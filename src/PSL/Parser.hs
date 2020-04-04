@@ -530,30 +530,26 @@ pExp = fmixfixWithContext "exp" $ concat
       return $ FltE pr d
   -- •
   , fmixTerminal $ do concat [cpSyntax "•",cpSyntax "()"] ; return BulE
-  -- if e then e else e
+  -- [mux] if e then e else e
   , fmixPrefix levelIF $ do
+      b ← cpOptional $ cpSyntax "mux"
       cpSyntax "if"
       e₁ ← pExp
       cpSyntax "then"
       e₂ ← pExp
       cpSyntax "else"
-      return $ IfE e₁ e₂
-  -- mux e then e else e
-  , fmixPrefix levelIF $ do
-      cpSyntax "mux"
-      e₁ ← pExp
-      cpSyntax "then"
-      e₂ ← pExp
-      cpSyntax "else"
-      return $ MuxE e₁ e₂
+      return $ 
+        if b ≡ Some ()
+        then MuxIfE e₁ e₂
+        else IfE e₁ e₂
   -- L e
   , fmixPrefix levelAPP $ do cpSyntax "L" ; return LE
   -- R e
   , fmixPrefix levelAPP $ do cpSyntax "R" ; return RE
   -- to_flt
-  , fmixPrefix levelAPP $ do cpSyntax "to_flt" ; return $ \ e → PrimE "TO_FLT" $ list [e]
+  , fmixPrefix levelAPP $ do cpSyntax "to_flt" ; return $ \ e → PrimE "FLT" $ list [e]
   -- abs_val
-  , fmixPrefix levelAPP $ do cpSyntax "abs_val" ; return $ \ e → PrimE "ABS_VAL" $ list [e]
+  , fmixPrefix levelAPP $ do cpSyntax "abs_val" ; return $ \ e → PrimE "ABS" $ list [e]
   -- ceil
   , fmixPrefix levelAPP $ do cpSyntax "ceil" ; return $ \ e → PrimE "CEIL" $ list [e]
   -- sqrt
@@ -580,18 +576,22 @@ pExp = fmixfixWithContext "exp" $ concat
       e ← pExp
       void $ cpOptional $ cpSyntax "in"
       return $ LetE ψ e
-  -- case e {ψ→e;…;ψ→e}
+  -- [mux] case e {ψ→e;…;ψ→e}
   , fmixTerminal $ do 
+      b ← cpOptional $ cpSyntax "mux"
       cpSyntax "case"
       e ← pExp
       cpSyntax "{"
-      φes ← cpManySepBy (cpSyntax ";") $ do 
-        φ ← pPat
+      ψes ← cpManySepBy (cpSyntax ";") $ do 
+        ψ ← pPat
         concat [cpSyntax "→",cpSyntax "->"]
         e' ← pExp
-        return $ φ :* e'
+        return $ ψ :* e'
       cpSyntax "}"
-      return $ CaseE e φes
+      return $ 
+        if b ≡ Some ()
+        then MuxCaseE e ψes
+        else CaseE e ψes
   -- λ [x] ψ…ψ → e
   , fmixPrefix levelLAM $ do
       concat [cpSyntax "λ",cpSyntax "fun"]

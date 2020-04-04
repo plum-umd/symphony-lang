@@ -36,7 +36,7 @@ data Val =
 data ValP =
     SSecVP (𝑃 PrinVal) Val
   | ISecVP (PrinVal ⇰ Val)
-  | ShareVP Prot (𝑃 PrinVal) ℕ ValMPC
+  | ShareVP Prot (𝑃 PrinVal) ValMPC
   | LocVP Mode ℤ64
   | AllVP Val
   | UnknownVP
@@ -46,14 +46,20 @@ data ValP =
 -- Values used in circuits
 -- sv ∈ mpc-val
 data ValMPC =
+    BaseMV ℕ BaseValMPC
+  | PairMV ValMPC ValMPC
+  | SumMV ℕ 𝔹 ValMPC ValMPC
+  | NilMV
+  | ConsMV ValMPC ValMPC
+  | DefaultMV
+  deriving (Eq,Ord,Show)
+
+data BaseValMPC =
     BoolMV 𝔹
   | NatMV IPrecision ℕ
   | IntMV IPrecision ℤ
   | FltMV FPrecision 𝔻
-  | PrinMV PrinExpVal
-  | PairMV ValMPC ValMPC
-  | SumMV 𝔹 ValMPC ValMPC
-  | DefaultMV
+  | PrinMV PrinVal
   deriving (Eq,Ord,Show)
 
 -----------------
@@ -72,13 +78,35 @@ makePrettySum ''ValP
 makePrisms ''ValMPC
 makePrettySum ''ValMPC
 
-data Share = Share
-  { shareProtocol ∷ Prot
-  , sharePrincipals ∷ 𝑃 PrinVal
-  , shareValue ∷ ValMPC
-  } deriving (Eq,Ord,Show)
-makeLenses ''Share
-makePrettySum ''Share
+makePrisms ''BaseValMPC
+makePrettySum ''BaseValMPC
+
+data ShareInfo = 
+    NotShared
+  | Shared Prot (𝑃 PrinVal)
+  deriving (Eq,Ord,Show)
+makePrettySum ''ShareInfo
+
+-- data Share a = Share
+--   { shareProtocol ∷ Prot
+--   , sharePrincipals ∷ 𝑃 PrinVal
+--   , shareValue ∷ a
+--   } deriving (Eq,Ord,Show)
+-- makeLenses ''Share
+-- makePrettySum ''Share
+-- 
+-- elimShare ∷ ValP → 𝑂 (Share ValMPC)
+-- elimShare = \case
+--   ShareVP φ ρs v → Some $ Share φ ρs v
+--   _ → None
+-- 
+-- instance Functor Share where 
+--   map f (Share φ ρs x) = Share φ ρs $ f x
+-- 
+-- instance FunctorM Share where
+--   mapM f (Share φ ρs x) = do
+--     y ← f x
+--     return $ Share φ ρs y
 
 -----------
 -- STORE --
@@ -116,7 +144,7 @@ data ICxt = ICxt
   , iCxtDeclPrins ∷ Prin ⇰ PrinKind
   , iCxtEnv ∷ Env
   , iCxtMode ∷ Mode
-  , iCxtMPCPathCondition ∷ 𝐿 (𝔹 ∧ Share)
+  , iCxtMPCPathCondition ∷ 𝐿 (𝔹 ∧ ValMPC ∧ ShareInfo)
   } deriving (Show)
 makeLenses ''ICxt 
 makePrettySum ''ICxt
@@ -139,7 +167,7 @@ iCxtIsExampleL = iParamsIsExampleL ⊚ iCxtParamsL
 data IState = IState
   { iStateStore ∷ Store
   , iStateNextLoc ∷ ℤ64
-  , iStateMPCCont ∷ 𝐿 (𝐿 (𝔹 ∧ Share) ∧ Share)
+  , iStateMPCCont ∷ 𝐿 (𝐿 (𝔹 ∧ ValMPC ∧ ShareInfo) ∧ ValMPC ∧ ShareInfo)
   } deriving (Eq,Ord,Show)
 makeLenses ''IState
 makePrettySum ''IState

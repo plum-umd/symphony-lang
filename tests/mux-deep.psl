@@ -1,0 +1,20 @@
+principal A B
+
+def main • =
+  let x = share {yao:A → A,B} false
+  let y = (share {yao:B → A,B} 3, share {yao:B → A,B} 4)
+  let z = (share {yao:B → A,B} 4, share {yao:B → A,B} 1)
+  mux if share {yao:A → A,B} true
+  then [1;2;3] , (4, 5, 6)
+  else [4;5;6] , (7, 8, 9)
+
+def expected = 
+  ([share {yao:A → A,B} 1
+   ;share {yao:A → A,B} 2
+   ;share {yao:A → A,B} 3
+   ] 
+  ,(share {yao:A → A,B} 4
+   ,share {yao:A → A,B} 5
+   ,share {yao:A → A,B} 6
+   )
+  )
