@@ -5,34 +5,107 @@ principal C D
 -- output party
 principal E
 
--- assumptions:
--- ‣ a > b
-def euclid-rec : ℕ → ℤ{yao:C,D} → ℤ{yao:C,D} → ℤ{yao:C,D}
-def euclid-rec n a b =
-  if n ≡ 0n
-  then b
+-- BEGIN LIB CODE: this should all live in a library or directly in
+-- the interpreter (most of the definitions already exist). The only
+-- definitions that need to be exported to GCD are mux_pair and
+-- bound_int_fn.
+
+-- elim_nat: form for eliminating nats
+def elim_nat m z s = 
+  if m == 0n then z
+  else s (elim_nat (m - 1n) z s)
+
+-- bnd_rec f init fuel: simulates "nearly-recursive" function f for up
+-- to fuel steps, then simulates init.
+def bnd_rec f init fuel = elim_nat fuel init f
+
+-- variadic_int_zero n = fun x0 ... xn -> 0
+
+-- Does this have a type in PSL? If not, seems like we'd need to
+-- either build it directly into the interpreter or extend PSL to be
+-- indexed by (at least) nats.
+def variadic_int_zero n = elim_nat n
+  0
+  (fun vz' -> fun x -> vz')
+
+-- LIB EXPORTS:
+
+-- mux_pair: distribute muxing over pairs
+def mux_pair guard (a0, b0) (a1, b1) =
+  ((mux guard then a0 else a1), (mux guard then b0 else b1))
+
+-- bound_int_fn f num_params fuel, where f is a num_params-ary
+-- function to int: f, bounded to execute fuel steps.
+def bound_int_fn f num_params = bnd_rec f (variadic_int_zero num_params) 
+
+-- END LIB CODE
+
+-- This is the beginning of an alternative implementation of GCD,
+-- which we would actually point the govt to.
+
+-- The key challenge in securely computing GCD is that it recurses on
+-- private data. One solution that we've already coded up is
+
+-- 1. extend the signature of gcd itself with a "fuel" parameter;
+
+-- 2. alter the gcd pseudocode logic to first check if the fuel is
+-- zero, and then decrement fuel and pass it as a parameter in the
+-- recursive call.
+
+-- This is certainly defendable, but let's see to what extent we can
+-- factor out the fuel checking code. Below is an alternate
+-- implementation. The mildly awkward implementation in current PSL
+-- is:
+
+-- 1. Write gcd to take an extra parameter gcd_rec that must be called
+-- at all recursive calls instead of gcd.
+
+-- 2. Instead of calling gcd itself in the client code, call the
+-- result of applying a "magic library function" bound_int_fn, which
+-- takes
+
+-- a. the actual recursive function that you want to execute securely
+
+-- b. how many parameters it has
+
+-- c. how many steps you want to execute it
+
+-- The main payoff for this is that the code in gcd itself now matches
+-- the pseudocode "nearly" line-by-line. The "nearly" sneaks in
+-- because of the weird recursive calling convention that the code has
+-- to follow. It seems like this could be cleaned away using a very
+-- modest extension to PSL: something like a "secure recursion"
+-- directive that allows someone to write:
+
+-- sec_def f = ...f...
+
+-- and effectively rewrites it to:
+
+-- def f f_rec = ...f_rec...
+
+-- Listing 5: Greatest Common Divisor.
+def gcd gcd_rec a b =
+  -- 0 is divisible by any number, so when we reach it we can stop
+  mux (a == 0) then
+    b
   else
-    b ≡ 0
-    ? a
-    ◇ euclid-rec (n - 1n) b (a % b)
+    let r = b % a in -- remainder (B / A)
 
--- assumptions:
--- ‣ a > 0
--- ‣ b > 0
-def euclid : ℤ{yao:C,D} → ℤ{yao:C,D} → ℤ{yao:C,D}
-def euclid a b =
-  -- worst case is neighboring fibbinocci sequence numbers, with one iteration
-  -- per sequence position, and 64 bit max bound is less than the 93rd fib
-  -- number
-  let n = 93n
-  in
-  a > b
-  ? euclid-rec n a b
-  ◇ euclid-rec n b a
+    -- gcd (A, B) = gcd ( A, R +kA) = gcd( R, A ), so use recursion
+    gcd_rec r a
 
-def main : 𝟙 → {inp:A,B;rev:E} ℤ{ssec:E}
-def main • =
-  let a = par {A} (read ℤ from "euclid.txt")
-  let b = par {B} (read ℤ from "euclid.txt")
-  reveal{E} euclid (share{yao:A -> C,D} a)
-                   (share{yao:B -> C,D} b)
+def bnd_gcd = bound_int_fn gcd 2n 93n -- 93: computed using some magic
+                                      -- by-hand calculation
+
+-- gcd': properly orders the arguments and calls the recursive
+-- function.
+def gcd' a b = 
+  let (a', b') = mux_pair (a < b) (a, b) (b, a) in
+  bnd_gcd a' b'
+
+def main () =
+  let a = par {A} 3 in
+  let b = par {B} 6 in
+  reveal{E} gcd'
+    (share{yao:A -> C,D} a)
+    (share{yao:B -> C,D} b)
