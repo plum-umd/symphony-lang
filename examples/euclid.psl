@@ -64,11 +64,10 @@ def bound_int_fn f = bnd_rec f (fun _ -> 0)
 -- result of applying a "magic library function" bound_int_fn, which
 -- takes
 
--- a. the actual recursive function that you want to execute securely
+-- a. the actual "nearly-recursive" function that you want to execute
+-- securely
 
--- b. how many parameters it has
-
--- c. how many steps you want to execute it
+-- b. how many steps you want to execute it
 
 -- The main payoff for this is that the code in gcd itself now matches
 -- the pseudocode "nearly" line-by-line. The "nearly" sneaks in
