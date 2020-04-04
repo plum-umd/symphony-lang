@@ -10,7 +10,9 @@ principal E
 -- definitions that need to be exported to GCD are mux_pair and
 -- bound_int_fn.
 
--- elim_nat: form for eliminating nats
+def const x = fun y -> x
+
+-- elim_nat: elimination form for nats
 def elim_nat m z s = 
   if m == 0n then z
   else s (elim_nat (m - 1n) z s)
@@ -30,13 +32,9 @@ def variadic_int_zero n = elim_nat n
 
 -- LIB EXPORTS:
 
--- mux_pair: distribute muxing over pairs
-def mux_pair guard (a0, b0) (a1, b1) =
-  ((mux guard then a0 else a1), (mux guard then b0 else b1))
-
 -- bound_int_fn (f : 't -> int) fuel: f, bounded to execute fuel
 -- steps.
-def bound_int_fn f = bnd_rec f (fun _ -> 0) 
+def bound_int_fn f = bnd_rec f (const 0) 
 
 -- END LIB CODE
 
@@ -98,9 +96,7 @@ def bnd_gcd = bound_int_fn gcd 93n -- 93: computed using some magic
 
 -- gcd': properly orders the arguments and calls the recursive
 -- function.
-def gcd' a b = 
-  let (a', b') = mux_pair (a < b) (a, b) (b, a) in
-  bnd_gcd (a', b')
+def gcd' a b = bnd_gcd (int-minmax a b)
 
 def main () =
   let a = par {A} 3 in
