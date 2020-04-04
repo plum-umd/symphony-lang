@@ -34,7 +34,9 @@ def variadic_int_zero n = elim_nat n
 
 -- bound_int_fn (f : 't -> int) fuel: f, bounded to execute fuel
 -- steps.
-def bound_int_fn f = bnd_rec f (const 0) 
+def int-eval-upto f = bnd_rec f (const 0) 
+def nat-eval-upto f = bnd_rec f (const 0n) 
+def flt-eval-upto f = bnd_rec f (const 0.0) 
 
 -- END LIB CODE
 
@@ -91,13 +93,10 @@ def gcd gcd_rec (a, b) =
     -- gcd (A, B) = gcd ( A, R +kA) = gcd( R, A ), so use recursion
     gcd_rec (r, a)
 
-def bnd_gcd = bound_int_fn gcd 93n -- 93: computed using some magic
-                                   -- by-hand calculation
-
 def main () =
   let a = par {A} 3 in
   let b = par {B} 6 in
-  reveal{E} bnd_gcd
+  reveal{E} (int-eval-upto gcd 93n
     (int-minmax
       (share{yao:A -> C,D} a)
-      (share{yao:B -> C,D} b) )
+      (share{yao:B -> C,D} b) ) )
