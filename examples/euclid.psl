@@ -21,15 +21,6 @@ def elim_nat m z s =
 -- to fuel steps, then simulates init.
 def bnd_rec f init fuel = elim_nat fuel init f
 
--- DEP: variadic_int_zero n = fun x0 ... xn -> 0
-
--- Does this have a type in PSL? If not, seems like we'd need to
--- either build it directly into the interpreter or extend PSL to be
--- indexed by (at least) nats.
-def variadic_int_zero n = elim_nat n
-  0
-  (fun vz' -> fun x -> vz')
-
 -- LIB EXPORTS:
 
 -- bound_int_fn (f : 't -> int) fuel: f, bounded to execute fuel
