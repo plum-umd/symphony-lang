@@ -950,6 +950,11 @@ def iter_sec_nat muxer n bnd s rv = cont_run
 
 -- library of operations over matrices represented as lists of lists
 
+def get-matrix m (i, j) = get (get m i) j
+
+def upd-matrix m (i, j) v = upd m i (upd (get m i) j v)
+
+
 -- transpose m: transposition of m
 def transpose : list (list t) -> list (list t)
 def transpose m = elim_list m

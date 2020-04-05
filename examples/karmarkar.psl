@@ -54,13 +54,17 @@ def iter_sec_nat_ls = iter_sec_nat_spdz mux_ls
 
 -- nz_prod z u l: the product of non-z entries in l, with
 -- multiplicative unit u
-def nz_prod z one l = elim_list l
-  one
-  (fun x -> mult (mux-wrap (x == z) one x))
+def nz-prod z u l = elim_list l
+  u
+  (fun x p -> mux if (x == z) then x else x * p)
 
-def nz_prod_vec = nz_prod shr0 shr1
+def nz-prod-flt = nz-prod 0.0 1.0
 
-def nz_prod_mat m = nz_prod_vec (map nz_prod_vec m)
+def nz-prod-mat z u m =
+  let nz-prod-ls = nz-prod z u in
+  nz-prod-ls (map nz-prod-ls m)
+
+def nz-prod-mat-flt = nz-prod-mat 0.0 1.0
 
 def zero_vec = const-ls shr0 
 
@@ -80,10 +84,6 @@ def range m n =
        [ 0n ]
        (fun rng -> snoc (len rng) rng) )
 
-def matrix_get m (i, j) = get (get m i) j
-
-def matrix_set m (i, j) v = upd m i (upd (get m i) j v)
-
 -- Listing 9: Inverse of a lower triangular matrix
 def matrix_inverse_lt l =
   let n = order l in -- order of L
@@ -91,7 +91,7 @@ def matrix_inverse_lt l =
   do (iter (range 0n (n - 1n))
     (fun k ->
       -- For diagonal entries, take the reciprocal
-      do l_inv := matrix_set !l_inv (k, k) (shr1 / (matrix_get !l_inv (k, k))) in
+      do l_inv := upd-matrix !l_inv (k, k) (shr1 / (get-matrix !l_inv (k, k))) in
 
       -- For non-diagonal entries, solve L * L_inv = I
       iter (range (k + 1n) (n - 1n))
@@ -99,7 +99,7 @@ def matrix_inverse_lt l =
           let sum = ref shr0 in
           iter (range k (j - 1n))
             (fun i ->
-              sum := !sum - (matrix_get l (j, i)) * (matrix_get !l_inv (i, k))
+              sum := !sum - (get-matrix l (j, i)) * (get-matrix !l_inv (i, k))
               ) ) ) ) in
   !l_inv
 
@@ -112,12 +112,12 @@ def cholesky_decomposition m =
   let l = ref (zero_mat n) in -- n x n zero matrix
 
   -- Calculate the top diagonal element of L
-  do l := matrix_set !l (0n, 0n) (sqrt (matrix_get m (0n, 0n))) 
+  do l := upd-matrix !l (0n, 0n) (sqrt (get-matrix m (0n, 0n))) 
 
   -- Calculate the rest of the first column of L
   do iter (range 1n (n - 1n))
     (fun j ->
-      l := matrix_set !l (j, 0n) ((matrix_get m (j, 0n)) / (matrix_get !l (0n, 0n)) ) )
+      l := upd-matrix !l (j, 0n) ((get-matrix m (j, 0n)) / (get-matrix !l (0n, 0n)) ) )
 
   -- Iterate through the remaining columns
   do iter (range 1n (n - 1n))
@@ -126,8 +126,8 @@ def cholesky_decomposition m =
       let sum = ref shr0 in
       do iter (range 0n (i - 1n))
         (fun j ->
-          sum := !sum + (matrix_get !l (i, j)) * (matrix_get !l (i, j)) ) 
-      do l := matrix_set !l (i, i) (sqrt ((matrix_get m (i, i)) - !sum)) in
+          sum := !sum + (get-matrix !l (i, j)) * (get-matrix !l (i, j)) ) 
+      do l := upd-matrix !l (i, i) (sqrt ((get-matrix m (i, i)) - !sum)) in
       -- Now fill in the remaining entries in this column
       if-then (i < n - 1n) 
         (iter (range (i + 1n) (n - 1n))
@@ -135,7 +135,7 @@ def cholesky_decomposition m =
             do sum := shr0 in
             iter (range 0n (i - 1n))
               (fun k ->
-                sum := !sum + (matrix_get !l (i, k)) * (matrix_get !l (j, k)) ) ) ) ) in
+                sum := !sum + (get-matrix !l (i, k)) * (get-matrix !l (j, k)) ) ) ) ) in
     !l
 
 -- Listing 8: Inverse of a positive definite Hermitian matrix
@@ -207,7 +207,7 @@ def karmarkar_loop a c =
   let x = ref (div-scalar-vec (row-of-ones n) (to_flt n)) in
 
   -- product of non-zero entries in c and A
-  let p = (nz_prod_vec c) * (nz_prod_mat a) in
+  let p = (nz-prod-flt c) * (nz-prod-mat-flt a) in
   let l = (m + 1n) * n +
     (magn (ceil (log_2_real (abs-val-flt-shr p)))) +
     n * (magn (ceil (log_2_real (to_flt n)))) in
