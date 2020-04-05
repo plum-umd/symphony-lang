@@ -4,20 +4,26 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: e88a03fcc252a51ed8384fbe20e43f591fbbb7f4825448daf779ee2097720f94
+-- hash: 6549fe5e133e1b8ecdb77b71d19e7ad8506d5fdfd44f6a8024ae775b7865aaed
 
 name:           psl
 version:        0.1.0.0
 build-type:     Simple
 data-files:
     lib/stdlib.psl
+    examples/#karmarkar-decl.psl#
     examples/alias.psl
     examples/arg-par-contains.psl
+    examples/arg-par-contains.psl~
     examples/assoc-map.psl
     examples/atq.psl
+    examples/bak.txt
     examples/bind-fp-const.psl
+    examples/bind-fp-const.psl~
     examples/bind-shares.psl
+    examples/bind-shares.psl~
     examples/cmp-fn-flt.psl
+    examples/cmp-fn-flt.psl~
     examples/cmp-tutorial.psl
     examples/cmp-tutorial.psl.html
     examples/cmp-tutorial.psl.pdf
@@ -26,35 +32,58 @@ data-files:
     examples/cmp.psl.pdf
     examples/concat.psl
     examples/cont-monad.psl
+    examples/cont_monad.psl~
     examples/db-stats.psl
     examples/elim-sec-ls.psl
+    examples/elim-sec-ls.psl~
     examples/empty-par-diverge.psl
+    examples/empty-par-diverge.psl~
     examples/euclid-dh.psl
     examples/euclid.psl
+    examples/gcd.sec
+    examples/gcd.sec~
     examples/indy-pars.psl
+    examples/indy-pars.psl~
     examples/karmarkar-decl.psl
+    examples/karmarkar-decl.psl~
     examples/karmarkar-sane.psl
     examples/karmarkar-setup.psl
+    examples/karmarkar-setup.psl~
     examples/karmarkar-silly.psl
+    examples/karmarkar-silly.psl~
     examples/karmarkar-simple.psl
+    examples/karmarkar-simple.psl~
     examples/karmarkar.psl
+    examples/karmarkar.psl~
     examples/mill.psl.sec
     examples/mod-a.psl
     examples/mod-b.psl
     examples/msort-new.psl
     examples/msort.psl
     examples/mult-depth-test.psl
+    examples/notes.md
+    examples/notes.md~
     examples/partial-diverge.psl
+    examples/partial-diverge.psl~
     examples/pfold.psl
     examples/qsort-pure.psl
     examples/rand.psl
     examples/reshare.psl
+    examples/reshare.psl~
     examples/share-ls.psl
+    examples/share-ls.psl~
     examples/simple-read.psl
     examples/simple-write.psl
+    examples/single-share.psl
+    examples/single-share.psl~
+    examples/ssec-ineq-ssec.psl~
     examples/ssec-other-ssec.psl
     examples/ssec-shr.psl
+    examples/ssec-shr.psl~
     examples/sumprod.psl
+    examples/test.psl~
+    examples/todo.txt
+    examples/todo.txt~
     examples/uninspecting-par.psl
     examples/vector.psl
     examples/yao.psl.bmi

@@ -5,78 +5,10 @@ principal C D
 -- output party
 principal E
 
--- BEGIN LIB CODE: this should all live in a library or directly in
--- the interpreter (most of the definitions already exist). The only
--- definitions that need to be exported to GCD are mux_pair and
--- bound_int_fn.
-
-def const x = fun y -> x
-
--- elim_nat: elimination form for nats
-def elim_nat m z s = 
-  if m == 0n then z
-  else s (elim_nat (m - 1n) z s)
-
--- bnd_rec f init fuel: simulates "nearly-recursive" function f for up
--- to fuel steps, then simulates init.
-def bnd_rec f init fuel = elim_nat fuel init f
-
--- LIB EXPORTS:
-
--- bound_int_fn (f : 't -> int) fuel: f, bounded to execute fuel
--- steps.
-def int-eval-upto f = bnd_rec f (const 0) 
-def nat-eval-upto f = bnd_rec f (const 0n) 
-def flt-eval-upto f = bnd_rec f (const 0.0) 
-
--- END LIB CODE
-
--- This is the beginning of an alternative implementation of GCD,
--- which we would actually point the govt to.
-
--- The key challenge in securely computing GCD is that it recurses on
--- private data. One solution that we've already coded up is
-
--- 1. extend the signature of gcd itself with a "fuel" parameter;
-
--- 2. alter the gcd pseudocode logic to first check if the fuel is
--- zero, and then decrement fuel and pass it as a parameter in the
--- recursive call.
-
--- This is certainly defendable, but let's see to what extent we can
--- factor out the fuel checking code. Below is an alternate
--- implementation. The mildly awkward implementation in current PSL
--- is:
-
--- 1. Write gcd to take an extra parameter gcd_rec that must be called
--- at all recursive calls instead of gcd.
-
--- 2. Instead of calling gcd itself in the client code, call the
--- result of applying a "magic library function" bound_int_fn, which
--- takes
-
--- a. the actual "nearly-recursive" function that you want to execute
--- securely
-
--- b. how many steps you want to execute it
-
--- The main payoff for this is that the code in gcd itself now matches
--- the pseudocode "nearly" line-by-line. The "nearly" sneaks in
--- because of the weird recursive calling convention that the code has
--- to follow. It seems like this could be cleaned away using a very
--- modest extension to PSL: something like a "secure recursion"
--- directive that allows someone to write:
-
--- sec_def f = ...f...
-
--- and effectively rewrites it to:
-
--- def f f_rec = ...f_rec...
-
 -- Listing 5: Greatest Common Divisor.
 def gcd gcd_rec (a, b) =
   -- 0 is divisible by any number, so when we reach it we can stop
-  mux (a == 0) then
+  mux if (a == 0) then
     b
   else
     let r = b % a in -- remainder (B / A)
@@ -85,6 +17,7 @@ def gcd gcd_rec (a, b) =
     gcd_rec (r, a)
 
 def main () =
+  -- TODO: replace with file input
   let a = par {A} 3 in
   let b = par {B} 6 in
   reveal{E} (int-eval-upto gcd 93n

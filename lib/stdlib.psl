@@ -1,3 +1,9 @@
+---
+--- Function library
+---
+def const x = fun y -> x
+
+
 def solo-f : ∀ A:☆. (P:ℙs) → ((p:ℙ | {p}⊆P) →{p} A) →{P} A{isec:P}
 def solo-f P f = case P
   { {} → ⟪⟫
@@ -608,3 +614,27 @@ def loop-f f n =
   else 
     do f •
     in loop-f f (n - 1n)
+
+---
+--- NAT LIBRARY
+---
+
+-- elim_nat: elimination form for nats
+def elim_nat m z s = 
+  if m == 0n then z
+  else s (elim_nat (m - 1n) z s)
+
+---
+--- SECURE RECURSION LIBRARY
+---
+
+-- bnd_rec f init fuel: simulates "nearly-recursive" function f for up
+-- to fuel steps, then simulates init.
+def bnd_rec f init fuel = elim_nat fuel init f
+
+-- bound_int_fn (f : 't -> int) fuel: f, bounded to execute fuel
+-- steps.
+def int-eval-upto f = bnd_rec f (const 0) 
+def nat-eval-upto f = bnd_rec f (const 0n) 
+def flt-eval-upto f = bnd_rec f (const 0.0) 
+
