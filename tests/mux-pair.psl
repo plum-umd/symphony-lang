@@ -4,6 +4,6 @@ def main • =
   let x = share {yao:A → A,B} false
   let y = (share {yao:B → A,B} 3, share {yao:B → A,B} 4)
   let z = (share {yao:B → A,B} 4, share {yao:B → A,B} 1)
-  in (mux x then y else z)
+  in (mux if x then y else z)
 
 def expected = (share {yao:B → A,B} 4, share {yao:B → A,B} 1)

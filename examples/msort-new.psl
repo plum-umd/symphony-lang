@@ -1,0 +1,60 @@
+principal A
+principal B
+principal C[2]
+principal E
+
+def split : list ℤ{isec:A,B} → list ℤ{isec:A,B} × list ℤ{isec:A,B}
+def split xs = case xs
+  { [] → [] , []
+  ; [x] → [] , [x]
+  ; x₁∷x₂∷xs →
+      let xs₁,xs₂ = split xs 
+      in x₁∷xs₁,x₂∷xs₂
+  }
+
+def merge : 
+    list ℤ{yao:C}
+  → list ℤ{yao:C}
+  → list ℤ{yao:C}
+def merge xs ys = case xs,ys
+  { [],_ → ys
+  ; _,[] → xs
+  ; x∷xs′,y∷ys′ →
+      mux if x ≤ y
+      then x ∷ merge xs′ ys
+      else y ∷ merge xs ys′
+  }
+
+def msort : list ℤ{isec:A,B} → list ℤ{yao:C}
+def msort xs = case xs 
+  { [] → []
+  ; [xy] →
+      let x = share{yao:A -> C} xy@A
+      let y = share{yao:B -> C} xy@B
+      let b = x ≤ y
+      in [ b ? x ◇ y ; b ? y ◇ x ]
+  ; x₁∷x₂∷xs′ →
+      let xs₁,xs₂ = split xs
+
+      let ys₁ : list ℤ{yao:C}
+      let ys₁ = msort xs₁
+
+      let ys₁ : list ℤ{yao:C}
+      let ys₂ = msort xs₂
+
+      in merge ys₁ ys₂
+  }
+
+def map f xs = case xs
+  { [] → []
+  ; x∷xs′ → f x∷map f xs′
+  }
+
+def main : 𝟙 →{inp:A,B;rev:E} list ℤ{ssec:E}
+def main • = 
+  let xys-pre : (list ℤ){isec:A,B}
+  let xys-pre = solo {A,B} as α in read (list ℤ) from "msort-input.txt"
+  let xys : list ℤ{isec:A,B}
+  let xys = preprocess-lists {A,B} 5 0 xys-pre
+  in map (λ x → reveal{E} x) (msort xys)
+

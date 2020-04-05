@@ -16,7 +16,7 @@ all-examples: psl
 	./psl example $(FLAGS) qsort-pure
 	# ./psl example db-stats
 	./psl example $(FLAGS) atq
-	./psl example karmarkar
+	./psl example $(FLAGS) karmarkar
 
 .stack-work:
 	stack setup

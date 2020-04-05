@@ -1,0 +1,11 @@
+def main • =
+  let x = ref []
+  let y = ref 0
+  do  loop 10n in
+        do x ≔ !y ∷ !x
+        do y ≔ !y + 1
+        in •
+  in
+  !x
+
+def expected = [9;8;7;6;5;4;3;2;1;0]
