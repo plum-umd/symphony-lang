@@ -60,6 +60,8 @@ def nz-prod z u l = elim_list l
 
 def nz-prod-flt = nz-prod 0.0 1.0
 
+-- nz-prod-mat z u m: product of non-z entries in matrix m with
+-- multiplicative unit u.
 def nz-prod-mat z u m =
   let nz-prod-ls = nz-prod z u in
   nz-prod-ls (map nz-prod-ls m)
@@ -70,11 +72,6 @@ def zero_vec = const-ls shr0
 
 -- zero_pt: point of zero's
 def zero_pt = zero_vec n
-
--- zero_mat: matrix of zeroes
-def zero_mat n = elim_nat n
-  [ ]
-  (cons (zero_vec n))
 
 -- range m n: the list of elements from m to n
 def range m n =
@@ -87,7 +84,7 @@ def range m n =
 -- Listing 9: Inverse of a lower triangular matrix
 def matrix_inverse_lt l =
   let n = order l in -- order of L
-  let l_inv = ref (zero_mat n) in -- n x n zero matrix
+  let l_inv = ref (zero-mat n) in -- n x n zero matrix
   do (iter (range 0n (n - 1n))
     (fun k ->
       -- For diagonal entries, take the reciprocal
@@ -109,7 +106,7 @@ def matrix_inverse_lt l =
 def cholesky_decomposition m =
   -- Initialize variables
   let n = order m in -- order of m
-  let l = ref (zero_mat n) in -- n x n zero matrix
+  let l = ref (zero-mat n) in -- n x n zero matrix
 
   -- Calculate the top diagonal element of L
   do l := upd-matrix !l (0n, 0n) (sqrt (get-matrix m (0n, 0n))) 
