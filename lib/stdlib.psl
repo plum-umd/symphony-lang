@@ -1,4 +1,12 @@
 ---
+--- errors and exceptions
+--- 
+
+-- err msg: raise a runtime exception that prints msg
+def err msg = msg + 0
+
+
+---
 --- Function library
 ---
 def apply f a = f a
@@ -162,6 +170,7 @@ def decons_ls l a0 f = case l
   }
 
 
+-- DEP?: type says that this takes a nat index but it requires an int
 def at : a -> nat -> list a -> a
 def at default ix xs = case xs
   { [] -> default
@@ -254,6 +263,10 @@ def median minmax default xs =
   at default (length xs / 2) (sort minmax xs)
 
 
+-- sum: the sum over a list of numerics
+-- TODO: rename these to [sum] and [sum-flt] ?
+def sum-gen v z = elim_list v z plus
+
 def sum : list float -> float
 def sum = foldr (fun x y -> x + y) 0.0
 
@@ -333,9 +346,8 @@ def zip xs ys = case (xs,ys)
   }
 
 
-def zip_map : (t -> u -> v) -> list t -> list u -> list v
-def zip_map f l0 l1 = map (uncurry f) (zip l0 l1)
-
+def zip-map : (t -> u -> v) -> list t -> list u -> list v
+def zip-map f l0 l1 = map (uncurry f) (zip l0 l1)
 
 -- all_true l: tests if all elements in l are (an encoding of) true
 def all_true l = elim_list l true and
@@ -343,11 +355,52 @@ def all_true l = elim_list l true and
 
 -- eq_lists l0 l1: test equaltity of l0 and l1, which contain lists of
 -- elements that can be tested for equality
-def eq_lists l0 l1 = all_true (zip_map eq l0 l1)
+def eq_lists l0 l1 = all_true (zip-map eq l0 l1)
 
 
 -- mux_ls: multiplex over a pair of lists:
-def mux_ls guard l0 l1 = zip_map (mux-wrap guard) l0 l1
+def mux_ls guard l0 l1 = zip-map (mux-wrap guard) l0 l1
+
+
+-- get i l: the ith element of l
+def get l i =
+  (elim_nat i
+    (fun l' -> case l'
+      { [ ] -> err "get: 0th of empty list"
+      ; x :: l'' -> x
+      })
+    (fun g l' -> case l'
+      { [ ] -> err "get: ith of non-empty list"
+      ; x :: l'' -> g l''
+      }) )
+    l
+
+-- upd l i v: list l with the ith element updated to be v
+def upd l i v =
+  (elim_nat i
+    (fun l' -> case l'
+      { [ ] -> err "set: setting 0th of empty list"
+      ; x :: l' -> v :: l'
+      })
+    (fun s l' -> case l'
+     { [ ] -> err "set : setting ith of non-empty list"
+     ; x :: l'' -> x :: (s l'')
+     }) )
+    l
+
+
+-- minus-lists l0 l1: vector subtraction over lists of numerics l0 and
+-- l1
+def minus-lists : point -> point -> point
+def minus-lists v0 v1 = zip-map minus v0 v1 
+
+
+-- dot-prod z l0 l1: dot product of two lists of numerics with zero
+-- element z
+def dot-prod z l0 l1 = sum-gen (zip-map mult l0 l1) z
+
+-- dot-prod-flt: dot product over floats
+def dot-prod-flt = dot-prod 0.0
 
 
 def rangen-help : nat -> nat -> list nat
@@ -816,6 +869,7 @@ def loop-f f n =
 -- to fuel steps, then simulates init.
 def bnd_rec f init fuel = elim_nat fuel init f
 
+
 -- t-eval-upto (f : t -> int) fuel: f, bounded to execute fuel steps.
 def int-eval-upto f = bnd_rec f (const 0) 
 def nat-eval-upto f = bnd_rec f (const 0n) 
@@ -894,6 +948,6 @@ def transpose m = elim_list m
      { [ ] -> 0n
      ; v :: m' -> len v
      }) )
-  (zip_map cons)
+  (zip-map cons)
 
 

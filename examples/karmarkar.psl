@@ -8,48 +8,14 @@ def log_2_real = id
 
 def magn x = 1n
 
--- get i l: the ith element of l
--- TODO: replace with at
-def get l i =
-  (elim_nat i
-    (fun l' -> case l'
-      { [ ] -> err "get: 0th of empty list"
-      ; x :: l'' -> x
-      })
-    (fun g l' -> case l'
-      { [ ] -> err "get: ith of non-empty list"
-      ; x :: l'' -> g l''
-      }) )
-    l
-
--- set l i v: list l with the ith element updated to be v
-def setter l i v =
-  (elim_nat i
-    (fun l' -> case l'
-      { [ ] -> err "set: setting 0th of empty list"
-      ; x :: l' -> v :: l'
-      })
-    (fun s l' -> case l'
-     { [ ] -> err "set : setting ith of non-empty list"
-     ; x :: l'' -> x :: (s l'')
-     }) )
-    l
-
 -- order: alias for list length
 def order = len
 
 -- eq-vecs: alias for vectors
 def eq-vecs = eq_lists
 
--- sum: the sum over a list of numerics
-def sum v z = elim_list v z plus
-
--- dot_prod: take the dot product of two points
-def dot_prod_gen z p0 p1 = sum (zip_map mult p0 p1) z
-
--- pt_diff: subtract one point from another
-def minus_vecs : point -> point -> point
-def minus_vecs v0 v1 = zip_map minus v0 v1 
+-- minux-vecs: alias for subtracting lists
+def minus-vecs = minus-lists
 
 -- scalar_vec_mult a v: scalar product of a and v
 def scalar_vec_mult a = map (mult a)
@@ -60,19 +26,19 @@ def div_vec v a = map (flip div a) v
 
 -- l2norm z v: the L2 norm of a vector of numerics with zero element z
 def l2norm : point -> comp_shr
-def l2norm z v = babylonian_sqrt (sum (map square v) z)
+def l2norm z v = babylonian_sqrt (sum (map square v))
 
 -- row_of_ones: a vector of real ones
 def row_of_ones : nat -> list real
 def row_of_ones = const-ls 1.0
 
 -- mult_mat_vec : multiply a matrix of secrets and a point
-def matrix_vec_mult_gen z m pt = map (dot_prod_gen z pt) m
+def matrix_vec_mult_gen z m pt = map (dot-prod-flt pt) m
 
 -- mult_mat: product of row matrix and column matrix
 def matrix_mult_gen z m0 m1 =
   let m1t = transpose m1 in
-  map (fun v -> map (dot_prod_gen z v) m1t) m0 
+  map (fun v -> map (dot-prod-flt v) m1t) m0 
 
 -- diagonal_matrix_gen v: the diagonal matrix of vector v, with zero
 -- elt z
@@ -115,8 +81,6 @@ def shr1 = shr-w-comp { Cost } 1.0
 def iter_sec_nat_spdz muxer = iter_sec_nat muxer 
 
 def iter_sec_nat_ls = iter_sec_nat_spdz mux_ls
-
-def dot_prod = dot_prod_gen shr0
 
 -- matrix_mult: multiply matrices of SPDZ shares
 def matrix_mult = matrix_mult_gen shr0 
@@ -163,7 +127,7 @@ def range m n =
 
 def matrix_get m (i, j) = get (get m i) j
 
-def matrix_set m (i, j) v = setter m i (setter (get m i) j v)
+def matrix_set m (i, j) v = upd m i (upd (get m i) j v)
 
 -- Listing 9: Inverse of a lower triangular matrix
 def matrix_inverse_lt l =
@@ -251,7 +215,7 @@ def karmarkar_iteration initial_point a c =
 
   -- Project C onto B's nullspace
   -- Dimensions of cp: n x 1
-  let cp = minus_vecs cprime
+  let cp = minus-vecs cprime
     (matrix_vec_mult (transpose b)
       (matrix_vec_mult bbtinv
         (matrix_vec_mult b cprime) ) ) in
@@ -267,14 +231,14 @@ def karmarkar_iteration initial_point a c =
   -- Take a step of 1/3n in the direction of -cp, row_of_ones(n)/n is
   -- the "transformed" initial point
   -- Dimensions of bprime: n x 1
-  let bprime = minus_vecs
+  let bprime = minus-vecs
     (div_vec (row_of_ones n) (to_flt n))
     (scalar_vec_mult (1.0 / (3.0 * (to_flt n))) unit_cp) in
 
   -- Transform the point back
   -- Dimensions of b: n x 1
   let b = div_vec (matrix_vec_mult d bprime)
-    (dot_prod (row_of_ones n) (matrix_vec_mult d bprime)) in
+    (dot-prod-flt (row_of_ones n) (matrix_vec_mult d bprime)) in
   b
 
 -- Listing 7: Loop for Karmarkar's Algorithm
@@ -295,7 +259,7 @@ def karmarkar_loop a c =
   let max_iterations = 12n * n * l in
 
   -- If this initial point is an optimal solution, return
-  mux_ls ((dot_prod c !x) < epsilon) !x
+  mux_ls ((dot-prod-flt c !x) < epsilon) !x
   -- hand-computed bound
   (iter_sec_nat_ls max_iterations 1n (fun i -> 
     let x_new = karmarkar_iteration !x a c in cont_seq'
@@ -303,8 +267,8 @@ def karmarkar_loop a c =
     -- if we are within the stopping condition in the current
     -- iteration, return
     (if-then-ret-ls 
-      ((((dot_prod c !x) - (dot_prod c x_new)) /
-         (max-muxable shr1 (dot_prod c !x)) ) < epsilon )
+      ((((dot-prod-flt c !x) - (dot-prod-flt c x_new)) /
+         (max-muxable shr1 (dot-prod-flt c !x)) ) < epsilon )
       x_new)
     (x := x_new) )
   x)
