@@ -241,6 +241,8 @@ def len l = elim_list l 0n (const inc)
 def const-ls : t -> nat -> list t
 def const-ls c n = elim_nat n [ ] (cons c)
 
+def zero-ls-flt = const-ls 0.0
+
 
 -- Oblivious friendly insert to list.
 def insert : (a -> a -> (a * a)) -> a -> list a -> list a

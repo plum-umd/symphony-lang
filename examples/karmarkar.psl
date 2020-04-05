@@ -68,10 +68,9 @@ def nz-prod-mat z u m =
 
 def nz-prod-mat-flt = nz-prod-mat 0.0 1.0
 
-def zero_vec = const-ls shr0 
+def zero-vec = zero-ls-flt
 
--- zero_pt: point of zero's
-def zero_pt = zero_vec n
+def zero-vec-shrs n = map (shr-w-comp { Cost }) (zero-vec n)
 
 -- range m n: the list of elements from m to n
 def range m n =
@@ -175,10 +174,10 @@ def karmarkar_iteration initial_point a c =
   -- Calculate a unit vector of cp
   -- Dimensions of unitcp: n x 1
   let unit_cp =
-    mux_ls (eq-vecs cp zero_pt) -- If cp is the zero vector
+    mux_ls (eq-vecs cp (zero-vec n)) -- If cp is the zero vector
       -- If cp is the zero vector, assign it to be 0
-      zero_pt
-      (div-scalar-vec zero_pt (l2norm cp)) in
+      (zero-vec-shrs n)
+      (div-scalar-vec (zero-vec n) (l2norm cp)) in
 
   -- Take a step of 1/3n in the direction of -cp, row-of-ones(n)/n is
   -- the "transformed" initial point
