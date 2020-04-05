@@ -19,7 +19,7 @@ def uncurry : (a -> b -> c) -> (a * b -> c)
 def uncurry f (a, b) = f a b
 
 ---
---- PAIR library
+--- Pair library
 --- 
 def pair x y = (x, y)
 
@@ -32,7 +32,7 @@ def snd : (a * b) -> a
 def snd x = case x { (_, b) -> b }
 
 ---
---- ISEC library
+--- isec library
 --- 
 def solo-f : ∀ A:☆. (P:ℙs) → ((p:ℙ | {p}⊆P) →{p} A) →{P} A{isec:P}
 def solo-f P f = case P
@@ -60,6 +60,15 @@ def at default ix xs = case xs
 
 def head : a -> list a -> a
 def head default = at default 0
+
+
+---
+--- List library
+--- 
+
+-- cons: wrapper for list constructor
+def cons : t -> list t -> list t
+def cons x l = x :: l
 
 
 -- Safe version of tail: If the list is empty, the tail of the list is the
@@ -96,6 +105,12 @@ def filter p xs =
 -- Compute the length of a list.
 def length : list int -> int
 def length = foldr (fun _ n -> n+1) 0
+-- wrharris: wouldn't it be more precise to have this compute a nat?
+
+
+-- len l: length of list l, as a nat
+def len : list t -> nat
+def len l = foldr l 0n (const inc)
 
 
 -- Oblivious friendly insert to list.
@@ -702,6 +717,17 @@ def nat_log : nat -> nat -> nat
 def nat_log b n =
   if n == 1n then 0n
   else inc (nat_log b (n / b))
+
+---
+--- FLOAT LIBRARY
+---
+
+-- sqrt: implementation of the Babylonian method for computing sqrt
+def sqrt_steps = 5n -- a tunable constant
+def babylonian_sqrt x = eliml_nat sqrt_steps
+  1.0
+  (fun s -> (s + x / s) / 2.0)
+
 
 ---
 --- SECURE RECURSION LIBRARY
