@@ -1,4 +1,80 @@
 ---
+--- Equality typeclass
+--- 
+
+-- eq: wrapper for equality
+def eq x y = x == y
+
+--- 
+--- Numeric typeclass
+--- 
+
+-- plus: non-infix sum
+def plus m n = m + n
+
+-- minus: non-infix subtraction
+def minus m n = m - n
+
+-- mult: non-infix multiplication 
+def mult m n = m * n
+
+-- div: non-infix division
+def div m n = m / n
+
+-- exp: non-infix exponentiation
+def exp m n = m ^ n
+
+-- square: 
+def square a = a * a
+
+--- 
+--- bool library
+--- 
+
+-- and: wrapper for Boolean conjunction
+def and b0 b1 = b0 && b1
+
+-- neg: wrapper for Boolean negation
+def neg b = not b
+
+---
+--- nat library
+---
+
+-- inc n: increment of nat n
+def inc : nat -> nat
+def inc = plus 1n
+
+-- dec n: decrement of nat n
+def dec : nat -> nat
+def dec n = n - 1n
+
+-- elim_nat: elimination form for nats
+def elim_nat m z s = 
+  if m == 0n then z
+  else s (elim_nat (m - 1n) z s)
+
+-- eliml_nat: analog of fold left, for nats
+def eliml_nat n z s = (elim_nat n id (compose s)) z
+
+-- nat_log: logarithm over nats. Diverges at 0n.
+def nat_log : nat -> nat -> nat
+def nat_log b n =
+  if n == 1n then 0n
+  else inc (nat_log b (n / b))
+
+---
+--- flt LIBRARY
+---
+
+-- sqrt: implementation of the Babylonian method for computing sqrt
+def sqrt_steps = 5n -- a tunable constant
+def babylonian_sqrt x = eliml_nat sqrt_steps
+  1.0
+  (fun s -> (s + x / s) / 2.0)
+
+
+---
 --- Function library
 ---
 def apply f a = f a
@@ -19,7 +95,7 @@ def uncurry : (a -> b -> c) -> (a * b -> c)
 def uncurry f (a, b) = f a b
 
 ---
---- Pair library
+--- pair library
 --- 
 def pair x y = (x, y)
 
@@ -49,6 +125,15 @@ def fold-f i f xs = case xs
 
 
 
+---
+--- list library
+--- 
+
+-- cons: wrapper for list constructor
+def cons : t -> list t -> list t
+def cons x l = x :: l
+
+
 def at : a -> nat -> list a -> a
 def at default ix xs = case xs
   { [] -> default
@@ -60,15 +145,6 @@ def at default ix xs = case xs
 
 def head : a -> list a -> a
 def head default = at default 0
-
-
----
---- List library
---- 
-
--- cons: wrapper for list constructor
-def cons : t -> list t -> list t
-def cons x l = x :: l
 
 
 -- Safe version of tail: If the list is empty, the tail of the list is the
@@ -86,6 +162,8 @@ def foldr f acc xs = case xs
   ; x::xs' -> f x (foldr f acc xs')
   }
 
+
+def elim_list l a0 f = ...
 
 -- List map.
 def map : (a -> b) -> list a -> list b
@@ -652,81 +730,6 @@ def loop-f f n =
   else 
     do f •
     in loop-f f (n - 1n)
-
----
---- EQUALITY TYPECLASS
---- 
-
--- eq: wrapper for equality
-def eq x y = x == y
-
---- 
---- NUMERIC TYPECLASS
---- 
-
--- plus: non-infix sum
-def plus m n = m + n
-
--- minus: non-infix subtraction
-def minus m n = m - n
-
--- mult: non-infix multiplication 
-def mult m n = m * n
-
--- div: non-infix division
-def div m n = m / n
-
--- exp: non-infix exponentiation
-def exp m n = m ^ n
-
--- square: 
-def square a = a * a
-
---- 
---- BOOL LIBRARY
---- 
-
--- and: wrapper for Boolean conjunction
-def and b0 b1 = b0 && b1
-
--- neg: wrapper for Boolean negation
-def neg b = not b
-
----
---- NAT LIBRARY
----
-
--- inc n: increment of nat n
-def inc : nat -> nat
-def inc = plus 1n
-
--- dec n: decrement of nat n
-def dec : nat -> nat
-def dec n = n - 1n
-
--- elim_nat: elimination form for nats
-def elim_nat m z s = 
-  if m == 0n then z
-  else s (elim_nat (m - 1n) z s)
-
--- eliml_nat: analog of fold left, for nats
-def eliml_nat n z s = (elim_nat n id (compose s)) z
-
--- nat_log: logarithm over nats. Diverges at 0n.
-def nat_log : nat -> nat -> nat
-def nat_log b n =
-  if n == 1n then 0n
-  else inc (nat_log b (n / b))
-
----
---- FLOAT LIBRARY
----
-
--- sqrt: implementation of the Babylonian method for computing sqrt
-def sqrt_steps = 5n -- a tunable constant
-def babylonian_sqrt x = eliml_nat sqrt_steps
-  1.0
-  (fun s -> (s + x / s) / 2.0)
 
 
 ---
