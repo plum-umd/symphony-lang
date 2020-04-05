@@ -1,8 +1,5 @@
 -- BEGIN definitions appropriate for general-purpose library modules
 
--- err msg: raise a runtime exception that prints msg
-def err msg = msg + 0
-
 -- TODO: define these properly
 def log_2_real = id
 
@@ -17,36 +14,9 @@ def eq-vecs = eq_lists
 -- minux-vecs: alias for subtracting lists
 def minus-vecs = minus-lists
 
--- scalar_vec_mult a v: scalar product of a and v
-def scalar_vec_mult a = map (mult a)
-
--- scalar_vec_div: divide a vector of reals by a constant
-def div_vec : real -> list real -> list real
-def div_vec v a = map (flip div a) v
-
--- l2norm z v: the L2 norm of a vector of numerics with zero element z
-def l2norm : point -> comp_shr
-def l2norm z v = babylonian_sqrt (sum (map square v))
-
--- row_of_ones: a vector of real ones
-def row_of_ones : nat -> list real
-def row_of_ones = const-ls 1.0
-
--- mult_mat_vec : multiply a matrix of secrets and a point
-def matrix_vec_mult_gen z m pt = map (dot-prod-flt pt) m
-
--- mult_mat: product of row matrix and column matrix
-def matrix_mult_gen z m0 m1 =
-  let m1t = transpose m1 in
-  map (fun v -> map (dot-prod-flt v) m1t) m0 
-
--- diagonal_matrix_gen v: the diagonal matrix of vector v, with zero
--- elt z
-def diagonal_matrix_gen z v = elim_list v
-  [ ]
-  (fun x diag -> (x :: (const-ls z (len diag))) :: (map (cons z) diag))
-
--- END: library code
+-- row-of-ones: a vector of real ones
+def row-of-ones : nat -> list real
+def row-of-ones = const-ls 1.0
 
 -- BEGIN: application-specific code
 
@@ -71,7 +41,7 @@ principal Out
 -- def comps = set(Ctr,Cost)
 def comps = { Ctr, Cost }
 
--- shr-w-comp: share data with the computation parties
+-- shr-w-comp x: x, SPDZ-shared with the computation parties
 def shr-w-comp sender x = share{ spdz : sender -> comps } x
 
 -- shr0, shr1: shares of 0.0 and 1.0 between the computation parties
@@ -82,18 +52,6 @@ def iter_sec_nat_spdz muxer = iter_sec_nat muxer
 
 def iter_sec_nat_ls = iter_sec_nat_spdz mux_ls
 
--- matrix_mult: multiply matrices of SPDZ shares
-def matrix_mult = matrix_mult_gen shr0 
-
--- matrix_vec_mult: multiply matrix and vector of SPDZ shares
-def matrix_vec_mult = matrix_vec_mult_gen shr0 
-
--- dimensions_of m: dimensions of matrix m
-def dimensions_of m = case m
-  { [ ] -> (0n, 0n)
-  ; rv :: m' -> (inc (len m'), len rv)
-  }
-
 -- nz_prod z u l: the product of non-z entries in l, with
 -- multiplicative unit u
 def nz_prod z one l = elim_list l
@@ -103,9 +61,6 @@ def nz_prod z one l = elim_list l
 def nz_prod_vec = nz_prod shr0 shr1
 
 def nz_prod_mat m = nz_prod_vec (map nz_prod_vec m)
-
--- diagonal_matrix v: diagonal matrix of vector of SPDZ shares v
-def diagonal_matrix = diagonal_matrix_gen shr0
 
 def zero_vec = const-ls shr0 
 
@@ -188,7 +143,7 @@ def matrix_inverse_pdh : num -> matrix -> matrix
 def matrix_inverse_pdh m =
   let l = cholesky_decomposition m in
   let l_inv = matrix_inverse_lt l in -- Invert the lower-triangular matrix
-  let m_inv = matrix_mult (transpose l_inv) l_inv in
+  let m_inv = mult-matrices-flt (transpose l_inv) l_inv in
   m_inv
 
 -- Listing 6: Iteration for Karmarkar's Algorithm
@@ -197,18 +152,18 @@ def karmarkar_iteration initial_point a c =
   -- D is a matrix of zeros with the values of initial_point on the
   -- diagonal
   -- Dimensions of D: n x n
-  let d = diagonal_matrix initial_point in
+  let d = diagonal-matrix-flt initial_point in
   -- Dimensions of cprime: n x 1
-  let cprime = matrix_vec_mult d c in
+  let cprime = mult-matrix-vec-flt d c in
   -- Dimensions of AD: m x n
-  let ad = matrix_mult a d in
+  let ad = mult-matrices-flt a d in
 
   -- Construct B
   -- Dimensions of B: (m + 1) x n
-  let b = append ad [ row_of_ones n ] in -- append a row of ones onto AD
+  let b = append ad [ row-of-ones n ] in -- append a row of ones onto AD
 
   -- Dimensions of BBT: (m + 1) x (m + 1)
-  let bbt = matrix_mult b (transpose b) in
+  let bbt = mult-matrices-flt b (transpose b) in
 
   -- Dimensions of BBTInv: (m + 1) x (m + 1)
   let bbtinv = matrix_inverse_pdh bbt in
@@ -216,9 +171,9 @@ def karmarkar_iteration initial_point a c =
   -- Project C onto B's nullspace
   -- Dimensions of cp: n x 1
   let cp = minus-vecs cprime
-    (matrix_vec_mult (transpose b)
-      (matrix_vec_mult bbtinv
-        (matrix_vec_mult b cprime) ) ) in
+    (mult-matrix-vec-flt (transpose b)
+      (mult-matrix-vec-flt bbtinv
+        (mult-matrix-vec-flt b cprime) ) ) in
 
   -- Calculate a unit vector of cp
   -- Dimensions of unitcp: n x 1
@@ -226,19 +181,19 @@ def karmarkar_iteration initial_point a c =
     mux_ls (eq-vecs cp zero_pt) -- If cp is the zero vector
       -- If cp is the zero vector, assign it to be 0
       zero_pt
-      (div_vec zero_pt (l2norm shr0 cp)) in
+      (div-scalar-vec zero_pt (l2norm cp)) in
 
-  -- Take a step of 1/3n in the direction of -cp, row_of_ones(n)/n is
+  -- Take a step of 1/3n in the direction of -cp, row-of-ones(n)/n is
   -- the "transformed" initial point
   -- Dimensions of bprime: n x 1
   let bprime = minus-vecs
-    (div_vec (row_of_ones n) (to_flt n))
-    (scalar_vec_mult (1.0 / (3.0 * (to_flt n))) unit_cp) in
+    (div-scalar-vec (row-of-ones n) (to_flt n))
+    (mult-scalar-vec (1.0 / (3.0 * (to_flt n))) unit_cp) in
 
   -- Transform the point back
   -- Dimensions of b: n x 1
-  let b = div_vec (matrix_vec_mult d bprime)
-    (dot-prod-flt (row_of_ones n) (matrix_vec_mult d bprime)) in
+  let b = div-scalar-vec (mult-matrix-vec-flt d bprime)
+    (dot-prod-flt (row-of-ones n) (mult-matrix-vec-flt d bprime)) in
   b
 
 -- Listing 7: Loop for Karmarkar's Algorithm
@@ -249,7 +204,7 @@ def karmarkar_loop a c =
   let epsilon = 10.0 ^ -8.0 in
 
   -- x is our initial point
-  let x = ref (div_vec (row_of_ones n) (to_flt n)) in
+  let x = ref (div-scalar-vec (row-of-ones n) (to_flt n)) in
 
   -- product of non-zero entries in c and A
   let p = (nz_prod_vec c) * (nz_prod_mat a) in

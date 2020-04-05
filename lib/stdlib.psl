@@ -114,7 +114,6 @@ def babylonian_sqrt x = eliml_nat sqrt_steps
   1.0
   (fun s -> (s + x / s) / 2.0)
 
-
 ---
 --- unit library
 ---
@@ -283,6 +282,11 @@ def stddev xs =
   in sqrt (mean diffs)
 
 
+-- l2norm z v: the L2 norm of a vector of floats
+def l2norm : point -> comp_shr
+def l2norm v = babylonian_sqrt (sum (map square v))
+
+
 def pair-swap swap b xs ys =
   let x0, x1 = xs
   let y0, y1 = ys
@@ -394,6 +398,12 @@ def upd l i v =
 def minus-lists : point -> point -> point
 def minus-lists v0 v1 = zip-map minus v0 v1 
 
+-- mult-scalar-vec a v: scalar product of constant a and vector v
+def mult-scalar-vec a = map (mult a)
+
+-- scalar_vec_div: divide a vector of reals by a constant
+def div-scalar-vec : real -> list real -> list real
+def div-scalar-vec v a = map (flip div a) v
 
 -- dot-prod z l0 l1: dot product of two lists of numerics with zero
 -- element z
@@ -951,3 +961,34 @@ def transpose m = elim_list m
   (zip-map cons)
 
 
+-- mult-matrix-vec m v: multiply matrix m by vector v
+def mult-matrix-vec z m v = map (dot-prod z v) m
+
+-- matrix_vec_mult: multiply matrix and vector of SPDZ shares
+def mult-matrix-vec-flt = mult-matrix-vec 0.0
+
+-- mult-matrices m0 m1: product of matrices m0 and m1 of numerics with
+-- zero element z
+def mult-matrices z m0 m1 =
+  let m1t = transpose m1 in
+  map (fun v -> map (dot-prod z v) m1t) m0
+
+-- mult-matrices-flt: multiply matrices of SPDZ shares
+def mult-matrices-flt = mult-matrices 0.0
+
+
+-- dimensions_of m: dimensions of matrix m
+def dimensions_of m = case m
+  { [ ] -> (0n, 0n)
+  ; rv :: m' -> (inc (len m'), len rv)
+  }
+
+
+-- diagonal-matrix z v: the diagonal matrix of vector v, a vector of
+-- numerics with zero element z.
+def diagonal-matrix z v = elim_list v
+  [ ]
+  (fun x diag -> (x :: (const-ls z (len diag))) :: (map (cons z) diag))
+
+-- diagonal_matrix v: diagonal matrix of floats
+def diagonal-matrix-flt = diagonal-matrix 0.0
