@@ -5,8 +5,6 @@ def err msg = msg + 0
 
 -- BEGIN library for security-sensitive operations:
 
-def mymux guard tc fc = guard ? tc ◇ fc
-
 def send_ls P0 P1 l = 
   case (send{ P0 -> P1 } l)
   { [ ] -> [ ]
@@ -17,9 +15,9 @@ def reveal_prins p x = reveal { p } x
 
 def max muxer a b = muxer (a <= b) b a
 
-def max_spdz = max mymux
+def max_spdz = max mux-wrap
 
-def abs_val_real a = max mymux a (-1.0 * a)
+def abs_val_real a = max mux-wrap a (-1.0 * a)
 
 -- TODO: define these properly
 def log_2_real = id
@@ -28,40 +26,14 @@ def magn x = 1n
 
 -- BEGIN library for list:
 
--- const_vec t a n: a vector of constant a of size n
-def const_vec : t -> nat -> list t
-def const_vec c n = elim_nat n [ ] (cons c)
-
--- foldr: right fold, the list eliminator
-def foldr : list t -> acc -> (t -> acc -> acc) -> acc
-def foldr l acc f = case l
-  { [ ] -> acc
-  ; x :: l' -> f x (foldr l' acc f)
-  } 
-
--- decons_ls: first-order case syntax 
-def decons_ls : list t -> u -> (t -> list t -> u) -> u
-def decons_ls l a0 f = case l
-  { [ ] -> a0
-  ; x :: l' -> f x l'
-  }
-
--- foldl: left fold
--- PSL: add syntactic sugar for this?
-def foldl : list t -> acc -> (t -> acc -> acc) -> acc
-def foldl l acc0 f = (foldr l id (fun x acc -> compose acc (f x))) acc0
-
 -- iter: fold over the unit
 def iter l f = foldl l () (fun x -> thunk (f x))
-
--- concat l0 l1: concatenation of l0 and l1
-def concat : list t -> list t -> list t
-def concat l0 l1 = foldr l0 l1 cons
 
 -- order: alias for list length
 def order = len
 
 -- get i l: the ith element of l
+-- TODO: replace with at
 def get l i =
   (elim_nat i
     (fun l' -> case l'
@@ -87,92 +59,10 @@ def setter l i v =
      }) )
     l
 
--- rev_ls l: the reverse of list l
-def rev_ls : list t -> list t
-def rev_ls l = foldl l [ ] cons
-
-def snoc : t -> list t -> list t
-def snoc x l = concat l [ x ]
-
--- zip_lists pt0 pt1: the zip of points p0 and p1
-def zip_lists : list t -> list u -> list (t * u)
-def zip_lists l0 l1 =
-  (foldr l0
-    (const [ ])
-    (fun x z0 l -> case l
-      { [ ] -> [ ]
-      ; y :: l' -> (x, y) :: z0 l'
-      }) )
-    l1
-
-def zip_map : (t -> u -> v) -> list t -> list u -> list v
-def zip_map f l0 l1 = map (uncurry f) (zip_lists l0 l1)
-
--- mux_ls: multiplex over a pair of lists:
-def mux_ls guard l0 l1 = zip_map (mymux guard) l0 l1
-
--- monadic return:
-def cont_return a = (id, a)
-
--- monadic bind:
-def cont_bind (f, a) g =
-  let (f0, b) = g a in
-  (compose f0 f, b)
-
--- cont_run : cont a a -> a: get an a value:
-def cont_run = uncurry apply
-
-def cont_join m = cont_bind m id
-
-def cont_seq m cv = cont_bind m (const cv)
-
-def cont_seq' m v = cont_seq m (cont_return v)
-
-def if_then guard tc = if guard then tc else ()
-
--- if_then guard tc: an if-then branch 
-def if_then_ret muxer guard tc = ((muxer guard tc), ())
-
--- if_then guard tc: an if-then branch 
-def if_then_ret_ls = if_then_ret mux_ls
-
--- iter_sec_nat: iterate up to bnd but in each iteration, check a
--- secure nat n
-def iter_sec_nat muxer n bnd s rv = cont_run
-  (cont_seq'
-    (snd
-      (eliml_nat bnd
-        (n, cont_return ())
-        (fun (n', cv) ->
-          (n' - 1n,
-           cont_bind
-             (cont_bind cv
-               ((fun () -> (muxer (n' == 0n) !rv), ())) )
-             s) ) ) )
-    !rv)
-
--- transpose: shift matrix between row major and column major order
-def transpose : list (list t) -> list (list t)
-def transpose m = foldr m
-  (const_vec [ ]
-    (case m
-     { [ ] -> 0n
-     ; v :: m' -> len v
-     }) )
-  (zip_map cons)
-
-def all_true : list bool -> bool
-def all_true l = foldr l true and
-
-def eq_lists v0 v1 = all_true (zip_map eq v0 v1)
-
 def eq_vecs = eq_lists
 
--- prod: the product over a list of numerics
-def prod v one = foldr v one mult
-
 -- sum: the sum over a list of numerics
-def sum v z = foldr v z plus
+def sum v z = elim_list v z plus
 
 -- dot_prod: take the dot product of two points
 def dot_prod_gen z p0 p1 = sum (zip_map mult p0 p1) z
@@ -194,7 +84,7 @@ def l2norm z v = babylonian_sqrt (sum (map square v) z)
 
 -- row_of_ones: a vector of real ones
 def row_of_ones : nat -> list real
-def row_of_ones = const_vec 1.0
+def row_of_ones = const_ls 1.0
 
 -- mult_mat_vec : multiply a matrix of secrets and a point
 def matrix_vec_mult_gen z m pt = map (dot_prod_gen z pt) m
@@ -206,9 +96,9 @@ def matrix_mult_gen z m0 m1 =
 
 -- diagonal_matrix_gen v: the diagonal matrix of vector v, with zero
 -- elt z
-def diagonal_matrix_gen z v = foldr v
+def diagonal_matrix_gen z v = elim_list v
   [ ]
-  (fun x diag -> (x :: (const_vec z (len diag))) :: (map (cons z) diag))
+  (fun x diag -> (x :: (const_ls z (len diag))) :: (map (cons z) diag))
 
 -- END: library code
 
@@ -235,12 +125,12 @@ principal Out
 -- def comps = set(Ctr,Cost)
 def comps = { Ctr, Cost }
 
--- shr_w_comp: share data with the parties performing computation
-def shr_w_comp sender x = share{ spdz : sender -> comps } x
+-- shr-w-comp: share data with the computation parties
+def shr-w-comp sender x = share{ spdz : sender -> comps } x
 
--- shr0, shr1: shares of constants that are often reused:
-def shr0 = shr_w_comp { Cost } 0.0 
-def shr1 = shr_w_comp { Cost } 1.0 
+-- shr0, shr1: shares of 0.0 and 1.0 between the computation parties
+def shr0 = shr-w-comp { Cost } 0.0 
+def shr1 = shr-w-comp { Cost } 1.0 
      
 def iter_sec_nat_spdz muxer = iter_sec_nat muxer 
 
@@ -262,9 +152,9 @@ def dimensions_of m = case m
 
 -- nz_prod z u l: the product of non-z entries in l, with
 -- multiplicative unit u
-def nz_prod z one l = foldr l
+def nz_prod z one l = elim_list l
   one
-  (fun x -> mult (mymux (x == z) one x))
+  (fun x -> mult (mux-wrap (x == z) one x))
 
 def nz_prod_vec = nz_prod shr0 shr1
 
@@ -273,7 +163,7 @@ def nz_prod_mat m = nz_prod_vec (map nz_prod_vec m)
 -- diagonal_matrix v: diagonal matrix of vector of SPDZ shares v
 def diagonal_matrix = diagonal_matrix_gen shr0
 
-def zero_vec = const_vec shr0 
+def zero_vec = const_ls shr0 
 
 -- zero_pt: point of zero's
 def zero_pt = zero_vec n
@@ -342,7 +232,7 @@ def cholesky_decomposition m =
       do l := matrix_set !l (i, i) (sqrt ((matrix_get m (i, i)) - !sum)) in
       -- Now fill in the remaining entries in this column
       -- TODO: remove use of unit
-      if_then (i < n - 1n) 
+      if-then (i < n - 1n) 
         (iter (range (i + 1n) (n - 1n))
           (fun j ->
             do sum := shr0 in
@@ -373,7 +263,7 @@ def karmarkar_iteration initial_point a c =
 
   -- Construct B
   -- Dimensions of B: (m + 1) x n
-  let b = concat ad [ row_of_ones n ] in -- append a row of ones onto AD
+  let b = append ad [ row_of_ones n ] in -- append a row of ones onto AD
 
   -- Dimensions of BBT: (m + 1) x (m + 1)
   let bbt = matrix_mult b (transpose b) in
@@ -434,7 +324,7 @@ def karmarkar_loop a c =
 
     -- if we are within the stopping condition in the current
     -- iteration, return
-    (if_then_ret_ls 
+    (if-then-ret-ls 
       ((((dot_prod c !x) - (dot_prod c x_new)) /
          (max_spdz shr1 (dot_prod c !x)) ) < epsilon )
       x_new)
@@ -462,10 +352,10 @@ def main () =
         -- read in the matrix of constraints and share them
         (fold-f
           [ ]
-          (fun Q ctr -> cons (map (shr_w_comp { Q }) (send_ls { Q } comps ctr)))
+          (fun Q ctr -> cons (map (shr-w-comp { Q }) (send_ls { Q } comps ctr)))
           (solo { Ctr } as c in read_vec ()) )
         -- read in the vector of costs and share them
-        (map (shr_w_comp { Cost })
+        (map (shr-w-comp { Cost })
           (send_ls { Cost } comps (par { Cost } read_vec ())) ) ) ) ) in
   -- Ctr and Cost forget the structure of the solution
   par { Out } send_ls { Out } { Out } soln

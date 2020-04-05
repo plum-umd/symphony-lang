@@ -1,4 +1,25 @@
 ---
+--- Function library
+---
+def apply f a = f a
+
+def const x = fun y -> x
+
+def compose : (t0 -> t1) -> (t1 -> t2) -> (t0 -> t2)
+def compose f g x = g (f x)
+
+def flip f x y = f y x
+
+def id : t -> t
+def id x = x
+
+def thunk x = fun () -> x
+
+def uncurry : (a -> b -> c) -> (a * b -> c)
+def uncurry f (a, b) = f a b
+
+
+---
 --- Equality typeclass
 --- 
 
@@ -9,19 +30,15 @@ def eq x y = x == y
 --- Numeric typeclass
 --- 
 
--- plus: non-infix sum
+-- wrappers for the infix operators:
 def plus m n = m + n
 
--- minus: non-infix subtraction
 def minus m n = m - n
 
--- mult: non-infix multiplication 
 def mult m n = m * n
 
--- div: non-infix division
 def div m n = m / n
 
--- exp: non-infix exponentiation
 def exp m n = m ^ n
 
 -- square: 
@@ -75,24 +92,11 @@ def babylonian_sqrt x = eliml_nat sqrt_steps
 
 
 ---
---- Function library
+--- unit library
 ---
-def apply f a = f a
 
-def const x = fun y -> x
+def if-then guard tc = if guard then tc else ()
 
-def compose : (t0 -> t1) -> (t1 -> t2) -> (t0 -> t2)
-def compose f g x = g (f x)
-
-def flip f x y = f y x
-
-def id : t -> t
-def id x = x
-
-def thunk x = fun () -> x
-
-def uncurry : (a -> b -> c) -> (a * b -> c)
-def uncurry f (a, b) = f a b
 
 ---
 --- pair library
@@ -134,6 +138,14 @@ def cons : t -> list t -> list t
 def cons x l = x :: l
 
 
+-- decons_ls: wrapper around case matching a list
+def decons_ls : list t -> u -> (t -> list t -> u) -> u
+def decons_ls l a0 f = case l
+  { [ ] -> a0
+  ; x :: l' -> f x l'
+  }
+
+
 def at : a -> nat -> list a -> a
 def at default ix xs = case xs
   { [] -> default
@@ -163,7 +175,13 @@ def foldr f acc xs = case xs
   }
 
 
-def elim_list l a0 f = ...
+def elim_list l acc0 f = foldr f acc0 l
+
+
+-- foldl: left fold
+def foldl : list t -> acc -> (t -> acc -> acc) -> acc
+def foldl l acc0 f = (elim_list l id (fun x acc -> compose acc (f x))) acc0
+
 
 -- List map.
 def map : (a -> b) -> list a -> list b
@@ -188,7 +206,12 @@ def length = foldr (fun _ n -> n+1) 0
 
 -- len l: length of list l, as a nat
 def len : list t -> nat
-def len l = foldr l 0n (const inc)
+def len l = elim_list l 0n (const inc)
+
+
+-- const_ls a n: a list of a's of size n
+def const_ls : t -> nat -> list t
+def const_ls c n = elim_nat n [ ] (cons c)
 
 
 -- Oblivious friendly insert to list.
@@ -278,19 +301,37 @@ def append xs ys = foldr (fun x zs -> x :: zs) ys xs
 def concat : list (list a) -> list a
 def concat = foldr (fun xs xss -> append xs xss) []
 
+
+def snoc : t -> list t -> list t
+def snoc x l = append l [ x ]
+
+
 def zip xs ys = case (xs,ys)
   { ([],_) → []
   ; (_,[]) → []
   ; (x∷xs',y∷ys') → (x,y)∷(zip xs' ys')
   }
 
-def fst p = case p
-  { (f,_) → f
-  }
 
-def snd p = case p
-  { (_,s) → s
-  }
+def zip_map : (t -> u -> v) -> list t -> list u -> list v
+def zip_map f l0 l1 = map (uncurry f) (zip l0 l1)
+
+
+-- all_true l: tests if all elements in l are (an encoding of) true
+def all_true l = elim_list l true and
+
+
+-- eq_lists l0 l1: test equaltity of l0 and l1, which contain lists of
+-- elements that can be tested for equality
+def eq_lists l0 l1 = all_true (zip_map eq l0 l1)
+
+
+-- mux-wrap: wrapper around mux syntax
+def mux-wrap guard tc fc = guard ? tc ◇ fc
+
+
+-- mux_ls: multiplex over a pair of lists:
+def mux_ls guard l0 l1 = zip_map (mux-wrap guard) l0 l1
 
 
 def rangen-help : nat -> nat -> list nat
@@ -733,16 +774,95 @@ def loop-f f n =
 
 
 ---
---- SECURE RECURSION LIBRARY
+--- secure recursion library
 ---
+
+-- bnd_rec and t-eval-upto are a family of functions that support
+-- writing functions that "nearly" recurse on secure data, and
+-- evaluating them up to a public bound on iterations.
 
 -- bnd_rec f init fuel: simulates "nearly-recursive" function f for up
 -- to fuel steps, then simulates init.
 def bnd_rec f init fuel = elim_nat fuel init f
 
--- bound_int_fn (f : 't -> int) fuel: f, bounded to execute fuel
--- steps.
+-- t-eval-upto (f : t -> int) fuel: f, bounded to execute fuel steps.
 def int-eval-upto f = bnd_rec f (const 0) 
 def nat-eval-upto f = bnd_rec f (const 0n) 
 def flt-eval-upto f = bnd_rec f (const 0.0) 
+
+
+---
+--- early return library
+---
+
+-- the continuation monad is a datatype that supports writing programs
+-- in a style where conditional return values are explicitly denoted.
+
+-- wrharris: this may be deprecated due to a recent PSL update. Will
+-- investigate.
+
+-- each monadic value of type [cont a b] consists of a continuation [a
+-- -> a] and a maintained value of type b. We can extract a value of
+-- type a from each monadic value of type [cont a a] by applying the
+-- continuation to the maintained value.
+
+-- monadic return:
+def cont_return a = (id, a)
+
+-- monadic bind:
+def cont_bind (f, a) g =
+  let (f0, b) = g a in
+  (compose f0 f, b)
+
+-- cont_run : cont a a -> a: get an a value:
+def cont_run = uncurry apply
+
+-- cont_join: monadic join, derived from bind in the standard way
+def cont_join m = cont_bind m id
+
+-- const_seq: monadic sequencing (discard the value of the bound
+-- monad)
+def cont_seq m cv = cont_bind m (const cv)
+
+-- cont_seq': lift a raw value, then us it in a bind
+def cont_seq' m v = cont_seq m (cont_return v)
+
+-- if-then-ret guard tc: an if-then branch 
+def if-then-ret muxer guard tc = ((muxer guard tc), ())
+
+-- if_then guard tc: an if-then branch 
+def if-then-ret-ls = if-then-ret mux_ls
+
+-- iter_sec_nat muxer n bnd s rv: iterate bnd times, but return the
+-- bound stored in rv after the loop executes n times.
+def iter_sec_nat muxer n bnd s rv = cont_run
+  (cont_seq'
+    (snd
+      (eliml_nat bnd
+        (n, cont_return ())
+        (fun (n', cv) ->
+          (n' - 1n,
+           cont_bind
+             (cont_bind cv
+               ((fun () -> (muxer (n' == 0n) !rv), ())) )
+             s) ) ) )
+    !rv)
+
+
+---
+--- matrix library
+---
+
+-- library of operations over matrices represented as lists of lists
+
+-- transpose m: transposition of m
+def transpose : list (list t) -> list (list t)
+def transpose m = elim_list m
+  (const_ls [ ]
+    (case m
+     { [ ] -> 0n
+     ; v :: m' -> len v
+     }) )
+  (zip_map cons)
+
 
