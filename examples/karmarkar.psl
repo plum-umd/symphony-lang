@@ -1,25 +1,3 @@
--- BEGIN definitions appropriate for general-purpose library modules
-
--- TODO: define these properly
-def log_2_real = id
-
-def magn x = 1n
-
--- order: alias for list length
-def order = len
-
--- eq-vecs: alias for vectors
-def eq-vecs = eq_lists
-
--- minux-vecs: alias for subtracting lists
-def minus-vecs = minus-lists
-
--- row-of-ones: a vector of real ones
-def row-of-ones : nat -> list real
-def row-of-ones = const-ls 1.0
-
--- BEGIN: application-specific code
-
 -- m : user parameter: number of constraint parties
 def m : nat
 def m = 8n
@@ -38,19 +16,44 @@ principal Cost
 principal Out
 
 -- comps: the parties that do computation, Ctr and Cost
--- def comps = set(Ctr,Cost)
 def comps = { Ctr, Cost }
+
+-- TODO: define these properly
+def log_2_real = id
+
+def magn x = 1n
+
+-- instances of definitions in the standard lib:
+
+-- order: alias for list length
+def order = len
+
+-- eq-vecs: alias for vectors
+def eq-vecs = eq_lists
+
+-- minux-vecs: alias for subtracting lists
+def minus-vecs = minus-lists
+
+def zero-vec = zero-ls-flt
+def row-of-ones = one-ls-flt
 
 -- shr-w-comp x: x, SPDZ-shared with the computation parties
 def shr-w-comp sender x = share{ spdz : sender -> comps } x
 
--- shr0, shr1: shares of 0.0 and 1.0 between the computation parties
-def shr0 = shr-w-comp { Cost } 0.0 
-def shr1 = shr-w-comp { Cost } 1.0 
-     
+def zero-vec-shrs n = map (shr-w-comp { Cost }) (zero-vec n)
+
+-- DEP? Combinators that may be redundant with stdlib or PSL.
 def iter_sec_nat_spdz muxer = iter_sec_nat muxer 
 
 def iter_sec_nat_ls = iter_sec_nat_spdz mux_ls
+
+-- range m n: the list of elements from m to n
+def range m n =
+  if n < m then [ ]
+  else map (plus m)
+    (elim_nat (n - m)
+       [ 0n ]
+       (fun rng -> snoc (len rng) rng) )
 
 -- nz_prod z u l: the product of non-z entries in l, with
 -- multiplicative unit u
@@ -68,18 +71,6 @@ def nz-prod-mat z u m =
 
 def nz-prod-mat-flt = nz-prod-mat 0.0 1.0
 
-def zero-vec = zero-ls-flt
-
-def zero-vec-shrs n = map (shr-w-comp { Cost }) (zero-vec n)
-
--- range m n: the list of elements from m to n
-def range m n =
-  if n < m then [ ]
-  else map (plus m)
-    (elim_nat (n - m)
-       [ 0n ]
-       (fun rng -> snoc (len rng) rng) )
-
 -- Listing 9: Inverse of a lower triangular matrix
 def matrix_inverse_lt l =
   let n = order l in -- order of L
@@ -87,12 +78,12 @@ def matrix_inverse_lt l =
   do (iter (range 0n (n - 1n))
     (fun k ->
       -- For diagonal entries, take the reciprocal
-      do l_inv := upd-matrix !l_inv (k, k) (shr1 / (get-matrix !l_inv (k, k))) in
+      do l_inv := upd-matrix !l_inv (k, k) (1.0 / (get-matrix !l_inv (k, k))) in
 
       -- For non-diagonal entries, solve L * L_inv = I
       iter (range (k + 1n) (n - 1n))
         (fun j ->
-          let sum = ref shr0 in
+          let sum = ref 0.0 in
           iter (range k (j - 1n))
             (fun i ->
               sum := !sum - (get-matrix l (j, i)) * (get-matrix !l_inv (i, k))
@@ -119,7 +110,7 @@ def cholesky_decomposition m =
   do iter (range 1n (n - 1n))
     (fun i ->
       -- First calculate the diagonal element for this column
-      let sum = ref shr0 in
+      let sum = ref 0.0 in
       do iter (range 0n (i - 1n))
         (fun j ->
           sum := !sum + (get-matrix !l (i, j)) * (get-matrix !l (i, j)) ) 
@@ -128,7 +119,7 @@ def cholesky_decomposition m =
       if-then (i < n - 1n) 
         (iter (range (i + 1n) (n - 1n))
           (fun j ->
-            do sum := shr0 in
+            do sum := 0.0 in
             iter (range 0n (i - 1n))
               (fun k ->
                 sum := !sum + (get-matrix !l (i, k)) * (get-matrix !l (j, k)) ) ) ) ) in
@@ -219,7 +210,8 @@ def karmarkar_loop a c =
     -- iteration, return
     (if-then-ret-ls 
       ((((dot-prod-flt c !x) - (dot-prod-flt c x_new)) /
-         (max-muxable shr1 (dot-prod-flt c !x)) ) < epsilon )
+         (max-muxable (shr-w-comp { Cost } 1.0) (dot-prod-flt c !x)) ) <
+         epsilon )
       x_new)
     (x := x_new) )
   x)

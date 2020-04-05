@@ -242,6 +242,7 @@ def const-ls : t -> nat -> list t
 def const-ls c n = elim_nat n [ ] (cons c)
 
 def zero-ls-flt = const-ls 0.0
+def one-ls-flt = const-ls 1.0
 
 
 -- Oblivious friendly insert to list.
