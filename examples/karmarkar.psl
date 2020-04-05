@@ -3,34 +3,10 @@
 -- err msg: raise a runtime exception that prints msg
 def err msg = msg + 0
 
--- BEGIN library for security-sensitive operations:
-
-def send_ls P0 P1 l = 
-  case (send{ P0 -> P1 } l)
-  { [ ] -> [ ]
-  ; x :: l' -> x :: (send_ls P0 P1 l') 
-  }
-
-def reveal_prins p x = reveal { p } x
-
-def max muxer a b = muxer (a <= b) b a
-
-def max_spdz = max mux-wrap
-
-def abs_val_real a = max mux-wrap a (-1.0 * a)
-
 -- TODO: define these properly
 def log_2_real = id
 
 def magn x = 1n
-
--- BEGIN library for list:
-
--- iter: fold over the unit
-def iter l f = foldl l () (fun x -> thunk (f x))
-
--- order: alias for list length
-def order = len
 
 -- get i l: the ith element of l
 -- TODO: replace with at
@@ -59,7 +35,11 @@ def setter l i v =
      }) )
     l
 
-def eq_vecs = eq_lists
+-- order: alias for list length
+def order = len
+
+-- eq-vecs: alias for vectors
+def eq-vecs = eq_lists
 
 -- sum: the sum over a list of numerics
 def sum v z = elim_list v z plus
@@ -84,7 +64,7 @@ def l2norm z v = babylonian_sqrt (sum (map square v) z)
 
 -- row_of_ones: a vector of real ones
 def row_of_ones : nat -> list real
-def row_of_ones = const_ls 1.0
+def row_of_ones = const-ls 1.0
 
 -- mult_mat_vec : multiply a matrix of secrets and a point
 def matrix_vec_mult_gen z m pt = map (dot_prod_gen z pt) m
@@ -98,7 +78,7 @@ def matrix_mult_gen z m0 m1 =
 -- elt z
 def diagonal_matrix_gen z v = elim_list v
   [ ]
-  (fun x diag -> (x :: (const_ls z (len diag))) :: (map (cons z) diag))
+  (fun x diag -> (x :: (const-ls z (len diag))) :: (map (cons z) diag))
 
 -- END: library code
 
@@ -163,7 +143,7 @@ def nz_prod_mat m = nz_prod_vec (map nz_prod_vec m)
 -- diagonal_matrix v: diagonal matrix of vector of SPDZ shares v
 def diagonal_matrix = diagonal_matrix_gen shr0
 
-def zero_vec = const_ls shr0 
+def zero_vec = const-ls shr0 
 
 -- zero_pt: point of zero's
 def zero_pt = zero_vec n
@@ -204,7 +184,6 @@ def matrix_inverse_lt l =
               ) ) ) ) in
   !l_inv
 
--- TODO: replace with list syntax
 
 -- Listing 10: Cholesky decomposition of a positive definite Hermitian
 -- matrix
@@ -231,7 +210,6 @@ def cholesky_decomposition m =
           sum := !sum + (matrix_get !l (i, j)) * (matrix_get !l (i, j)) ) 
       do l := matrix_set !l (i, i) (sqrt ((matrix_get m (i, i)) - !sum)) in
       -- Now fill in the remaining entries in this column
-      -- TODO: remove use of unit
       if-then (i < n - 1n) 
         (iter (range (i + 1n) (n - 1n))
           (fun j ->
@@ -281,7 +259,7 @@ def karmarkar_iteration initial_point a c =
   -- Calculate a unit vector of cp
   -- Dimensions of unitcp: n x 1
   let unit_cp =
-    mux_ls (eq_vecs cp zero_pt) -- If cp is the zero vector
+    mux_ls (eq-vecs cp zero_pt) -- If cp is the zero vector
       -- If cp is the zero vector, assign it to be 0
       zero_pt
       (div_vec zero_pt (l2norm shr0 cp)) in
@@ -312,7 +290,7 @@ def karmarkar_loop a c =
   -- product of non-zero entries in c and A
   let p = (nz_prod_vec c) * (nz_prod_mat a) in
   let l = (m + 1n) * n +
-    (magn (ceil (log_2_real (abs_val_real p)))) +
+    (magn (ceil (log_2_real (abs-val-flt-shr p)))) +
     n * (magn (ceil (log_2_real (to_flt n)))) in
   let max_iterations = 12n * n * l in
 
@@ -326,7 +304,7 @@ def karmarkar_loop a c =
     -- iteration, return
     (if-then-ret-ls 
       ((((dot_prod c !x) - (dot_prod c x_new)) /
-         (max_spdz shr1 (dot_prod c !x)) ) < epsilon )
+         (max-muxable shr1 (dot_prod c !x)) ) < epsilon )
       x_new)
     (x := x_new) )
   x)
@@ -344,18 +322,18 @@ def main () =
   -- may change if the PSL model of isec's changes as a result of
   -- issue #31
   let soln = par { Ctr, Cost, Out } (map
-    (reveal_prins { Out })
+    (reveal-wrap { Out })
     -- Cost reveals the structure of the list to out:
-    (send_ls { Cost } { Ctr, Cost, Out }
+    (send-ls { Cost } { Ctr, Cost, Out }
       -- Ctr and Cost compute the solution point:
       (par { Ctr, Cost } karmarkar_loop
         -- read in the matrix of constraints and share them
         (fold-f
           [ ]
-          (fun Q ctr -> cons (map (shr-w-comp { Q }) (send_ls { Q } comps ctr)))
+          (fun Q ctr -> cons (map (shr-w-comp { Q }) (send-ls { Q } comps ctr)))
           (solo { Ctr } as c in read_vec ()) )
         -- read in the vector of costs and share them
         (map (shr-w-comp { Cost })
-          (send_ls { Cost } comps (par { Cost } read_vec ())) ) ) ) ) in
+          (send-ls { Cost } comps (par { Cost } read_vec ())) ) ) ) ) in
   -- Ctr and Cost forget the structure of the solution
-  par { Out } send_ls { Out } { Out } soln
+  par { Out } send-ls { Out } { Out } soln
