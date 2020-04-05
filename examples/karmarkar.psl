@@ -1,49 +1,11 @@
 -- BEGIN definitions appropriate for general-purpose library modules
 
--- err msg: throw an error message
+-- err msg: raise a runtime exception that prints msg
 def err msg = msg + 0
-
--- BEGIN library for general functions:
-
-def apply f a = f a
-
-def compose : (t0 -> t1) -> (t1 -> t2) -> (t0 -> t2)
-def compose f g x = g (f x)
-
-def const : t -> u -> t
-def const x y = x
-
-def thunk x = fun () -> x
-
-def flip f x y = f y x
-
-def id : t -> t
-def id x = x
-
-def uncurry : (a -> b -> c) -> (a * b -> c)
-def uncurry f (a, b) = f a b
-
-def pair x y = (x, y)
-
-def fst (x, y) = x
-
-def snd (x, y) = y
-
-def elim_sum f g x = case x
-  { L x' -> f x'
-  ; R y' -> g y'
-  }
 
 -- BEGIN library for security-sensitive operations:
 
-def ite guard tc fc = if guard then tc else fc
-
 def mymux guard tc fc = guard ? tc ◇ fc
-
-def fold-f i f xs = case xs
-  { ⟪⟫ → i
-  ; ⟪p|x⟫⧺xs′ → f p x (fold-f i f xs′)
-  }
 
 def send_ls P0 P1 l = 
   case (send{ P0 -> P1 } l)
@@ -52,42 +14,6 @@ def send_ls P0 P1 l =
   }
 
 def reveal_prins p x = reveal { p } x
-
--- shr_spdz: a first-order operation that shares over SPDZ
-def shr_spdz P0 P1 x = share{ spdz : P0 -> P1 } x
-
--- BEGIN library for Boolean
-
--- and: non-infix Boolean conjunction
-def and b0 b1 = b0 && b1
-
--- def not b = b ? false >< true
-def neg b = not b
-
--- BEGIN library for types with equality:
-
--- eq: non-infix equality test
-def eq x y = x == y
-
--- BEGIN library for a numeric typeclass
-
--- plus: non-infix sum
-def plus m n = m + n
-
--- minus: non-infix subtraction
-def minus m n = m - n
-
--- mult: non-infix multiplication 
-def mult m n = m * n
-
--- div: non-infix division
-def div m n = m / n
-
--- exp: non-infix exponentiation
-def exp m n = m ^ n
-
--- square: multiple a number with itself:
-def square a = a * a
 
 def max muxer a b = muxer (a <= b) b a
 
@@ -99,45 +25,6 @@ def abs_val_real a = max mymux a (-1.0 * a)
 def log_2_real = id
 
 def magn x = 1n
-
--- BEGIN library for nats:
-
--- inc n: increment of nat n
-def inc : nat -> nat
-def inc = plus 1n
-
--- def inc n = 1n + n
-
--- dec n: decrement of nat n
-def dec : nat -> nat
-def dec n = n - 1n
-
--- elim_nat: form for eliminating (folding over) nats
-def elim_nat : nat -> t -> (t -> t) -> t
-def elim_nat m z s = 
-  if m ≡ 0n then z
-  else s (elim_nat (dec m) z s)
-
--- eliml_nat: analog of fold right, for nats
--- PSL: add syntactic sugar for this?
-def eliml_nat : nat -> t -> (t -> t) -> t
-def eliml_nat n z s = (elim_nat n id (compose s)) z
-
--- monad for building a value and a continuation. Type is
--- cont a b = (a -> a, b)
--- where cont a is a monad.
-
--- nat_log: logarithm over nats. Diverges at 0n.
-def nat_log : nat -> nat -> nat
-def nat_log b n =
-  if n == 1n then 0n
-  else inc (nat_log b (n / b))
-
-def ceil_fn f f_inv n =
-  let n' = f n in
-  n' + (if n == f_inv n' then 0n else 1n)
-
-def log_2_ceil = ceil_fn (nat_log 2n) (exp 2n)
 
 -- BEGIN library for floats:
 
@@ -368,7 +255,7 @@ principal Out
 def comps = { Ctr, Cost }
 
 -- shr_w_comp: share data with the parties performing computation
-def shr_w_comp sender = shr_spdz sender comps
+def shr_w_comp sender x = share{ spdz : sender -> comps } x
 
 -- shr0, shr1: shares of constants that are often reused:
 def shr0 = shr_w_comp { Cost } 0.0 
@@ -579,7 +466,8 @@ def main : unit ->{ inp : Ctr, Cost; rev : Out } (list out_sec)
 def main () =
   -- read_vec: reads an input vector on a principal's machine
   -- let read_vec = fun () -> read (list flt) "in.txt" in
-  let read_vec = fun () -> [ 1.0 ; 2.0; 3.0; 4.0; 5.0; 6.0; 7.0; 8.0 ] in -- DEBUG:
+  -- TODO: replace with file input
+  let read_vec = fun () -> [ 1.0 ; 2.0; 3.0; 4.0; 5.0; 6.0; 7.0; 8.0 ] in 
 
   -- FANCY MPC: Ctr and Cost send the data in the list to Out. This
   -- may change if the PSL model of isec's changes as a result of

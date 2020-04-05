@@ -1,9 +1,39 @@
 ---
 --- Function library
 ---
+def apply f a = f a
+
 def const x = fun y -> x
 
+def compose : (t0 -> t1) -> (t1 -> t2) -> (t0 -> t2)
+def compose f g x = g (f x)
 
+def flip f x y = f y x
+
+def id : t -> t
+def id x = x
+
+def thunk x = fun () -> x
+
+def uncurry : (a -> b -> c) -> (a * b -> c)
+def uncurry f (a, b) = f a b
+
+---
+--- PAIR library
+--- 
+def pair x y = (x, y)
+
+
+def fst : (a * b) -> a
+def fst x = case x { (a, _) -> a }
+
+
+def snd : (a * b) -> a
+def snd x = case x { (_, b) -> b }
+
+---
+--- ISEC library
+--- 
 def solo-f : ∀ A:☆. (P:ℙs) → ((p:ℙ | {p}⊆P) →{p} A) →{P} A{isec:P}
 def solo-f P f = case P
   { {} → ⟪⟫
@@ -17,13 +47,6 @@ def fold-f i f xs = case xs
   ; ⟪p|x⟫⧺xs′ → f p x (fold-f i f xs′)
   }
 
-
-def fst : (a * b) -> a
-def fst x = case x { (a, _) -> a }
-
-
-def snd : (a * b) -> a
-def snd x = case x { (_, b) -> b }
 
 
 def at : a -> nat -> list a -> a
@@ -616,13 +639,69 @@ def loop-f f n =
     in loop-f f (n - 1n)
 
 ---
+--- EQUALITY TYPECLASS
+--- 
+
+-- eq: wrapper for equality
+def eq x y = x == y
+
+--- 
+--- NUMERIC TYPECLASS
+--- 
+
+-- plus: non-infix sum
+def plus m n = m + n
+
+-- minus: non-infix subtraction
+def minus m n = m - n
+
+-- mult: non-infix multiplication 
+def mult m n = m * n
+
+-- div: non-infix division
+def div m n = m / n
+
+-- exp: non-infix exponentiation
+def exp m n = m ^ n
+
+-- square: 
+def square a = a * a
+
+--- 
+--- BOOL LIBRARY
+--- 
+
+-- and: wrapper for Boolean conjunction
+def and b0 b1 = b0 && b1
+
+-- neg: wrapper for Boolean negation
+def neg b = not b
+
+---
 --- NAT LIBRARY
 ---
+
+-- inc n: increment of nat n
+def inc : nat -> nat
+def inc = plus 1n
+
+-- dec n: decrement of nat n
+def dec : nat -> nat
+def dec n = n - 1n
 
 -- elim_nat: elimination form for nats
 def elim_nat m z s = 
   if m == 0n then z
   else s (elim_nat (m - 1n) z s)
+
+-- eliml_nat: analog of fold left, for nats
+def eliml_nat n z s = (elim_nat n id (compose s)) z
+
+-- nat_log: logarithm over nats. Diverges at 0n.
+def nat_log : nat -> nat -> nat
+def nat_log b n =
+  if n == 1n then 0n
+  else inc (nat_log b (n / b))
 
 ---
 --- SECURE RECURSION LIBRARY
