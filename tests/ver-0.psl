@@ -5,6 +5,8 @@
 principal Alice Bob
 
 def main () =
+  ()
+{-
   -- pf: the proof constructed by A that she knows a non-negative
   -- integer.
   let pf = par { Alice }
@@ -63,3 +65,4 @@ def main () =
   -- "nests" under the location type modality. I.e., it would be
   -- allowed that Bob would hold a proof that Alice knows a witness
   -- that evaluates to a particular value.
+-}

@@ -485,14 +485,15 @@ interpExp = wrapInterp $ \case
           ]
       TopM → skip
     ṽ ← interpExp e
-    case ṽ of
-      ShareVP φ ρs sv {- | ρs ≡ ρvs₁ -} → do
-        ṽ' ← valFrMPCF sv $ \ md bvmpc → 
-          tellL iOutResEvsL $ ResEv φ pø ρs ρvs₂ (getTypeBaseMPC  bvmpc) "REVEAL" md ↦ 1
-        restrictMode (SecM ρvs₂) $ restrictValP ṽ'
-      _ → throwIErrorCxt TypeIError "interpExp: RevealE: ṽ ∉ {ShareVP _ _ _,SSecVP _ _}" $ frhs
-        [ ("ṽ",pretty ṽ)
-        ]
+    revealValP ρvs₂ ṽ
+    -- case ṽ of
+    --   ShareVP φ ρs sv {- | ρs ≡ ρvs₁ -} → do
+    --     ṽ' ← valFrMPCF sv $ \ md bvmpc → 
+    --       tellL iOutResEvsL $ ResEv φ pø ρs ρvs₂ (getTypeBaseMPC  bvmpc) "REVEAL" md ↦ 1
+    --     restrictMode (SecM ρvs₂) $ restrictValP ṽ'
+    --   _ → throwIErrorCxt TypeIError "interpExp: RevealE: ṽ ∉ {ShareVP _ _ _,SSecVP _ _}" $ frhs
+    --     [ ("ṽ",pretty ṽ)
+    --     ]
   SendE ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂

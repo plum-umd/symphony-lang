@@ -6,6 +6,7 @@ import PSL.Syntax
 
 import PSL.Interpreter.Types
 import PSL.Interpreter.Pretty ()
+import PSL.Interpreter.Json
 
 -- enter a strictly smaller mode than the current one
 restrictMode ∷ (STACK) ⇒ Mode → IM a → IM a
@@ -84,7 +85,7 @@ restrictValP ṽ = do
       let ρvs' = restrict ρs ρvs
       return $ ISecVP ρvs'
     (SecM ρs₁, ShareVP φ ρs₂ v) → do
-      guardErr (ρs₂ ⊆ ρs₁) (throwIErrorCxt TypeIError "restrictValP: ρs₁ ⊈ ρs₂" $ frhs
+      guardErr (ρs₂ ⊆ ρs₁) (throwIErrorCxt TypeIError "restrictValP: ρs₂ ⊈ ρs₁" $ frhs
                             [ ("ρs₁",pretty ρs₁)
                             , ("ρs₂",pretty ρs₂)
                             ])
@@ -281,3 +282,46 @@ valFrBaseMPC = \case
   FltMV pr d → introValP $ FltV pr d
   PrinMV pe → introValP $ PrinV $ ValPEV pe
 
+revealValP ∷ (STACK) ⇒ 𝑃 PrinVal → ValP → IM ValP
+revealValP ρsʳ = \case
+  AllVP v → revealVal ρsʳ v
+  SSecVP ρs' v | ρsʳ ⊆ ρs' → revealVal ρsʳ v
+  ShareVP φ ρsˢ vmpc → restrictMode (SecM ρsʳ) $ restrictValP *$ valFrMPCF vmpc $ \ md bvmpc → 
+    tellL iOutResEvsL $ ResEv φ pø ρsˢ ρsʳ (getTypeBaseMPC  bvmpc) "REVEAL" md ↦ 1
+  PairVP ṽ₁ ṽ₂ → do
+    ṽ₁' ← revealValP ρsʳ ṽ₁
+    ṽ₂' ← revealValP ρsʳ ṽ₂
+    return $ PairVP ṽ₁' ṽ₂'
+  LocVP m ℓ | SecM ρsʳ ⊑ m → return $ LocVP m ℓ
+  ṽ → throwIErrorCxt TypeIError "can't reveal" $ frhs
+    [ ("ṽ",pretty ṽ) ]
+
+revealVal ∷ (STACK) ⇒ 𝑃 PrinVal → Val → IM ValP
+revealVal ρsʳ = \case
+  BoolV b → introValP $ BoolV b
+  StrV s → introValP $ StrV s
+  NatV p n → introValP $ NatV p n
+  IntV p i → introValP $ IntV p i
+  FltV p f → introValP $ FltV p f
+  BulV → introValP BulV
+  PairV ṽ₁ ṽ₂ → do
+    ṽ₁' ← revealValP ρsʳ ṽ₁
+    ṽ₂' ← revealValP ρsʳ ṽ₂
+    return $ PairVP ṽ₁' ṽ₂'
+  LV ṽ → do
+    ṽ' ← revealValP ρsʳ ṽ
+    introValP $ LV ṽ'
+  RV ṽ → do
+    ṽ' ← revealValP ρsʳ ṽ
+    introValP $ RV ṽ'
+  NilV → introValP NilV
+  ConsV ṽ₁ ṽ₂ → do
+    ṽ₁' ← revealValP ρsʳ ṽ₁
+    ṽ₂' ← revealValP ρsʳ ṽ₂
+    introValP $ ConsV ṽ₁' ṽ₂'
+  PrinV pev → introValP $ PrinV pev
+  PrinSetV pevs → introValP $ PrinSetV pevs
+  LocV ℓ → introValP $ LocV ℓ
+  DefaultV → introValP DefaultV
+  v → throwIErrorCxt TypeIError "can't reveal" $ frhs
+    [ ("v",pretty v) ]
