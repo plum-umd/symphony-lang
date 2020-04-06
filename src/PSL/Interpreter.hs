@@ -437,9 +437,10 @@ interpExp = wrapInterp $ \case
         , ("m",pretty m)
         ]
     ṽ ← interpExp e
-    v ← restrictMode (SecM ρvs₁) $ elimValP ṽ
-    tellL iOutResEvsL $ ResEv φ pø ρvs₁ ρvs₂ (getType v) "SHARE" 0 ↦ 1
-    sv ← mpcFrVal v
+    sv ← restrictMode (SecM ρvs₁) $ do
+      v ← elimValP ṽ
+      mpcFrValF v $ \ bv → do
+        tellL iOutResEvsL $ ResEv φ pø ρvs₁ ρvs₂ (getTypeBaseMPC bv) "SHARE" 0 ↦ 1
     reShareValPShared φ ρvs₂ sv 
   AccessE e ρ → do
     ρv ← interpPrinExpSingle ρ
