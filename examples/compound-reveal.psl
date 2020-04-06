@@ -1,0 +1,8 @@
+principal A
+principal B
+
+def main () =
+  par {A,B}
+    let a = share{yao: A -> this} (par {A} 1)
+    let b = share{yao: A -> this} (par {A} 2)
+    in reveal {B} (a,b)
