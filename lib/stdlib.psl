@@ -555,12 +555,61 @@ def msort xs = case xs
   }
 -- Merge sort end
 
+-- Pair an item with each element in a list
+def pair-with-list : a → list b → list (a × b)
+def pair-with-list v xs = case xs
+  { [] → []
+  ; x∷xs' → (v, x)∷(pair-with-list v xs')
+  }
+
+-- Get the head of a list or a default value
+def get-head-or-default ys d = case ys
+    { [] → d
+    ; y∷_ → y
+    }
+
+-- Get the element from a list at an index. Default value if out of range
+def elem-at : ℤ → list a → a
+def elem-at i xs = case xs
+  { [] → -1
+  ; x∷xs' →
+    let b = i ≡ 0
+    in b ? x ◇ (elem-at (i - 1) xs')
+  }
+
+-- Find out if a pair is an element of a list of triples, ignoring the first element of the triple.
+def elem-triple :
+    (ℤ{bgw:A,B} × ℙ{bgw:A,B})
+  → list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
+  → 𝔹{bgw:A,B}
+def elem-triple y xs = case (xs,y)
+  { ([],_) → false
+  ; ((_,(a,b))∷xs,(a',b')) →
+    let b = (a == a') && (b == b')
+    in b ? true ◇ (elem-triple y xs)
+  }
 
 
+-- Preprocess list functions. Convert lists of isec data with unknown structure into lists of shared data with known structure
+def preprocess-lists-n-triples p t len zs d =
+  if len == 0
+  then []
+  else
+    let v = par {p} get-head-or-default zs d
+    let b = par {p} fst v
+    let q = par {p} fst (snd v)
+    let tr = par {p} snd (snd v)
+    in (share{bgw:p → t} b, (share{bgw:p → t} q, share{bgw:p → t} tr)) ∷ (preprocess-lists-n-triples p t (len - 1) (par {p} tail zs) d)
 
+def preprocess-lists-n p t len zs d =
+  if len == 0
+  then []
+  else (share{bgw:p → t} (par {p} get-head-or-default zs d)) ∷ (preprocess-lists-n p t (len - 1) (par {p} tail zs) d)
 
-
-
+def preprocess-lists p t xs d =
+  let l = par {p} length xs
+  let l' = send {p → t} l
+  in preprocess-lists-n p t l' xs d
 
 
 

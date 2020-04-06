@@ -4,26 +4,20 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d1748c7839ed4d605e480e828ed08f3ae59bbda2eab44f3634ccf9ee1953beb7
+-- hash: 46b9858140e21a2d33ad1a7454379a0eafb7240286bd2983bf901e463c3a28f4
 
 name:           psl
 version:        0.1.0.0
 build-type:     Simple
 data-files:
     lib/stdlib.psl
-    examples/#karmarkar-decl.psl#
     examples/alias.psl
     examples/arg-par-contains.psl
-    examples/arg-par-contains.psl~
     examples/assoc-map.psl
     examples/atq.psl
-    examples/bak.txt
     examples/bind-fp-const.psl
-    examples/bind-fp-const.psl~
     examples/bind-shares.psl
-    examples/bind-shares.psl~
     examples/cmp-fn-flt.psl
-    examples/cmp-fn-flt.psl~
     examples/cmp-tutorial.psl
     examples/cmp-tutorial.psl.html
     examples/cmp-tutorial.psl.pdf
@@ -32,58 +26,35 @@ data-files:
     examples/cmp.psl.pdf
     examples/concat.psl
     examples/cont-monad.psl
-    examples/cont_monad.psl~
     examples/db-stats.psl
     examples/elim-sec-ls.psl
-    examples/elim-sec-ls.psl~
     examples/empty-par-diverge.psl
-    examples/empty-par-diverge.psl~
     examples/euclid-dh.psl
     examples/euclid.psl
-    examples/gcd.sec
-    examples/gcd.sec~
     examples/indy-pars.psl
-    examples/indy-pars.psl~
     examples/karmarkar-decl.psl
-    examples/karmarkar-decl.psl~
     examples/karmarkar-sane.psl
     examples/karmarkar-setup.psl
-    examples/karmarkar-setup.psl~
     examples/karmarkar-silly.psl
-    examples/karmarkar-silly.psl~
     examples/karmarkar-simple.psl
-    examples/karmarkar-simple.psl~
     examples/karmarkar.psl
-    examples/karmarkar.psl~
     examples/mill.psl.sec
     examples/mod-a.psl
     examples/mod-b.psl
     examples/msort-new.psl
     examples/msort.psl
     examples/mult-depth-test.psl
-    examples/notes.md
-    examples/notes.md~
     examples/partial-diverge.psl
-    examples/partial-diverge.psl~
     examples/pfold.psl
     examples/qsort-pure.psl
     examples/rand.psl
     examples/reshare.psl
-    examples/reshare.psl~
     examples/share-ls.psl
-    examples/share-ls.psl~
     examples/simple-read.psl
     examples/simple-write.psl
-    examples/single-share.psl
-    examples/single-share.psl~
-    examples/ssec-ineq-ssec.psl~
     examples/ssec-other-ssec.psl
     examples/ssec-shr.psl
-    examples/ssec-shr.psl~
     examples/sumprod.psl
-    examples/test.psl~
-    examples/todo.txt
-    examples/todo.txt~
     examples/uninspecting-par.psl
     examples/vector.psl
     examples/yao.psl.bmi
@@ -95,8 +66,6 @@ data-files:
     tests/fold.psl
     tests/loop.psl
     tests/micro-let.psl
-    tests/mult-spdz.psl
-    tests/mult-spdz.psl~
     tests/mux-deep.psl
     tests/mux-pair.psl
     tests/mux-sum.psl
@@ -138,10 +107,10 @@ data-files:
     examples-input/B/qsort-input.txt
     examples-input/B/simple-read.txt
     examples-input/B_0/atq-data.txt
-    examples-input/B_0/atq-queries.txt
+    examples-input/B_0/atq-query.txt
     examples-input/B_0/atq-targets.txt
     examples-input/B_1/atq-data.txt
-    examples-input/B_1/atq-queries.txt
+    examples-input/B_1/atq-query.txt
     examples-input/B_1/atq-targets.txt
     examples-input/Cost/in.txt
     examples-input/Ctr_0/in.txt

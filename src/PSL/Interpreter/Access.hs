@@ -171,6 +171,8 @@ unShareValMode m = \case
   IntV pr i → return $ NotShared :* BaseMV 0 (IntMV pr i)
   FltV pr i → return $ NotShared :* BaseMV 0 (FltMV pr i)
   PrinV (ValPEV ρe) → return $ NotShared :* BaseMV 0 (PrinMV ρe)
+  PrinSetV ρs | psize ρs ≡ 1 → let Some (ρe :* _) = uncons𝑆 $ stream𝑃 ρs
+                               in return $ NotShared :* BaseMV 0 (PrinMV ρe)
   PairV ṽ₁ ṽ₂ → do
     si₁ :* vmpc₁ ← unShareValPMode m ṽ₁
     si₂ :* vmpc₂ ← unShareValPMode m ṽ₂
@@ -229,6 +231,8 @@ mpcFrVal = \case
   IntV pr i → return $ BaseMV zero $ IntMV pr i
   FltV pr i → return $ BaseMV zero $ FltMV pr i
   PrinV (ValPEV ρe) → return $ BaseMV zero $ PrinMV ρe
+  PrinSetV ρs | psize ρs ≡ 1 → let Some (ρe :* _) = uncons𝑆 $ stream𝑃 ρs
+                               in return $ BaseMV zero $ PrinMV ρe
   PairV ṽ₁ ṽ₂ → do
     vmpc₁ ← mpcFrVal *$ elimValP ṽ₁
     vmpc₂ ← mpcFrVal *$ elimValP ṽ₂
