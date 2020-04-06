@@ -35,8 +35,8 @@ doing development work on PSL itself (e.g., the PANTHEON team).
 You should only do this step if you're working with the Git repository.
 You should skip this step if you're working with a distribution archive.
 
-Initializing the build system requires the following packages to already
-be installed on your system:
+Initializing the build system requires the following tools to already be
+installed on your system:
 
 - Bash 4.4 or newer.
 - jq 1.5 or newer.
@@ -45,19 +45,19 @@ be installed on your system:
 - GNU Automake 1.12.6 or newer.
 - GNU M4 1.4.16 or newer.
 
-Note that this list of packages is much more developer oriented than the
-list of packages required when working with a distribution archive,
+Note that this list of tools is much more developer oriented than the
+list of tools required when working with a distribution archive,
 reflecting the fact that working with the Git repository is mainly
 intended for doing development work on PSL itself.
 
-As an example, here is how you might install these packages on an Ubuntu
+As an example, here is how you might install these tools on an Ubuntu
 system:
 
 ```
 sudo apt-get -q -y install bash jq git autoconf automake m4
 ```
 
-After these packages are installed, simply run `./autogen` to initialize
+After these tools are installed, simply run `./autogen` to initialize
 the build system.
 
 ## Configuring the build system
