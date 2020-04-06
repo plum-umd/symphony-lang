@@ -23,7 +23,7 @@ def log_2_real = id
 
 def magn x = 1n
 
--- instances of definitions in the standard lib:
+-- aliases of definitions in the standard lib:
 
 -- order: alias for list length
 def order = len
@@ -59,7 +59,7 @@ def range m n =
 -- multiplicative unit u
 def nz-prod z u l = elim_list l
   u
-  (fun x p -> mux if (x == z) then x else x * p)
+  (fun x p -> mux if (x == z) then p else x * p)
 
 def nz-prod-flt = nz-prod 0.0 1.0
 
