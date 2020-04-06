@@ -50,7 +50,7 @@ def remove-dups qs = case qs
   { [] → []
   ; (b,query)∷qs' →
     let h = mux if (elem-triple query qs')
-            then (false, (-1,{Dummy}))
+            then (false, (-1,Dummy))
             else (b,query)
     in h∷(remove-dups qs')
   }
@@ -104,7 +104,7 @@ def main • = par {A,B}
 
   -- Secret share the elements of each party's list
   let inputListsShared : list list (ℤ{bgw:A,B})
-  let inputListsShared = fold-f [] (λ P x i → (preprocess-lists P {A,B} x 0) ∷ i) inputLists
+  let inputListsShared = fold-f [] (λ P x i → (preprocess-lists-reveal-lengths P {A,B} x 0) ∷ i) inputLists
 
   -- Merge and sort the input lists into a single list
   let dataList : list ℤ{bgw:A,B}
@@ -112,7 +112,7 @@ def main • = par {A,B}
 
   -- Produce a single sorted list of all input integers
   let dataListSorted : list ℤ{bgw:A,B}
-  let dataListSorted = msort dataList
+  let dataListSorted = sort (λ a b → mux if a ≤ b then (a, b) else (b, a)) dataList
 
   -- Find the median of the integer list
   let medianResult : ℤ{bgw:A,B}
@@ -140,7 +140,7 @@ def main • = par {A,B}
 
   -- Secret share queries and targets without revealing the number of targets each party supplied by setting an upper bound and padding data out with dummy data
   let queriesWithTargetsShared : list list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
-  let queriesWithTargetsShared = fold-f [] (λ P x i → (preprocess-lists-n-triples P {A,B} 8 x (false,(-1,{Dummy}))) ∷ i) queriesWithTargets
+  let queriesWithTargetsShared = fold-f [] (λ P x i → (preprocess-lists-n-triples P {A,B} 8 x (false,(-1,Dummy))) ∷ i) queriesWithTargets
 
   -- Combine queries and targets into one list
   let allQueriesWithTargetsShared : list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
