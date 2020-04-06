@@ -14,35 +14,6 @@ def db-init n = map-init (0, 0) (vec-init (0, 0) 10) n
 def singleton-row v =
   vec-push v (vec-init (0, 0) 10)
 
-def stats-reveal P x =
-  let key1, key2, n_records, s_median, s_mean, s_stddev, l_median, l_mean, l_stddev = x
-  in reveal {P} key1,
-     reveal {P} key2,
-     reveal {P} n_records,
-     reveal {P} s_median,
-     reveal {P} s_mean,
-     reveal {P} s_stddev,
-     reveal {P} l_median,
-     reveal {P} l_mean,
-     reveal {P} l_stddev
-
-def response-reveal P x =
-  let (c, s) = x
-  in (reveal {P} c, stats-reveal P s)
-
-
-def share-key x =
-  share {bgv:A -> A,B} (par {A} fst x),
-  share {bgv:A -> A,B} (par {A} snd x)
-
-
-def share-query x =
-  share {bgv:A -> A,B} (par {A} fst x),
-  ( share {bgv:A -> A,B} (par {A} fst (snd x))
-  , share {bgv:A -> A,B} (par {A} snd (snd x))
-  )
-
-
 def med vec = snd (vec-median (fun x y -> x < y) vec)
 
 def mean xs = to_flt (vec-int-sum xs) / to_flt (vec-length xs)
@@ -133,12 +104,11 @@ def main () =
     let db = db-init 20
     let k1 = share {bgv:A -> A,B} (par {A} 2)
     let k2 = share {bgv:A -> A,B} (par {A} 4)
-    let db, _ = handler k1 k2 (share-query (par {A} (false, (10, 999)))) db
-    let db, _ = handler k1 k2 (share-query (par {A} (false, (15, 25)))) db
-    let db, _ = handler k1 k2 (share-query (par {A} (false, (44, 35)))) db
-    let db, _ = handler k1 k2 (share-query (par {A} (false, (13, 404)))) db
-    let db, _ = handler k1 k2 (share-query (par {A} (false, (29, 5)))) db
-    let db, _ = handler k1 k2 (share-query (par {A} (false, (13, 19)))) db
-    let _, r = handler k1 k2 (share-query (par {A} (true, (0, 0)))) db
-    in r
-    -- in stats-reveal A r
+    let db, _ = handler k1 k2 (share {bgv:A -> this} (par {A} (false, (10, 999)))) db
+    let db, _ = handler k1 k2 (share {bgv:A -> this} (par {A} (false, (15, 25)))) db
+    let db, _ = handler k1 k2 (share {bgv:A -> this} (par {A} (false, (44, 35)))) db
+    let db, _ = handler k1 k2 (share {bgv:A -> this} (par {A} (false, (13, 404)))) db
+    let db, _ = handler k1 k2 (share {bgv:A -> this} (par {A} (false, (29, 5)))) db
+    let db, _ = handler k1 k2 (share {bgv:A -> this} (par {A} (false, (13, 19)))) db
+    let _, r = handler k1 k2 (share {bgv:A -> this} (par {A} (true, (0, 0)))) db
+    in reveal {A} r
