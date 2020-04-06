@@ -50,7 +50,7 @@ def remove-dups qs = case qs
   { [] → []
   ; (b,query)∷qs' →
     let h = mux if (elem-triple query qs')
-            then (false, (-1,{Dummy}))
+            then (false, (-1,Dummy))
             else (b,query)
     in h∷(remove-dups qs')
   }
@@ -140,7 +140,7 @@ def main • = par {A,B}
 
   -- Secret share queries and targets without revealing the number of targets each party supplied by setting an upper bound and padding data out with dummy data
   let queriesWithTargetsShared : list list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
-  let queriesWithTargetsShared = fold-f [] (λ P x i → (preprocess-lists-n-triples P {A,B} 8 x (false,(-1,{Dummy}))) ∷ i) queriesWithTargets
+  let queriesWithTargetsShared = fold-f [] (λ P x i → (preprocess-lists-n-triples P {A,B} 8 x (false,(-1,Dummy))) ∷ i) queriesWithTargets
 
   -- Combine queries and targets into one list
   let allQueriesWithTargetsShared : list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
