@@ -11,7 +11,7 @@ archive, which you would have acquired by downloading an archive file
 whose name looks like `psl-A.B.C.D.tar.gz`.
 Otherwise, you should be working with the Git repository, which you
 would have acquired by running a command like `git clone`.
-In this case, you should not skip the first step.
+In this case, you should do the first step.
 
 **IMPORTANT:**
 If you downloaded an archive file using a download button on a Git
@@ -27,15 +27,16 @@ Distribution archives are typically used by people who are only
 interested in building and installing PSL to use it to develop PSL
 programs.
 The Git repository is typically used by people who are interested in
-doing development on PSL itself (e.g., the PANTHEON team).
+doing development work on PSL itself (e.g., the PANTHEON team).
 
 ## Initializing the build system
 
 **IMPORTANT:**
+You should only do this step if you're working with the Git repository.
 You should skip this step if you're working with a distribution archive.
 
-Initializing the build system requires the following tools to be
-installed on your system:
+Initializing the build system requires the following packages to already
+be installed on your system:
 
 - Bash 4.4 or newer.
 - jq 1.5 or newer.
@@ -44,16 +45,20 @@ installed on your system:
 - GNU Automake 1.12.6 or newer.
 - GNU M4 1.4.16 or newer.
 
-Note that this list of tools is much more developer oriented than the
-list of tools required by the next step.
+Note that this list of packages is much more developer oriented than the
+list of packages required when working with a distribution archive,
+reflecting the fact that working with the Git repository is mainly
+intended for doing development work on PSL itself.
 
-To initialize the build system, run the following command:
+As an example, here is how you might install these packages on an Ubuntu
+system:
 
 ```
-./autogen
+sudo apt-get -q -y install bash jq git autoconf automake m4
 ```
 
-Be sure to verify that the last line it prints is `success`.
+After these packages are installed, simply run `./autogen` to initialize
+the build system.
 
 ## Configuring the build system
 
