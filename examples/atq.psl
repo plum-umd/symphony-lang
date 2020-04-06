@@ -112,7 +112,7 @@ def main • = par {A,B}
 
   -- Produce a single sorted list of all input integers
   let dataListSorted : list ℤ{bgw:A,B}
-  let dataListSorted = msort dataList
+  let dataListSorted = sort (λ a b → mux if a < b then (a, b) else (b, a)) dataList
 
   -- Find the median of the integer list
   let medianResult : ℤ{bgw:A,B}

@@ -508,53 +508,6 @@ def preprocess-lists P n i xs =
     in
     x′ ∷ xs′
 
--- Merge sort, copy and pasted and modified slightly, used by atq
---def list-cond :
---    𝔹{yao:C}
---  → list ℤ{yao:C}
---  → list ℤ{yao:C}
---  → list ℤ{yao:C}
-def list-cond b xs ys = case xs,ys
-  { [],_ → ys
-  ; _,[] → xs
-  ; x∷xs′,y∷ys′ → b ? x ◇ y ∷ list-cond b xs′ ys′
-  }
-
---def split : list ℤ{isec:A,B} → list ℤ{isec:A,B} × list ℤ{isec:A,B}
-def split xs = case xs
-  { [] → [] , []
-  ; [x] → [] , [x]
-  ; x₁∷x₂∷xs →
-      let xs₁,xs₂ = split xs
-      in x₁∷xs₁,x₂∷xs₂
-  }
-
---def merge :
---    list ℤ{yao:C}
---  → list ℤ{yao:C}
---  → list ℤ{yao:C}
-def merge xs ys = case xs,ys
-  { [],_ → ys
-  ; _,[] → xs
-  ; x∷xs′,y∷ys′ →
-      list-cond (x ≤ y)
-                (x ∷ merge xs′ ys)
-                (y ∷ merge xs ys′)
-  }
-
---input is shares instead of isec
---def msort : list ℤ{isec:A,B} → list ℤ{yao:C}
-def msort xs = case xs
-  { [] → []
-  ; [x] → [x]
-  ; x₁∷x₂∷xs′ →
-      let xs₁,xs₂ = split xs
-      let ys₁ = msort xs₁
-      let ys₂ = msort xs₂
-      in merge ys₁ ys₂
-  }
--- Merge sort end
-
 -- Pair an item with each element in a list
 def pair-with-list : a → list b → list (a × b)
 def pair-with-list v xs = case xs
