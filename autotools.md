@@ -7,11 +7,21 @@ There are three main steps to using the build system:
 3. Running the build system.
 
 You should skip the first step if you're working with a distribution
-archive, which you would have acquired by downloading and extracting an
-archive file whose name looks like `psl-<VERSION>.tar.gz`.
-Otherwise, you're working with the Git repository, which you must have
-acquired by running `git clone` (or equivalent).
+archive, which you would have acquired by downloading an archive file
+whose name looks like `psl-A.B.C.D.tar.gz`.
+Otherwise, you should be working with the Git repository, which you
+would have acquired by running a command like `git clone`.
 In this case, you cannot skip the first step.
+
+**IMPORTANT:**
+If you downloaded an archive file using a download button on a Git
+repository manager like GitLab or GitHub, then it's probably not the
+right thing.
+These download buttons typically yield source archives, which are only
+snapshots of the Git repository.
+You cannot build and install PSL from a source archive.
+Please download a distribution archive or clone the Git repository
+instead.
 
 Distribution archives are typically used by people who are only
 interested in building and installing PSL to use it to develop PSL
