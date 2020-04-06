@@ -1,4 +1,4 @@
-PSL includes an Autotools-based build system that provides a
+PSL includes a GNU Autotools based build system that provides a
 conventional POSIX-like workflow for building and installation.
 There are three main steps to using the build system:
 
