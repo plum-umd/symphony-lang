@@ -4,34 +4,22 @@ principal C[2]
 principal A
 principal B
 
-
 def key-eql a b =
   let (sa, ta) = a
   let (sb, tb) = b
   in (sa == sb) && (ta == tb)
 
 def key-default = (0, 0)
-def key-swap = pair-swap int-swap
 
 def cell-default = (0, 0)
-def cell-swap = pair-swap int-swap
 
 def val-default =
-  vec-init cell-default cell-swap 10
-def val-swap = vec-swap
+  vec-init cell-default 10
 
-
-def db-init n =
-  map-init
-    key-eql
-    key-default
-    val-default
-    key-swap
-    val-swap
-    n
+def db-init n = map-init key-default val-default n
 
 def singleton-row v =
-  vec-push v (vec-init cell-default cell-swap 10)
+  vec-push v (vec-init cell-default 10)
 
 def thresholdNotMet : Response
 def thresholdNotMet = R (L ())
@@ -48,7 +36,7 @@ def threshold = 5
 
 -- def med : vec{bgv:C} int -> int{bgv:C}
 def med vec =
-  let t, r = vec-median int-minmax vec
+  let t, r = vec-median (fun x y -> x < y) vec
   in t ? r >< 0
 
 
@@ -64,13 +52,15 @@ def meanf xs = (vec-flt-sum xs) / to_flt (vec-length xs)
 def stddev xs =
   let m = mean xs
   let square = fun x -> x * x
-  let diffs = vec-map flt-swap (fun x -> square (to_flt x - m)) xs
+  let diffs = vec-map (fun x -> square (to_flt x - m)) xs
   in sqrt (meanf diffs)
 
 
 def update : bool -> Key -> Value -> Database -> Database
 def update cond k v db =
-  map-cond-insert-with (fun new old -> vec-append old new)
+  map-cond-insert-with
+    key-eql
+    (fun new old -> vec-append old new)
     cond
     k (singleton-row v) db
 
@@ -119,29 +109,33 @@ def stats vec =
 
 def query : Key -> Database -> Response
 def query k db =
-  let t, xs = map-read k db
+  let t, xs = map-read key-eql k db
   let n = vec-length xs
   let threshold-met = n >= threshold
   in
     threshold-met,
     response-swap threshold-met
       (vec-length xs,
-        stats (vec-map int-swap fst xs),
-        stats (vec-map int-swap snd xs))
+        stats (vec-map fst xs),
+        stats (vec-map snd xs))
       response-default
 
 
 def handler : Key -> Input -> Database -> (Database * Response)
 def handler k input db =
   let is-query, v = input
-  let db' = update (not is-query) k v db
-  let qr = query k db
-  in
-    db',
-    output-swap is-query
-      qr
-      (false, response-default)
+  in mux if (is-query)
+          then -- (db, query k db)
+                db, query k db
+          else -- (update (not is-query) k v db, _|_)
+                update (neg is-query) k v db, _|_
 
+  -- let db' = update (not is-query) k v db
+  -- let qr = query k db
+  -- in
+    -- (db', mux if is-query
+               -- then qr
+               -- else (false, response-default))
 
 def share-key x =
   share {bgv:A -> A,B} (par {A} fst x),
@@ -158,6 +152,9 @@ def share-query x =
 def main : unit -> list float
 def main () =
   par {A,B}
+    let m = map-init 0 0 10
+    -- in m
+    -- in map-read (fun x y -> x == y) 0 m
     let db = db-init 20
     let kA = share-key (par {A} (2, 4))
     let db, _ = handler kA (share-query (par {A} (false, (10, 999)))) db

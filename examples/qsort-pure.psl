@@ -6,26 +6,13 @@ principal B
 -- why does random selection not work?
 
 
--- def swap-indexes
---    : bool{bgw:this}
---   -> nat{bgw:this}
---   -> nat{bgw:this}
---   -> vec{bgw:this} flt
---   -> vec{bgw:this} flt
-def swap-indexes cond i j arr =
+def swap-indexes i j arr =
   let _, l = vec-read i arr
   let _, r = vec-read j arr
   in
-    vec-cond-write cond i r (vec-cond-write cond j l arr)
+    vec-write i r (vec-write j l arr)
 
 
--- def partLoop
---   : nat -- remaining iterations
---   -> nat{bgw:this}
---   -> nat{bgw:this}
---   -> nat{bgw:this}
---   -> vec{bgw:this} flt
---   -> vec{bgw:this} flt * nat{bgw:this}
 def partLoop n i j hi arr =
   if n == 0
   then
@@ -33,45 +20,34 @@ def partLoop n i j hi arr =
   else
     let _, x = vec-read j arr
     let _, y = vec-read hi arr
-    let cond = x < y
-    let arr = swap-indexes cond i j arr
-    let i' = i + (cond ? 1 >< 0)
-    let j' = (j < hi) ? j + 1 >< j
+    let arr, i' =
+      mux if (x < y)
+           then swap-indexes i j arr, i + 1
+           else arr, i
+    let j' = mux if (j < hi) then j + 1 else j
     in
       partLoop (n - 1) i' j' hi arr
 
 
--- def partition
---   : nat -- the size of the entire list
---   -> nat{bgw:this}
---   -> nat{bgw:this}
---   -> vec{bgw:this} flt
---   -> vec{bgw:this} flt * nat{bgw:this}
 def partition n lo hi arr =
   -- TODO why do the following lines not work?
   -- let r = rand-range int{bgw:this} (lo,hi) in
-  -- let arr = swap-indexes true r hi arr in
+  -- let arr = swap-indexes r hi arr in
   let arr', pivot = partLoop n lo lo hi arr
-  in (swap-indexes true pivot hi arr', pivot)
+  in (swap-indexes pivot hi arr', pivot)
 
 
--- def quickSort
---   : nat -- iterations remaining
---   -> nat{bgw:this} -- lo
---   -> nat{bgw:this} -- hi
---   -> vec{bgw:this} flt
---   -> vec{bgw:this} flt
 def quickSort n lo hi arr =
   if n == 0
   then arr
   else
     let partitioned, pivot = partition n lo hi arr
-    let sorted =
-      quickSort (n - 1) (pivot + 1) hi
-        (quickSort (n - 1) lo (pivot - 1) partitioned)
     in
-      vec-swap (lo >= hi) arr sorted
-
+      mux if (lo >= hi)
+           then arr
+           else
+             quickSort (n - 1) (pivot + 1) hi
+               (quickSort (n - 1) lo (pivot - 1) partitioned)
 
 def main : unit -> {inp:A,B ; rev:A,B} (list flt)
 def main () =
@@ -80,9 +56,9 @@ def main () =
     let sflt = fun P -> (fun x -> share{bgw:P -> this} x)
     let rflt = fun f -> reveal {this} f
 
-    let a = share-as-vec A (sbool A) (sflt A) 0.0 flt-swap 10
+    let a = share-as-vec A (sbool A) (sflt A) 0.0 10
       (par {A} read (list flt) from "qsort-input.txt")
-    let b = share-as-vec B (sbool B) (sflt B) 0.0 flt-swap 10
+    let b = share-as-vec B (sbool B) (sflt B) 0.0 10
       (par {B} read (list flt) from "qsort-input.txt")
 
     let inps = vec-append a b

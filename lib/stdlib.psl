@@ -246,23 +246,27 @@ def one-ls-flt = const-ls 1.0
 
 
 -- Oblivious friendly insert to list.
-def insert : (a -> a -> (a * a)) -> a -> list a -> list a
-def insert minmax x xs = case xs
+def insert : (a -> a -> bool) -> a -> list a -> list a
+def insert lt x xs = case xs
   { [] -> [x]
   ; (x'::xs') ->
-      let lo, hi = minmax x x'
-      in lo :: insert minmax hi xs'
+      let lo, hi =
+        mux if (lt x x')
+             then x, x'
+             else x', x
+      in
+        lo :: insert lt hi xs'
   }
 
 
 -- Oblivious friendly sort. Always O(n^2)
-def sort : (a -> a -> (a * a)) -> list a -> list a
-def sort minmax = foldr (insert minmax) []
+def sort : (a -> a -> bool) -> list a -> list a
+def sort lt = foldr (insert lt) []
 
 
-def median : (a -> a -> (a * a)) -> a -> list a -> a
-def median minmax default xs =
-  at default (length xs / 2) (sort minmax xs)
+def median : (a -> a -> bool) -> a -> list a -> a
+def median lt default xs =
+  at default (length xs / 2) (sort lt xs)
 
 
 -- sum: the sum over a list of numerics
@@ -314,24 +318,24 @@ def flt-minmax x y =
   pair-swap flt-swap (x < y) (x, y) (y, x)
 
 
-def split : nat -> list a -> (list a * list a)
-def split n xs =
+def split-at : nat -> list a -> (list a * list a)
+def split-at n xs =
   if n == 0
   then [], xs
   else
     case xs
     { [] -> []
     ; (x::xs') ->
-        let take, drop = split (n - 1) xs'
+        let take, drop = split-at (n - 1) xs'
         in x::take, drop
     }
 
 
 def take : nat -> list a -> list a
-def take n xs = fst (split n xs)
+def take n xs = fst (split-at n xs)
 
 def drop : nat -> list a -> list a
-def drop n xs = snd (split n xs)
+def drop n xs = snd (split-at n xs)
 
 
 def append : list a -> list a -> list a
@@ -639,25 +643,27 @@ def content-init default n =
     (false, default) :: content-init default (n - 1)
 
 
--- def vec-init : a -> (bool{P} -> a -> a -> a) -> nat -> vec{P} a
-def vec-init default swap n =
-  default, swap, content-init default n
+-- def vec-init : a -> nat -> vec{P} a
+def vec-init default n =
+  default, content-init default n
 
 
-def content-over swap cond n f xs =
+def content-over cond n f xs =
   case xs
   { [] -> []
   ; cell::xs' ->
     let (tag, x) = cell
-    in
-      swap (cond && (n == 0) && tag) (tag, f x) cell
-        :: content-over swap cond (n - 1) f xs'
+    let hd =
+      mux if (cond && (n == 0) && tag)
+           then (tag, f x)
+           else cell
+    in hd :: content-over cond (n - 1) f xs'
   }
 
 
 def vec-cond-over cond n f vec =
-  let default, swap, xs = vec
-  in default, swap, (content-over (tag-swap swap) cond n f xs)
+  let default, xs = vec
+  in default, (content-over cond n f xs)
 
 
 -- def vec : nat{P} -> a -> vec{P} a -> vec{P} a
@@ -670,19 +676,22 @@ def vec-over = vec-cond-over true
 
 def vec-write = vec-cond-write true
 
-def content-push swap flag cond y xs =
+def content-push flag cond y xs =
   case xs
   { [] -> []
   ; cell::xs' ->
     let (tag, x) = cell
+    let hd =
+      mux if (cond && not tag && flag)
+           then (true, y)
+           else cell
     in
-      swap (cond && not tag && flag) (true, y) cell
-        :: content-push swap tag cond y xs'
+      hd :: content-push tag cond y xs'
   }
 
 def vec-cond-push cond x vec =
-  let default, swap, xs = vec
-  in default, swap, (content-push (tag-swap swap) true cond x xs)
+  let default, xs = vec
+  in default, (content-push true cond x xs)
 
 def vec-push = vec-cond-push true
 
@@ -699,8 +708,8 @@ def resize-content n xs =
 
 -- def resize : nat{P} -> vec{P} a -> vec{P} a
 def vec-resize n vec =
-  let default, swap, xs = vec
-  in default, swap, (resize-content n xs)
+  let default, xs = vec
+  in default, (resize-content n xs)
 
 
 def content-size xs =
@@ -715,43 +724,32 @@ def content-size xs =
 
 
 def vec-length vec =
-  let default, swap, xs = vec
+  let default, xs = vec
   in content-size xs
 
 def vec-capacity vec =
-  let _, _, xs = vec
+  let _, xs = vec
   in length xs
 
 
-def content-read default swap n xs =
+def content-read default n xs =
   case xs
   { [] -> false, default
   ; cell::xs' ->
-    let tl = content-read default swap (n - 1) xs'
-    in swap (n == 0) cell tl
+    mux if (n == 0)
+         then cell
+         else content-read default (n - 1) xs'
   }
 
 
 def vec-read n vec =
-  let default, swap, xs = vec
-  in content-read default (tag-swap swap) n xs
+  let default, xs = vec
+  in content-read default n xs
 
-
-def content-swap swap b xs ys =
-  case xs, ys
-  { [], [] -> []
-  ; x::xs, y::ys -> swap b x y :: content-swap swap b xs ys
-  }
-
-
-def vec-swap b vecx vecy =
-  let default, swap, xs = vecx
-  let _, _, ys = vecy
-  in default, swap, content-swap (tag-swap swap) b xs ys
 
 -- def vec-content : vec{P} a -> list (bool{P} * a{P})
 def vec-content vec =
-  let _, _, xs = vec
+  let _, xs = vec
   in xs
 
 def vec-append xs ys =
@@ -760,7 +758,7 @@ def vec-append xs ys =
     in vec-cond-push r x acc) xs (reverse (vec-content ys))
 
 
-def int-vec-init = vec-init 0 (fun b x y -> b ? x >< y)
+def int-vec-init n = vec-init 0 n
 
 def share-as-vec-content knowers shareFlag shareContent default n xs =
   if n == 0
@@ -787,15 +785,15 @@ def share-as-vec-content knowers shareFlag shareContent default n xs =
 --                 -> a
 --                 -> (bool{P} -> a{P} -> a{P} -> a{P})
 --                 -> list a -> nat -> vec{P} a
-def share-as-vec knowers shareFlag shareContent default swap n xs =
-  default, swap,
+def share-as-vec knowers shareFlag shareContent default n xs =
+  default,
       share-as-vec-content knowers shareFlag shareContent default n xs
 
 
 
 -- def vec-reveal : (a{P} -> a) -> vec{P} a -> list a
 def vec-reveal revealContent vec =
-  let _, _, xs = vec
+  let _, xs = vec
   let revealed = map (fun cell ->
     let t, x = cell
     in reveal {this} t, revealContent x) xs
@@ -804,27 +802,29 @@ def vec-reveal revealContent vec =
   in map snd filtered
 
 
-def content-fold swap-val f acc xs =
+def content-fold f acc xs =
   case xs
   { [] -> acc
   ; cell::xs' ->
     let t, x = cell
-    let acc' = content-fold swap-val f acc xs'
-    in swap-val t (f x acc') acc'
+    let acc' = content-fold f acc xs'
+    in mux if t
+        then (f x acc')
+        else acc'
   }
 
-def vec-fold swap-val f acc vec =
-  let _, _, xs = vec
-  in content-fold swap-val f acc xs
+def vec-fold f acc vec =
+  let _, xs = vec
+  in content-fold f acc xs
 
 def vec-int-sum =
-  vec-fold int-swap (fun x y -> x + y) 0
+  vec-fold (fun x y -> x + y) 0
 
 def vec-flt-sum =
-  vec-fold flt-swap (fun x y -> x + y) 0.0
+  vec-fold (fun x y -> x + y) 0.0
 
 def vec-int-product=
-  vec-fold int-swap (fun x y -> x * y) 1
+  vec-fold (fun x y -> x * y) 1
 
 def content-map f xs =
   case xs
@@ -834,33 +834,28 @@ def content-map f xs =
     in (t, f x) :: content-map f xs'
   }
 
-def vec-map val-swap f vec =
-  let default, _, xs = vec
-  in (f default, val-swap, content-map f xs)
+def vec-map f vec =
+  let default, xs = vec
+  in (f default, content-map f xs)
 
 
-def tag-minmax swap minmax x y =
+-- TODO continue removing swap from here
+def tag-lt lt x y =
   let tx, xx = x
   let ty, yy = y
-
-  let r0, r1 =
-    pair-swap swap
-      (tx && ty)
-      (minmax xx yy)
-      (pair-swap swap tx (xx, yy) (yy, xx))
-  in
-  (tx || ty, r0), (tx && ty, r1)
-
+  in mux if (tx && ty)
+        then lt xx yy
+        else tx
 
 -- Oblivious friendly sort. Always O(n^2)
--- def vec-sort : (a -> a -> (a * a)) -> vec a -> vec a
-def vec-sort minmax vec =
-  let default, swap, xs = vec
-  in (default, swap, sort (tag-minmax swap minmax) xs)
+-- def vec-sort : (a -> a -> bool) -> vec a -> vec a
+def vec-sort lt vec =
+  let default, xs = vec
+  in (default, sort (tag-lt lt) xs)
 
--- def vec-median : (a -> a -> (a * a)) -> a -> vec a -> a
-def vec-median minmax xs =
-  vec-read (vec-length xs / 2) (vec-sort minmax xs)
+-- def vec-median : (a -> a -> bool) -> vec a -> a
+def vec-median lt xs =
+  vec-read (vec-length xs / 2) (vec-sort lt xs)
 
 
 ---
@@ -868,48 +863,49 @@ def vec-median minmax xs =
 ---
 
 
-def map-init k-eql k-default v-default k-swap v-swap n =
-  let swap = fun b cell0 cell1 ->
-    let k0, v0 = cell0
-    let k1, v1 = cell1
-    in (k-swap b k0 k1, v-swap b v0 v1)
+def map-init k-default v-default n =
   let default = (k-default, v-default)
-  in k-eql, v-default, v-swap, vec-init default swap n
+  in (v-default, vec-init default n)
 
-def map-read-help k-eql v-default v-swap k xs =
+def map-read-help k-eql v-default k xs =
   case xs
   { [] -> 0, false, v-default
   ; x::xs' ->
     let (b, (k', v)) = x
-    let (i', b', v') = map-read-help k-eql v-default v-swap k xs'
+    let (i', b', v') = map-read-help k-eql v-default k xs'
     let is-here = b && k-eql k k'
-    in int-swap is-here 0 (i' + 1), is-here || b', v-swap is-here v v'
+    in
+      mux if (b && k-eql k k')
+           then (0, true, v)
+           else (i' + 1, b', v')
   }
 
 -- returns a tuple (i, b, v) where i is the vector index of the value,
 -- b is whether or not the read was successful
 -- v is the read value.
-def map-read-index k m =
-  let k-eql, v-default, v-swap, vec = m
-  in map-read-help k-eql v-default v-swap k (vec-content vec)
+def map-read-index k-eql k m =
+  let v-default, vec = m
+  in map-read-help k-eql v-default k (vec-content vec)
 
-def map-read k m =
-  let (_, b, v) = map-read-index k m
+
+def map-read k-eql k m =
+  let (_, b, v) = map-read-index k-eql k m
   in (b, v)
 
-def map-cond-insert-with f cond k v m =
-  let k-eql, v-default, v-swap, vec = m
-  let (i, b, _) = map-read-index k m
+
+def map-cond-insert-with k-eql f cond k v m =
+  let v-default, vec = m
+  let (i, b, _) = map-read-index k-eql k m
   let f' = fun cell ->
     let (k', v') = cell
     in (k, f v v')
 
   let vec = vec-cond-over (cond && b) i f' vec
-  in k-eql, v-default, v-swap, vec-cond-push (cond && not b) (k, v) vec
+  in v-default, vec-cond-push (cond && not b) (k, v) vec
 
-def map-insert-with f = map-cond-insert-with f true
+def map-insert-with k-eql f = map-cond-insert-with k-eql f true
 
-def map-insert = map-insert-with (fun x _ -> x)
+def map-insert k-eql = map-insert-with k-eql (fun x _ -> x)
 
 def loop-f f n =
   if n ≡ 0n
