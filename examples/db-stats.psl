@@ -9,133 +9,27 @@ def key-eql a b =
   let (sb, tb) = b
   in (sa == sb) && (ta == tb)
 
-def key-default = (0, 0)
-
-def cell-default = (0, 0)
-
-def val-default =
-  vec-init cell-default 10
-
-def db-init n = map-init key-default val-default n
+def db-init n = map-init (0, 0) (vec-init (0, 0) 10) n
 
 def singleton-row v =
-  vec-push v (vec-init cell-default 10)
-
-def thresholdNotMet : Response
-def thresholdNotMet = R (L ())
-
-def summary : Count -> Stats -> Stats -> Response
-def summary c s0 s1 = L (c, s0, s1)
-
-def success : Response
-def success = R (R ())
-
-def threshold : int
-def threshold = 5
-
-
--- def med : vec{bgv:C} int -> int{bgv:C}
-def med vec =
-  let t, r = vec-median (fun x y -> x < y) vec
-  in t ? r >< 0
-
-
--- def mean : vec{bgv:C} int -> vec{bgv:C} flt{bgv:C}
-def mean xs = to_flt (vec-int-sum xs) / to_flt (vec-length xs)
-
-
--- def meanf : vec{bgv:C} flt -> vec{bgv:C} flt{bgv:C}
-def meanf xs = (vec-flt-sum xs) / to_flt (vec-length xs)
-
-
--- def stddev : vec{bgv:C} int -> flt{bgv:C}
-def stddev xs =
-  let m = mean xs
-  let square = fun x -> x * x
-  let diffs = vec-map (fun x -> square (to_flt x - m)) xs
-  in sqrt (meanf diffs)
-
-
-def update : bool -> Key -> Value -> Database -> Database
-def update cond k v db =
-  map-cond-insert-with
-    key-eql
-    (fun new old -> vec-append old new)
-    cond
-    k (singleton-row v) db
-
-
-def sharePair : int{A} * int{A} -> int{bgv:this} * int {bgv:this}
-def sharePair p =
-  let x = (par {A} fst p)
-  let y = (par {A} snd p)
-  in share{bgv:A -> this} x, share{bgv:A -> this} y
-
-
-def stats-default : Stats
-def stats-default = (0, 0.0, 0.0)
-
-def stats-swap b x y =
-  let medx, meanx, stdevx = x
-  let medy, meany, stdevy = y
-  in (b ? medx >< medy, b ? meanx >< meany, b ? stdevx >< stdevy)
+  vec-push v (vec-init (0, 0) 10)
 
 def stats-reveal P x =
-  let md, mn, std = x
-  in (reveal {P} md, reveal {P} mn, reveal {P} std)
+  let key1, key2, n_records, s_median, s_mean, s_stddev, l_median, l_mean, l_stddev = x
+  in reveal {P} key1,
+     reveal {P} key2,
+     reveal {P} n_records,
+     reveal {P} s_median,
+     reveal {P} s_mean,
+     reveal {P} s_stddev,
+     reveal {P} l_median,
+     reveal {P} l_mean,
+     reveal {P} l_stddev
 
 def response-reveal P x =
-  let (c, s, t) = x
-  in (reveal {P} c, stats-reveal P s, stats-reveal P t)
+  let (c, s) = x
+  in (reveal {P} c, stats-reveal P s)
 
-def response-default : Count * Stats * Stats
-def response-default = 0, stats-default, stats-default
-
-def response-swap b x y =
-  let cx, sx, tx = x
-  let cy, sy, ty = y
-  in (b ? cx >< cy, stats-swap b sx sy, stats-swap b tx ty)
-
--- output is pair of tag (threshold achieved?) and response
-def output-swap b x y =
-  let tx, rx = x
-  let ty, ry = y
-  in (b ? tx >< ty, response-swap b rx ry)
-
--- def stats : vec{bgv:C} int -> Stats{bgv:C}
-def stats vec =
-  (med vec, mean vec, stddev vec)
-
-
-def query : Key -> Database -> Response
-def query k db =
-  let t, xs = map-read key-eql k db
-  let n = vec-length xs
-  let threshold-met = n >= threshold
-  in
-    threshold-met,
-    response-swap threshold-met
-      (vec-length xs,
-        stats (vec-map fst xs),
-        stats (vec-map snd xs))
-      response-default
-
-
-def handler : Key -> Input -> Database -> (Database * Response)
-def handler k input db =
-  let is-query, v = input
-  in mux if (is-query)
-          then -- (db, query k db)
-                db, query k db
-          else -- (update (not is-query) k v db, _|_)
-                update (neg is-query) k v db, _|_
-
-  -- let db' = update (not is-query) k v db
-  -- let qr = query k db
-  -- in
-    -- (db', mux if is-query
-               -- then qr
-               -- else (false, response-default))
 
 def share-key x =
   share {bgv:A -> A,B} (par {A} fst x),
@@ -149,18 +43,102 @@ def share-query x =
   )
 
 
+def med vec = snd (vec-median (fun x y -> x < y) vec)
+
+def mean xs = to_flt (vec-int-sum xs) / to_flt (vec-length xs)
+
+def meanf xs = (vec-flt-sum xs) / to_flt (vec-length xs)
+
+
+def stddev xs =
+  let m = mean xs
+  let square = fun x -> x * x
+  let diffs = vec-map (fun x -> square (to_flt x - m)) xs
+  in sqrt (meanf diffs)
+
+
+def process-data data values =
+  let (s, l), key1, key2 = values
+  in
+    map-insert-with key-eql vec-append (key1, key2) (singleton-row (s, l)) data
+
+def update : Key -> Value -> Database -> Database
+def update k v db =
+  map-insert-with key-eql (flip vec-append) k (singleton-row v) db
+
+
+def threshold = 5
+
+-- This takes key1 and key2 as a key into the database data
+def stats-report data key1 key2 =
+  -- Separate out the records to use in the report
+  let _, record_subset = map-read key-eql (key1, key2) data
+  -- Record the number of records matching the key
+  let n_records = vec-length record_subset
+  -- Ensure that it is above the threshold
+  mux if n_records > threshold
+  then
+    -- Collect the S values
+    let s_list = vec-map fst record_subset
+    -- Collect the L values
+    let s_list = vec-map snd record_subset
+    -- Collect the statistics
+    let s_median = med s_list
+    let s_mean = mean s_list
+    let s_stddev = stddev s_list
+    let l_median = med s_list
+    let l_mean = mean s_list
+    let l_stddev = stddev s_list
+
+    in (key1, key2, n_records, s_median, s_mean, s_stddev, l_median, l_mean, l_stddev)
+
+  else
+    _|_
+
+
+def handler key1 key2 input db =
+  let is-query, v = input
+  in mux if (is-query)
+          then db, stats-report db key1 key2
+          else process-data db (v, key1, key2), _|_
+
+def num-keys = 20
+
+
+{-
+-- Main function for database statistics
+-- A loop handles inputs one at a time
+-- Each input attempts to add a record to the databse or requests a query
+def database_stats_main inputs =
+
+  -- The structure holding the data
+  let data = db-init num-keys
+
+  -- At each loop iteration, process one input
+  foldl inputs data (fun input ->
+    -- io-name is the principal sending the input
+    -- label is the input label of the input
+    -- values contains the data (e.g., the keys)
+    let io-name, label, values = input
+
+    -- Process the input based on its input label
+    -- Send an acknowledgement to the sender
+    )
+    -}
+
+
 def main : unit -> list float
 def main () =
   par {A,B}
-    let m = map-init 0 0 10
-    -- in m
-    -- in map-read (fun x y -> x == y) 0 m
     let db = db-init 20
-    let kA = share-key (par {A} (2, 4))
-    let db, _ = handler kA (share-query (par {A} (false, (10, 999)))) db
-    let db, _ = handler kA (share-query (par {A} (false, (15, 25)))) db
-    let db, _ = handler kA (share-query (par {A} (false, (44, 35)))) db
-    let db, _ = handler kA (share-query (par {A} (false, (13, 404)))) db
-    let db, _ = handler kA (share-query (par {A} (false, (29, 5)))) db
-    let _, (t, r) = handler kA (share-query (par {A} (true, (0, 0)))) db
-    in response-reveal A r
+    let k1 = share {bgv:A -> A,B} (par {A} 2)
+    let k2 = share {bgv:A -> A,B} (par {A} 4)
+    let db, _ = handler k1 k2 (share-query (par {A} (false, (10, 999)))) db
+    let db, _ = handler k1 k2 (share-query (par {A} (false, (15, 25)))) db
+    let db, _ = handler k1 k2 (share-query (par {A} (false, (44, 35)))) db
+    let db, _ = handler k1 k2 (share-query (par {A} (false, (13, 404)))) db
+    let db, _ = handler k1 k2 (share-query (par {A} (false, (29, 5)))) db
+    let db, _ = handler k1 k2 (share-query (par {A} (false, (13, 19)))) db
+    let _, r = handler k1 k2 (share-query (par {A} (true, (0, 0)))) db
+    in r
+    -- in stats-reveal A r

@@ -820,35 +820,35 @@ def map-init k-default v-default n =
   let default = (k-default, v-default)
   in (v-default, vec-init default n)
 
-def map-read-help k-eql v-default k xs =
+def map-read-help v-default predicate xs =
   case xs
   { [] -> 0, false, v-default
   ; x::xs' ->
-    let (b, (k', v)) = x
-    let (i', b', v') = map-read-help k-eql v-default k xs'
-    let is-here = b && k-eql k k'
+    let (b, (k, v)) = x
+    let (i', b', v') = map-read-help v-default predicate xs'
     in
-      mux if (b && k-eql k k')
+      mux if (b && predicate k)
            then (0, true, v)
            else (i' + 1, b', v')
   }
 
+-- Reads the first index that matches the given predicate
 -- returns a tuple (i, b, v) where i is the vector index of the value,
 -- b is whether or not the read was successful
 -- v is the read value.
-def map-read-index k-eql k m =
+def map-read-index predicate m =
   let v-default, vec = m
-  in map-read-help k-eql v-default k (vec-content vec)
+  in map-read-help v-default predicate (vec-content vec)
 
 
 def map-read k-eql k m =
-  let (_, b, v) = map-read-index k-eql k m
+  let (_, b, v) = map-read-index (k-eql k) m
   in (b, v)
 
 
 def map-cond-insert-with k-eql f cond k v m =
   let v-default, vec = m
-  let (i, b, _) = map-read-index k-eql k m
+  let (i, b, _) = map-read-index (k-eql k) m
   let f' = fun cell ->
     let (k', v') = cell
     in (k, f v v')
@@ -859,6 +859,11 @@ def map-cond-insert-with k-eql f cond k v m =
 def map-insert-with k-eql f = map-cond-insert-with k-eql f true
 
 def map-insert k-eql = map-insert-with k-eql (fun x _ -> x)
+
+-- Does the map contain a key matching the predicate
+def map-has predicate map =
+  let _, b, _ = map-read-index predicate map
+  in b
 
 def loop-f f n =
   if n ≡ 0n
