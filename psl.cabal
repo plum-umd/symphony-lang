@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 46b9858140e21a2d33ad1a7454379a0eafb7240286bd2983bf901e463c3a28f4
+-- hash: 025f419fd4364ac680b8e84e63aa3fd2f8dce6d66d3991fa1e3ac6c05f6758b5
 
 name:           psl
 version:        0.1.0.0
@@ -83,6 +83,7 @@ data-files:
     tests/underflow-int.psl
     tests/underflow-nat.psl
     tests/uninspecting-par.psl
+    tests/ver-0.psl
     tests/when.psl
     examples-input/A/atq-data.txt
     examples-input/A/cmp-input.txt
@@ -95,6 +96,100 @@ data-files:
     examples-input/A/simple-read.txt
     examples-input/A_0/atq-data.txt
     examples-input/A_1/atq-data.txt
+    examples-input/A_10/atq-data.txt
+    examples-input/A_11/atq-data.txt
+    examples-input/A_12/atq-data.txt
+    examples-input/A_13/atq-data.txt
+    examples-input/A_14/atq-data.txt
+    examples-input/A_15/atq-data.txt
+    examples-input/A_16/atq-data.txt
+    examples-input/A_17/atq-data.txt
+    examples-input/A_18/atq-data.txt
+    examples-input/A_19/atq-data.txt
+    examples-input/A_2/atq-data.txt
+    examples-input/A_20/atq-data.txt
+    examples-input/A_21/atq-data.txt
+    examples-input/A_22/atq-data.txt
+    examples-input/A_23/atq-data.txt
+    examples-input/A_24/atq-data.txt
+    examples-input/A_25/atq-data.txt
+    examples-input/A_26/atq-data.txt
+    examples-input/A_27/atq-data.txt
+    examples-input/A_28/atq-data.txt
+    examples-input/A_29/atq-data.txt
+    examples-input/A_3/atq-data.txt
+    examples-input/A_30/atq-data.txt
+    examples-input/A_31/atq-data.txt
+    examples-input/A_32/atq-data.txt
+    examples-input/A_33/atq-data.txt
+    examples-input/A_34/atq-data.txt
+    examples-input/A_35/atq-data.txt
+    examples-input/A_36/atq-data.txt
+    examples-input/A_37/atq-data.txt
+    examples-input/A_38/atq-data.txt
+    examples-input/A_39/atq-data.txt
+    examples-input/A_4/atq-data.txt
+    examples-input/A_40/atq-data.txt
+    examples-input/A_41/atq-data.txt
+    examples-input/A_42/atq-data.txt
+    examples-input/A_43/atq-data.txt
+    examples-input/A_44/atq-data.txt
+    examples-input/A_45/atq-data.txt
+    examples-input/A_46/atq-data.txt
+    examples-input/A_47/atq-data.txt
+    examples-input/A_48/atq-data.txt
+    examples-input/A_49/atq-data.txt
+    examples-input/A_5/atq-data.txt
+    examples-input/A_50/atq-data.txt
+    examples-input/A_51/atq-data.txt
+    examples-input/A_52/atq-data.txt
+    examples-input/A_53/atq-data.txt
+    examples-input/A_54/atq-data.txt
+    examples-input/A_55/atq-data.txt
+    examples-input/A_56/atq-data.txt
+    examples-input/A_57/atq-data.txt
+    examples-input/A_58/atq-data.txt
+    examples-input/A_59/atq-data.txt
+    examples-input/A_6/atq-data.txt
+    examples-input/A_60/atq-data.txt
+    examples-input/A_61/atq-data.txt
+    examples-input/A_62/atq-data.txt
+    examples-input/A_63/atq-data.txt
+    examples-input/A_64/atq-data.txt
+    examples-input/A_65/atq-data.txt
+    examples-input/A_66/atq-data.txt
+    examples-input/A_67/atq-data.txt
+    examples-input/A_68/atq-data.txt
+    examples-input/A_69/atq-data.txt
+    examples-input/A_7/atq-data.txt
+    examples-input/A_70/atq-data.txt
+    examples-input/A_71/atq-data.txt
+    examples-input/A_72/atq-data.txt
+    examples-input/A_73/atq-data.txt
+    examples-input/A_74/atq-data.txt
+    examples-input/A_75/atq-data.txt
+    examples-input/A_76/atq-data.txt
+    examples-input/A_77/atq-data.txt
+    examples-input/A_78/atq-data.txt
+    examples-input/A_79/atq-data.txt
+    examples-input/A_8/atq-data.txt
+    examples-input/A_80/atq-data.txt
+    examples-input/A_81/atq-data.txt
+    examples-input/A_82/atq-data.txt
+    examples-input/A_83/atq-data.txt
+    examples-input/A_84/atq-data.txt
+    examples-input/A_85/atq-data.txt
+    examples-input/A_86/atq-data.txt
+    examples-input/A_87/atq-data.txt
+    examples-input/A_88/atq-data.txt
+    examples-input/A_89/atq-data.txt
+    examples-input/A_9/atq-data.txt
+    examples-input/A_90/atq-data.txt
+    examples-input/A_91/atq-data.txt
+    examples-input/A_92/atq-data.txt
+    examples-input/A_93/atq-data.txt
+    examples-input/A_94/atq-data.txt
+    examples-input/A_95/atq-data.txt
     examples-input/B/atq-data.txt
     examples-input/B/atq-queries.txt
     examples-input/B/atq-targets.txt
@@ -112,6 +207,96 @@ data-files:
     examples-input/B_1/atq-data.txt
     examples-input/B_1/atq-query.txt
     examples-input/B_1/atq-targets.txt
+    examples-input/B_10/atq-data.txt
+    examples-input/B_10/atq-query.txt
+    examples-input/B_10/atq-targets.txt
+    examples-input/B_11/atq-data.txt
+    examples-input/B_11/atq-query.txt
+    examples-input/B_11/atq-targets.txt
+    examples-input/B_12/atq-data.txt
+    examples-input/B_12/atq-query.txt
+    examples-input/B_12/atq-targets.txt
+    examples-input/B_13/atq-data.txt
+    examples-input/B_13/atq-query.txt
+    examples-input/B_13/atq-targets.txt
+    examples-input/B_14/atq-data.txt
+    examples-input/B_14/atq-query.txt
+    examples-input/B_14/atq-targets.txt
+    examples-input/B_15/atq-data.txt
+    examples-input/B_15/atq-query.txt
+    examples-input/B_15/atq-targets.txt
+    examples-input/B_16/atq-data.txt
+    examples-input/B_16/atq-query.txt
+    examples-input/B_16/atq-targets.txt
+    examples-input/B_17/atq-data.txt
+    examples-input/B_17/atq-query.txt
+    examples-input/B_17/atq-targets.txt
+    examples-input/B_18/atq-data.txt
+    examples-input/B_18/atq-query.txt
+    examples-input/B_18/atq-targets.txt
+    examples-input/B_19/atq-data.txt
+    examples-input/B_19/atq-query.txt
+    examples-input/B_19/atq-targets.txt
+    examples-input/B_2/atq-data.txt
+    examples-input/B_2/atq-query.txt
+    examples-input/B_2/atq-targets.txt
+    examples-input/B_20/atq-data.txt
+    examples-input/B_20/atq-query.txt
+    examples-input/B_20/atq-targets.txt
+    examples-input/B_21/atq-data.txt
+    examples-input/B_21/atq-query.txt
+    examples-input/B_21/atq-targets.txt
+    examples-input/B_22/atq-data.txt
+    examples-input/B_22/atq-query.txt
+    examples-input/B_22/atq-targets.txt
+    examples-input/B_23/atq-data.txt
+    examples-input/B_23/atq-query.txt
+    examples-input/B_23/atq-targets.txt
+    examples-input/B_24/atq-data.txt
+    examples-input/B_24/atq-query.txt
+    examples-input/B_24/atq-targets.txt
+    examples-input/B_25/atq-data.txt
+    examples-input/B_25/atq-query.txt
+    examples-input/B_25/atq-targets.txt
+    examples-input/B_26/atq-data.txt
+    examples-input/B_26/atq-query.txt
+    examples-input/B_26/atq-targets.txt
+    examples-input/B_27/atq-data.txt
+    examples-input/B_27/atq-query.txt
+    examples-input/B_27/atq-targets.txt
+    examples-input/B_28/atq-data.txt
+    examples-input/B_28/atq-query.txt
+    examples-input/B_28/atq-targets.txt
+    examples-input/B_29/atq-data.txt
+    examples-input/B_29/atq-query.txt
+    examples-input/B_29/atq-targets.txt
+    examples-input/B_3/atq-data.txt
+    examples-input/B_3/atq-query.txt
+    examples-input/B_3/atq-targets.txt
+    examples-input/B_30/atq-data.txt
+    examples-input/B_30/atq-query.txt
+    examples-input/B_30/atq-targets.txt
+    examples-input/B_31/atq-data.txt
+    examples-input/B_31/atq-query.txt
+    examples-input/B_31/atq-targets.txt
+    examples-input/B_4/atq-data.txt
+    examples-input/B_4/atq-query.txt
+    examples-input/B_4/atq-targets.txt
+    examples-input/B_5/atq-data.txt
+    examples-input/B_5/atq-query.txt
+    examples-input/B_5/atq-targets.txt
+    examples-input/B_6/atq-data.txt
+    examples-input/B_6/atq-query.txt
+    examples-input/B_6/atq-targets.txt
+    examples-input/B_7/atq-data.txt
+    examples-input/B_7/atq-query.txt
+    examples-input/B_7/atq-targets.txt
+    examples-input/B_8/atq-data.txt
+    examples-input/B_8/atq-query.txt
+    examples-input/B_8/atq-targets.txt
+    examples-input/B_9/atq-data.txt
+    examples-input/B_9/atq-query.txt
+    examples-input/B_9/atq-targets.txt
     examples-input/Cost/in.txt
     examples-input/Ctr_0/in.txt
     examples-input/Ctr_1/in.txt
