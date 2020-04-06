@@ -104,7 +104,7 @@ def main • = par {A,B}
 
   -- Secret share the elements of each party's list
   let inputListsShared : list list (ℤ{bgw:A,B})
-  let inputListsShared = fold-f [] (λ P x i → (preprocess-lists P {A,B} x 0) ∷ i) inputLists
+  let inputListsShared = fold-f [] (λ P x i → (preprocess-lists-reveal-lengths P {A,B} x 0) ∷ i) inputLists
 
   -- Merge and sort the input lists into a single list
   let dataList : list ℤ{bgw:A,B}
