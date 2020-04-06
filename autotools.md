@@ -11,7 +11,7 @@ archive, which you would have acquired by downloading an archive file
 whose name looks like `psl-A.B.C.D.tar.gz`.
 Otherwise, you should be working with the Git repository, which you
 would have acquired by running a command like `git clone`.
-In this case, you cannot skip the first step.
+In this case, you should not skip the first step.
 
 **IMPORTANT:**
 If you downloaded an archive file using a download button on a Git
