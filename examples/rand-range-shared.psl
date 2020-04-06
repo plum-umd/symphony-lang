@@ -1,0 +1,6 @@
+principal A B
+
+def main • =
+  let low = share {yao:A→A,B} 1#64
+  let high = share {yao:A→A,B} 10#64
+  in rand-range ℤ#64{yao:A,B} (low,high)

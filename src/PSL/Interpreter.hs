@@ -554,25 +554,31 @@ interpExp = wrapInterp $ \case
       _ → error "TODO: not implemented"
     wrap v
   RandRangeE τ e → do
-    wrap :* τ' ← case τ of
+    si₀ :* τ' ← case τ of
       ShareT φ ρes τ' → do
         ρvs ← prinExpValss *$ mapM interpPrinExp ρes
-        return $ (ShareVP φ ρvs ^∘ mpcFrVal) :* τ'
-      _ → return $ introValP :* τ
+        return $ Shared φ ρvs :* τ'
+      _ → return $ NotShared :* τ
     ṽ ← interpExp e
     (ṽ₁,ṽ₂) ← 
       elim𝑂 
         (throwIErrorCxt TypeIError "interpExp: ReadRangeE: Expected a pair argument" $ 
            frhs [ ("ṽ",pretty ṽ) ]) 
            return $ view pairVPL ṽ
-    v₁ ← elimValP ṽ₁
-    v₂ ← elimValP ṽ₂
-    v' ← case (τ',v₁,v₂) of
-      (ℕT ip,NatV ip₁ n₁,NatV ip₂ n₂) | (ip₁ ≡ ip) ⩓ (ip₂ ≡ ip) → io $ NatV ip ∘ nat ^$ (R.randomRIO @ℕ64) (HS.fromIntegral n₁,HS.fromIntegral n₂)
-      (ℤT ip,IntV ip₁ i₁,IntV ip₂ i₂) | (ip₁ ≡ ip) ⩓ (ip₂ ≡ ip) → io $ IntV ip ∘ int ^$ (R.randomRIO @ℤ64) (HS.fromIntegral i₁,HS.fromIntegral i₂)
-      (𝔽T fp,FltV fp₁ d₁,FltV fp₂ d₂) | (fp₁ ≡ fp) ⩓ (fp₂ ≡ fp) → io $ FltV fp ^$ (R.randomRIO @𝔻) (d₁,d₂)
-      _ → error "TODO: not implemented"
-    wrap v'
+    si₁ :* v₁ ← unShareValP ṽ₁
+    si₂ :* v₂ ← unShareValP ṽ₂
+    md₁ :* bv₁ ← error𝑂 (frhs ^$ view baseMVL v₁) $ throwIErrorCxt TypeIError "not base val" null
+    md₂ :* bv₂ ← error𝑂 (frhs ^$ view baseMVL v₂) $ throwIErrorCxt TypeIError "not base val" null
+    bv' ← case (τ',bv₁,bv₂) of
+      (ℕT ip,NatMV ip₁ n₁,NatMV ip₂ n₂)                             | (ip₁ ≡ ip) ⩓ (ip₂ ≡ ip) → do io $ NatMV ip ∘ nat ^$ (R.randomRIO @ℕ64) (HS.fromIntegral n₁,HS.fromIntegral n₂)
+      (ℤT ip,IntMV ip₁ i₁,IntMV ip₂ i₂) | (ip₁ ≡ ip) ⩓ (ip₂ ≡ ip) → io $ IntMV ip ∘ int ^$ (R.randomRIO @ℤ64) (HS.fromIntegral i₁,HS.fromIntegral i₂)
+      (𝔽T fp,FltMV fp₁ d₁,FltMV fp₂ d₂) | (fp₁ ≡ fp) ⩓ (fp₂ ≡ fp) → io $ FltMV fp ^$ (R.randomRIO @𝔻) (d₁,d₂)
+      _ → throwIErrorCxt NotImplementedIError "rand-range" $ frhs
+        [ ("τ',bv₁,bv₂",pretty (τ' :* bv₁ :* bv₂)) ]
+    si' ← joinShareInfos [si₀,si₁,si₂]
+    let md = 1 + (md₁ ⊔ md₂)
+    reportPrimop (getTypeBaseMPC bv₁) "RANDR" md si'
+    reShareValP (BaseMV (md₁ ⊔ md₂) bv') si'
   -- InferE
   -- HoleE
   PrimE o es → do

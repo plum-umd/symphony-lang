@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 596128f8bdea0ac612a3768a2265c464c5eaaebb52d13cedc40438606a21d4fe
+-- hash: f7bab4c91bc84feb8ff7b7ce15231d7c041084aec65fc11885ad4b50cfbbe888
 
 name:           psl
 version:        0.1.0.0
@@ -49,6 +49,7 @@ data-files:
     examples/pfold.psl
     examples/qsort.psl
     examples/rand-range-encrypted-inputs-failing.psl
+    examples/rand-range-shared.psl
     examples/rand.psl
     examples/reshare.psl
     examples/share-ls.psl
