@@ -3,7 +3,6 @@ principal B
 
 -- TODO
 -- generalize to 64 players
--- why does random selection not work?
 
 
 def swap-indexes i j arr =
@@ -13,9 +12,8 @@ def swap-indexes i j arr =
     vec-write i r (vec-write j l arr)
 
 def partition n lo hi arr =
-  -- TODO why do the following lines not work?
-  -- let r = rand-range int{bgw:this} (lo,hi) in
-  -- let arr = swap-indexes r hi arr in
+  let r = rand-range int{bgw:this} (lo,hi) in
+  let arr = swap-indexes r hi arr in
 
   let go = fun [go] n i j hi arr ->
     if n == 0
