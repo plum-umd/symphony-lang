@@ -18,7 +18,7 @@ If you downloaded an archive file using a download button on a Git
 repository manager like GitLab or GitHub, then it's probably not the
 right thing.
 These download buttons typically yield source archives, which are only
-snapshots of the Git repository.
+lightweight snapshots of the Git repository.
 You cannot build and install PSL from a source archive.
 Please download a distribution archive or clone the Git repository
 instead.
