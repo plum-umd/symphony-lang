@@ -12,42 +12,44 @@ def swap-indexes i j arr =
   in
     vec-write i r (vec-write j l arr)
 
-
-def partLoop n i j hi arr =
-  if n == 0
-  then
-    arr, i
-  else
-    let _, x = vec-read j arr
-    let _, y = vec-read hi arr
-    let arr, i' =
-      mux if (x < y)
-           then swap-indexes i j arr, i + 1
-           else arr, i
-    let j' = mux if (j < hi) then j + 1 else j
-    in
-      partLoop (n - 1) i' j' hi arr
-
-
 def partition n lo hi arr =
   -- TODO why do the following lines not work?
   -- let r = rand-range int{bgw:this} (lo,hi) in
   -- let arr = swap-indexes r hi arr in
-  let arr', pivot = partLoop n lo lo hi arr
-  in (swap-indexes pivot hi arr', pivot)
+
+  let go = fun [go] n i j hi arr ->
+    if n == 0
+    then
+      arr, i
+    else
+      let arr, i' =
+        mux if (snd (vec-read j arr) < snd (vec-read hi arr))
+             then swap-indexes i j arr, i + 1
+             else arr, i
+      let j' = mux if (j < hi) then j + 1 else j
+      in
+        go (n - 1) i' j' hi arr
+
+  let arr', pivot = go n lo lo hi arr
+  in (pivot, swap-indexes pivot hi arr')
 
 
-def quickSort n lo hi arr =
+def quickSort n a lo hi =
   if n == 0
-  then arr
+  then a
+  else mux if (lo < hi)
+  then
+    -- find pivot: e < pivot <=> a[e] < a[pivot]; e > pivot <=> a[e] > a[pivot]
+    let pivot, a = partition n lo hi a
+
+    -- recursively sort the elements smaller than pivot
+    let a = quickSort (n - 1) a lo (pivot - 1)
+
+    -- recursively sort the elements larger than pivot
+    in quickSort (n - 1) a (pivot + 1) hi
   else
-    let partitioned, pivot = partition n lo hi arr
-    in
-      mux if (lo >= hi)
-           then arr
-           else
-             quickSort (n - 1) (pivot + 1) hi
-               (quickSort (n - 1) lo (pivot - 1) partitioned)
+    a
+
 
 def main : unit -> {inp:A,B ; rev:A,B} (list flt)
 def main () =
@@ -65,4 +67,5 @@ def main () =
 
     let n = vec-capacity inps
     in
-      vec-reveal rflt (quickSort n 0 (n - 1) inps)
+      vec-reveal rflt (quickSort n inps 0 (n - 1))
+      -- vec-reveal rflt (partition n 0 (n - 1) inps)
