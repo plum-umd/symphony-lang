@@ -189,7 +189,7 @@ data Type =
   | Type :→: (Effect ∧ Type)                    --  τ →{η} τ                   /  τ ->{η} τ
   | (𝕏 ∧ Type ∧ 𝐿 Constr) :→†: (Effect ∧ Type)  --  (x : τ | c,…,c) →{η} τ     /  (x : τ | c,…,c) ->{η} τ
   | ForallT (𝐿 (TVar ∧ Kind)) (𝐿 Constr) Type   --  ∀ α:κ,…,α:κ | c,…,c. τ     /  forall α:κ,…,α:κ | c,…,c. τ
-  | SecT PrinExp Type                           --  τ{P}                       /  τ{P}
+  | SecT (𝐿 PrinExp) Type                       --  τ{P}                       /  τ{P}
   | SSecT (𝐿 PrinExp) Type                      --  τ{ssec:P}                  /  τ{ssec:P}
   | ISecT (𝐿 PrinExp) Type                      --  τ{isec:P}                  /  τ{isec:P}
   | ShareT Prot (𝐿 PrinExp) Type                --  τ{φ:P}                     /  τ{φ:P}
@@ -225,6 +225,7 @@ data Pat =
   -- ⟨ρ₁.ψ₁;…;ρₙ.ψₙ⟩ ≜ ⟨ρ₁.ψ₁⟩ ⧺ ⋯ ⧺ ⟨ρₙ.ψₙ⟩ ⧺ ⟨⟩
   deriving (Eq,Ord,Show)
 makePrettySum ''Pat
+makePrisms ''Pat
 
 -------------------
 -- Program Terms --
@@ -233,57 +234,58 @@ makePrettySum ''Pat
 -- e ∈ term ⩴  …
 type Exp = Annotated FullContext ExpR
 data ExpR =
-    VarE Var                                 -- x                     /  x
-  | BoolE 𝔹                                  -- b                     /  b
-  | StrE 𝕊                                   -- s                     /  s
-  | NatE IPrecision ℕ                        -- n#n.n                 /  n#n.n
-  | IntE IPrecision ℤ                        -- i#n.n                 /  i#n.n
-  | FltE FPrecision 𝔻                        -- d#n                   /  d#n
-  | BulE                                     -- •                     /  ()
-  | IfE Exp Exp Exp                          -- if e then e else e    /  if e then e else e
-  | MuxE Exp Exp Exp                         -- mux e then e else e   /  mux e then e else e
-  | LE Exp                                   -- L e                   /  L e
-  | RE Exp                                   -- R e                   /  R e
-  | TupE Exp Exp                             -- e,e                   /  e,e
-  | NilE                                     -- []                    /  []
-  | ConsE Exp Exp                            -- e ∷ e                 /  e :: e
-  | LetTyE Var Type Exp                      -- let ψ : τ in e        /  let ψ : τ in e
-  | LetE Pat Exp Exp                         -- let ψ = e in e        /  let ψ = e in e
-  | CaseE Exp (𝐿 (Pat ∧ Exp))                -- case e {ψ→e;…;ψ→e}    /  case e {ψ->e;…;ψ->e}
-  | LamE (𝑂 Var) (𝐿 Pat) Exp                 -- λ [x] ψ…ψ → e         /  fun [x] ψ…ψ → e
-  | AppE Exp Exp                             -- e e                   /  e e
-  | TLamE TVar Exp                           -- Λ α → e               /  abs α → e
-  | TAppE Exp Type                           -- e@τ                   /  e@τ
-  -- | SoloE (𝐿 PrinExp) Exp                 -- {P} e                 /  {P} e
-  | ParE (𝐿 PrinExp) Exp                     -- par {P} e             /  par {P} e
-  | ShareE Prot (𝐿 PrinExp) (𝐿 PrinExp) Exp  -- share{φ:P→P} e        /  share{φ:P->P} e
-  | AccessE Exp PrinExp                      -- e@ρ                   /  e@ρ
-  | BundleE (𝐿 (PrinExp ∧ Exp))              -- ⟪ρ|e;…;ρ|e⟫           /  <<ρ|e;…;ρ|e>>
-  | BundleUnionE Exp Exp                     -- e⧺e                   /  e++e
-  | RevealE (𝐿 PrinExp) Exp                  -- reveal {P} e          /  reveal{P} e
-  | SendE (𝐿 PrinExp) (𝐿 PrinExp) Exp        -- send {P→P} e          /  send{P->P} e
-  | AscrE Exp Type                           -- e:τ                   /  e:τ
-  | ReadE Type Exp                           -- read τ e              /  read τ e
-  | WriteE Exp Exp                           -- write e               /  write e
-  | RandE Type                               -- rand τ                /  rand τ
-  | RandRangeE Type Exp                      -- rand-range τ e        /  rand-range τ e
-  | InferE                                   -- _                     /  _
-  | HoleE                                    -- ⁇                     /  ??
-  | PrimE 𝕊 (𝐿 Exp)                          -- prim[⊙](e,…,e)        /  prim[⊙](e,…,e)
-  | TraceE Exp Exp                           -- trace e in e          /  trace e in e
-  | SetE (𝐿 PrinExp)                         -- {P}                   /  {P}
-  | RefE Exp                                 -- ref e                 /  ref e
-  | RefReadE Exp                             -- !e                    /  !e
-  | RefWriteE Exp Exp                        -- e ≔ e                 /  e := e
-  | ArrayE Exp Exp                           -- array[e] e            /  array[e] e
-  | ArrayReadE Exp Exp                       -- e.e                   /  e.e
-  | ArrayWriteE Exp Exp                      -- e ← e                 /  e <- e
-  | SizeE Exp                                -- size e                /  size e
-  | ToIntE IPrecision Exp                    -- int#n.n               /  int#n.n
-  | ToNatE IPrecision Exp                    -- nat#n.n               /  nat#n.n
-  | DefaultE                                 -- ⊥                     /  _|_
-  | BlockE Exp                               -- block e               /  block e
-  | ReturnE Exp                              -- return e              /  return e
+    VarE Var                                 -- x                       /  x
+  | BoolE 𝔹                                  -- b                       /  b
+  | StrE 𝕊                                   -- s                       /  s
+  | NatE IPrecision ℕ                        -- n#n.n                   /  n#n.n
+  | IntE IPrecision ℤ                        -- i#n.n                   /  i#n.n
+  | FltE FPrecision 𝔻                        -- d#n                     /  d#n
+  | BulE                                     -- •                       /  ()
+  | IfE Exp Exp Exp                          -- if e then e else e      /  if e then e else e
+  | MuxIfE Exp Exp Exp                       -- mux if e then e else e  /  mux if e then e else e
+  | LE Exp                                   -- L e                     /  L e
+  | RE Exp                                   -- R e                     /  R e
+  | TupE Exp Exp                             -- e,e                     /  e,e
+  | NilE                                     -- []                      /  []
+  | ConsE Exp Exp                            -- e ∷ e                   /  e :: e
+  | LetTyE Var Type Exp                      -- let ψ : τ in e          /  let ψ : τ in e
+  | LetE Pat Exp Exp                         -- let ψ = e in e          /  let ψ = e in e
+  | CaseE Exp (𝐿 (Pat ∧ Exp))                -- case e {ψ→e;…;ψ→e}      /  case e {ψ->e;…;ψ->e}
+  | MuxCaseE Exp (𝐿 (Pat ∧ Exp))             -- mux case e {ψ→e;…;ψ→e}  /  mux case e {ψ->e;…;ψ->e}
+  | LamE (𝑂 Var) (𝐿 Pat) Exp                 -- λ [x] ψ…ψ → e           /  fun [x] ψ…ψ → e
+  | AppE Exp Exp                             -- e e                     /  e e
+  | TLamE TVar Exp                           -- Λ α → e                 /  abs α → e
+  | TAppE Exp Type                           -- e@τ                     /  e@τ
+  -- | SoloE (𝐿 PrinExp) Exp                 -- {P} e                   /  {P} e
+  | ParE (𝐿 PrinExp) Exp                     -- par {P} e               /  par {P} e
+  | ShareE Prot (𝐿 PrinExp) (𝐿 PrinExp) Exp  -- share{φ:P→P} e          /  share{φ:P->P} e
+  | AccessE Exp PrinExp                      -- e@ρ                     /  e@ρ
+  | BundleE (𝐿 (PrinExp ∧ Exp))              -- ⟪ρ|e;…;ρ|e⟫             /  <<ρ|e;…;ρ|e>>
+  | BundleUnionE Exp Exp                     -- e⧺e                     /  e++e
+  | RevealE (𝐿 PrinExp) Exp                  -- reveal {P} e            /  reveal{P} e
+  | SendE (𝐿 PrinExp) (𝐿 PrinExp) Exp        -- send {P→P} e            /  send{P->P} e
+  | AscrE Exp Type                           -- e:τ                     /  e:τ
+  | ReadE Type Exp                           -- read τ e                /  read τ e
+  | WriteE Exp Exp                           -- write e                 /  write e
+  | RandE Type                               -- rand τ                  /  rand τ
+  | RandRangeE Type Exp                      -- rand-range τ e          /  rand-range τ e
+  | InferE                                   -- _                       /  _
+  | HoleE                                    -- ⁇                       /  ??
+  | PrimE 𝕊 (𝐿 Exp)                          -- prim[⊙](e,…,e)          /  prim[⊙](e,…,e)
+  | TraceE Exp Exp                           -- trace e in e            /  trace e in e
+  | SetE (𝐿 PrinExp)                         -- {P}                     /  {P}
+  | RefE Exp                                 -- ref e                   /  ref e
+  | RefReadE Exp                             -- !e                      /  !e
+  | RefWriteE Exp Exp                        -- e ≔ e                   /  e := e
+  | ArrayE Exp Exp                           -- array[e] e              /  array[e] e
+  | ArrayReadE Exp Exp                       -- e.e                     /  e.e
+  | ArrayWriteE Exp Exp                      -- e ← e                   /  e <- e
+  | SizeE Exp                                -- size e                  /  size e
+  | ToIntE IPrecision Exp                    -- int#n.n                 /  int#n.n
+  | ToNatE IPrecision Exp                    -- nat#n.n                 /  nat#n.n
+  | DefaultE                                 -- ⊥                       /  _|_
+  | ProcE Exp                                -- proc e                  /  proc e
+  | ReturnE Exp                              -- return e                /  return e
   deriving (Eq,Ord,Show)
   -- [e₁;…;eₙ] ≜ e₁ ∷ ⋯ ∷ eₙ ∷ []
 makePrettySum ''ExpR
@@ -309,5 +311,6 @@ data TLR =
   | DefnTL Var (𝐿 Pat) Exp   -- def x ψ₁ … = e   /  def x  ψ₁ … = e
   | PrinTL (𝐿 PrinDecl)      -- principal ρ …    /  principal ρ …
   | PrimTL Var Type          -- primitive x : τ  /  primitive x : τ
+  | ImportTL 𝕊               -- import "file"    /  import "file"
   deriving (Eq,Ord)
 makePrettySum ''TLR

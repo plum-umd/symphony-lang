@@ -10,8 +10,8 @@
 
 - See https://github.com/davdar/dotfiles/tree/master/unicode
 - Good support for vim and emacs
-- Ghetto support for Atom
-- I recommend installing and using MenloX*.ttf — this is a mashup of Menlo and STIX Two Math 
+- Minimal support for Atom
+- I recommend installing and using XDejaVuSansMono-*.ttf
 
 # Syntax Highlighting (vim only)
 

@@ -5,34 +5,22 @@ principal C D
 -- output party
 principal E
 
--- assumptions:
--- ‣ a > b
-def euclid-rec : ℕ → ℤ{yao:C,D} → ℤ{yao:C,D} → ℤ{yao:C,D}
-def euclid-rec n a b =
-  if n ≡ 0n
-  then b
+-- Listing 5: Greatest Common Divisor.
+def gcd gcd_rec (a, b) =
+  -- 0 is divisible by any number, so when we reach it we can stop
+  mux if (a == 0) then
+    b
   else
-    b ≡ 0
-    ? a
-    ◇ euclid-rec (n - 1n) b (a % b)
+    let r = b % a in -- remainder (B / A)
 
--- assumptions:
--- ‣ a > 0
--- ‣ b > 0
-def euclid : ℤ{yao:C,D} → ℤ{yao:C,D} → ℤ{yao:C,D}
-def euclid a b =
-  -- worst case is neighboring fibbinocci sequence numbers, with one iteration
-  -- per sequence position, and 64 bit max bound is less than the 93rd fib
-  -- number
-  let n = 93n
-  in
-  a > b
-  ? euclid-rec n a b
-  ◇ euclid-rec n b a
+    -- gcd (A, B) = gcd ( A, R +kA) = gcd( R, A ), so use recursion
+    gcd_rec (r, a)
 
-def main : 𝟙 → {inp:A,B;rev:E} ℤ{ssec:E}
-def main • =
-  let a = par {A} (read ℤ from "euclid.txt")
-  let b = par {B} (read ℤ from "euclid.txt")
-  reveal{E} euclid (share{yao:A -> C,D} a)
-                   (share{yao:B -> C,D} b)
+def main () =
+  -- TODO: replace with file input
+  let a = par {A} 3 in
+  let b = par {B} 6 in
+  reveal{E} (int-eval-upto gcd 93n
+    (int-minmax
+      (share{yao:A -> C,D} a)
+      (share{yao:B -> C,D} b) ) )

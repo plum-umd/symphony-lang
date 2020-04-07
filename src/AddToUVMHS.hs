@@ -6,12 +6,16 @@ module AddToUVMHS
 
 import UVMHS
 
+import Paths_psl
+
 import GHC.Stack (CallStack,callStack,withFrozenCallStack)
 import qualified Data.Text.IO as Text
 
 import System.Directory as Directory
 
 import System.FilePath.Posix as FP
+
+import qualified Data.Version as Version
 
 success ∷ (Monad m) ⇒ m a → FailT m a
 success xM = FailT $ Some ^$ xM
@@ -35,3 +39,18 @@ pathExt = string ∘ FP.takeExtension ∘ chars
 
 rmDirs ∷ 𝕊 → IO ()
 rmDirs = Directory.removeDirectoryRecursive ∘ chars
+
+pathExists ∷ 𝕊 → IO 𝔹
+pathExists = Directory.doesPathExist ∘ chars
+
+split ∷ (ToStream (a ∧ b) t) ⇒ t → 𝑆 a ∧ 𝑆 b
+split (stream → xs) = map fst xs :* map snd xs
+
+getDataFilePath ∷ 𝕊 → IO 𝕊
+getDataFilePath = string ^∘ getDataFileName ∘ chars
+
+psl_VERSION ∷ 𝕊
+psl_VERSION = concat $ inbetween "." $ map show𝕊 $ Version.versionBranch version
+
+copyFile ∷ 𝕊 → 𝕊 → IO ()
+copyFile fr to = Directory.copyFile (chars fr) $ chars to

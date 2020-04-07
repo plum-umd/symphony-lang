@@ -3,8 +3,6 @@ module PSL.Interpreter.ReadType where
 import UVMHS
 import AddToUVMHS
 
-import Paths_psl
-
 import PSL.Syntax
 
 import PSL.Interpreter.Types
@@ -83,7 +81,15 @@ readType ρ τA fn = do
   b ← askL iCxtIsExampleL
   path ← 
     if b
-    then io $ string ^$ getDataFileName $ chars $ concat ["examples-input/",prinDataPath ρ,"/",fn]
+    then io $ do
+      let relativePath = concat ["examples-input/",prinDataPath ρ,"/",fn]
+      dataFilePath ← getDataFilePath relativePath
+      relativePathExists ← pathExists relativePath
+      dataFilePathExists ← pathExists dataFilePath
+      when (not relativePathExists ⩓ dataFilePathExists) $ \ _ → do
+        touchDirs $ concat ["examples-input/",prinDataPath ρ]
+        copyFile dataFilePath relativePath
+      return relativePath
     else return $ concat ["data-input/",prinDataPath ρ,"/",fn]
   snd ^$ parseInputType ρ τA *$ io $ read path
 

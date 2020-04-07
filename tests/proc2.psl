@@ -1,0 +1,15 @@
+principal A B
+
+def main • =
+  proc
+  do mux if share{yao:A → A,B} true
+     then 
+       mux if share{yao:A → A,B} false
+         then return 1
+         else return 2
+     else ⊥
+  in 
+  5
+
+def expected = share{yao:A → A,B} 2
+

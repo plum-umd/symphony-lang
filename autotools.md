@@ -1,4 +1,4 @@
-PSL includes an Autotools-based build system that provides a
+PSL includes a GNU Autotools based build system that provides a
 conventional POSIX-like workflow for building and installation.
 There are three main steps to using the build system:
 
@@ -7,24 +7,35 @@ There are three main steps to using the build system:
 3. Running the build system.
 
 You should skip the first step if you're working with a distribution
-archive, which you would have acquired by downloading and extracting an
-archive file whose name looks like `psl-<VERSION>.tar.gz`.
-Otherwise, you're working with the Git repository, which you must have
-acquired by running `git clone` (or equivalent).
-In this case, you cannot skip the first step.
+archive, which you would have acquired by downloading an archive file
+whose name looks like `psl-A.B.C.D.tar.gz`.
+Otherwise, you should be working with the Git repository, which you
+would have acquired by running a command like `git clone`.
+In this case, you should do the first step.
+
+**IMPORTANT:**
+If you downloaded an archive file using a download button on a Git
+repository manager like GitLab or GitHub, then it's probably not the
+right thing.
+These download buttons typically yield source archives, which are only
+lightweight snapshots of the Git repository.
+You cannot build and install PSL from a source archive.
+Please download a distribution archive or clone the Git repository
+instead.
 
 Distribution archives are typically used by people who are only
 interested in building and installing PSL to use it to develop PSL
 programs.
 The Git repository is typically used by people who are interested in
-doing development on PSL itself (e.g., the PANTHEON team).
+doing development work on PSL itself (e.g., the PANTHEON team).
 
 ## Initializing the build system
 
 **IMPORTANT:**
+You should only do this step if you're working with the Git repository.
 You should skip this step if you're working with a distribution archive.
 
-Initializing the build system requires the following tools to be
+Initializing the build system requires the following tools to already be
 installed on your system:
 
 - Bash 4.4 or newer.
@@ -35,66 +46,65 @@ installed on your system:
 - GNU M4 1.4.16 or newer.
 
 Note that this list of tools is much more developer oriented than the
-list of tools required by the next step.
+list of tools required when working with a distribution archive,
+reflecting the fact that working with the Git repository is mainly
+intended for doing development work on PSL itself.
 
-To initialize the build system, run the following command:
+As an example, here is how you might install these tools on an Ubuntu
+system:
 
 ```
-./autogen
+sudo apt-get -q -y install bash jq git autoconf automake m4
 ```
 
-Be sure to verify that the last line it prints is `success`.
+After these tools are installed, simply run `./autogen` to initialize
+the build system.
 
 ## Configuring the build system
 
-Configuring the build system requires the following tools to be
+Configuring the build system requires the following tools to already be
 installed on your system:
 
 - Any C compiler.
-- Any `make` implementation.
+- Any Make implementation.
+
+As an example, here is how you might install these tools on an Ubuntu
+system:
+
+```
+sudo apt-get -q -y install gcc make
+```
+
+The following tools can be optionally installed on your system:
+
 - The Haskell Tool Stack 2.1.3 or newer.
-
-The following tools are optional:
-
+  See <https://docs.haskellstack.org/en/stable/install_and_upgrade/> for
+  installation instructions.
 - Docker 19.03.7 or newer.
-  This is necessary if you want to build the PSL Docker image.
+  See <https://docs.docker.com/install/> for installation instructions.
 
-To configure the build system, run the following command:
+Although both of the above tools are optional, you'll certainly want to
+install at least one of them, otherwise you won't be able to build and
+install anything of interest.
+Installing The Haskell Tool Stack is necessary if you want to build and
+install the PSL interpreter directly to your system.
+Installing Docker is necessary if you want to build and install the PSL
+Docker image, which lets you run the PSL interpreter inside a Docker
+container.
+Note that installing The Haskell Tool Stack is not necessary if you only
+want to build and install the PSL Docker image.
 
-```
-./configure
-```
-
-There are also many options that can be given to `./configure`, which
-can be listed by running `./configure --help`.
-Some of these options will be familiar to you if you're familiar with
-building and installing other POSIX-like software from source.
-
-The most notable of the options are as follows:
-
-- `./configure STACK='foo'` can be used to specify how to run `stack`.
-
-- `./configure DOCKER='foo'` can be used to specify how to run `docker`.
-  For example, you might use `./configure DOCKER='sudo docker'`.
+After these tools are installed, simply run `./configure` to configure
+the build system.
 
 ## Running the build system
 
-To run the build system, run the following command:
+To build and install the PSL interpreter directly to your system, first
+run `make`, then run `make install` with root privilege, which usually
+means running `sudo make install`.
+After doing this, you can run `psl` to run the PSL interpreter.
 
-```
-make
-```
-
-After doing this, the `psl` interpreter will be available in the
-current directory, and you can run it with `./psl`.
-
-To install it to your system, run the following command, replacing
-`sudo` with any equivalent if necessary:
-
-```
-sudo make install
-```
-
-After doing this, you can run `psl` from anywhere.
-
-You can also build the `psl` Docker image by running `make docker`.
+To build and install the PSL Docker image, run `make docker`.
+After doing this, a Docker image named `psl` will be available.
+It will be tagged with both the `latest` tag and the PSL version number.
+Inside a Docker container, you can run `psl` to run the PSL interpreter.

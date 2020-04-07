@@ -1,0 +1,1 @@
+def plus1 n = n + 1

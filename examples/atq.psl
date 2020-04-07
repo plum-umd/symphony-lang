@@ -1,44 +1,23 @@
-principal A[2] -- Parties who supply just integers
-principal B[2] -- Parties who supply both integers and queries
+principal A[96] -- Parties who supply just integers
+principal B[32] -- Parties who supply both integers and queries
 principal Dummy
 
--- basic functions
+-- Query functions
 
-def elem-triple :
-    (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
-  → list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
-  → 𝔹{bgw:A,B}
-def elem-triple y xs = case (xs,y)
-  { ([],_) → false
-  ; ((_,(a,b))∷xs,(a',b')) →
-    let b = (a == a') && (b == b')
-    in b ? true ◇ (elem-triple y xs)
-  }
-
-def elem-at :
-    ℤ{bgw:A,B}
-  → list ℤ{bgw:A,B}
-  → ℤ{bgw:A,B}
-def elem-at i xs = case xs
-  { [] → -1
-  ; x∷xs' →
-    let b = i ≡ 0
-    in b ? x ◇ (elem-at (i - 1) xs')
-  }
-
--- query functions
-
+-- First element because list is sorted
 def min : list ℤ{bgw:A,B} → ℤ{bgw:A,B}
 def min xs = case xs
   { x∷_ → x
   }
 
+-- Last element because list is sorted
 def max : list ℤ{bgw:A,B} → ℤ{bgw:A,B}
 def max xs = case xs
   { [x] → x
   ; _∷xs' → max xs'
   }
 
+-- Find the middle element (use the lower middle element if the length is even)
 def median : list ℤ{bgw:A,B} → ℤ{bgw:A,B}
 def median xs =
   let l = length xs
@@ -46,6 +25,7 @@ def median xs =
   let idx' = ((l % 2) ≡ 0) ? (idx - 1) ◇ idx
   in elem-at idx' xs
 
+-- Recursive helper function for num-unique
 def num-unique-rec : list ℤ{bgw:A,B} → ℤ{bgw:A,B} → ℤ{bgw:A,B}
 def num-unique-rec xs last = case xs
   { [] → 0
@@ -54,6 +34,7 @@ def num-unique-rec xs last = case xs
     in (num-unique-rec xs' x) + (b ? 0 ◇ 1)
   }
 
+-- Find the number of unique elements in the integer list
 def num-unique : list ℤ{bgw:A,B} → ℤ{bgw:A,B}
 def num-unique xs = case xs
   { [] → 0
@@ -67,100 +48,108 @@ def remove-dups :
   → list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
 def remove-dups qs = case qs
   { [] → []
-  ; (a,(q,t))∷qs' →
---    let h = mux (elem-triple (q,t) qs') then (false, (-1,{Dummy})) else (a,(q,t))
---    in h∷(remove-dups qs')
-    let b = elem-triple (q,t) qs'
-    let a' = b ? false ◇ a
-    let q' = b ? -1 ◇ q
-    let t' = b ? {Dummy} ◇ t
-    in (a',(q',t'))∷(remove-dups qs')
+  ; (b,query)∷qs' →
+    let h = mux if (elem-triple query qs')
+            then (false, (-1,Dummy))
+            else (b,query)
+    in h∷(remove-dups qs')
   }
 
-def pair-with-list v xs = case xs
-  { [] → []
-  ; x∷xs' → (v, x)∷(pair-with-list v xs')
-  }
+-- Publishing results
 
-def share-triple p t x = case x
-  { (v₁,(v₂,v₃)) → (share{bgw:p → t} v₁, (share{bgw:p → t} v₂, share{bgw:p → t} v₃))
-  }
-
-def get-head-or-default p ys d =
-  par {p} case ys
-    { [] → d
-    ;y∷_ → y
-    }
-
-def p-lists-n-triples p t len zs d =
-  if len == 0
-  then []
-  else
-    let v = get-head-or-default p zs d
-    let b = par {p} fst v
-    let q = par {p} fst (snd v)
-    let tr = par {p} snd (snd v)
-    in (share{bgw:p → t} b, (share{bgw:p → t} q, share{bgw:p → t} tr)) ∷ (p-lists-n-triples p t (len - 1) (par {p} tail zs) d)
-
-def p-lists-n p t len zs d =
-  if len == 0
-  then []
-  else (share{bgw:p → t} (get-head-or-default p zs d)) ∷ (p-lists-n p t (len - 1) (par {p} tail zs) d)
-
-def p-lists p t xs d =
-  let l = par {p} length xs
-  let l' = send {p → t} l
-  in p-lists-n p t l' xs d
-
--- atq
-
-def run-queries :
-    list ℤ{bgw:A,B}
-  → list ℤ{bgw:A,B}
-def run-queries xs = (min xs) ∷ (max xs) ∷ (median xs) ∷ (num-unique xs) ∷ []
-
-def send-result :
+def publish-result :
     ℙ{bgw:A,B}
   → (t : ℙ{ssec:A,B})
   → ℤ{bgw:A,B}
   → 𝔹{bgw:A,B}
-  → list (𝔹{ssec:t} × ℤ{ssec:t}) --Not an accurate type
-def send-result P t r a = case P
+  → list (𝔹{ssec:various} × ℤ{ssec:various})
+def publish-result allParties target value isValid = case allParties
   { {} → []
-  ; {p}∪P' →
-    let b = a ? (t ≡ p) ◇ false
-    let v = a ? ((t ≡ p) ? r ◇ -1) ◇ -1
-    in (reveal {p} b, reveal {p} v) ∷ (send-result P' t r a)
+  ; {currentParty}∪remainingParties →
+    let validTag = isValid ? (target ≡ currentParty) ◇ false
+    let valueOutput = isValid ? ((target ≡ currentParty) ? value ◇ -1) ◇ -1
+    let output = reveal {currentParty} validTag, reveal {currentParty} valueOutput
+    let remainingOutput = publish-result remainingParties target value isValid
+    in output ∷ remainingOutput
   }
 
-def send-results :
+def publish-results :
     list ℤ{bgw:A,B}
   → list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
-  → list ℤ{ssec:any}
-def send-results results ps = case ps
+  → list list (𝔹{ssec:various} × ℤ{ssec:various})
+def publish-results results queryTargetOptionals = case queryTargetOptionals
   { [] → []
-  ; (a,(q,t))∷ps' → (send-result {A,B} (reveal{A,B} t) (elem-at q results) a) ∷ (send-results results ps')
+  ; (isValid,(query,target))∷remaining →
+    let output = publish-result {A,B} (reveal{A,B} target) (elem-at query results) isValid
+    let remainingOutput = publish-results results remaining
+    in output ∷ remainingOutput
   }
 
+-- ATQ
+
 def main : 𝟙 →{inp:A,B;rev:A,B} list ℤ{ssec:any}
-def main • =
-  let xs-pre : (list ℤ){isec:A,B}
-  let xs-pre = solo {A,B} as α in read (list ℤ) from "atq-data.txt"
-  let qs-pre : (list ℤ){isec:B}
-  let qs-pre = solo {B} as α in read (list ℤ) from "atq-queries.txt"
-  let ts-pre : (list ℙ){isec:B}
-  let ts-pre = solo {B} as α in read (list ℙ) from "atq-targets.txt"
+def main • = par {A,B}
 
-  let xs : list ℤ{bgw:A,B}
-  let xs = par {A,B} msort (concat (fold-f [] (λ P x i → (p-lists P {A,B} x 0) ∷ i) xs-pre))
+  -- All parties read in data input
+  let inputLists : (list ℤ){isec:A,B}
+  let inputLists = solo {A,B} as α in read (list ℤ) from "atq-data.txt"
+
+  -- Parties in group B read in queries
+  let inputQueries : ℤ{isec:B}
+  let inputQueries = solo {B} as α in read ℤ from "atq-query.txt"
+
+  -- Parties in group B read in targets for the previously read in queries
+  let inputTargets : (list ℙ){isec:B}
+  let inputTargets = solo {B} as α in read (list ℙ) from "atq-targets.txt"
+
+  -- Secret share the elements of each party's list
+  let inputListsShared : list list (ℤ{bgw:A,B})
+  let inputListsShared = fold-f [] (λ P x i → (preprocess-lists-reveal-lengths P {A,B} x 0) ∷ i) inputLists
+
+  -- Merge and sort the input lists into a single list
+  let dataList : list ℤ{bgw:A,B}
+  let dataList = concat inputListsShared
+
+  -- Produce a single sorted list of all input integers
+  let dataListSorted : list ℤ{bgw:A,B}
+  let dataListSorted = sort (λ a b → mux if a ≤ b then (a, b) else (b, a)) dataList
+
+  -- Find the median of the integer list
+  let medianResult : ℤ{bgw:A,B}
+  let medianResult = median dataListSorted
+
+  -- Find the number of unique elements in the integer list
+  let uniqueResult : ℤ{bgw:A,B}
+  let uniqueResult = num-unique dataListSorted
+
+  -- Find the minimum value in the integer list
+  let minResult : ℤ{bgw:A,B}
+  let minResult = min dataListSorted
+
+  -- Find the maximum value in the integer list
+  let maxResult : ℤ{bgw:A,B}
+  let maxResult = max dataListSorted
+
+  -- Group results into an indexable data structure
   let results : list ℤ{bgw:A,B}
-  let results = par {A,B} run-queries xs
+  let results = [medianResult; uniqueResult; minResult; maxResult]
 
-  let qs = solo {B} as α in (pair-with-list true (zip qs-pre@α ts-pre@α))
-  let qs' = concat (fold-f [] (λ P x i → (p-lists-n-triples P {A,B} 3 x (false,(-1,{Dummy}))) ∷ i) qs)
+  -- Pair the input queries and targets up along with a tag denoting that it is not dummy data
+  let queriesWithTargets : (list (𝔹{ssec:B} × (ℤ{ssec:B} × ℙ{ssec:B}))){isec:B}
+  let queriesWithTargets = solo {B} as α in (pair-with-list true (pair-with-list inputQueries@α inputTargets@α))
 
-  let qs'' : list (ℤ{bgw:A,B} × ℙ{bgw:A,B})
-  let qs'' = remove-dups qs'
+  -- Secret share queries and targets without revealing the number of targets each party supplied by setting an upper bound and padding data out with dummy data
+  let queriesWithTargetsShared : list list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
+  let queriesWithTargetsShared = fold-f [] (λ P x i → (preprocess-lists-n-triples P {A,B} 8 x (false,(-1,Dummy))) ∷ i) queriesWithTargets
 
-  in par {A,B} send-results results qs''
+  -- Combine queries and targets into one list
+  let allQueriesWithTargetsShared : list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
+  let allQueriesWithTargetsShared = concat queriesWithTargetsShared
+
+  -- Remove duplicate queries so that recipients will not learn how many times they were targeted
+  let finalQueries : list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
+  let finalQueries = remove-dups allQueriesWithTargetsShared
+
+  -- For each query from each party in B with duplicates replaced by dummy data, plus dummy padding to achieve upper bounds, publish the results of the query to the target of the query
+  in concat (publish-results results finalQueries)
 

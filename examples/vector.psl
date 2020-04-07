@@ -3,7 +3,6 @@ principal B
 
 
 def main () =
-
   par {A,B}
     let sbool = fun P -> (fun x -> share{yao:P -> this} x)
     let sint = fun P -> (fun x -> share{yao:P -> this} x)
