@@ -99,22 +99,12 @@ the build system.
 
 ## Running the build system
 
-To run the build system, run the following command:
+To build and install the PSL interpreter directly to your system, run
+`make` followed by `make install` as root, which usually means running
+`sudo make install`.
+After doing this, you can run `psl` to run the PSL interpreter.
 
-```
-make
-```
-
-After doing this, the `psl` interpreter will be available in the
-current directory, and you can run it with `./psl`.
-
-To install it to your system, run the following command, replacing
-`sudo` with any equivalent if necessary:
-
-```
-sudo make install
-```
-
-After doing this, you can run `psl` from anywhere.
-
-You can also build the `psl` Docker image by running `make docker`.
+To build and install the PSL Docker image, run `make docker`.
+After doing this, a Docker image named `psl` will be available.
+It will be tagged with the `latest` tag and with the PSL version number.
+Inside a Docker container, you can run `psl` to run the PSL interpreter.
