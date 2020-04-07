@@ -66,7 +66,7 @@ Configuring the build system requires the following tools to already be
 installed on your system:
 
 - Any C compiler.
-- Any implementation of the `make` utility.
+- Any Make implementation.
 
 As an example, here is how you might install these tools on an Ubuntu
 system:
