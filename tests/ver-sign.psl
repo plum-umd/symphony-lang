@@ -75,7 +75,7 @@ def main () = ()
       let shr_c = share{ gmw : A, B, C } (unsign { C } priv_c) in
 
       -- shr_max: shares of the max (computed using known forms):
-      let shr_max = (max-muxable (max-muxable priv_a priv_b) priv_c) in
+      let shr_max = (max-muxable (max-muxable shr_a shr_b) shr_c) in
 
       -- Note that we could feasibly also code this up by computing
       -- the maxes first and then removing the signatures, but this
