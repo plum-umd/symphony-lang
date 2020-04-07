@@ -29,3 +29,4 @@ FROM $base_image
 ENV LC_ALL=C.UTF-8
 
 COPY --from=builder /x/destdir /
+WORKDIR /root
