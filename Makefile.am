@@ -36,6 +36,15 @@ copy_vpath_files = \
   done \
 $(prevent_an_empty_line)
 
+stack_check = \
+  case '$(STACK_MISSING)' in \
+    'yes') \
+      printf 'Haskell Stack is not available. Please install it and re-run ./configure.\n' >&2; \
+      exit 1; \
+    ;; \
+  esac \
+$(prevent_an_empty_line)
+
 hs_files =
 
 libexec_psl_SCRIPTS =
@@ -91,6 +100,7 @@ mostlyclean-local: psl/clean
 
 psl: $(psl_files)
 	{ \
+	  $(stack_check); \
 	  $(copy_vpath_files); \
 	  $(STACK) build || exit; \
 	  x=`$(STACK) path --dist-dir` || exit; \
@@ -100,6 +110,7 @@ psl: $(psl_files)
 
 psl/clean: FORCE
 	{ \
+	  $(stack_check); \
 	  $(copy_vpath_files); \
 	  $(STACK) clean --full || :; \
 	}

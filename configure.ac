@@ -49,34 +49,36 @@ dnl
 
 ]AC_CHECK_PROGS([STACK], [stack])[
 
-]dnl
-dnl AC_CACHE_CHECK(
-dnl   [if stack is the correct one],
-dnl   [psl_cv_stack_check],
-dnl   [
-dnl     case "$STACK" in
-dnl       "stack") ;;
-dnl       *)
-dnl 	printf 'no\n'
-dnl         AC_MSG_ERROR(
-dnl [Cannot find stack.
-dnl Installation instructions: https://www.haskell.org/downloads/])
-dnl       ;;
-dnl     esac
-dnl 
-dnl     case "`stack --help`" in
-dnl       *'The Haskell Tool Stack'*) ;;
-dnl       *)
-dnl         printf 'no\n'
-dnl         AC_MSG_ERROR(
-dnl [The "stack" program does not appear to be the correct one.
-dnl Try using "./configure STACK=/path/to/stack".])
-dnl       ;;
-dnl     esac
-dnl 
-dnl     psl_cv_stack_check=yes
-dnl   ])
-[
+]AC_CACHE_CHECK(
+  [if ${STACK:-stack} is indeed The Haskell Tool Stack],
+  [psl_cv_stack_check],
+  [[
+    psl_cv_stack_check=no
+    case "$STACK" in
+      ?*)
+        STACK_HELP=`eval " $STACK --help" 2>&1`
+        printf '%s\n' "$STACK_HELP" >&]AS_MESSAGE_LOG_FD[
+        case $STACK_HELP in
+          *'The Haskell Tool Stack'*) psl_cv_stack_check=yes ;;
+        esac
+      ;;
+    esac
+  ]])[
+
+case $psl_cv_stack_check in
+  yes)
+    STACK_MISSING=no
+  ;;
+  *)
+    STACK_MISSING=yes
+    ]AC_MSG_WARN(
+[Haskell Stack is not installed.
+Follow these installation instructions: https://www.haskell.org/downloads/.
+If it is installed, use "./configure STACK=/path/to/stack".
+The Docker image can be built without Stack being installed.])[
+  ;;
+esac
+]AC_SUBST([STACK_MISSING])[
 
 ]dnl begin_includes
 [
