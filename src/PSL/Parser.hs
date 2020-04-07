@@ -372,12 +372,12 @@ pType = cpNewContext "type" $ mixfix $ concat
         cpManySepBy (cpSyntax ",") pConstr
       cpSyntax "."
       return $ ForallT ακs cs
-  -- τ{ρ}
+  -- τ{P}
   , mixPostfix levelMODE $ do 
       cpSyntax "{"
-      ρe ← pPrinExp
+      ρes ← pPrinExps
       cpSyntax "}"
-      return $ SecT ρe
+      return $ SecT ρes
   -- τ{ssec:P}
   , mixPostfix levelMODE $ do 
       cpSyntax "{"

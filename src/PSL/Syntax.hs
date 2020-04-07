@@ -189,7 +189,7 @@ data Type =
   | Type :→: (Effect ∧ Type)                    --  τ →{η} τ                   /  τ ->{η} τ
   | (𝕏 ∧ Type ∧ 𝐿 Constr) :→†: (Effect ∧ Type)  --  (x : τ | c,…,c) →{η} τ     /  (x : τ | c,…,c) ->{η} τ
   | ForallT (𝐿 (TVar ∧ Kind)) (𝐿 Constr) Type   --  ∀ α:κ,…,α:κ | c,…,c. τ     /  forall α:κ,…,α:κ | c,…,c. τ
-  | SecT PrinExp Type                           --  τ{P}                       /  τ{P}
+  | SecT (𝐿 PrinExp) Type                       --  τ{P}                       /  τ{P}
   | SSecT (𝐿 PrinExp) Type                      --  τ{ssec:P}                  /  τ{ssec:P}
   | ISecT (𝐿 PrinExp) Type                      --  τ{isec:P}                  /  τ{isec:P}
   | ShareT Prot (𝐿 PrinExp) Type                --  τ{φ:P}                     /  τ{φ:P}

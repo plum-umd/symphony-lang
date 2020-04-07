@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b9af3361ef2a49d5ca075874c59c5e91268da931d782015305dac2bd90199500
+-- hash: 3f659b5779256a4f5f4fa5ffb9f8c8008fbf6ec858c17b80120e04419686c5b6
 
 name:           psl
 version:        0.1.0.0
@@ -92,6 +92,15 @@ data-files:
     tests/ver-mpc.psl
     tests/ver-sign.psl
     tests/when.psl
+    examples-input/A/atq-data.txt
+    examples-input/A/cmp-input.txt
+    examples-input/A/euclid.txt
+    examples-input/A/msort-input.txt
+    examples-input/A/partial-diverge-in.txt
+    examples-input/A/pfold.txt
+    examples-input/A/prins.txt
+    examples-input/A/qsort-input.txt
+    examples-input/A/simple-read.txt
     examples-input/A_0/atq-data.txt
     examples-input/A_1/atq-data.txt
     examples-input/A_10/atq-data.txt
