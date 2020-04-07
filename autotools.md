@@ -87,7 +87,7 @@ Although both of the above tools are optional, you'll certainly want to
 install at least one of them, otherwise you won't be able to build and
 install anything of interest.
 Installing The Haskell Tool Stack is necessary if you want to build and
-install the PSL interpreter directly on your system.
+install the PSL interpreter directly to your system.
 Installing Docker is necessary if you want to build and install the PSL
 Docker image, which lets you run the PSL interpreter inside a Docker
 container.
