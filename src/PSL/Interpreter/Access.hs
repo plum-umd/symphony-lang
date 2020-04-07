@@ -6,6 +6,7 @@ import PSL.Syntax
 
 import PSL.Interpreter.Types
 import PSL.Interpreter.Pretty ()
+import PSL.Interpreter.Json
 
 -- enter a strictly smaller mode than the current one
 restrictMode ∷ (STACK) ⇒ Mode → IM a → IM a
@@ -84,7 +85,7 @@ restrictValP ṽ = do
       let ρvs' = restrict ρs ρvs
       return $ ISecVP ρvs'
     (SecM ρs₁, ShareVP φ ρs₂ v) → do
-      guardErr (ρs₂ ⊆ ρs₁) (throwIErrorCxt TypeIError "restrictValP: ρs₁ ⊈ ρs₂" $ frhs
+      guardErr (ρs₂ ⊆ ρs₁) (throwIErrorCxt TypeIError "restrictValP: ρs₂ ⊈ ρs₁" $ frhs
                             [ ("ρs₁",pretty ρs₁)
                             , ("ρs₂",pretty ρs₂)
                             ])
@@ -222,36 +223,57 @@ reShareValPShared φ ρs = \case
 -- MPC VALUES --
 ----------------
 
-mpcFrVal ∷ (STACK) ⇒ Val → IM ValMPC
-mpcFrVal = \case
-  BoolV b → return $ BaseMV zero $ BoolMV b
-  NatV pr n → return $ BaseMV zero $ NatMV pr n
-  IntV pr i → return $ BaseMV zero $ IntMV pr i
-  FltV pr i → return $ BaseMV zero $ FltMV pr i
+mpcFrValF ∷ (STACK) ⇒ Val → (BaseValMPC → IM ()) → IM ValMPC
+mpcFrValF = flip mpcFrValFWith
+
+mpcFrValFWith ∷ (STACK) ⇒ (BaseValMPC → IM ()) → Val → IM ValMPC
+mpcFrValFWith f = \case
+  BoolV b → do
+    let bvmpc = BoolMV b
+    f bvmpc
+    return $ BaseMV zero bvmpc
+  NatV pr n → do
+    let bvmpc = NatMV pr n
+    f bvmpc
+    return $ BaseMV zero bvmpc
+  IntV pr i → do
+    let bvmpc = IntMV pr i
+    f bvmpc
+    return $ BaseMV zero bvmpc
+  FltV pr i → do
+    let bvmpc = FltMV pr i
+    f bvmpc
+    return $ BaseMV zero bvmpc
   PrinV (ValPEV ρe) → return $ BaseMV zero $ PrinMV ρe
   PairV ṽ₁ ṽ₂ → do
-    vmpc₁ ← mpcFrVal *$ elimValP ṽ₁
-    vmpc₂ ← mpcFrVal *$ elimValP ṽ₂
+    vmpc₁ ← mpcFrValFWith f *$ elimValP ṽ₁
+    vmpc₂ ← mpcFrValFWith f *$ elimValP ṽ₂
     return $ PairMV vmpc₁ vmpc₂
   LV ṽ → do
-    vmpc ← mpcFrVal *$ elimValP ṽ
+    vmpc ← mpcFrValFWith f *$ elimValP ṽ
     return $ SumMV zero False vmpc DefaultMV
   RV ṽ → do
     v ← elimValP ṽ
-    vmpc ← mpcFrVal v
+    vmpc ← mpcFrValFWith f v
     return $ SumMV zero True DefaultMV vmpc
   NilV → return $ NilMV
   ConsV ṽ₁ ṽ₂ → do
-    vmpc₁ ← mpcFrVal *$ elimValP ṽ₁
-    vmpc₂ ← mpcFrVal *$ elimValP ṽ₂
+    vmpc₁ ← mpcFrValFWith f *$ elimValP ṽ₁
+    vmpc₂ ← mpcFrValFWith f *$ elimValP ṽ₂
     return $ ConsMV vmpc₁ vmpc₂
   _ → throwIErrorCxt TypeIError "bad" null
 
+mpcFrVal ∷ (STACK) ⇒ Val → IM ValMPC
+mpcFrVal = mpcFrValFWith $ const skip
+
 valFrMPC ∷ (STACK) ⇒ ValMPC → IM ValP
-valFrMPC vmpc = valFrMPCF vmpc $ const $ const skip
+valFrMPC = valFrMPCFWith $ const $ const skip
 
 valFrMPCF ∷ (STACK) ⇒ ValMPC → (ℕ → BaseValMPC → IM ()) → IM ValP
-valFrMPCF vmpc f = case vmpc of
+valFrMPCF = flip valFrMPCFWith
+
+valFrMPCFWith ∷ (STACK) ⇒ (ℕ → BaseValMPC → IM ()) → ValMPC → IM ValP
+valFrMPCFWith f = \case
   BaseMV md bvmpc → do
     f md bvmpc
     ṽ ← valFrBaseMPC bvmpc
@@ -281,3 +303,46 @@ valFrBaseMPC = \case
   FltMV pr d → introValP $ FltV pr d
   PrinMV pe → introValP $ PrinV $ ValPEV pe
 
+revealValP ∷ (STACK) ⇒ 𝑃 PrinVal → ValP → IM ValP
+revealValP ρsʳ = \case
+  AllVP v → revealVal ρsʳ v
+  SSecVP ρs' v | ρsʳ ⊆ ρs' → revealVal ρsʳ v
+  ShareVP φ ρsˢ vmpc → restrictMode (SecM ρsʳ) $ restrictValP *$ valFrMPCF vmpc $ \ md bvmpc → 
+    tellL iOutResEvsL $ ResEv φ pø ρsˢ ρsʳ (getTypeBaseMPC  bvmpc) "REVEAL" md ↦ 1
+  PairVP ṽ₁ ṽ₂ → do
+    ṽ₁' ← revealValP ρsʳ ṽ₁
+    ṽ₂' ← revealValP ρsʳ ṽ₂
+    return $ PairVP ṽ₁' ṽ₂'
+  LocVP m ℓ | SecM ρsʳ ⊑ m → return $ LocVP m ℓ
+  ṽ → throwIErrorCxt TypeIError "can't reveal" $ frhs
+    [ ("ṽ",pretty ṽ) ]
+
+revealVal ∷ (STACK) ⇒ 𝑃 PrinVal → Val → IM ValP
+revealVal ρsʳ = \case
+  BoolV b → introValP $ BoolV b
+  StrV s → introValP $ StrV s
+  NatV p n → introValP $ NatV p n
+  IntV p i → introValP $ IntV p i
+  FltV p f → introValP $ FltV p f
+  BulV → introValP BulV
+  PairV ṽ₁ ṽ₂ → do
+    ṽ₁' ← revealValP ρsʳ ṽ₁
+    ṽ₂' ← revealValP ρsʳ ṽ₂
+    return $ PairVP ṽ₁' ṽ₂'
+  LV ṽ → do
+    ṽ' ← revealValP ρsʳ ṽ
+    introValP $ LV ṽ'
+  RV ṽ → do
+    ṽ' ← revealValP ρsʳ ṽ
+    introValP $ RV ṽ'
+  NilV → introValP NilV
+  ConsV ṽ₁ ṽ₂ → do
+    ṽ₁' ← revealValP ρsʳ ṽ₁
+    ṽ₂' ← revealValP ρsʳ ṽ₂
+    introValP $ ConsV ṽ₁' ṽ₂'
+  PrinV pev → introValP $ PrinV pev
+  PrinSetV pevs → introValP $ PrinSetV pevs
+  LocV ℓ → introValP $ LocV ℓ
+  DefaultV → introValP DefaultV
+  v → throwIErrorCxt TypeIError "can't reveal" $ frhs
+    [ ("v",pretty v) ]

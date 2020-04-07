@@ -23,6 +23,8 @@ principal Alice Bob
 -- main: computes a NIZK proof that a Yao MPC between Alice and Bob
 -- knows a Beaver triple.
 def main () =
+  ()
+{-
   let priv_a = par { Alice } 3 in
   let priv_b = par { Bob } 5 in
 
@@ -72,3 +74,4 @@ def main () =
   -- [beaver_test] to true. It uses the aspirational [nizk-commit]
   -- form introduced in ver-0.psl.
   nizk-commit beaver_test
+  -}

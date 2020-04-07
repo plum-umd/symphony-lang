@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 025f419fd4364ac680b8e84e63aa3fd2f8dce6d66d3991fa1e3ac6c05f6758b5
+-- hash: f7bab4c91bc84feb8ff7b7ce15231d7c041084aec65fc11885ad4b50cfbbe888
 
 name:           psl
 version:        0.1.0.0
@@ -27,6 +27,7 @@ data-files:
     examples/concat.psl
     examples/cont-monad.psl
     examples/db-stats.psl
+    examples/dheath.psl
     examples/elim-sec-ls.psl
     examples/empty-par-diverge.psl
     examples/euclid-dh.psl
@@ -46,7 +47,9 @@ data-files:
     examples/mult-depth-test.psl
     examples/partial-diverge.psl
     examples/pfold.psl
-    examples/qsort-pure.psl
+    examples/qsort.psl
+    examples/rand-range-encrypted-inputs-failing.psl
+    examples/rand-range-shared.psl
     examples/rand.psl
     examples/reshare.psl
     examples/share-ls.psl
@@ -62,6 +65,8 @@ data-files:
     tests/arrays.psl
     tests/bgv.psl
     tests/bind-shares.psl
+    tests/compound-reveal.psl
+    tests/compound-share.psl
     tests/flt-arith.psl
     tests/fold.psl
     tests/loop.psl
@@ -84,6 +89,7 @@ data-files:
     tests/underflow-nat.psl
     tests/uninspecting-par.psl
     tests/ver-0.psl
+    tests/ver-mpc.psl
     tests/when.psl
     examples-input/A/atq-data.txt
     examples-input/A/cmp-input.txt

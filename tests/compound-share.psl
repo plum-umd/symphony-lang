@@ -1,0 +1,12 @@
+principal A
+principal B
+
+def main () =
+  par {A,B}
+    share {yao : A -> this} (par {A} (1, 2))
+
+def expected = 
+  par {A,B}
+    ( (share {yao : A -> this} (par {A} 1))
+    , (share {yao : A -> this} (par {A} 2))
+    )
