@@ -1,0 +1,147 @@
+-- the more practical cases for ZK with an MPC prover arise when the
+-- Prover needs to prove that their witness satisfies some property
+-- wrt values that are verifiably known by each party. The challenge
+-- problems accomodate this by saying that we can assume a PKI, but so
+-- far this isn't reflected in the language.
+
+-- This example illustrates one lightweight way to introduce it. The
+-- example is a program run by three computation parties: A, B, and C,
+-- who
+--
+-- 1. compute the max of private values held by all parties, which
+-- they distribute amongst themselves;
+--
+-- 2. compute a proof of knowledge of a value that is the max of
+-- values signed by each party.
+
+-- Once we handle all of the features illustrated in this program, we
+-- should have all that we need for the challenge problems.
+
+principal A B C
+principal Ext
+
+def main () =
+  -- A/B/C each get their private inputs. Given that we'll be proving
+  -- knowledge of values that have been signed by parties, we need a
+  -- way of introducing signed values, and this seems like a fine
+  -- place to do it. As for how to do it,
+  --
+  -- 1. We might hope that we could have all inputs be implicitly
+  -- signed, but this won't be workable when we need to eventually
+  -- remove signatures from values;
+  --
+  -- 2. We could feasibly say that all values returned by [read] are
+  -- implicitly signed by the party that read them. This is
+  -- technically workable, but it seems to conflate two actions
+  -- (reading values and signing them) that really are concpetually
+  -- distinct.
+  --
+  -- 3. We could introduce a new syntactic form for producing signed
+  -- values, which gets my vote. Here is example usage of such a form,
+  -- 
+  -- sign { P } e:
+  -- 
+  -- This leaves the questions of how values and types should be
+  -- extended to accomodate signings. My hunch is that there's
+  -- probably a reasonably general way for signatures and shares to
+  -- interact, but there seem to be enough weird cases to handle and
+  -- all that we need for the challenge problems is to sign base
+  -- types. So for the near future, I recommend extending all base
+  -- types so that they're qualified by the set of parties that have
+  -- signed them, and then having [sign] extend that set.
+  let priv_a = par { A } (sign { A } 2) in
+  let priv_b = par { B } (sign { B } 3) in
+  let priv_c = par { C } (sign { C } 5) in
+
+  -- A, B, C compute:
+  -- 
+  -- 1. max: the max over all of their values and
+  -- 
+  -- 2. pf: a proof of knowledge of a max of values signed by each of
+  -- them.
+  let (max, pf) = par { A, B, C } 
+      -- A, B, and C now compute the max of all of their private
+      -- values. Because the max will actually be returned to each
+      -- party, we need to remove the signatures from the values. To
+      -- do that, we'll introduce a new sytnactic form
+      --
+      -- unsign { P } e
+      -- 
+      -- which acts as an inverse to sign; i.e., it removes P from the
+      -- set of signing parties.
+      let shr_a = share{ gmw : A, B, C } (unsign { A } priv_a) in
+      let shr_b = share{ gmw : A, B, C } (unsign { B } priv_b) in
+      let shr_c = share{ gmw : A, B, C } (unsign { C } priv_c) in
+
+      -- shr_max: shares of the max (computed using known forms):
+      let shr_max = (max-muxable (max-muxable priv_a priv_b) priv_c) in
+
+      -- Note that we could feasibly also code this up by computing
+      -- the maxes first and then removing the signatures, but this
+      -- would apparently require something like existentially
+      -- quantified parties in signature qualifiers. This may be
+      -- interesting enough to remember for later, but is (thankfully)
+      -- too fancy for what we need right now.
+
+      -- wit-a/b/c: each input, lifted into a witness test (computed
+      -- using the [nizk-witness] form introduced in ver-0.psl and
+      -- ver-mpc.psl):
+      let wit-a = nizk-witness { gmw : A, B, C } shr_a in
+      let wit-b = nizk-witness { gmw : A, B, C } shr_b in
+      let wit-c = nizk-witness { gmw : A, B, C } shr_c in
+
+      -- wit-max: the max value, lifted into a witness test (computed
+      -- using [nizk-witness]):
+      let wit-max = nizk-witness { gmw : A, B, C } shr_max in
+
+      -- test-inputs-are-signed: test that each witness value has been
+      -- signed by its corresponding party. These are computed using
+      -- an aspirational syntactic form
+      --
+      -- is-signed { P } e:
+      let test-inputs-are-signed =
+        (is-signed { A } wit-a) &&
+        (is-signed { B } wit-b) &&
+        (is-signed { C } wit-c) in
+      -- One interesting quirk of is-signed is that is-signed lifted
+      -- to construct NIZK property tests is clearly necessary for
+      -- generating practical NIZK property tests, but is-signed over
+      -- the underlying values has fewer apparent uses, given that its
+      -- value can be statically determined when the principals that
+      -- qualify signatures are constant. We could probably come up
+      -- with cases where it's useful/essential that make mildly
+      -- clever use of quantified principals, but definitions over
+      -- underlying values definitely don't seem to be needed in the
+      -- near term.
+
+      -- test-max-is-some-input: test that the max witness is the
+      -- unsigning of some witness. test-max-is-some-input is
+      -- constructed by lifting Boolean conjunction from Bools to
+      -- tests that yield Bools, analogous to the lifting of <= in
+      -- ver-0.psl:
+      let test-is-some-input =
+        (wit-max == (unsign { A } wit-a)) ||
+        (wit-max == (unsign { B } wit-b)) ||
+        (wit-max == (unsign { C } wit-c)) in
+
+      -- test-is-max: test that the max witness is actually the max;
+      -- constructed similarly to test-max-is-some-input:
+      let test-is-max =
+        (wit-a <= wit-max) &&
+        (wit-b <= wit-max) &&
+        (wit-c <= wit-max) in
+
+      -- compute the max revealed to each party and a proof that they
+      -- know the max over inputs signed by each of them:
+      (reveal{ A, B, C } shr_max,
+       nizk-commit
+         (test-inputs-are-signed &&
+          test-is-some-input &&
+          test-is-max) ) in
+
+  -- compute:
+  --
+  -- 1. the revealed max and
+  --
+  -- 2. the NIZK proof, sent to Ext
+  (max, send{ A -> Ext } pf)
