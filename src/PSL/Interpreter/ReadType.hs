@@ -87,7 +87,7 @@ readType ρ τA fn = do
       relativePathExists ← pathExists relativePath
       dataFilePathExists ← pathExists dataFilePath
       when (not relativePathExists ⩓ dataFilePathExists) $ \ _ → do
-        touchDirs "examples-input"
+        touchDirs $ concat ["examples-input/",prinDataPath ρ]
         copyFile dataFilePath relativePath
       return relativePath
     else return $ concat ["data-input/",prinDataPath ρ,"/",fn]
