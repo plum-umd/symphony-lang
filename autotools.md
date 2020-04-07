@@ -62,35 +62,40 @@ the build system.
 
 ## Configuring the build system
 
-Configuring the build system requires the following tools to be
+Configuring the build system requires the following tools to already be
 installed on your system:
 
 - Any C compiler.
-- Any `make` implementation.
+- Any implementation of the `make` utility.
+
+As an example, here is how you might install these tools on an Ubuntu
+system:
+
+```
+sudo apt-get -q -y install gcc make
+```
+
+The following tools can be optionally installed on your system:
+
 - The Haskell Tool Stack 2.1.3 or newer.
-
-The following tools are optional:
-
+  See <https://docs.haskellstack.org/en/stable/install_and_upgrade/> for
+  installation instructions.
 - Docker 19.03.7 or newer.
-  This is necessary if you want to build the PSL Docker image.
+  See <https://docs.docker.com/install/> for installation instructions.
 
-To configure the build system, run the following command:
+Although both of the above tools are optional, you'll certainly want to
+install at least one of them, otherwise you won't be able to build and
+install anything of interest.
+Installing The Haskell Tool Stack is necessary if you want to build and
+install the PSL interpreter directly on your system.
+Installing Docker is necessary if you want to build and install the PSL
+Docker image, which lets you run the PSL interpreter inside a Docker
+container.
+Note that installing The Haskell Tool Stack is not necessary if you only
+want to build and install the PSL Docker image.
 
-```
-./configure
-```
-
-There are also many options that can be given to `./configure`, which
-can be listed by running `./configure --help`.
-Some of these options will be familiar to you if you're familiar with
-building and installing other POSIX-like software from source.
-
-The most notable of the options are as follows:
-
-- `./configure STACK='foo'` can be used to specify how to run `stack`.
-
-- `./configure DOCKER='foo'` can be used to specify how to run `docker`.
-  For example, you might use `./configure DOCKER='sudo docker'`.
+After these tools are installed, simply run `./configure` to configure
+the build system.
 
 ## Running the build system
 
