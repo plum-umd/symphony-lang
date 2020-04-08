@@ -767,7 +767,7 @@ interpTL tl = case extract tl of
           ArrayPD ρ n → ρ ↦ SetPK n
     modifyL itlStateDeclPrinsL (kinds ⩌)
   ImportTL path → do
-    s ← io $ read path
+    s ← io $ readFile path
     let ts = tokens s
     ls ← io $ tokenizeIO lexer path ts
     tls ← io $ parseIO cpTLs path ls
@@ -851,7 +851,7 @@ initializeEnv os = flip compose θ₀
 
 interpretFile ∷ IParams → ITLState → 𝕊 → 𝕊 → IO (ITLState ∧ IOut)
 interpretFile θ ωtl name path = do
-  s ← read path
+  s ← readFile path
   let ts = tokens s
   ls ← tokenizeIO lexer name ts
   tls ← parseIO cpTLs name ls

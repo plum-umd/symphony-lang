@@ -91,7 +91,7 @@ readType ρ τA fn = do
         copyFile dataFilePath relativePath
       return relativePath
     else return $ concat ["data-input/",prinDataPath ρ,"/",fn]
-  snd ^$ parseInputType ρ τA *$ io $ read path
+  snd ^$ parseInputType ρ τA *$ io $ readFile path
 
 serializeVal ∷ Val → IM (𝐼 𝕊)
 serializeVal = \case
@@ -126,4 +126,4 @@ writeVal ρ v fn = do
         else concat ["data-output/",prinDataPath ρ,"/",fn]
   io $ touchDirs $ pathDir path
   o ← concat ^$ serializeVal v
-  io $ write path o
+  io $ writeFile path o
