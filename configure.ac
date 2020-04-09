@@ -85,8 +85,8 @@ esac
   [psl_cv_stack_version_check],
   [[
     psl_cv_stack_version_check=no
-    case "$STACK" in
-      ?*)
+    case "$psl_cv_stack_check" in
+      yes)
         while :; do
           eval " $STACK --numeric-version 2>&1" > conftest_stack_version.txt || break
           STACK_VERSION=`cat conftest_stack_version.txt` || break
