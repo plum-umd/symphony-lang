@@ -9,13 +9,13 @@ import UVMHS
 import Paths_psl
 
 import GHC.Stack (CallStack,callStack,withFrozenCallStack)
+
+import qualified Data.Text.Encoding as Text
 import qualified Data.Text.IO as Text
-
-import System.Directory as Directory
-
-import System.FilePath.Posix as FP
-
 import qualified Data.Version as Version
+import qualified System.Directory as Directory
+import qualified System.FilePath.Posix as FP
+import qualified Data.ByteString as BS
 
 success ∷ (Monad m) ⇒ m a → FailT m a
 success xM = FailT $ Some ^$ xM
@@ -54,3 +54,9 @@ psl_VERSION = concat $ inbetween "." $ map show𝕊 $ Version.versionBranch vers
 
 copyFile ∷ 𝕊 → 𝕊 → IO ()
 copyFile fr to = Directory.copyFile (chars fr) $ chars to
+
+readFile ∷ 𝕊 → IO 𝕊
+readFile = Text.decodeUtf8 ^∘ BS.readFile ∘ chars
+
+writeFile ∷ 𝕊 → 𝕊 → IO ()
+writeFile file = BS.writeFile (chars file) ∘ Text.encodeUtf8
