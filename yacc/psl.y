@@ -7,7 +7,7 @@
 FILE *yyin;
 void yyerror (char const *s) {
   char next[20];
-  fgets(next, 20, yyin);
+  fread(next, 1, 20, yyin);
   fprintf (stderr, "%s at: %s\n", s, next);
   exit(0);
 }
@@ -20,11 +20,15 @@ int yylex();
 %token VAR
 %token CONS NIL UNIT
 %token IF THEN ELSE
-%token LET IN
-%token EQL MOD PLUS MINUS TIMES DIV DIGIT ARROW
+%token LET IN FUN
+%token EQL LT LTE GT GTE
+%token MOD PLUS MINUS TIMES DIV
+%token ARROW
 %token MUX PAR REVEAL SHARE
 %token YAO BGV BGW GMW ;
-%token INT NAT FLOAT
+%token INTLIT NATLIT FLOATLIT STRINGLIT
+%token INP REV
+%token RANDRANGE
 
 %%
 
@@ -33,6 +37,7 @@ toplist : | top toplist
 
 top : PRINCIPAL prin prinlist
     | DEF VAR patlist '=' topexpr
+    | DEF VAR ':' type
     ;
 
 prinlist : | prin prinlist ;
@@ -49,7 +54,6 @@ pat : VAR                     // pattern variable
     /* | '<<>>'                  // empty tuple */
     /* << prin . pat >> ++ */ // principal
     /* | pat ':' type            // type annotation */
-    /* | '_'                     // wildcard */
     /* | NIL */
     ;
 
@@ -62,7 +66,8 @@ expr : nonapp apptail ;
 
 apptail : nonapp apptail | /* empty */ ;
 
-binop : EQL | MOD | PLUS | MINUS | TIMES | DIV ;
+binop : EQL | LT | GT | LTE | GTE
+      | MOD | PLUS | MINUS | TIMES | DIV ;
 
 protocol : YAO | BGV | BGW | GMW ;
 
@@ -71,23 +76,25 @@ nonapp : VAR
        | IF expr THEN topexpr ELSE topexpr
        | expr binop expr
        | expr ',' expr
-       | PAR '{' prin '}' expr
+       | PAR '{' prin '}' topexpr
        | REVEAL '{' prin '}' expr
        | SHARE '{' protocol ':' prin ARROW prin '}' expr
        /* | 'case' expr '{' arms '}' */
-       /* | 'fun' pat '->' expr // TODO there is a bug in PSL parser? */
+       | FUN recbinding patlist ARROW topexpr // TODO there is a bug in PSL parser?
        | '(' topexpr ')'
-       /* numbers TODO */
-       | NAT | INT | FLOAT
+       | INTLIT | NATLIT | FLOATLIT | STRINGLIT
        | UNIT
        | NIL
+       | RANDRANGE typenonapp expr
        /* | expr CONS expr */
        /* | expr ':' type */
        ;
 
 let : LET pat commapat '=' expr lettail ;
 
-lettail : IN topexpr | let
+lettail : IN topexpr | let ;
+
+recbinding : '[' VAR ']' | ;
 
 
 /* // case analysis arms */
@@ -97,8 +104,16 @@ lettail : IN topexpr | let
 
 /* armstail : ';' arm armstail | /1* empty *1/ ; */
 
-/* type : VAR */
-/*      ; */
+type : typenonapp typetail ;
+
+typetail : typenonapp typetail | ;
+
+typenonapp : VAR
+           | typenonapp '{' protocol ':' prin '}'
+           | type ARROW type
+           | '{' INP ':' prin ';' REV ':' prin '}' type
+           | '(' type ')'
+           ;
 
 %%
 
@@ -134,7 +149,7 @@ int match(const char* s) {
 
 
 int isvarchar(int c) {
-  return isdigit(c) || isalpha(c) || c == '_' || c == '-';
+  return isdigit(c) || isalpha(c) || c == '_' || c == '-' || c == '\'';
 }
 
 
@@ -163,29 +178,52 @@ int number() {
 }
 
 
+int stringlit() {
+  if (peek() == '"') {
+    do {
+      int c = peek();
+      if (c == EOF || c == '\n') {
+        yyerror("Unterminated string");
+      }
+      if (c == '\\') {
+        get();
+        get();
+      } else {
+        get();
+      }
+    } while (peek() != '"');
+    get();
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+
 int numeric() {
   if (!number()) { return 0; }
   if (peek() == 'n') {
     get();
-    return NAT;
+    return NATLIT;
   }
   if (peek() == '.') {
     get();
     if (!number()) {
       yyerror("Floating point with no number after '.'");
     }
-    return FLOAT;
+    return FLOATLIT;
   }
   if (isvarchar(peek())) {
     yyerror("number with trailing alpha characters");
   }
-  return INT;
+  return INTLIT;
 }
 
 
 int token() {
   if (reserved("principal")) { return PRINCIPAL; }
   if (reserved("def")) { return DEF; }
+  if (reserved("fun")) { return FUN; }
   if (reserved("let")) { return LET; }
   if (reserved("in")) { return IN; }
 
@@ -203,6 +241,11 @@ int token() {
   if (reserved("bgv")) { return BGV; }
   if (reserved("gmw")) { return GMW; }
 
+  if (reserved("rand-range")) { return RANDRANGE; }
+
+  if (reserved("inp")) { return INP; }
+  if (reserved("rev")) { return REV; }
+
   if (match("()")) { return UNIT; }
   if (match("::")) { return CONS; }
   if (match("[]")) { return NIL; }
@@ -210,6 +253,10 @@ int token() {
   if (match("->")) { return ARROW; }
 
   if (match("==")) { return EQL; }
+  if (match("<")) { return LT; }
+  if (match("<=")) { return LTE; }
+  if (match(">")) { return GT; }
+  if (match(">=")) { return GTE; }
   if (match("%")) { return MOD; }
   if (match("+")) { return PLUS; }
   if (match("-")) { return MINUS; }
@@ -217,8 +264,9 @@ int token() {
   if (match("/")) { return DIV; }
 
   int n = numeric(); if (n > 0) { return n; }
+  if (stringlit()) { return STRINGLIT; }
   int c = get();
-  if (isalpha(c)) {
+  if (isalpha(c) || c == '_') {
     while (isvarchar(peek())) {
       get();
     }
