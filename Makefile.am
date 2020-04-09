@@ -110,9 +110,13 @@ psl: $(psl_files)
 
 psl/clean: FORCE
 	{ \
-	  $(stack_check); \
-	  $(copy_vpath_files); \
-	  $(STACK) clean --full || :; \
+	  case '$(STACK_MISSING)' in \
+	    'yes') ;; \
+	    *) \
+	      $(copy_vpath_files); \
+	      $(STACK) clean --full || :; \
+	    ;; \
+	  esac \
 	}
 	-rm -f psl.cabal stack.yaml.lock
 
