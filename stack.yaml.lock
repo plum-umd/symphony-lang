@@ -6,18 +6,18 @@
 packages:
 - completed:
     cabal-file:
-      size: 4267
-      sha256: 900b945bcf4ec202391e0dd4f2643ac3be1107c03a3e254d70237a3005f4971b
+      size: 4331
+      sha256: 18302d4b7270233651d7f412dd048deaefbdb1f8aadf842bc94ddaf311c5a4a6
     name: uvmhs
     version: 0.0.0.0
     git: https://github.com/uvm-plaid/uvmhs.git
     pantry-tree:
       size: 135265
-      sha256: 422351bf7a951e1cc535879140afe33efeab40c3fe11ea3514c330461b313f83
-    commit: ff88ed8f4e5191fbd9f4712dc201c9e0e609edf8
+      sha256: d5ff3b3c0d0e8d38ee65f9b2c46d293e95893eceaa62f18a10913f68f42cb245
+    commit: 8eb1ecfae3253e8ed154cfb1dd41f6ad8df76913
   original:
     git: https://github.com/uvm-plaid/uvmhs.git
-    commit: ff88ed8f4e5191fbd9f4712dc201c9e0e609edf8
+    commit: 8eb1ecfae3253e8ed154cfb1dd41f6ad8df76913
 snapshots:
 - completed:
     size: 524996

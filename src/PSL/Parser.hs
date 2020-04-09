@@ -891,7 +891,7 @@ cpTLs = cpMany pTL
 testParserExample ∷ 𝕊 → IO ()
 testParserExample fn = do
   let path = "examples/" ⧺ fn ⧺ ".psl"
-  s ← read fn
+  s ← fread fn
   let ts = tokens s
   ls ← tokenizeIO lexer path ts
   _tls ← parseIO cpTLs path ls

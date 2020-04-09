@@ -1,7 +1,6 @@
 module PSL.Interpreter.Types where
 
 import UVMHS
-import AddToUVMHS
 import PSL.Syntax
 
 ------------

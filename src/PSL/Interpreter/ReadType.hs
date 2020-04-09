@@ -1,13 +1,13 @@
 module PSL.Interpreter.ReadType where
 
 import UVMHS
-import AddToUVMHS
 
+import PSL.Config
 import PSL.Syntax
 
-import PSL.Interpreter.Types
-import PSL.Interpreter.Truncating
 import PSL.Interpreter.Access
+import PSL.Interpreter.Truncating
+import PSL.Interpreter.Types
 
 import qualified Text.Read as HS
 
@@ -83,15 +83,15 @@ readType ρ τA fn = do
     if b
     then io $ do
       let relativePath = concat ["examples-input/",prinDataPath ρ,"/",fn]
-      dataFilePath ← getDataFilePath relativePath
-      relativePathExists ← pathExists relativePath
-      dataFilePathExists ← pathExists dataFilePath
+      dataFilePath ← datapath relativePath
+      relativePathExists ← pexists relativePath
+      dataFilePathExists ← pexists dataFilePath
       when (not relativePathExists ⩓ dataFilePathExists) $ \ _ → do
-        touchDirs $ concat ["examples-input/",prinDataPath ρ]
-        copyFile dataFilePath relativePath
+        dtouch $ concat ["examples-input/",prinDataPath ρ]
+        fcopy dataFilePath relativePath
       return relativePath
     else return $ concat ["data-input/",prinDataPath ρ,"/",fn]
-  snd ^$ parseInputType ρ τA *$ io $ readFile path
+  snd ^$ parseInputType ρ τA *$ io $ fread path
 
 serializeVal ∷ Val → IM (𝐼 𝕊)
 serializeVal = \case
@@ -124,6 +124,6 @@ writeVal ρ v fn = do
         if b
         then concat ["examples-output/",prinDataPath ρ,"/",fn]
         else concat ["data-output/",prinDataPath ρ,"/",fn]
-  io $ touchDirs $ pathDir path
+  io $ dtouch $ pdirectory path
   o ← concat ^$ serializeVal v
-  io $ writeFile path o
+  io $ fwrite path o

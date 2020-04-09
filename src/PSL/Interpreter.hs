@@ -1,30 +1,26 @@
 module PSL.Interpreter where
 
 import UVMHS
-import AddToUVMHS
 
+import PSL.Config
 import PSL.Parser
 import PSL.Syntax
 
-import PSL.Interpreter.Types
-import PSL.Interpreter.Truncating
-import PSL.Interpreter.Primitives
 import PSL.Interpreter.Access
+import PSL.Interpreter.Json
+import PSL.Interpreter.Pretty ()
+import PSL.Interpreter.Primitives
 import PSL.Interpreter.PrinExp
 import PSL.Interpreter.ReadType
-import PSL.Interpreter.Pretty ()
-import PSL.Interpreter.Json
-
-import qualified Prelude as HS
+import PSL.Interpreter.Truncating
+import PSL.Interpreter.Types
 
 import qualified Data.Aeson as JSON
 import qualified Data.ByteString.Lazy as BS
-
-import qualified System.Random as R
-
-import qualified System.FilePath as HS
-
+import qualified Prelude as HS
 import qualified System.Console.GetOpt as O
+import qualified System.FilePath as HS
+import qualified System.Random as R
 
 -------------
 -- VERSION --
@@ -67,26 +63,26 @@ bindPatO ψ ṽ = case ψ of
   VarP x → return $ bindVar x ṽ
   BulP → return id
   TupP ψ₁ ψ₂ → do
-    v ← success $ elimValP ṽ
-    (ṽ₁,ṽ₂) ← abort𝑂 $ view pairVL v
+    v ← lift $ elimValP ṽ
+    ṽ₁ :* ṽ₂ ← abort𝑂 $ view pairVL v
     f₁ ← bindPatO ψ₁ ṽ₁ 
     f₂ ← bindPatO ψ₂ ṽ₂
     return $ f₂ ∘ f₁
   LP ψ' → do
-    v' ← success $ elimValP ṽ
+    v' ← lift $ elimValP ṽ
     ṽ' ← abort𝑂 $ view lVL v'
     bindPatO ψ' ṽ'
   RP ψ' → do
-    v' ← success $ elimValP ṽ
+    v' ← lift $ elimValP ṽ
     ṽ' ← abort𝑂 $ view rVL v'
     bindPatO ψ' ṽ'
   NilP → do
-    v ← success $ elimValP ṽ
+    v ← lift $ elimValP ṽ
     abort𝑂 $ view nilVL v
     return id
   ConsP ψ₁ ψ₂ → do
-    v ← success $ elimValP ṽ
-    (ṽ₁,ṽ₂) ← abort𝑂 $ view consVL v
+    v ← lift $ elimValP ṽ
+    ṽ₁ :* ṽ₂ ← abort𝑂 $ view consVL v
     f₁ ← bindPatO ψ₁ ṽ₁ 
     f₂ ← bindPatO ψ₂ ṽ₂
     return $ f₂ ∘ f₁
@@ -97,21 +93,21 @@ bindPatO ψ ṽ = case ψ of
   BundleP ρx ψ₁ ψ₂ → do
     ρvs ← abort𝑂 $ view iSecVPL ṽ
     ρ :* v :* ρvs' ← abort𝑂 $ dminView ρvs
-    ρv ← success $ introValP $ PrinV $ ValPEV ρ
+    ρv ← lift $ introValP $ PrinV $ ValPEV ρ
     let f₁ = bindVar ρx ρv
     f₂ ← bindPatO ψ₁ $ SSecVP (single ρ) v
     f₃ ← bindPatO ψ₂ $ ISecVP ρvs'
     return $ f₃ ∘ f₂ ∘ f₁
   EmptySetP → do
-    v ← success $ elimValP ṽ
+    v ← lift $ elimValP ṽ
     guard $ v ≡ PrinSetV pø
     return id
   SetP x ψ' → do
-    v ← success $ elimValP ṽ
+    v ← lift $ elimValP ṽ
     ρvs ← abort𝑂 $ view prinSetVL v
     ρ :* ρs ← abort𝑂 $ pmin ρvs
-    ρv ← success $ introValP $ PrinV $ ValPEV ρ
-    ρvs' ← success $ introValP $ PrinSetV ρs
+    ρv ← lift $ introValP $ PrinV $ ValPEV ρ
+    ρvs' ← lift $ introValP $ PrinSetV ρs
     let f₁ = bindVar x ρv
     f₂ ← bindPatO ψ' ρvs'
     return $ f₂ ∘ f₁
@@ -128,7 +124,7 @@ bindPatMPC si ψ vmpc = case ψ of
     si'' ← joinShareInfo si si'
     return $ si'' :* vmpc'
   TupP ψ₁ ψ₂ → do
-    (vmpc₁,vmpc₂) ← view pairMVL vmpc
+    vmpc₁ :* vmpc₂ ← view pairMVL vmpc
     f₁ ← bindPatMPC si ψ₁ vmpc₁
     f₂ ← bindPatMPC si ψ₂ vmpc₂
     return $ \ xM → do
@@ -136,7 +132,7 @@ bindPatMPC si ψ vmpc = case ψ of
       si'' ← joinShareInfo si si'
       return $ si'' :* vmpc'
   LP ψ' → do 
-    (md,b,vmpc₁,_vmpc₂) ← view sumMVL vmpc
+    md :* b :* vmpc₁ :* _vmpc₂ ← view sumMVL vmpc
     f ← bindPatMPC si ψ' vmpc₁
     return $ \ xM → do
       si' :* vmpc' ← f xM
@@ -144,7 +140,7 @@ bindPatMPC si ψ vmpc = case ψ of
       si'' ← joinShareInfo si si'
       return $ si'' :* vmpc''
   RP ψ' → do
-    (md,b,_vmpc₁,vmpc₂) ← view sumMVL vmpc
+    md :* b :* _vmpc₁ :* vmpc₂ ← view sumMVL vmpc
     f ← bindPatMPC si ψ' vmpc₂
     return $ \ xM → do
       si' :* vmpc' ← f xM
@@ -168,7 +164,7 @@ interpCaseO ṽ ψes = case ψes of
   Nil → abort
   (ψ :* e) :& ψes' → tries
     [ do f ← bindPatO ψ ṽ 
-         success $ f $ interpExp e
+         lift $ f $ interpExp e
     , interpCaseO ṽ ψes'
     ]
 
@@ -360,7 +356,7 @@ interpExp = wrapInterp $ \case
   MuxIfE e₁ e₂ e₃ → do
     ṽ₁ ← interpExp e₁
     si₁ :* vmpc₁ ← unShareValP ṽ₁
-    (md₁,bvmpc₁) ← error𝑂 (view baseMVL vmpc₁) $ throwIErrorCxt TypeIError "bad" null
+    md₁ :* bvmpc₁ ← error𝑂 (view baseMVL vmpc₁) $ throwIErrorCxt TypeIError "bad" null
     b₁ ← error𝑂 (view boolMVL bvmpc₁) $ throwIErrorCxt TypeIError "bad" null
     ṽ₂ ← mapEnvL iCxtMPCPathConditionL ((md₁:* b₁ :* si₁) :&) $ do
       interpExp e₂
@@ -457,7 +453,7 @@ interpExp = wrapInterp $ \case
     ISecVP ^$ dict ^$ mapMOn (iter ρes) $ \ (ρ :* e) → do
       ρv ← interpPrinExpSingle ρ
       ṽ ← restrictMode (SecM $ single ρv) $ interpExp e
-      (ρvs,v) ← error𝑂 (view sSecVPL ṽ) (throwIErrorCxt TypeIError "interpExp: BundleE: view sSecVPL ṽ ≡ None" $ frhs
+      ρvs :* v ← error𝑂 (view sSecVPL ṽ) (throwIErrorCxt TypeIError "interpExp: BundleE: view sSecVPL ṽ ≡ None" $ frhs
                                          [ ("ṽ",pretty ṽ)
                                          ])
       guardErr (ρvs ≡ single ρv) (throwIErrorCxt TypeIError "interpExp: BundleE: ρvs ≢ single ρv" $ frhs
@@ -560,7 +556,7 @@ interpExp = wrapInterp $ \case
         return $ Shared φ ρvs :* τ'
       _ → return $ NotShared :* τ
     ṽ ← interpExp e
-    (ṽ₁,ṽ₂) ← 
+    ṽ₁ :* ṽ₂ ← 
       elim𝑂 
         (throwIErrorCxt TypeIError "interpExp: ReadRangeE: Expected a pair argument" $ 
            frhs [ ("ṽ",pretty ṽ) ]) 
@@ -767,7 +763,7 @@ interpTL tl = case extract tl of
           ArrayPD ρ n → ρ ↦ SetPK n
     modifyL itlStateDeclPrinsL (kinds ⩌)
   ImportTL path → do
-    s ← io $ readFile path
+    s ← io $ fread path
     let ts = tokens s
     ls ← io $ tokenizeIO lexer path ts
     tls ← io $ parseIO cpTLs path ls
@@ -798,16 +794,16 @@ makeLenses ''Options
 
 options₀ ∷ IO Options
 options₀ = do
-  localTestsExists ← pathExists "tests"
+  localTestsExists ← pexists "tests"
   testsPath ←
     if localTestsExists 
     then return "tests"
-    else getDataFilePath "tests"
-  libPathExists ← pathExists "lib"
+    else datapath "tests"
+  libPathExists ← pexists "lib"
   libPath ←
     if libPathExists
     then return "lib"
-    else getDataFilePath "lib"
+    else datapath "lib"
   return $ Options
     { optVersion = False
     , optHelp = False
@@ -851,11 +847,11 @@ initializeEnv os = flip compose θ₀
 
 interpretFile ∷ IParams → ITLState → 𝕊 → 𝕊 → IO (ITLState ∧ IOut)
 interpretFile θ ωtl name path = do
-  s ← readFile path
+  s ← fread path
   let ts = tokens s
   ls ← tokenizeIO lexer name ts
   tls ← parseIO cpTLs name ls
-  ωtl' :* o :* () ← indir (pathDir path) $ runITLMIO θ ωtl name $ eachWith interpTL tls
+  ωtl' :* o :* () ← din (pdirectory path) $ runITLMIO θ ωtl name $ eachWith interpTL tls
   return $ ωtl' :* o
 
 interpretFileMain ∷ IParams → ITLState → 𝕊 → 𝕊 → IO (ValP ∧ 𝑂 ValP)
@@ -867,14 +863,14 @@ interpretFileMain θ ωtl name path = do
   let fn = string $ HS.takeBaseName $ chars path
   if iParamsDoResources θ
     then do
-      touchDirs "resources"
+      dtouch "resources"
       BS.writeFile (chars $ "resources/" ⧺ fn ⧺ ".res") $ JSON.encode $ jsonEvents $ iOutResEvs o
     else skip
   return $ v :* expectedO
 
 parseOptions ∷ IO (Options ∧ [𝕊])
 parseOptions = do
-  as ← askArgs
+  as ← iargs
   let (fs,nos,ems) = O.getOpt O.RequireOrder (usageInfoTop ⧺ usageInfoRun) $ lazyList $ map chars as
   eachOn ems (out ∘ string)
   os ← compose fs ^$ options₀
@@ -925,12 +921,12 @@ pslMainExample = do
     , ppString name
     ]
   let exampleRelativePath = "examples/" ⧺ name ⧺ ".psl"
-  exampleDataFilePath ← getDataFilePath exampleRelativePath
-  exampleLocalExists ← pathExists exampleRelativePath
-  exampleDataFileExists ← pathExists exampleDataFilePath
+  exampleDataFilePath ← datapath exampleRelativePath
+  exampleLocalExists ← pexists exampleRelativePath
+  exampleDataFileExists ← pexists exampleDataFilePath
   when (not exampleLocalExists ⩓ exampleDataFileExists) $ \ _ → do
-    touchDirs "examples"
-    copyFile exampleDataFilePath exampleRelativePath
+    dtouch "examples"
+    fcopy exampleDataFilePath exampleRelativePath
   ωtl :* _ ← interpretFile θ ωtl₀ "lib:stdlib.psl" $ optLibPath os ⧺ "/stdlib.psl"
   v ← fst ^$ interpretFileMain θ ωtl (concat ["example:",name,".psl"]) exampleRelativePath
   pprint $ ppHeader "RESULT"
@@ -946,8 +942,8 @@ pslMainTest = do
   out ""
   pprint $ ppHeader "TESTING INTERPRETER"
   ωtl :* _ ← interpretFile θ ωtl₀ "lib:stdlib.psl" $ optLibPath os ⧺ "/stdlib.psl"
-  indir (optTestsPath os) $ do
-    fns ← files
+  din (optTestsPath os) $ do
+    fns ← dfiles
     vevs ← mapMOn fns $ \ fn → do
       initializeIO os
       (fn :*) ^$ interpretFileMain θ ωtl (concat ["test:",fn]) fn
@@ -996,9 +992,9 @@ pslMainInfo = do
 
 interpreterMain ∷ IO ()
 interpreterMain = do
-  map list askArgs ≫= \case
-    "run" :& as → localArgs as $ pslMainRun
-    "example" :& as → localArgs as $ pslMainExample
-    "test" :& as → localArgs as pslMainTest
-    Nil → localArgs (list ["--version","--help"]) pslMainInfo
-    as → localArgs as pslMainInfo
+  map list iargs ≫= \case
+    "run" :& as → ilocalArgs as $ pslMainRun
+    "example" :& as → ilocalArgs as $ pslMainExample
+    "test" :& as → ilocalArgs as pslMainTest
+    Nil → ilocalArgs (list ["--version","--help"]) pslMainInfo
+    as → ilocalArgs as pslMainInfo

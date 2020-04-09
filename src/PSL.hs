@@ -4,13 +4,17 @@ import UVMHS
 
 import PSL.Interpreter
 
-main ∷ IO ()
-main = interpreterMain
-
 mainDefaultArgs ∷ 𝐿 𝕊
 mainDefaultArgs = 
   list ["test","--version","--help"]
   -- list ["example","qsort"]
 
+main ∷ IO ()
+main = do
+  initUVMHS
+  interpreterMain
+
 mainDefault ∷ IO ()
-mainDefault = localArgs mainDefaultArgs  interpreterMain
+mainDefault = do
+  initUVMHS
+  ilocalArgs mainDefaultArgs  interpreterMain
