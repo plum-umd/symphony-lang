@@ -86,6 +86,7 @@ lexer = lexerBasic puns kws prim ops
       , "loop"
       , "when"
       , "import"
+      , "nizk-witness","nizk-commit"
       ]
     prim = list
       [ "yao","gmw","bgw","bgv","spdz"
@@ -106,6 +107,7 @@ lexer = lexerBasic puns kws prim ops
       -- , "par","sec"
       , "∞","inf"
       , "⊤","all"
+      , "nizk-test","nizk-verify"
       ]
     ops = list 
       [ "•","()"
@@ -359,7 +361,7 @@ pType = cpNewContext "type" $ mixfix $ concat
         return η
       let η₀ = Effect null null TopEM
       return $ \ τ₂ → (x :* τ₁ :* cs) :→†: (ifNone η₀ ηO :* τ₂)
-  -- ∀ α:κ,…,α:κ . c,…,c ⇒ τ
+  -- ∀ α:κ,…,α:κ | c,…,c. τ
   , mixPrefix levelLAM $ do
       concat [cpSyntax "∀", cpSyntax "forall"]
       ακs ← cpManySepBy (cpSyntax ",") $ do
@@ -402,6 +404,20 @@ pType = cpNewContext "type" $ mixfix $ concat
       ρes ← pPrinExps
       cpSyntax "}"
       return $ ShareT φ ρes
+  -- nizk-test{P} τ
+  , mixPrefix levelAPP $ do
+      cpSyntax "nizk-test"
+      cpSyntax "{"
+      ρs ← pPrins
+      cpSyntax "}"
+      return $ NizkTestT ρs
+  -- nizk-verify{P} τ
+  , mixPrefix levelAPP $ do
+      cpSyntax "nizk-verify"
+      cpSyntax "{"
+      ρs ← pPrins
+      cpSyntax "}"
+      return $ NizkVerifyT ρs
   -- (τ)
   , mixTerminal $ do cpSyntax "(" ; τ ← pType ; cpSyntax ")" ; return τ
   ]
@@ -747,6 +763,24 @@ pExp = fmixfixWithContext "exp" $ concat
   , fmixPrefix levelLET $ do cpSyntax "proc" ; return ProcE
   -- return e
   , fmixPrefix levelLET $ do cpSyntax "return" ; return ReturnE
+  -- nizk-witness{φ:P} e
+  , fmixPrefix levelAPP $ do
+      cpSyntax "nizk-witness"
+      cpSyntax "{"
+      φ ← pProt
+      cpSyntax ":"
+      ρs ← pPrins
+      cpSyntax "}"
+      return $ NizkWitnessE φ ρs
+  -- nizk-commit{φ:P} e
+  , fmixPrefix levelAPP $ do
+      cpSyntax "nizk-commit"
+      cpSyntax "{"
+      φ ← pProt
+      cpSyntax ":"
+      ρs ← pPrins
+      cpSyntax "}"
+      return $ NizkCommitE φ ρs
   -- prim[⊙](e,…,e)
   , fmixInfixL levelPLUS $ do concat [cpSyntax "∨",cpSyntax "||"] ; return $ \ e₁ e₂ → PrimE "OR" $ list [e₁,e₂]
   , fmixInfixL levelTIMES $ do concat [cpSyntax "∧",cpSyntax "&&"] ; return $ \ e₁ e₂ → PrimE "AND" $ list [e₁,e₂]

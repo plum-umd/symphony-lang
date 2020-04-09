@@ -79,8 +79,9 @@ jsonPrins ∷ 𝑃 PrinVal → JSON.Value
 jsonPrins = JSON.toJSON ∘ lazyList ∘ map jsonPrinVal ∘ iter
 
 jsonEvent ∷ ResEv → ℕ → JSON.Value
-jsonEvent (ResEv φ ρs ρf ρt τ o md) n =
-  JSON.object [ "protocol" JSON..= stringProtocol φ 
+jsonEvent (ResEv zk φ ρs ρf ρt τ o md) n =
+  JSON.object [ "zk" JSON..= JSON.toJSON zk
+              , "protocol" JSON..= stringProtocol φ 
               , "principals" JSON..= jsonPrins ρs
               , "prins_from" JSON..= jsonPrins ρf
               , "prins_to" JSON..= jsonPrins ρt

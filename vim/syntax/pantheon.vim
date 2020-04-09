@@ -127,6 +127,8 @@ syn match pantheonKeyword "\v<return>"
 syn match pantheonKeyword "\v<loop>"
 syn match pantheonKeyword "\v<when>"
 syn match pantheonKeyword "\v<import>"
+syn match pantheonKeyword "\v<nizk-witness>"
+syn match pantheonKeyword "\v<nizk-commit>"
 
 
 syn match pantheonKeyword "\v∀"
@@ -159,6 +161,8 @@ syn match pantheonPrimitive "\v<rev>"
 syn match pantheonPrimitive "\v<mpc>"
 syn match pantheonPrimitive "\v<all>"
 syn match pantheonPrimitive "\v<size>"
+syn match pantheonPrimitive "\v<nizk-test>"
+syn match pantheonPrimitive "\v<nizk-verify>"
 
 syn match pantheonPrimitive "\v☆"
 syn match pantheonPrimitive "\vℙ"

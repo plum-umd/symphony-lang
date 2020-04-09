@@ -28,6 +28,7 @@ data Val =
   | LocV ℤ64
   | ArrayV (𝕍 ValP)
   | DefaultV
+  | NizkVerifyV (𝑃 PrinVal) ValP
   deriving (Eq,Ord,Show)
 
 -- Distributed Values
@@ -35,7 +36,7 @@ data Val =
 data ValP =
     SSecVP (𝑃 PrinVal) Val
   | ISecVP (PrinVal ⇰ Val)
-  | ShareVP Prot (𝑃 PrinVal) ValMPC
+  | ShareVP 𝔹 Prot (𝑃 PrinVal) ValMPC
   | LocVP Mode ℤ64
   | AllVP Val
   | UnknownVP
@@ -82,7 +83,7 @@ makePrettySum ''BaseValMPC
 
 data ShareInfo = 
     NotShared
-  | Shared Prot (𝑃 PrinVal)
+  | Shared 𝔹 Prot (𝑃 PrinVal)
   deriving (Eq,Ord,Show)
 makePrettySum ''ShareInfo
 
@@ -179,7 +180,8 @@ makePrettySum ''IState
 ------------
 
 data ResEv = ResEv
-  { resEvProt ∷ Prot
+  { resEvZK ∷ 𝔹
+  , resEvProt ∷ Prot
   , resEvPrins ∷ 𝑃 PrinVal
   , resEvPrinsFrom ∷ 𝑃 PrinVal
   , resEvPrinsTo ∷ 𝑃 PrinVal

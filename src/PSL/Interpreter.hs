@@ -195,8 +195,8 @@ wrapInterp f e = localL iCxtSourceL (Some $ annotatedTag e) $ f $ extract e
 reportPrimop ∷ (STACK) ⇒ 𝕊 → 𝕊 → ℕ → ShareInfo → IM ()
 reportPrimop τ op md = \case
   NotShared → skip
-  Shared φ ρs →
-    tellL iOutResEvsL $ ResEv φ ρs pø pø τ op md ↦ 1
+  Shared zk φ ρs →
+    tellL iOutResEvsL $ ResEv zk φ ρs pø pø τ op md ↦ 1
 
 interpReportPrim ∷ 𝕊 → ℕ → ShareInfo → 𝐿 BaseValMPC → IM (ℕ ∧ BaseValMPC)
 interpReportPrim op md si vmpcs = do
@@ -436,8 +436,8 @@ interpExp = wrapInterp $ \case
     sv ← restrictMode (SecM ρvs₁) $ do
       v ← elimValP ṽ
       mpcFrValF v $ \ bv → do
-        tellL iOutResEvsL $ ResEv φ pø ρvs₁ ρvs₂ (getTypeBaseMPC bv) "SHARE" 0 ↦ 1
-    reShareValPShared φ ρvs₂ sv 
+        tellL iOutResEvsL $ ResEv False φ pø ρvs₁ ρvs₂ (getTypeBaseMPC bv) "SHARE" 0 ↦ 1
+    reShareValPShared False φ ρvs₂ sv 
   AccessE e ρ → do
     ρv ← interpPrinExpSingle ρ
     ṽ ← interpExp e
@@ -470,8 +470,7 @@ interpExp = wrapInterp $ \case
         [ ("ṽ₁",pretty ṽ₁)
         , ("ṽ₂",pretty ṽ₂)
         ]
-  RevealE {- ρes₁ -} ρes₂ e → do
-    -- ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
+  RevealE ρes₂ e → do
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
     m ← askL iCxtModeL
     case m of
@@ -482,15 +481,7 @@ interpExp = wrapInterp $ \case
           ]
       TopM → skip
     ṽ ← interpExp e
-    revealValP ρvs₂ ṽ
-    -- case ṽ of
-    --   ShareVP φ ρs sv {- | ρs ≡ ρvs₁ -} → do
-    --     ṽ' ← valFrMPCF sv $ \ md bvmpc → 
-    --       tellL iOutResEvsL $ ResEv φ pø ρs ρvs₂ (getTypeBaseMPC  bvmpc) "REVEAL" md ↦ 1
-    --     restrictMode (SecM ρvs₂) $ restrictValP ṽ'
-    --   _ → throwIErrorCxt TypeIError "interpExp: RevealE: ṽ ∉ {ShareVP _ _ _,SSecVP _ _}" $ frhs
-    --     [ ("ṽ",pretty ṽ)
-    --     ]
+    revealValP False ρvs₂ ṽ
   SendE ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
@@ -540,7 +531,7 @@ interpExp = wrapInterp $ \case
     wrap :* τ' ← case τ of
       ShareT φ ρes τ' → do
         ρvs ← prinExpValss *$ mapM interpPrinExp ρes
-        return $ (ShareVP φ ρvs ^∘ mpcFrVal) :* τ'
+        return $ (ShareVP False φ ρvs ^∘ mpcFrVal) :* τ'
       _ → return $ introValP :* τ
     v ← case τ' of
       ℕT ip → io $ NatV ip ∘ trPrNat ip ∘ nat ^$ R.randomIO @ℕ64
@@ -553,7 +544,7 @@ interpExp = wrapInterp $ \case
     si₀ :* τ' ← case τ of
       ShareT φ ρes τ' → do
         ρvs ← prinExpValss *$ mapM interpPrinExp ρes
-        return $ Shared φ ρvs :* τ'
+        return $ Shared False φ ρvs :* τ'
       _ → return $ NotShared :* τ
     ṽ ← interpExp e
     ṽ₁ :* ṽ₂ ← 
@@ -585,7 +576,7 @@ interpExp = wrapInterp $ \case
     md' :* bvmpc ← interpReportPrim o md si $ list bvmpcs
     case si of
       NotShared → valFrBaseMPC bvmpc
-      Shared φ ρs → return $ ShareVP φ ρs $ BaseMV md' bvmpc
+      Shared zk φ ρs → return $ ShareVP zk φ ρs $ BaseMV md' bvmpc
   TraceE e₁ e₂ → do
     v ← interpExp e₁
     pptrace v $ interpExp e₂
@@ -744,6 +735,19 @@ interpExp = wrapInterp $ \case
     pc ← askL iCxtMPCPathConditionL
     modifyL iStateMPCContL $ \ κ → (pc :* si :* vmpc) :& κ
     introValP DefaultV
+  NizkWitnessE φ ρes e → do
+    ρvs ← prinExpValss *$ mapM interpPrinExp ρes
+    ṽ ← interpExp e
+    v ← elimValP ṽ
+    sv ← mpcFrValF v $ \ bv → do
+        tellL iOutResEvsL $ ResEv True φ ρvs pø pø (getTypeBaseMPC bv) "WITNESS" 0 ↦ 1
+    reShareValPShared True φ ρvs sv 
+  NizkCommitE _φ ρes e → do
+    ρvs ← prinExpValss *$ mapM interpPrinExp ρes
+    ṽ ← interpExp e
+    ṽ' ← revealValP True ρvs ṽ
+    introValP $ NizkVerifyV ρvs ṽ'
+
   _ → throwIErrorCxt NotImplementedIError "interpExp: not implemented" null
 
 ---------------
