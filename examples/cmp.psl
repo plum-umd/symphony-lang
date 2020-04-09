@@ -5,7 +5,8 @@ principal C D
 -- output party
 principal E
 
-def main : () -> {inp:A,B;rev:E} bool{E}
-def main () =
-  let xy = par {A,B} read int "cmp-input.txt"
-  :n reveal{E} (share {yao:C,D} xy.A) <= (share{yao:C,D} xy.B)
+def main : 𝟙 →{inp:A,B;rev:E} 𝔹{ssec:E}
+def main • =
+  let xy = solo {A,B} as α in read ℤ from "cmp-input.txt"
+  in
+  reveal{E} (share{yao:A → C,D} xy@A) ≤ (share{yao:B → C,D} xy@B)
