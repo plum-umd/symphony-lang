@@ -89,7 +89,7 @@ esac
       yes)
         while :; do
           eval " $STACK --numeric-version 2>&1" > conftest_stack_version.txt || break
-          STACK_VERSION=`cat conftest_stack_version.txt` || break
+          STACK_VERSION=`cat conftest_stack_version.txt || exit 1` || break
           printf '%s\n' $STACK_VERSION >&]AS_MESSAGE_LOG_FD[ || break
           echo $STACK_VERSION | grep -q '^\(0\|[1-9][0-9]*\)\.\(0\|[1-9][0-9]*\)\.\(0\|[1-9][0-9]*\)$' || break
           case $STACK_VERSION in
