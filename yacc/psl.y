@@ -6,7 +6,9 @@
 #include <math.h>
 FILE *yyin;
 void yyerror (char const *s) {
-  fprintf (stderr, "%s\n", s);
+  char next[20];
+  fgets(next, 20, yyin);
+  fprintf (stderr, "%s at: %s\n", s, next);
   exit(0);
 }
 int yylex();
@@ -30,7 +32,7 @@ toplist : | top toplist
 /* toplist : expr */
 
 top : PRINCIPAL prin prinlist
-    | DEF VAR patlist '=' expr
+    | DEF VAR patlist '=' topexpr
     ;
 
 prinlist : | prin prinlist ;
@@ -51,7 +53,9 @@ pat : VAR                     // pattern variable
     /* | NIL */
     ;
 
-commapat : | ',' pat commapat;
+commapat : | ',' pat commapat ;
+
+topexpr : let | expr ;
 
 // sequence of applications
 expr : nonapp apptail ;
@@ -63,18 +67,16 @@ binop : EQL | MOD | PLUS | MINUS | TIMES | DIV ;
 protocol : YAO | BGV | BGW | GMW ;
 
 nonapp : VAR
-       | MUX IF expr THEN expr ELSE expr
-       | IF expr THEN expr ELSE expr
+       | MUX IF expr THEN topexpr ELSE topexpr
+       | IF expr THEN topexpr ELSE topexpr
        | expr binop expr
-       | let
        | expr ',' expr
        | PAR '{' prin '}' expr
        | REVEAL '{' prin '}' expr
        | SHARE '{' protocol ':' prin ARROW prin '}' expr
-       /* | 'let' VAR ':' type 'in' expr */
        /* | 'case' expr '{' arms '}' */
        /* | 'fun' pat '->' expr // TODO there is a bug in PSL parser? */
-       | '(' expr ')'
+       | '(' topexpr ')'
        /* numbers TODO */
        | NAT | INT | FLOAT
        | UNIT
@@ -85,7 +87,7 @@ nonapp : VAR
 
 let : LET pat commapat '=' expr lettail ;
 
-lettail : let | IN expr
+lettail : IN topexpr | let
 
 
 /* // case analysis arms */
