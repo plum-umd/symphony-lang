@@ -20,12 +20,12 @@ int yylex();
 %token VAR
 %token CONS NIL UNIT
 %token IF THEN ELSE
-%token LET IN FUN
+%token LET IN FUN DO
 %token EQL LT LTE GT GTE
-%token MOD PLUS MINUS TIMES DIV
-%token ARROW
-%token MUX PAR REVEAL SHARE
-%token YAO BGV BGW GMW ;
+%token MOD PLUS MINUS TIMES DIV EXP
+%token ARROW ASSIGN
+%token MUX PAR REVEAL SHARE SOLO AS READ
+%token YAO BGV BGW GMW SPDZ
 %token INTLIT NATLIT FLOATLIT STRINGLIT
 %token INP REV
 %token RANDRANGE
@@ -42,7 +42,7 @@ top : PRINCIPAL prin prinlist
 
 prinlist : | prin prinlist ;
 
-prin : VAR | VAR ',' prin ;
+prin : VAR | VAR ',' prin | VAR '[' expr ']';
 
 patlist : | pat patlist ;
 
@@ -59,7 +59,14 @@ pat : VAR                     // pattern variable
 
 commapat : | ',' pat commapat ;
 
-topexpr : let | expr ;
+topexpr : expr
+        | LET pat commapat '=' expr lettail
+        | DO topexpr lettail
+        | VAR ASSIGN expr
+        ;
+
+lettail : IN topexpr | topexpr ;
+
 
 // sequence of applications
 expr : nonapp apptail ;
@@ -67,11 +74,11 @@ expr : nonapp apptail ;
 apptail : nonapp apptail | /* empty */ ;
 
 binop : EQL | LT | GT | LTE | GTE
-      | MOD | PLUS | MINUS | TIMES | DIV ;
+      | MOD | PLUS | MINUS | TIMES | DIV | EXP ;
 
-protocol : YAO | BGV | BGW | GMW ;
+protocol : YAO | BGV | BGW | GMW | SPDZ ;
 
-nonapp : VAR
+nonapp : atom
        | MUX IF expr THEN topexpr ELSE topexpr
        | IF expr THEN topexpr ELSE topexpr
        | expr binop expr
@@ -79,20 +86,25 @@ nonapp : VAR
        | PAR '{' prin '}' topexpr
        | REVEAL '{' prin '}' expr
        | SHARE '{' protocol ':' prin ARROW prin '}' expr
-       /* | 'case' expr '{' arms '}' */
+       | SOLO '{' prin '}' AS VAR IN expr
        | FUN recbinding patlist ARROW topexpr // TODO there is a bug in PSL parser?
-       | '(' topexpr ')'
-       | INTLIT | NATLIT | FLOATLIT | STRINGLIT
-       | UNIT
-       | NIL
+       | READ typenonapp expr
        | RANDRANGE typenonapp expr
-       /* | expr CONS expr */
-       /* | expr ':' type */
+       | expr CONS expr
        ;
 
-let : LET pat commapat '=' expr lettail ;
+atom : VAR
+     | '(' topexpr ')'
+     | '{' expr '}'
+     | '[' expr vecexpr ']'
+     | '!' atom
+     | INTLIT | NATLIT | FLOATLIT | STRINGLIT
+     | UNIT
+     | NIL
+     ;
 
-lettail : IN topexpr | let ;
+vecexpr : | ';' expr vecexpr ;
+
 
 recbinding : '[' VAR ']' | ;
 
@@ -108,12 +120,17 @@ type : typenonapp typetail ;
 
 typetail : typenonapp typetail | ;
 
-typenonapp : VAR
-           | typenonapp '{' protocol ':' prin '}'
+typenonapp : typeatom
            | type ARROW type
-           | '{' INP ':' prin ';' REV ':' prin '}' type
-           | '(' type ')'
            ;
+
+typeatom : VAR
+         | '{' INP ':' prin ';' REV ':' prin '}' typeatom
+         | typeatom '{' protocol ':' prin '}'
+         | typeatom '{' prin '}'
+         | '(' type ')'
+         | UNIT
+         ;
 
 %%
 
@@ -201,7 +218,15 @@ int stringlit() {
 
 
 int numeric() {
-  if (!number()) { return 0; }
+  int is_neg = 0;
+  if (peek() == '-') {
+    get();
+    is_neg = 1;
+  }
+  if (!number()) {
+    if (is_neg) { back(1); }
+    return 0;
+  }
   if (peek() == 'n') {
     get();
     return NATLIT;
@@ -226,6 +251,7 @@ int token() {
   if (reserved("fun")) { return FUN; }
   if (reserved("let")) { return LET; }
   if (reserved("in")) { return IN; }
+  if (reserved("do")) { return DO; }
 
   if (reserved("if")) { return IF; }
   if (reserved("then")) { return THEN; }
@@ -235,13 +261,16 @@ int token() {
   if (reserved("par")) { return PAR; }
   if (reserved("reveal")) { return REVEAL; }
   if (reserved("share")) { return SHARE; }
+  if (reserved("solo")) { return SOLO; }
+  if (reserved("as")) { return AS; }
+  if (reserved("read")) { return READ; }
+  if (reserved("rand-range")) { return RANDRANGE; }
 
   if (reserved("yao")) { return YAO; }
   if (reserved("bgw")) { return BGW; }
   if (reserved("bgv")) { return BGV; }
   if (reserved("gmw")) { return GMW; }
-
-  if (reserved("rand-range")) { return RANDRANGE; }
+  if (reserved("spdz")) { return SPDZ; }
 
   if (reserved("inp")) { return INP; }
   if (reserved("rev")) { return REV; }
@@ -251,6 +280,7 @@ int token() {
   if (match("[]")) { return NIL; }
 
   if (match("->")) { return ARROW; }
+  if (match(":=")) { return ASSIGN; }
 
   if (match("==")) { return EQL; }
   if (match("<")) { return LT; }
@@ -259,11 +289,13 @@ int token() {
   if (match(">=")) { return GTE; }
   if (match("%")) { return MOD; }
   if (match("+")) { return PLUS; }
-  if (match("-")) { return MINUS; }
   if (match("*")) { return TIMES; }
   if (match("/")) { return DIV; }
+  if (match("^")) { return EXP; }
 
   int n = numeric(); if (n > 0) { return n; }
+  if (match("-")) { return MINUS; }
+
   if (stringlit()) { return STRINGLIT; }
   int c = get();
   if (isalpha(c) || c == '_') {
