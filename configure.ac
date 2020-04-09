@@ -91,7 +91,12 @@ esac
           eval " $STACK --numeric-version 2>&1" > conftest_stack_version.txt || break
           STACK_VERSION=`cat conftest_stack_version.txt || exit 1` || break
           printf '%s\n' "$STACK_VERSION" >&]AS_MESSAGE_LOG_FD[
-          grep '^\(0\|[1-9][0-9]*\)\.\(0\|[1-9][0-9]*\)\.\(0\|[1-9][0-9]*\)$' conftest_stack_version.txt >/dev/null || break
+          grep '^\(0\|[1-9][0-9]*\)\.\(0\|[1-9][0-9]*\)\.\(0\|[1-9][0-9]*\)$' conftest_stack_version.txt >/dev/null
+          case $? in
+            0) ;;
+            1) break ;;
+            *) exit $? ;;
+          esac
           case "$STACK_VERSION" in
             2.1.[3-9] | 2.1.??* | \
             2.[2-9].* | 2.??*.* | \
