@@ -111,7 +111,7 @@ psl: $(psl_files)
 psl/clean: FORCE
 	{ \
 	  case '$(STACK_MISSING)' in \
-	    'yes') ;; \
+	    yes) ;; \
 	    *) \
 	      $(copy_vpath_files); \
 	      $(STACK) clean --full || :; \
