@@ -45,6 +45,15 @@ stack_check = \
   esac \
 $(prevent_an_empty_line)
 
+stack_version_check = \
+  case '$(STACK_OLD)' in \
+    'yes') \
+      printf 'Haskell Stack is too old for this project. Please upgrade it and re-run ./configure.\n' >&2; \
+      exit 1; \
+    ;; \
+  esac \
+$(prevent_an_empty_line)
+
 hs_files =
 
 libexec_psl_SCRIPTS =
@@ -101,6 +110,7 @@ mostlyclean-local: psl/clean
 psl: $(psl_files)
 	{ \
 	  $(stack_check); \
+	  $(stack_version_check); \
 	  $(copy_vpath_files); \
 	  $(STACK) build || exit; \
 	  x=`$(STACK) path --dist-dir` || exit; \
