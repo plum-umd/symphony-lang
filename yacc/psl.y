@@ -68,6 +68,7 @@ pat : VAR
     | pat PLUSPLUS pat
     | pat UNION pat
     | pat CONS pat
+    | '[' pat ']'
     ;
 
 commapat : | ',' pat commapat ;
