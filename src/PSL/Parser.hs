@@ -810,15 +810,17 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntax "{"
       ρes ← pPrinExps
       cpSyntax "}"
-      cpSyntax "as"
-      x ← pVar
-      cpSyntax "in"
+      xO ← cpOptional $ do
+        cpSyntax "as"
+        x ← pVar
+        cpSyntax "in"
+        return x
       return $ \ e →
         AppE (siphon e $ 
               AppE (siphon e $ VarE $ var "solo-f") $ 
                    siphon e $ SetE ρes) $ 
              siphon e $ 
-             LamE None (single $ VarP x) e
+             LamE None (single $ elim𝑂 WildP VarP xO) e
   -- fold e as x . x on e as x in e
   , fmixPrefix levelLET $ do
       cpSyntax "fold"
