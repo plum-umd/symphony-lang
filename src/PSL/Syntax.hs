@@ -143,6 +143,7 @@ data Prot =
   | GMWP  -- gmw
   | BGVP  -- bgv
   | SPDZP -- spdz
+  | AutoP -- auto
   deriving (Eq,Ord,Show)
 makePrettySum ''Prot
 

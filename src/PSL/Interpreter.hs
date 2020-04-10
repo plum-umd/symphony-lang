@@ -111,7 +111,7 @@ bindPatO ψ ṽ = case ψ of
     let f₁ = bindVar x ρv
     f₂ ← bindPatO ψ' ρvs'
     return $ f₂ ∘ f₁
-  AscrP _ψ _τ → bindPatO ψ ṽ
+  AscrP ψ' _τ → bindPatO ψ' ṽ
   WildP → return id
 
 data MatchState = NoMatch | LeftMatch | RightMatch
