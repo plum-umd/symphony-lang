@@ -382,7 +382,7 @@ interpExp = wrapInterp $ \case
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
     introValP $ ConsV ṽ₁ ṽ₂
-  LetTyE _ _ e → interpExp e
+  LetTyE _ e → interpExp e
   LetE ψ e₁ e₂ → do
     ṽ ← interpExp e₁
     bindPat ψ ṽ $ interpExp e₂

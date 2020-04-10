@@ -1,0 +1,8 @@
+principal A
+
+def main • =
+  let x : int{A} = par {A} 1
+  let y : int{A} = par {A} x + 1
+  in par {A} x + y
+
+def expecteed = par {A} 2

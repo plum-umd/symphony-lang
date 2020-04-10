@@ -43,3 +43,4 @@ instance Pretty Val where
     ArrayV ṽs → pretty ṽs
     PairV ṽ₁ ṽ₂ → pretty $ pretty ṽ₁ :* ṽ₂
     DefaultV → ppPun "⊥"
+    NizkVerifyV ρs v → ppApp (ppCon "nizk-verify") [pretty ρs,pretty v]

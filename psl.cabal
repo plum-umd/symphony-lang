@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 55625787cbf6bc35f67ee6a79c8152280b3fe4b737460e2b3ffd101acfbffbeb
+-- hash: 05ac597a8a40d9cba3f973a09293fb4cb723e81d6b36f563853c676fac5a1511
 
 name:           psl
 version:        0.1.0.0
@@ -71,6 +71,7 @@ data-files:
     tests/flt-arith.psl
     tests/fold.psl
     tests/let-ascr.psl
+    tests/located-type.psl
     tests/loop.psl
     tests/micro-let.psl
     tests/mux-deep.psl

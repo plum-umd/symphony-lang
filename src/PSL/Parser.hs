@@ -89,7 +89,7 @@ lexer = lexerBasic puns kws prim ops
       , "nizk-witness","nizk-commit"
       ]
     prim = list
-      [ "yao","gmw","bgw","bgv","spdz"
+      [ "yao","gmw","bgw","bgv","spdz","auto"
       , "ssec","isec"
       , "☆","type"
       , "ℙ","prin"
@@ -566,19 +566,22 @@ pExp = fmixfixWithContext "exp" $ concat
   -- let x : τ in e
   , fmixPrefix levelLET $ do
       cpSyntax "let"
-      x ← pVar
-      cpSyntax ":"
-      τ ← pType
-      void $ cpOptional $ cpSyntax "in"
-      return $ LetTyE x τ
-  -- let ψ = e in e
-  , fmixPrefix levelLET $ do
-      cpSyntax "let"
       ψ ← pPat
-      cpSyntax "="
-      e ← pExp
+      eO ← cpOptional $ do
+        cpSyntax "="
+        pExp
       void $ cpOptional $ cpSyntax "in"
-      return $ LetE ψ e
+      return $ case eO of
+        None → LetTyE ψ
+        Some e → LetE ψ e
+  -- -- let ψ = e in e
+  -- , fmixPrefix levelLET $ do
+  --     cpSyntax "let"
+  --     ψ ← pPat
+  --     cpSyntax "="
+  --     e ← pExp
+  --     void $ cpOptional $ cpSyntax "in"
+  --     return $ LetE ψ e
   -- [mux] case e {ψ→e;…;ψ→e}
   , fmixTerminal $ do 
       b ← cpOptional $ cpSyntax "mux"
