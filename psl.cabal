@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 05ac597a8a40d9cba3f973a09293fb4cb723e81d6b36f563853c676fac5a1511
+-- hash: 7e4adc51808be117116d7352cbad175b3c21fe1dbbb177d4259f1d023542a7aa
 
 name:           psl
 version:        0.1.0.0
@@ -68,6 +68,7 @@ data-files:
     tests/bind-shares.psl
     tests/compound-reveal.psl
     tests/compound-share.psl
+    tests/demo.psl
     tests/flt-arith.psl
     tests/fold.psl
     tests/let-ascr.psl

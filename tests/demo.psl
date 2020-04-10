@@ -1,10 +1,10 @@
 principal A B C D E
 def main () =
-  let x  = par{A} 1 in
-  let y  = par{B} 2 in
-  let sx = share{auto:A -> C,D} x in
-  let sy = share{auto:B -> C,D} y in
-  let z  = reveal{E} sx < sy in
-  par{E} z
+  let x  = par{A} 1
+  let y  = par{B} 2
+  let sx = share{auto:A->C,D} x
+  let sy = share{auto:B->C,D} y
+  let z  = reveal{E} sx < sy
+  in par{E} z
 
 def expected = par{E} true
