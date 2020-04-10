@@ -31,7 +31,7 @@ int yylex();
 
 %token ARROW ASSIGN
 %token MUX PAR REVEAL SHARE SEND SOLO AS READ
-%token YAO BGV BGW GMW SPDZ ISEC SSEC
+%token AUTO YAO BGV BGW GMW SPDZ ISEC SSEC
 %token INTLIT NATLIT FLOATLIT STRINGLIT
 %token INP REV
 %token RANDRANGE
@@ -68,6 +68,7 @@ pat : VAR
     | pat PLUSPLUS pat
     | pat UNION pat
     | pat CONS pat
+    | pat ':' type
     | '[' pat ']'
     ;
 
@@ -94,11 +95,12 @@ binop : EQL | LT | GT | LTE | GTE
       | PLUSPLUS
       ;
 
-protocol : YAO | BGV | BGW | GMW | SPDZ | ISEC | SSEC ;
+protocol : AUTO | YAO | BGV | BGW | GMW | SPDZ | ISEC | SSEC ;
 
 nonapp : atom
        | MUX IF expr THEN topexpr ELSE topexpr
        | IF expr THEN topexpr ELSE topexpr
+       | MUX CASE atom '{' arms '}'
        | CASE atom '{' arms '}'
        | expr binop expr
        | expr '?' expr SWAP expr
@@ -306,6 +308,7 @@ int token() {
   if (reserved("read")) { return READ; }
   if (reserved("rand-range")) { return RANDRANGE; }
 
+  if (reserved("auto")) { return AUTO; }
   if (reserved("yao")) { return YAO; }
   if (reserved("bgw")) { return BGW; }
   if (reserved("bgv")) { return BGV; }
