@@ -7,6 +7,7 @@ principal E
 
 def main : 𝟙 →{inp:A,B;rev:E} 𝔹{ssec:E}
 def main • =
-  let xy = solo {A,B} as α in read ℤ from "cmp-input.txt"
-  in
-  reveal{E} (share{yao:A → C,D} xy@A) ≤ (share{yao:B → C,D} xy@B)
+  let xy = solo {A,B} read ℤ from "cmp-input.txt"
+  let x = share{yao:A → C,D} xy@A
+  let y = share{yao:B → C,D} xy@B
+  in reveal{E} (x ≤ y)

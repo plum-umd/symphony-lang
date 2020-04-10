@@ -59,10 +59,10 @@ def remove-dups qs = case qs
 
 def publish-result :
     ℙ{bgw:A,B}
-  → (t : ℙ{ssec:A,B})
+  → (t : ℙ{A,B})
   → ℤ{bgw:A,B}
   → 𝔹{bgw:A,B}
-  → list (𝔹{ssec:various} × ℤ{ssec:various})
+  → list (𝔹{various} × ℤ{various})
 def publish-result allParties target value isValid = case allParties
   { {} → []
   ; {currentParty}∪remainingParties →
@@ -76,7 +76,7 @@ def publish-result allParties target value isValid = case allParties
 def publish-results :
     list ℤ{bgw:A,B}
   → list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
-  → list list (𝔹{ssec:various} × ℤ{ssec:various})
+  → list list (𝔹{various} × ℤ{various})
 def publish-results results queryTargetOptionals = case queryTargetOptionals
   { [] → []
   ; (isValid,(query,target))∷remaining →
@@ -87,7 +87,7 @@ def publish-results results queryTargetOptionals = case queryTargetOptionals
 
 -- ATQ
 
-def main : 𝟙 →{inp:A,B;rev:A,B} list ℤ{ssec:any}
+def main : 𝟙 →{inp:A,B;rev:A,B} list ℤ{any}
 def main • = par {A,B}
 
   -- All parties read in data input
@@ -135,7 +135,7 @@ def main • = par {A,B}
   let results = [medianResult; uniqueResult; minResult; maxResult]
 
   -- Pair the input queries and targets up along with a tag denoting that it is not dummy data
-  let queriesWithTargets : (list (𝔹{ssec:B} × (ℤ{ssec:B} × ℙ{ssec:B}))){isec:B}
+  let queriesWithTargets : (list (𝔹{B} × (ℤ{B} × ℙ{B}))){isec:B}
   let queriesWithTargets = solo {B} as α in (pair-with-list true (pair-with-list inputQueries@α inputTargets@α))
 
   -- Secret share queries and targets without revealing the number of targets each party supplied by setting an upper bound and padding data out with dummy data
