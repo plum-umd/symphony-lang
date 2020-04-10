@@ -740,7 +740,7 @@ interpExp = wrapInterp $ \case
     ṽ ← interpExp e
     v ← elimValP ṽ
     sv ← mpcFrValF v $ \ bv → do
-        tellL iOutResEvsL $ ResEv True φ ρvs pø pø (getTypeBaseMPC bv) "WITNESS" 0 ↦ 1
+        tellL iOutResEvsL $ ResEv True φ ρvs pø pø (getTypeBaseMPC bv) "SHARE" 0 ↦ 1
     reShareValPShared True φ ρvs sv 
   NizkCommitE _φ ρes e → do
     ρvs ← prinExpValss *$ mapM interpPrinExp ρes
