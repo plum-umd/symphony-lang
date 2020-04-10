@@ -789,6 +789,7 @@ data Options = Options
   { optVersion ∷ 𝔹
   , optHelp ∷ 𝔹
   , optDoResources ∷ 𝔹
+  , optJustPrint ∷ 𝔹
   , optRandomSeed ∷ 𝑂 ℕ
   , optTestsPath ∷ 𝕊
   , optLibPath ∷ 𝕊
@@ -812,6 +813,7 @@ options₀ = do
     { optVersion = False
     , optHelp = False
     , optDoResources = False
+    , optJustPrint = False
     , optRandomSeed = None
     , optTestsPath = testsPath
     , optLibPath = libPath
@@ -830,8 +832,34 @@ usageInfoTop =
 usageInfoRun ∷ [O.OptDescr (Options → Options)]
 usageInfoRun = 
   [ O.Option ['r'] [chars "resources"] 
-             (O.NoArg $ update optDoResourcesL True) 
-           $ chars "enable resource estimation"
+             (O.NoArg $ update optDoResourcesL True) $ 
+               chars "enable resource estimation"
+  , O.Option ['p'] [chars "print"]
+             (O.NoArg$ update optJustPrintL True) $ 
+               chars "just print the program"
+  , O.Option ['s'] [chars "seed"]  
+             (O.ReqArg (\ s → update optRandomSeedL $ Some $ HS.read s) $ chars "NAT")
+           $ chars "set random seed"
+  ]
+
+usageInfoExample ∷ [O.OptDescr (Options → Options)]
+usageInfoExample = 
+  [ O.Option ['r'] [chars "resources"] 
+             (O.NoArg $ update optDoResourcesL True) $ 
+               chars "enable resource estimation"
+  , O.Option ['p'] [chars "print"]
+             (O.NoArg$ update optJustPrintL True) $ 
+               chars "just print the program"
+  , O.Option ['s'] [chars "seed"]  
+             (O.ReqArg (\ s → update optRandomSeedL $ Some $ HS.read s) $ chars "NAT")
+           $ chars "set random seed"
+  ]
+
+usageInfoTest ∷ [O.OptDescr (Options → Options)]
+usageInfoTest = 
+  [ O.Option ['r'] [chars "resources"] 
+             (O.NoArg $ update optDoResourcesL True) $ 
+               chars "enable resource estimation"
   , O.Option ['s'] [chars "seed"]  
              (O.ReqArg (\ s → update optRandomSeedL $ Some $ HS.read s) $ chars "NAT")
            $ chars "set random seed"
@@ -872,6 +900,13 @@ interpretFileMain θ ωtl name path = do
     else skip
   return $ v :* expectedO
 
+printFileMain ∷ 𝕊 → IO ()
+printFileMain path = do
+  s ← fread path
+  let ts = tokens s
+  ls ← tokenizeIO lexer path ts
+  pprint $ concat $ map (concat ∘ iter ∘ parserContextDisplayL ∘ parserTokenContext) ls
+
 parseOptions ∷ IO (Options ∧ [𝕊])
 parseOptions = do
   as ← iargs
@@ -879,16 +914,16 @@ parseOptions = do
   eachOn ems (out ∘ string)
   os ← compose fs ^$ options₀
   when (optVersion os) $ \ () → do
-    out ""
     out $ "psl version " ⧺ psl_VERSION
-  when (optHelp os) $ \ () → do
+  when (optVersion os ⩓ optHelp os) $ \ () → do
     out ""
+  when (optHelp os) $ \ () → do
     out "Usage: psl [<command>] [<arguments>] [<target>]"
     out ""
     out $ string $ O.usageInfo (chars "psl [arguments]") usageInfoTop
     out $ string $ O.usageInfo (chars "psl run [arguments] <file>") usageInfoRun
-    out $ string $ O.usageInfo (chars "psl example [arguments] <name>")  usageInfoRun
-    out $ string $ O.usageInfo (chars "psl test [arguments]") usageInfoRun
+    out $ string $ O.usageInfo (chars "psl example [arguments] <name>")  usageInfoExample
+    out $ string $ O.usageInfo (chars "psl test [arguments]") usageInfoTest
   return $ frhs (os,map string nos)
 
 pslMainRun ∷ IO ()
@@ -898,17 +933,24 @@ pslMainRun = do
     [] → failIO "ERROR: No file specified as target. Correct usage: psl run [<arguments>] <file>"
     [t] → return t
     _ → failIO "ERROR: Too many files specified as target. Correct usage: psl run [<arguments>] <file>"
-  initializeIO os
-  let θ = initializeEnv os
-  out ""
-  pprint $ ppHorizontal
-    [ ppHeader "INTERPRETING FILE:"
-    , ppString fn
-    ]
-  ωtl :* _ ← interpretFile θ ωtl₀ "lib:stdlib.psl" $ optLibPath os ⧺ "/stdlib.psl"
-  v ← fst ^$ interpretFileMain θ ωtl fn fn
-  pprint $ ppHeader "RESULT"
-  pprint v
+  if optJustPrint os
+    then do
+      printFileMain fn
+      pprint $ ppHorizontal
+        [ ppHeader "PRINTING FILE:"
+        , ppString fn
+        ]
+    else do
+      pprint $ ppHorizontal
+        [ ppHeader "INTERPRETING FILE:"
+        , ppString fn
+        ]
+      initializeIO os
+      let θ = initializeEnv os
+      ωtl :* _ ← interpretFile θ ωtl₀ "lib:stdlib.psl" $ optLibPath os ⧺ "/stdlib.psl"
+      v ← fst ^$ interpretFileMain θ ωtl fn fn
+      pprint $ ppHeader "RESULT"
+      pprint v
 
 pslMainExample ∷ IO ()
 pslMainExample = do
@@ -917,13 +959,6 @@ pslMainExample = do
     [] → failIO "ERROR: No file specified as target. Correct usage: psl example [<arguments>] <name>"
     [t] → return t
     _ → failIO "ERROR: Too many files specified as target. Correct usage: psl example [<arguments>] <name>"
-  initializeIO os
-  let θ = update iParamsIsExampleL True $ initializeEnv os
-  out ""
-  pprint $ ppHorizontal 
-    [ ppHeader "INTERPRETING EXAMPLE:"
-    , ppString name
-    ]
   let exampleRelativePath = "examples/" ⧺ name ⧺ ".psl"
   exampleDataFilePath ← datapath exampleRelativePath
   exampleLocalExists ← pexists exampleRelativePath
@@ -931,10 +966,24 @@ pslMainExample = do
   when (not exampleLocalExists ⩓ exampleDataFileExists) $ \ _ → do
     dtouch "examples"
     fcopy exampleDataFilePath exampleRelativePath
-  ωtl :* _ ← interpretFile θ ωtl₀ "lib:stdlib.psl" $ optLibPath os ⧺ "/stdlib.psl"
-  v ← fst ^$ interpretFileMain θ ωtl (concat ["example:",name,".psl"]) exampleRelativePath
-  pprint $ ppHeader "RESULT"
-  pprint v
+  if optJustPrint os
+    then do
+      pprint $ ppHorizontal 
+        [ ppHeader "PRINTING EXAMPLE:"
+        , ppString name
+        ]
+      printFileMain exampleRelativePath
+    else do
+      pprint $ ppHorizontal 
+        [ ppHeader "INTERPRETING EXAMPLE:"
+        , ppString name
+        ]
+      initializeIO os
+      let θ = update iParamsIsExampleL True $ initializeEnv os
+      ωtl :* _ ← interpretFile θ ωtl₀ "lib:stdlib.psl" $ optLibPath os ⧺ "/stdlib.psl"
+      v ← fst ^$ interpretFileMain θ ωtl (concat ["example:",name,".psl"]) exampleRelativePath
+      pprint $ ppHeader "RESULT"
+      pprint v
 
 pslMainTest ∷ IO ()
 pslMainTest = do
@@ -943,7 +992,6 @@ pslMainTest = do
     [] → skip
     _ → failIO "ERROR: Command does not accept targets. Correct usage: psl test [<arguments>]"
   let θ = initializeEnv os
-  out ""
   pprint $ ppHeader "TESTING INTERPRETER"
   ωtl :* _ ← interpretFile θ ωtl₀ "lib:stdlib.psl" $ optLibPath os ⧺ "/stdlib.psl"
   din (optTestsPath os) $ do
@@ -984,10 +1032,11 @@ pslMainTest = do
 
 pslMainInfo ∷ IO ()
 pslMainInfo = do
-  out ""
   out $ concat $ inbetween "\n" 
-    [ "psl is the interpreter for the PSL language developed by"
+    [ ""
+    , "psl is the interpreter for the PSL language developed by"
     , "the PANTHEON team, funded by IARPA for the HECTOR project."
+    , ""
     ]
   (_,ts) ← tohs ^$ parseOptions
   case ts of
