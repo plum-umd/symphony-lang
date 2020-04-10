@@ -47,7 +47,7 @@ def stats-report data key1 key2 =
   -- Record the number of records matching the key
   let n_records = vec-length record_subset
   -- Ensure that it is above the threshold
-  mux if n_records > threshold
+  in mux if n_records > threshold
   then
     -- Collect the S values
     let s_list = vec-map fst record_subset
@@ -76,26 +76,24 @@ def handler key1 key2 input db =
 def num-keys = 20
 
 
-{-
 -- Main function for database statistics
 -- A loop handles inputs one at a time
 -- Each input attempts to add a record to the databse or requests a query
-def database_stats_main inputs =
-
-  -- The structure holding the data
-  let data = db-init num-keys
-
-  -- At each loop iteration, process one input
-  foldl inputs data (fun input ->
-    -- io-name is the principal sending the input
-    -- label is the input label of the input
-    -- values contains the data (e.g., the keys)
-    let io-name, label, values = input
-
-    -- Process the input based on its input label
-    -- Send an acknowledgement to the sender
-    )
-    -}
+-- def database_stats_main inputs =
+--
+--   -- The structure holding the data
+--   let data = db-init num-keys
+--
+--   -- At each loop iteration, process one input
+--   foldl inputs data (fun input ->
+--     -- io-name is the principal sending the input
+--     -- label is the input label of the input
+--     -- values contains the data (e.g., the keys)
+--     let io-name, label, values = input
+--
+--     -- Process the input based on its input label
+--     -- Send an acknowledgement to the sender
+--     )
 
 
 def main : unit -> list float
