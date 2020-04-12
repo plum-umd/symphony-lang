@@ -122,11 +122,12 @@ crand : BEAVER
 ;
 
 // op_nm: a name of an operation
-op_nm : SHARE base_ty
+op_nm :
+  SHARE base_ty
 | REVEAL base_ty
 | AND
 | XOR
-| PLUS
-| MINUS
-| MULT
-| DIV
+| PLUS base_ty
+| MINUS base_ty
+| MULT base_ty
+| DIV base_ty
