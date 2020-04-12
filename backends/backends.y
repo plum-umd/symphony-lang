@@ -50,7 +50,8 @@ op_decls
 ;
 
 threat_model :
-SEMI_HON
+  SEMI_HON
+| SEMI_MAL
 | MAL
 ;
 
@@ -67,10 +68,13 @@ NAT
 | ANY
 ;
 
-threshold :
+threshold : threshold_expr
+;
+
+threshold_exp :
   threshold_term
-| threshold_term '+' threshold
-| threshold_term '-' threshold
+| threshold_term '+' threshold_expr
+| threshold_term '-' threshold_expr
   ;
 
 threshold_term :

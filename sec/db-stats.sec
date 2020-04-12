@@ -1,0 +1,10 @@
+non_central[128]
+central { reveals : non_central } // DaveH: confirm reveals clause
+
+connected {
+  non_central <-> central
+}
+
+security {
+  semi-honest corruptible : { non_central : n - 1, central : 1 }
+}

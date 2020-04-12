@@ -1,0 +1,9 @@
+nodes[2] { reveals : node[1] }
+
+connected {
+  nodes[0] <-> nodes[1]
+}
+
+security {
+  malicious corruptible : { nodes : 1 }
+}

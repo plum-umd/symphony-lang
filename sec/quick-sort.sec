@@ -1,0 +1,9 @@
+Nodes[64]
+
+connected {
+  full : Nodes
+}
+
+security {
+  semi-malicious corruptible: { Nodes : (n / 2) - 1 }
+}

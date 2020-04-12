@@ -1,0 +1,11 @@
+// declare principals
+Ins[512] { encryption : 256 reveals : Ins }
+Central
+
+connected {
+  Ins <-> Central 
+}
+
+security {
+  semi-honest corruptible: { Central : 1, Ins : n - 1 }
+}
