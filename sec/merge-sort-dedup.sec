@@ -1,5 +1,5 @@
 // declare principals
-Ins[512] { encryption : 256 reveals : Ins }
+Ins[512] { encryption : 256, reveals : Ins }
 Central
 
 connected {

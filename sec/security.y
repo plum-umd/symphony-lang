@@ -1,6 +1,6 @@
 %start security_spec
 
-%token NAT
+%token ENC REVEALS NAT
 
 %token CONNECT
 
@@ -21,17 +21,17 @@ nodes_decl :
 | node_decl nodes_decl
 ;
 
-node_decl : NODE_NM opt_dim
+node_decl : NODE_NM opt_dim '{'
+  ENC ':' NAT
+  REVEALS ':' node_set
+'}'
 ;
 
 opt_dim :
 | '[' NAT ']'
 ;
 
-connect_decl :
-CONNECT '{'
-connect_clauses
-'}'
+connect_decl : CONNECT '{' connect_clauses '}'
 ;
 
 connect_clauses :
@@ -49,10 +49,14 @@ NODE_NM
 | NODE_NM ',' node_set
 ;
 
-security_decl :
-SECURITY '{'
-  attack_model CORRUPTIBLE ':' '{' attack_clauses '}'
-'}'
+security_decl : SECURITY '{' attack_clauses '}'
+;
+
+attack_clauses :
+| attack_clause attack_clauses
+;
+
+attack_clause : attack_model CORRUPTIBLE ':' '{' corruption_clauses '}'
 ;
 
 attack_model :
@@ -61,12 +65,12 @@ SEMI_HONEST
 | MAL
 ;
 
-attack_clauses :
-attack_clause
-| attack_clause ',' attack_clauses
+corruption_clauses :
+corruption_clause
+| corruption_clause ',' corruption_clauses
 ;
 
-attack_clause : node_set ':' nat_expr
+corruption_clause : node_set ':' nat_expr
 ;
 
 nat_expr :
