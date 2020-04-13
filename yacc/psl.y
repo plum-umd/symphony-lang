@@ -61,7 +61,7 @@ patlist : | pat patlist ;
 pat : VAR
     | UNIT
     | NIL
-    | '(' pat commapat ')'
+    | '(' pat ')'
     | EMPTYPRINS
     | EMPTYSET
     | LLANGLE VAR '|' VAR RRANGLE
@@ -70,13 +70,14 @@ pat : VAR
     | pat UNION pat
     | pat CONS pat
     | pat ':' type
+    | pat ',' pat
     | '[' pat ']'
     ;
 
-commapat : | ',' pat commapat ;
+/* commapat : | ',' pat commapat ; */
 
 topexpr : expr
-        | LET pat commapat '=' expr lettail
+        | LET pat '=' expr lettail
         | LET VAR ':' type lettail
         | DO topexpr lettail
         | VAR ASSIGN expr
