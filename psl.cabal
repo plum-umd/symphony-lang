@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b1355e1af83fec54f8aa613d7fcaef7630f6c1791eba4dc08c898d2cb3b151e7
+-- hash: 3582809b88444ef515be6dac3c5cc5d99f33ad7db2ade729d304c7bf57b390f9
 
 name:           psl
 version:        0.1.0.0
@@ -85,6 +85,8 @@ data-files:
     tests/proc1.psl
     tests/proc2.psl
     tests/refs.psl
+    tests/return-mux.psl
+    tests/return-twice.psl
     tests/reveal-ssec.psl
     tests/solo-no-self.psl
     tests/solo.psl
