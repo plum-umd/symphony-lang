@@ -1,8 +1,12 @@
-non_central[128]
-central { reveals : non_central } // DaveH: confirm reveals clause
+non_central[128] { encryption : 256 }
+central { encryption : 256 } 
 
 connected {
   non_central <-> central
+}
+
+revealed {
+  central -> non_central // DaveH: confirm 
 }
 
 security {

@@ -1,9 +1,14 @@
-nodes[128] { reveals : nodes } // Ryan: confirm reveals clause
+nodes[128] { encryption : 256 } 
 
 connected {
   full : nodes
 }
 
+revealed {
+  nodes -> nodes // Ryan: confirm
+}
+
 security {
-  malicious corruptible : { nodes : n / 3 - 1 }
+  malicious corruptible : { nodes : (n / 3) - 1 }
+  crand : nodes
 }

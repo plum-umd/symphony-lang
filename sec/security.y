@@ -1,6 +1,6 @@
 %start security_spec
 
-%token ENC REVEALS NAT
+%token ENC REVEAL NAT
 
 %token CONNECT
 
@@ -14,7 +14,7 @@
 
 %%
 
-security_spec : nodes_decl connect_decl security_decl
+security_spec : nodes_decl connect_decl reveal_decl security_decl
 ;
 
 nodes_decl :
@@ -23,7 +23,6 @@ nodes_decl :
 
 node_decl : NODE_NM opt_dim '{'
   ENC ':' NAT
-  REVEALS ':' node_set
 '}'
 ;
 
@@ -31,14 +30,14 @@ opt_dim :
 | '[' NAT ']'
 ;
 
-connect_decl : CONNECT '{' connect_clauses '}'
+connect_decl : CONNECT '{' link_clauses '}'
 ;
 
-connect_clauses :
-| connect_clause connect_clauses
+link_clauses :
+| link_clause link_clauses
 ;
 
-connect_clause :
+link_clause :
 FULL ':' node_set
 | node_set UNI node_set
 | node_set BI node_set
@@ -49,7 +48,14 @@ NODE_NM
 | NODE_NM ',' node_set
 ;
 
-security_decl : SECURITY '{' attack_clauses '}'
+reveal_decl : REVEAL '{' link_clauses '}'
+;
+
+security_decl :
+SECURITY '{'
+  attack_clauses
+  crand_clauses
+'}'
 ;
 
 attack_clauses :
@@ -90,3 +96,9 @@ NAT
 | 'n'
 | '(' nat_expr ')'
 ;
+
+crand_clauses :
+| crand_clause
+;
+
+crand_clause : 'crand' ':' node_set

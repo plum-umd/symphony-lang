@@ -1,9 +1,13 @@
 // declare principals
-Ins[512] { encryption : 256, reveals : Ins }
+Ins[512] { encryption : 256 }
 Central
 
 connected {
   Ins <-> Central 
+}
+
+revealed {
+  Ins <-> Ins
 }
 
 security {
