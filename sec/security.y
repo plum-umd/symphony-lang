@@ -8,6 +8,8 @@
 
 %token NODE_NM
 
+%token VERIFIED PROVER VERIFIER MPC 
+
 %token ATTACK CORRUPTIBLE
 
 %token SEMI_HONEST SEMI_MAL MAL
@@ -22,6 +24,7 @@ security_spec :
 nodes_decl
 connect_decl
 reveal_decl
+verified_decl
 attack_decl
 crand_decl
 setup_decl
@@ -65,6 +68,23 @@ NODE_NM
 ;
 
 reveal_decl : REVEAL '{' link_clauses '}'
+;
+
+verified_decl : VERIFIED '{' ver_clauses '}'
+;
+
+ver_clauses :
+| ver_clause ver_clauses
+;
+
+ver_clause :
+'{' PROVER ':' mpc_opt node_set
+    VERIFIER ':' node_set
+'}'
+;
+
+mpc_opt :
+| MPC
 ;
 
 attack_decl :

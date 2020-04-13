@@ -10,6 +10,17 @@ revealed {
   nodes_in, node_c -> node_o
 }
 
+verified {
+  foreach i:
+  { prover : mpc node[i] node_o
+    verifier : node[i]
+  }
+
+  { prover : mpc node_c node_o
+    verifier : node_c
+  }
+}
+
 attacks {
   semi-honest corruptible : { nodes_in, node_c, node_o : n/2 - 1 }
 }

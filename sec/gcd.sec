@@ -8,6 +8,8 @@ revealed {
   nodes[0] -> nodes[1]
 }
 
+verified { }
+
 attacks {
   malicious corruptible : { nodes : 1 }
 }

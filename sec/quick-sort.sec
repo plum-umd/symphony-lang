@@ -8,6 +8,12 @@ revealed {
   full : Nodes
 }
 
+verified {
+  { prover : mpc nodes
+    verifier : external
+  }
+}
+
 attacks {
   semi-malicious corruptible: { Nodes : (n / 2) - 1 }
 }
