@@ -43,6 +43,7 @@ getType = \case
   ArrayV _ → "array"
   PairV _ _ → "pair"
   DefaultV → "default"
+  NizkVerifyV _ _ → "nizk-verify"
 
 getTypeMPC ∷ ValMPC → 𝕊
 getTypeMPC = \case
@@ -69,6 +70,7 @@ stringProtocol = \case
   GMWP  → "gmw"
   BGVP  → "bgv"
   SPDZP → "spdz"
+  AutoP → "auto"
 
 jsonPrinVal ∷ PrinVal → 𝕊
 jsonPrinVal = \case
@@ -80,7 +82,7 @@ jsonPrins = JSON.toJSON ∘ lazyList ∘ map jsonPrinVal ∘ iter
 
 jsonEvent ∷ ResEv → ℕ → JSON.Value
 jsonEvent (ResEv zk φ ρs ρf ρt τ o md) n =
-  JSON.object [ "zk" JSON..= JSON.toJSON zk
+  JSON.object [ "nizk" JSON..= JSON.toJSON zk
               , "protocol" JSON..= stringProtocol φ 
               , "principals" JSON..= jsonPrins ρs
               , "prins_from" JSON..= jsonPrins ρf

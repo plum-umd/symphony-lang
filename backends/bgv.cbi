@@ -1,0 +1,46 @@
+proto : bgv
+impl : bgv.cpp
+
+malicious {
+  security {
+    parties: 2
+    corruptible: 1
+  }
+
+  share bool : bgv_mal_bool_t
+
+  share nat 32: bgv_mal_nat_t
+
+  share int 32: bgv_mal_int_t
+
+  share float 53 11: bgv_mal_float64_t
+
+  SHARE-INT {
+    crand: 
+    impl: bgv_mal_share_int
+    gates: ??
+    rounds: ?? }
+
+  REVEAL-INT {
+    crand:
+    impl: bgv_mal_reveal_int
+    gates: ??
+    rounds: ?? }
+
+  PLUS {
+    crand:
+    impl: bgv_mal_plus
+    gates: ??
+    rounds: ?? }
+
+  MULT {
+    crand: 
+    impl: bgv_mal_mult
+    gates: ??
+    rounds: ??
+  }
+
+  // Ben, Ryan: fill in other operations here
+}
+
+// Ben, Ryan: fill in other attack models here

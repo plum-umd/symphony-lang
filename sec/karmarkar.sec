@@ -1,0 +1,16 @@
+nodes_in[8] { encryption : 256 }
+node_c { encryption : 256 }
+node_o
+
+connected {
+  full : nodes_in, node_c, node_o
+}
+
+revealed {
+  nodes_in, node_c -> node_o
+}
+
+security {
+  semi-honest corruptible : { nodes_in, node_c, node_o : n/2 - 1 }
+  crand : nodes_in, nodes_c
+}

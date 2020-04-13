@@ -143,6 +143,7 @@ data Prot =
   | GMWP  -- gmw
   | BGVP  -- bgv
   | SPDZP -- spdz
+  | AutoP -- auto
   deriving (Eq,Ord,Show)
 makePrettySum ''Prot
 
@@ -250,7 +251,7 @@ data ExpR =
   | TupE Exp Exp                             -- e,e                     /  e,e
   | NilE                                     -- []                      /  []
   | ConsE Exp Exp                            -- e ∷ e                   /  e :: e
-  | LetTyE Var Type Exp                      -- let ψ : τ in e          /  let ψ : τ in e
+  | LetTyE Pat Exp                           -- let ψ : τ in e          /  let ψ : τ in e
   | LetE Pat Exp Exp                         -- let ψ = e in e          /  let ψ = e in e
   | CaseE Exp (𝐿 (Pat ∧ Exp))                -- case e {ψ→e;…;ψ→e}      /  case e {ψ->e;…;ψ->e}
   | MuxCaseE Exp (𝐿 (Pat ∧ Exp))             -- mux case e {ψ→e;…;ψ→e}  /  mux case e {ψ->e;…;ψ->e}

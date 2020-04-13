@@ -89,7 +89,7 @@ lexer = lexerBasic puns kws prim ops
       , "nizk-witness","nizk-commit"
       ]
     prim = list
-      [ "yao","gmw","bgw","bgv","spdz"
+      [ "yao","gmw","bgw","bgv","spdz","auto"
       , "ssec","isec"
       , "☆","type"
       , "ℙ","prin"
@@ -104,7 +104,6 @@ lexer = lexerBasic puns kws prim ops
       , "list"
       , "rand","rand-range"
       , "inp","rev"
-      -- , "par","sec"
       , "∞","inf"
       , "⊤","all"
       , "nizk-test","nizk-verify"
@@ -138,16 +137,6 @@ lexer = lexerBasic puns kws prim ops
       , "sqrt"
       , "size"
       ]
-
--- testLexer ∷ IO ()
--- testLexer = rtimeIO "" $ do
---   s₁ ← read "files/pantheon/lib.psl"
---   tokenizeIOMain lexer $ tokens s₁
---   s₂ ← read "files/pantheon/euclid.psl"
---   tokenizeIOMain lexer $ tokens s₂
---   s₃ ← read "files/pantheon/simple.psl"
---   tokenizeIOMain lexer $ tokens s₃
---   return ()
 
 ----------
 -- Kind --
@@ -224,14 +213,8 @@ pConstr = cpNewContext "constr" $ do
 
 pEMode ∷ CParser TokenBasic EMode
 pEMode = cpNewContext "effect-mode" $ concat
-  [ do -- cpSyntax "par"
-       -- cpSyntax ":"
-       ρs ← pPrins
+  [ do ρs ← pPrins
        return $ SecEM ρs
-  -- , do cpSyntax "sec"
-  --      cpSyntax ":"
-  --      ρs ← pPrins
-  --      return $ SSecEM ρs
   , do concat [cpSyntax "⊤",cpSyntax "all"]
        return TopEM
   ]
@@ -443,6 +426,7 @@ pProt = cpNewContext "prot" $ concat
   , do cpSyntax "gmw"  ; return GMWP
   , do cpSyntax "bgv"  ; return BGVP
   , do cpSyntax "spdz" ; return SPDZP
+  , do cpSyntax "auto" ; return AutoP
   ]
 
 ---------
@@ -579,22 +563,25 @@ pExp = fmixfixWithContext "exp" $ concat
   , fmixTerminal $ do cpSyntax "[]" ; return NilE
   -- e∷e
   , fmixInfixR levelCONS $ do concat [cpSyntax "∷",cpSyntax "::"] ; return ConsE
-  -- let ψ : τ in e
-  , fmixPrefix levelLET $ do
-      cpSyntax "let"
-      x ← pVar
-      cpSyntax ":"
-      τ ← pType
-      void $ cpOptional $ cpSyntax "in"
-      return $ LetTyE x τ
-  -- let ψ = e in e
+  -- let x : τ in e
   , fmixPrefix levelLET $ do
       cpSyntax "let"
       ψ ← pPat
-      cpSyntax "="
-      e ← pExp
+      eO ← cpOptional $ do
+        cpSyntax "="
+        pExp
       void $ cpOptional $ cpSyntax "in"
-      return $ LetE ψ e
+      return $ case eO of
+        None → LetTyE ψ
+        Some e → LetE ψ e
+  -- -- let ψ = e in e
+  -- , fmixPrefix levelLET $ do
+  --     cpSyntax "let"
+  --     ψ ← pPat
+  --     cpSyntax "="
+  --     e ← pExp
+  --     void $ cpOptional $ cpSyntax "in"
+  --     return $ LetE ψ e
   -- [mux] case e {ψ→e;…;ψ→e}
   , fmixTerminal $ do 
       b ← cpOptional $ cpSyntax "mux"
@@ -823,15 +810,17 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntax "{"
       ρes ← pPrinExps
       cpSyntax "}"
-      cpSyntax "as"
-      x ← pVar
-      cpSyntax "in"
+      xO ← cpOptional $ do
+        cpSyntax "as"
+        x ← pVar
+        cpSyntax "in"
+        return x
       return $ \ e →
         AppE (siphon e $ 
               AppE (siphon e $ VarE $ var "solo-f") $ 
                    siphon e $ SetE ρes) $ 
              siphon e $ 
-             LamE None (single $ VarP x) e
+             LamE None (single $ elim𝑂 WildP VarP xO) e
   -- fold e as x . x on e as x in e
   , fmixPrefix levelLET $ do
       cpSyntax "fold"

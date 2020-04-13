@@ -1,0 +1,14 @@
+non_central[128] { encryption : 256 }
+central { encryption : 256 } 
+
+connected {
+  non_central <-> central
+}
+
+revealed {
+  central -> non_central // DaveH: confirm 
+}
+
+security {
+  semi-honest corruptible : { non_central : n - 1, central : 1 }
+}
