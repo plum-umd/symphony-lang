@@ -1,0 +1,14 @@
+Nodes[64] { encryption : 256 }
+
+connected {
+  full : Nodes
+}
+
+revealed {
+  full : Nodes
+}
+
+security {
+  semi-malicious corruptible: { Nodes : (n / 2) - 1 }
+  crand : nodes
+}

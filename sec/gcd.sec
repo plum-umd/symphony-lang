@@ -1,0 +1,13 @@
+nodes[2] { encryption : 256 }
+
+connected {
+  nodes[0] <-> nodes[1]
+}
+
+revealed {
+  nodes[0] -> nodes[1]
+}
+
+security {
+  malicious corruptible : { nodes : 1 }
+}
