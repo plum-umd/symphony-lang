@@ -8,7 +8,14 @@ revealed {
   full : Nodes
 }
 
-security {
+attacks {
   semi-malicious corruptible: { Nodes : (n / 2) - 1 }
-  crand : nodes
+}
+
+crand {
+  beaver : nodes
+}
+
+setup {
+  pki : nodes
 }

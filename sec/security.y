@@ -2,19 +2,29 @@
 
 %token ENC REVEAL NAT
 
-%token CONNECT
+%token CONNECT BROADCAST
 
 %token FULL UNI BI
 
 %token NODE_NM
 
-%token SECURITY CORRUPTIBLE
+%token ATTACK CORRUPTIBLE
 
 %token SEMI_HONEST SEMI_MAL MAL
 
+%token CRAND BEAVER_TRIPLES SQ_TRIPLES OBLIV_TRANSFER OBLIV_LIN_EX ZERO_SHRS
+
+%token SETUP PKI CRS_NIZK CRS_UC
+
 %%
 
-security_spec : nodes_decl connect_decl reveal_decl security_decl
+security_spec :
+nodes_decl
+connect_decl
+reveal_decl
+attack_decl
+crand_decl
+setup_decl
 ;
 
 nodes_decl :
@@ -30,7 +40,13 @@ opt_dim :
 | '[' NAT ']'
 ;
 
-connect_decl : CONNECT '{' link_clauses '}'
+connect_decl : CONNECT '{'
+  broadcast_opt
+  link_clauses '}'
+;
+
+broadcast_opt :
+| BROADCAST ':' node_set
 ;
 
 link_clauses :
@@ -51,10 +67,9 @@ NODE_NM
 reveal_decl : REVEAL '{' link_clauses '}'
 ;
 
-security_decl :
-SECURITY '{'
+attack_decl :
+ATTACK '{'
   attack_clauses
-  crand_clauses
 '}'
 ;
 
@@ -97,8 +112,42 @@ NAT
 | '(' nat_expr ')'
 ;
 
+crand_decl :
+CRAND '{'
+  crand_clauses
+'}'
+;
+
 crand_clauses :
 | crand_clause
 ;
 
-crand_clause : 'crand' ':' node_set
+crand_clause : crand ':' node_set
+;
+
+crand :
+BEAVER_TRIPLES
+| SQ_TRIPLES
+| OBLIV_TRANSFER
+| OBLIV_LIN_EX
+| ZERO_SHRS
+;
+
+setup_decl :
+SETUP '{'
+  setup_clauses
+'}'
+;
+
+setup_clauses :
+| setup_clause setup_clauses
+;
+
+setup_clause : setup_class ':' node_set
+;
+
+setup_class :
+PKI
+| CRS_NIZK
+| CRS_UC
+;

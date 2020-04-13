@@ -8,6 +8,10 @@ revealed {
   nodes[0] -> nodes[1]
 }
 
-security {
+attacks {
   malicious corruptible : { nodes : 1 }
 }
+
+crand { }
+
+setup { }

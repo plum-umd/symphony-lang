@@ -9,6 +9,10 @@ revealed {
   central -> non_central // DaveH: confirm 
 }
 
-security {
+attacks {
   semi-honest corruptible : { non_central : n - 1, central : 1 }
 }
+
+crand { }
+
+setup { }

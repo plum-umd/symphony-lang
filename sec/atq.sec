@@ -8,7 +8,15 @@ revealed {
   nodes -> nodes // Ryan: confirm
 }
 
-security {
+attacks {
   malicious corruptible : { nodes : (n / 3) - 1 }
   crand : nodes
+}
+
+crand {
+  beaver : nodes
+}
+
+setup {
+  pki : nodes
 }

@@ -10,6 +10,10 @@ revealed {
   Ins <-> Ins
 }
 
-security {
+attacks {
   semi-honest corruptible: { Central : 1, Ins : n - 1 }
 }
+
+crand { }
+
+setup { }

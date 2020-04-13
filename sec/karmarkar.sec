@@ -10,7 +10,14 @@ revealed {
   nodes_in, node_c -> node_o
 }
 
-security {
+attacks {
   semi-honest corruptible : { nodes_in, node_c, node_o : n/2 - 1 }
-  crand : nodes_in, nodes_c
+}
+
+crand {
+  beaver : nodes_in, node_c
+}
+
+setup {
+  pki : nodes_in, node_c, node_o
 }
