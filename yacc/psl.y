@@ -16,7 +16,7 @@ int yylex();
 
 %start toplist
 
-%token PRINCIPAL DEF
+%token PRINCIPAL DEF IMPORT
 %token VAR
 %token CONS NIL UNIT
 %token IF THEN ELSE CASE
@@ -49,6 +49,7 @@ toplist : | top toplist
 top : PRINCIPAL prin prinlist
     | DEF VAR patlist '=' topexpr
     | DEF VAR ':' type
+    | IMPORT STRINGLIT
     ;
 
 prinlist : | prin prinlist ;
@@ -288,6 +289,7 @@ int numeric() {
 int token() {
   if (reserved("principal")) { return PRINCIPAL; }
   if (reserved("def")) { return DEF; }
+  if (reserved("import")) { return IMPORT; }
   if (reserved("fun")) { return FUN; }
   if (reserved("let")) { return LET; }
   if (reserved("in")) { return IN; }
