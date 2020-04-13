@@ -135,7 +135,7 @@ bindPatMPC si ψ vmpc = case ψ of
     md :* b :* vmpc₁ :* _vmpc₂ ← view sumMVL vmpc
     f ← bindPatMPC si ψ' vmpc₁
     return $ \ xM → do
-      si' :* vmpc' ← f xM
+      si' :* vmpc' ← mapEnvL iCxtMPCPathConditionL ((md :* not b :* si) :&) $ f xM
       vmpc'' ← muxMPCVal md si b DefaultMV vmpc'
       si'' ← joinShareInfo si si'
       return $ si'' :* vmpc''
@@ -143,7 +143,7 @@ bindPatMPC si ψ vmpc = case ψ of
     md :* b :* _vmpc₁ :* vmpc₂ ← view sumMVL vmpc
     f ← bindPatMPC si ψ' vmpc₂
     return $ \ xM → do
-      si' :* vmpc' ← f xM
+      si' :* vmpc' ← mapEnvL iCxtMPCPathConditionL ((md :* b :* si) :&) $ f xM
       vmpc'' ← muxMPCVal md si b vmpc' DefaultMV
       si'' ← joinShareInfo si si'
       return $ si'' :* vmpc''
@@ -722,7 +722,8 @@ interpExp = wrapInterp $ \case
       localL iCxtMPCPathConditionL null $ 
       interpExp e
     si₀ :* vmpc₀ ← unShareValP ṽ
-    si :* vmpc ← mfoldrOnFrom κ (si₀ :* vmpc₀) $ \ (pcᴿ :* si₁ :* vmpcᴿ₀) (si₂ :*  vmpc) →  do
+    pptraceM κ
+    si :* vmpc ← mfoldrOnFrom (reverse κ) (si₀ :* vmpc₀) $ \ (pcᴿ :* si₁ :* vmpcᴿ₀) (si₂ :*  vmpc) →  do
       si₃ ← joinShareInfo si₁ si₂
       mfoldrOnFrom pcᴿ (si₃ :* vmpcᴿ₀) $ \ (mdᵖᶜ :* bᵖᶜ :* siᵖᶜ) (si :* vmpcᴿ) → do
         si' ← joinShareInfo si siᵖᶜ

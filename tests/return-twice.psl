@@ -1,0 +1,7 @@
+def main • =
+  proc
+  do return 1
+  do return 2
+  in 3
+
+def expected = 1
