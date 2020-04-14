@@ -56,11 +56,6 @@ def msort xs = case xs
       in merge ys1 ys2
   }
 
-def map f xs = case xs
-  { [] -> []
-  ; x::xs' -> f x::map f xs'
-  }
-
 def main : unit -> {inp:A,B;rev:E} list int{ssec:E}
 def main () =
   let xys-pre : (list int){isec:A,B}
