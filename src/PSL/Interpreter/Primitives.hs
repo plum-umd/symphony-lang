@@ -29,7 +29,7 @@ tprn = "prin"
 multDepthShareInfo ∷ 𝕊 → ShareInfo → ℕ
 multDepthShareInfo op = \case
   NotShared → zero
-  Shared φ _ → multDepth φ op
+  Shared _ φ _ → multDepth φ op
 
 multDepth ∷ Prot → 𝕊 → ℕ
 multDepth p o = case (p, o) of

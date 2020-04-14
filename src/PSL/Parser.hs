@@ -86,9 +86,10 @@ lexer = lexerBasic puns kws prim ops
       , "loop"
       , "when"
       , "import"
+      , "nizk-witness","nizk-commit"
       ]
     prim = list
-      [ "yao","gmw","bgw","bgv","spdz"
+      [ "yao","gmw","bgw","bgv","spdz","auto"
       , "ssec","isec"
       , "☆","type"
       , "ℙ","prin"
@@ -103,9 +104,9 @@ lexer = lexerBasic puns kws prim ops
       , "list"
       , "rand","rand-range"
       , "inp","rev"
-      -- , "par","sec"
       , "∞","inf"
       , "⊤","all"
+      , "nizk-test","nizk-verify"
       ]
     ops = list 
       [ "•","()"
@@ -136,16 +137,6 @@ lexer = lexerBasic puns kws prim ops
       , "sqrt"
       , "size"
       ]
-
--- testLexer ∷ IO ()
--- testLexer = rtimeIO "" $ do
---   s₁ ← read "files/pantheon/lib.psl"
---   tokenizeIOMain lexer $ tokens s₁
---   s₂ ← read "files/pantheon/euclid.psl"
---   tokenizeIOMain lexer $ tokens s₂
---   s₃ ← read "files/pantheon/simple.psl"
---   tokenizeIOMain lexer $ tokens s₃
---   return ()
 
 ----------
 -- Kind --
@@ -222,14 +213,8 @@ pConstr = cpNewContext "constr" $ do
 
 pEMode ∷ CParser TokenBasic EMode
 pEMode = cpNewContext "effect-mode" $ concat
-  [ do -- cpSyntax "par"
-       -- cpSyntax ":"
-       ρs ← pPrins
+  [ do ρs ← pPrins
        return $ SecEM ρs
-  -- , do cpSyntax "sec"
-  --      cpSyntax ":"
-  --      ρs ← pPrins
-  --      return $ SSecEM ρs
   , do concat [cpSyntax "⊤",cpSyntax "all"]
        return TopEM
   ]
@@ -359,7 +344,7 @@ pType = cpNewContext "type" $ mixfix $ concat
         return η
       let η₀ = Effect null null TopEM
       return $ \ τ₂ → (x :* τ₁ :* cs) :→†: (ifNone η₀ ηO :* τ₂)
-  -- ∀ α:κ,…,α:κ . c,…,c ⇒ τ
+  -- ∀ α:κ,…,α:κ | c,…,c. τ
   , mixPrefix levelLAM $ do
       concat [cpSyntax "∀", cpSyntax "forall"]
       ακs ← cpManySepBy (cpSyntax ",") $ do
@@ -402,6 +387,20 @@ pType = cpNewContext "type" $ mixfix $ concat
       ρes ← pPrinExps
       cpSyntax "}"
       return $ ShareT φ ρes
+  -- nizk-test{P} τ
+  , mixPrefix levelAPP $ do
+      cpSyntax "nizk-test"
+      cpSyntax "{"
+      ρs ← pPrins
+      cpSyntax "}"
+      return $ NizkTestT ρs
+  -- nizk-verify{P} τ
+  , mixPrefix levelAPP $ do
+      cpSyntax "nizk-verify"
+      cpSyntax "{"
+      ρs ← pPrins
+      cpSyntax "}"
+      return $ NizkVerifyT ρs
   -- (τ)
   , mixTerminal $ do cpSyntax "(" ; τ ← pType ; cpSyntax ")" ; return τ
   ]
@@ -427,6 +426,7 @@ pProt = cpNewContext "prot" $ concat
   , do cpSyntax "gmw"  ; return GMWP
   , do cpSyntax "bgv"  ; return BGVP
   , do cpSyntax "spdz" ; return SPDZP
+  , do cpSyntax "auto" ; return AutoP
   ]
 
 ---------
@@ -563,22 +563,25 @@ pExp = fmixfixWithContext "exp" $ concat
   , fmixTerminal $ do cpSyntax "[]" ; return NilE
   -- e∷e
   , fmixInfixR levelCONS $ do concat [cpSyntax "∷",cpSyntax "::"] ; return ConsE
-  -- let ψ : τ in e
-  , fmixPrefix levelLET $ do
-      cpSyntax "let"
-      x ← pVar
-      cpSyntax ":"
-      τ ← pType
-      void $ cpOptional $ cpSyntax "in"
-      return $ LetTyE x τ
-  -- let ψ = e in e
+  -- let x : τ in e
   , fmixPrefix levelLET $ do
       cpSyntax "let"
       ψ ← pPat
-      cpSyntax "="
-      e ← pExp
+      eO ← cpOptional $ do
+        cpSyntax "="
+        pExp
       void $ cpOptional $ cpSyntax "in"
-      return $ LetE ψ e
+      return $ case eO of
+        None → LetTyE ψ
+        Some e → LetE ψ e
+  -- -- let ψ = e in e
+  -- , fmixPrefix levelLET $ do
+  --     cpSyntax "let"
+  --     ψ ← pPat
+  --     cpSyntax "="
+  --     e ← pExp
+  --     void $ cpOptional $ cpSyntax "in"
+  --     return $ LetE ψ e
   -- [mux] case e {ψ→e;…;ψ→e}
   , fmixTerminal $ do 
       b ← cpOptional $ cpSyntax "mux"
@@ -747,6 +750,24 @@ pExp = fmixfixWithContext "exp" $ concat
   , fmixPrefix levelLET $ do cpSyntax "proc" ; return ProcE
   -- return e
   , fmixPrefix levelLET $ do cpSyntax "return" ; return ReturnE
+  -- nizk-witness{φ:P} e
+  , fmixPrefix levelAPP $ do
+      cpSyntax "nizk-witness"
+      cpSyntax "{"
+      φ ← pProt
+      cpSyntax ":"
+      ρs ← pPrins
+      cpSyntax "}"
+      return $ NizkWitnessE φ ρs
+  -- nizk-commit{φ:P} e
+  , fmixPrefix levelAPP $ do
+      cpSyntax "nizk-commit"
+      cpSyntax "{"
+      φ ← pProt
+      cpSyntax ":"
+      ρs ← pPrins
+      cpSyntax "}"
+      return $ NizkCommitE φ ρs
   -- prim[⊙](e,…,e)
   , fmixInfixL levelPLUS $ do concat [cpSyntax "∨",cpSyntax "||"] ; return $ \ e₁ e₂ → PrimE "OR" $ list [e₁,e₂]
   , fmixInfixL levelTIMES $ do concat [cpSyntax "∧",cpSyntax "&&"] ; return $ \ e₁ e₂ → PrimE "AND" $ list [e₁,e₂]
@@ -789,15 +810,17 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntax "{"
       ρes ← pPrinExps
       cpSyntax "}"
-      cpSyntax "as"
-      x ← pVar
-      cpSyntax "in"
+      xO ← cpOptional $ do
+        cpSyntax "as"
+        x ← pVar
+        cpSyntax "in"
+        return x
       return $ \ e →
         AppE (siphon e $ 
               AppE (siphon e $ VarE $ var "solo-f") $ 
                    siphon e $ SetE ρes) $ 
              siphon e $ 
-             LamE None (single $ VarP x) e
+             LamE None (single $ elim𝑂 WildP VarP xO) e
   -- fold e as x . x on e as x in e
   , fmixPrefix levelLET $ do
       cpSyntax "fold"
@@ -891,7 +914,7 @@ cpTLs = cpMany pTL
 testParserExample ∷ 𝕊 → IO ()
 testParserExample fn = do
   let path = "examples/" ⧺ fn ⧺ ".psl"
-  s ← read fn
+  s ← fread fn
   let ts = tokens s
   ls ← tokenizeIO lexer path ts
   _tls ← parseIO cpTLs path ls

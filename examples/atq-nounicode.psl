@@ -5,149 +5,149 @@ principal Dummy
 -- Query functions
 
 -- First element because list is sorted
-def min : list ℤ{bgw:A,B} → ℤ{bgw:A,B}
+def min : list int{bgw:A,B} -> int{bgw:A,B}
 def min xs = case xs
-  { x∷_ → x
+  { x :: _ -> x
   }
 
 -- Last element because list is sorted
-def max : list ℤ{bgw:A,B} → ℤ{bgw:A,B}
+def max : list int{bgw:A,B} -> int{bgw:A,B}
 def max xs = case xs
-  { [x] → x
-  ; _∷xs' → max xs'
+  { [x] -> x
+  ; _ :: xs' -> max xs'
   }
 
 -- Find the middle element (use the lower middle element if the length is even)
-def median : list ℤ{bgw:A,B} → ℤ{bgw:A,B}
+def median : list int{bgw:A,B} -> int{bgw:A,B}
 def median xs =
   let l = length xs
   let idx = l / 2
-  let idx' = ((l % 2) ≡ 0) ? (idx - 1) ◇ idx
+  let idx' = ((l % 2) == 0) ? (idx - 1) >< idx
   in elem-at idx' xs
 
 -- Recursive helper function for num-unique
-def num-unique-rec : list ℤ{bgw:A,B} → ℤ{bgw:A,B} → ℤ{bgw:A,B}
+def num-unique-rec : list int{bgw:A,B} -> int{bgw:A,B} -> int{bgw:A,B}
 def num-unique-rec xs last = case xs
-  { [] → 0
-  ; x∷xs' →
-    let b = x ≡ last
-    in (num-unique-rec xs' x) + (b ? 0 ◇ 1)
+  { [] -> 0
+  ; x :: xs' ->
+    let b = x == last
+    in (num-unique-rec xs' x) + (b ? 0 >< 1)
   }
 
 -- Find the number of unique elements in the integer list
-def num-unique : list ℤ{bgw:A,B} → ℤ{bgw:A,B}
+def num-unique : list int{bgw:A,B} -> int{bgw:A,B}
 def num-unique xs = case xs
-  { [] → 0
-  ; x∷xs' → (num-unique-rec xs' x) + 1
+  { [] -> 0
+  ; x :: xs' -> (num-unique-rec xs' x) + 1
   }
 
 -- mpc/list manip
 
 def remove-dups :
-    list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
-  → list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
+     list (bool{bgw:A,B} * (int{bgw:A,B} * prin{bgw:A,B}))
+  -> list (bool{bgw:A,B} * (int{bgw:A,B} * prin{bgw:A,B}))
 def remove-dups qs = case qs
-  { [] → []
-  ; (b,query)∷qs' →
+  { [] -> []
+  ; (b,query) :: qs' ->
     let h = mux if (elem-triple query qs')
             then (false, (-1,Dummy))
             else (b,query)
-    in h∷(remove-dups qs')
+    in h :: (remove-dups qs')
   }
 
 -- Publishing results
 
 def publish-result :
-    ℙ{bgw:A,B}
-  → (t : ℙ{A,B})
-  → ℤ{bgw:A,B}
-  → 𝔹{bgw:A,B}
-  → list (𝔹{various} × ℤ{various})
+    prin{bgw:A,B}
+  -> (t : prin)
+  -> int{bgw:A,B}
+  -> bool{bgw:A,B}
+  -> list (bool{ssec:various} * int{ssec:various})
 def publish-result allParties target value isValid = case allParties
-  { {} → []
-  ; {currentParty}∪remainingParties →
-    let validTag = isValid ? (target ≡ currentParty) ◇ false
-    let valueOutput = isValid ? ((target ≡ currentParty) ? value ◇ -1) ◇ -1
+  { {} -> []
+  ; {currentParty} \/ remainingParties ->
+    let validTag = isValid ? (target == currentParty) >< false
+    let valueOutput = isValid ? ((target == currentParty) ? value >< -1) >< -1
     let output = reveal {currentParty} validTag, reveal {currentParty} valueOutput
     let remainingOutput = publish-result remainingParties target value isValid
-    in output ∷ remainingOutput
+    in output :: remainingOutput
   }
 
 def publish-results :
-    list ℤ{bgw:A,B}
-  → list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
-  → list list (𝔹{various} × ℤ{various})
+    list int{bgw:A,B}
+  -> list (bool{bgw:A,B} * (int{bgw:A,B} * prin{bgw:A,B}))
+  -> list list (bool{ssec:various} * int{ssec:various})
 def publish-results results queryTargetOptionals = case queryTargetOptionals
-  { [] → []
-  ; (isValid,(query,target))∷remaining →
+  { [] -> []
+  ; (isValid,(query,target)) :: remaining ->
     let output = publish-result {A,B} (reveal{A,B} target) (elem-at query results) isValid
     let remainingOutput = publish-results results remaining
-    in output ∷ remainingOutput
+    in output :: remainingOutput
   }
 
 -- ATQ
 
-def main : 𝟙 →{inp:A,B;rev:A,B} list ℤ{any}
-def main • = par {A,B}
+def main : unit -> {inp:A,B;rev:A,B} list int{ssec:any}
+def main () = par {A,B}
 
   -- All parties read in data input
-  let inputLists : (list ℤ){isec:A,B}
-  let inputLists = solo {A,B} as α in read (list ℤ) from "atq-data.txt"
+  let inputLists : (list int){isec:A,B}
+  let inputLists = solo {A,B} as a in read (list int) from "atq-data.txt"
 
   -- Parties in group B read in queries
-  let inputQueries : ℤ{isec:B}
-  let inputQueries = solo {B} as α in read ℤ from "atq-query.txt"
+  let inputQueries : int{isec:B}
+  let inputQueries = solo {B} as a in read int from "atq-query.txt"
 
   -- Parties in group B read in targets for the previously read in queries
-  let inputTargets : (list ℙ){isec:B}
-  let inputTargets = solo {B} as α in read (list ℙ) from "atq-targets.txt"
+  let inputTargets : (list prin){isec:B}
+  let inputTargets = solo {B} as a in read (list prin) from "atq-targets.txt"
 
   -- Secret share the elements of each party's list
-  let inputListsShared : list list (ℤ{bgw:A,B})
-  let inputListsShared = fold-f [] (λ P x i → (preprocess-lists-reveal-lengths P {A,B} x 0) ∷ i) inputLists
+  let inputListsShared : list list (int{bgw:A,B})
+  let inputListsShared = fold-f [] (fun P x i -> (preprocess-lists-reveal-lengths P {A,B} x 0) :: i) inputLists
 
   -- Merge and sort the input lists into a single list
-  let dataList : list ℤ{bgw:A,B}
+  let dataList : list int{bgw:A,B}
   let dataList = concat inputListsShared
 
   -- Produce a single sorted list of all input integers
-  let dataListSorted : list ℤ{bgw:A,B}
-  let dataListSorted = sort (λ a b → mux if a ≤ b then (a, b) else (b, a)) dataList
+  let dataListSorted : list int{bgw:A,B}
+  let dataListSorted = sort (fun a b -> mux if a <= b then (a, b) else (b, a)) dataList
 
   -- Find the median of the integer list
-  let medianResult : ℤ{bgw:A,B}
+  let medianResult : int{bgw:A,B}
   let medianResult = median dataListSorted
 
   -- Find the number of unique elements in the integer list
-  let uniqueResult : ℤ{bgw:A,B}
+  let uniqueResult : int{bgw:A,B}
   let uniqueResult = num-unique dataListSorted
 
   -- Find the minimum value in the integer list
-  let minResult : ℤ{bgw:A,B}
+  let minResult : int{bgw:A,B}
   let minResult = min dataListSorted
 
   -- Find the maximum value in the integer list
-  let maxResult : ℤ{bgw:A,B}
+  let maxResult : int{bgw:A,B}
   let maxResult = max dataListSorted
 
   -- Group results into an indexable data structure
-  let results : list ℤ{bgw:A,B}
+  let results : list int{bgw:A,B}
   let results = [medianResult; uniqueResult; minResult; maxResult]
 
   -- Pair the input queries and targets up along with a tag denoting that it is not dummy data
-  let queriesWithTargets : (list (𝔹{B} × (ℤ{B} × ℙ{B}))){isec:B}
-  let queriesWithTargets = solo {B} as α in (pair-with-list true (pair-with-list inputQueries@α inputTargets@α))
+  let queriesWithTargets : (list (bool{ssec:B} * (int{ssec:B} * prin{ssec:B}))){isec:B}
+  let queriesWithTargets = solo {B} as a in (pair-with-list true (pair-with-list inputQueries@a inputTargets@a))
 
   -- Secret share queries and targets without revealing the number of targets each party supplied by setting an upper bound and padding data out with dummy data
-  let queriesWithTargetsShared : list list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
-  let queriesWithTargetsShared = fold-f [] (λ P x i → (preprocess-lists-n-triples P {A,B} 8 x (false,(-1,Dummy))) ∷ i) queriesWithTargets
+  let queriesWithTargetsShared : list list (bool{bgw:A,B} * (int{bgw:A,B} * prin{bgw:A,B}))
+  let queriesWithTargetsShared = fold-f [] (fun P x i -> (preprocess-lists-n-triples P {A,B} 8 x (false,(-1,Dummy))) :: i) queriesWithTargets
 
   -- Combine queries and targets into one list
-  let allQueriesWithTargetsShared : list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
+  let allQueriesWithTargetsShared : list (bool{bgw:A,B} * (int{bgw:A,B} * prin{bgw:A,B}))
   let allQueriesWithTargetsShared = concat queriesWithTargetsShared
 
   -- Remove duplicate queries so that recipients will not learn how many times they were targeted
-  let finalQueries : list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
+  let finalQueries : list (bool{bgw:A,B} * (int{bgw:A,B} * prin{bgw:A,B}))
   let finalQueries = remove-dups allQueriesWithTargetsShared
 
   -- For each query from each party in B with duplicates replaced by dummy data, plus dummy padding to achieve upper bounds, publish the results of the query to the target of the query

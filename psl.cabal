@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3f659b5779256a4f5f4fa5ffb9f8c8008fbf6ec858c17b80120e04419686c5b6
+-- hash: 3582809b88444ef515be6dac3c5cc5d99f33ad7db2ade729d304c7bf57b390f9
 
 name:           psl
 version:        0.1.0.0
@@ -14,6 +14,7 @@ data-files:
     examples/alias.psl
     examples/arg-par-contains.psl
     examples/assoc-map.psl
+    examples/atq-nounicode.psl
     examples/atq.psl
     examples/bind-fp-const.psl
     examples/bind-shares.psl
@@ -67,8 +68,11 @@ data-files:
     tests/bind-shares.psl
     tests/compound-reveal.psl
     tests/compound-share.psl
+    tests/demo.psl
     tests/flt-arith.psl
     tests/fold.psl
+    tests/let-ascr.psl
+    tests/located-type.psl
     tests/loop.psl
     tests/micro-let.psl
     tests/mux-deep.psl
@@ -81,7 +85,10 @@ data-files:
     tests/proc1.psl
     tests/proc2.psl
     tests/refs.psl
+    tests/return-mux.psl
+    tests/return-twice.psl
     tests/reveal-ssec.psl
+    tests/solo-no-self.psl
     tests/solo.psl
     tests/sums.psl
     tests/this.psl
@@ -318,6 +325,7 @@ library
   exposed-modules:
       AddToUVMHS
       PSL
+      PSL.Config
       PSL.Interpreter
       PSL.Interpreter.Access
       PSL.Interpreter.Json

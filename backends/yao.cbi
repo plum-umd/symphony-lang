@@ -1,0 +1,59 @@
+proto : yao
+impl : yao.cpp
+
+semi-honest {
+  security {
+    parties: 2
+    corruptible: 1
+  }
+
+  share bool : yao_semi_honest_bool_t
+
+  share nat 32: yao_semi_honest_nat_t
+
+  share int 32: yao_semi_honest_int_t
+
+  share float 53 11: yao_semi_honest_float64_t
+
+  SHARE-INT {
+    crand: 
+    impl: yao_semi_share_int
+    gates: ??
+    rounds: ?? }
+
+  REVEAL-INT {
+    crand:
+    impl: yao_semi_reveal_int
+    gates: ??
+    rounds: ?? }
+
+  PLUS {
+    crand:
+    impl: yao_semi_honest_plus
+    gates: ??
+    rounds: ?? }
+
+  MULT {
+    crand:
+    impl: yao_semi_honest_mult
+    gates: ??
+    rounds: ?? }
+}
+
+malicious {
+  security {
+    parties: 2
+    corruptible: 1
+  }
+
+  share bool 32 : yao_mal_bool_t
+
+  share nat 32 : yao_mal_nat_t
+
+  share int 32 : yao_mal_int_t
+
+  share float 53 11 : yao_mal_float64_t
+
+  // Ben,Ryan: add supported operation with estimates here
+
+}

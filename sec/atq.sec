@@ -1,0 +1,22 @@
+nodes[128] { encryption : 256 } 
+
+connected {
+  full : nodes
+}
+
+revealed {
+  nodes -> nodes // Ryan: confirm
+}
+
+attacks {
+  malicious corruptible : { nodes : (n / 3) - 1 }
+  crand : nodes
+}
+
+crand {
+  beaver : nodes
+}
+
+setup {
+  pki : nodes
+}

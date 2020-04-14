@@ -143,6 +143,7 @@ data Prot =
   | GMWP  -- gmw
   | BGVP  -- bgv
   | SPDZP -- spdz
+  | AutoP -- auto
   deriving (Eq,Ord,Show)
 makePrettySum ''Prot
 
@@ -193,6 +194,8 @@ data Type =
   | SSecT (𝐿 PrinExp) Type                      --  τ{ssec:P}                  /  τ{ssec:P}
   | ISecT (𝐿 PrinExp) Type                      --  τ{isec:P}                  /  τ{isec:P}
   | ShareT Prot (𝐿 PrinExp) Type                --  τ{φ:P}                     /  τ{φ:P}
+  | NizkTestT (𝐿 PrinExp) Type                  --  nizk-test{P} τ             /  nizk-test{P} τ
+  | NizkVerifyT (𝐿 PrinExp) Type                --  nizk-verify{P} τ           /  nizk-verify{P} τ
   deriving (Eq,Ord,Show)
 makePrettySum ''Type
 
@@ -248,7 +251,7 @@ data ExpR =
   | TupE Exp Exp                             -- e,e                     /  e,e
   | NilE                                     -- []                      /  []
   | ConsE Exp Exp                            -- e ∷ e                   /  e :: e
-  | LetTyE Var Type Exp                      -- let ψ : τ in e          /  let ψ : τ in e
+  | LetTyE Pat Exp                           -- let ψ : τ in e          /  let ψ : τ in e
   | LetE Pat Exp Exp                         -- let ψ = e in e          /  let ψ = e in e
   | CaseE Exp (𝐿 (Pat ∧ Exp))                -- case e {ψ→e;…;ψ→e}      /  case e {ψ->e;…;ψ->e}
   | MuxCaseE Exp (𝐿 (Pat ∧ Exp))             -- mux case e {ψ→e;…;ψ→e}  /  mux case e {ψ->e;…;ψ->e}
@@ -286,6 +289,8 @@ data ExpR =
   | DefaultE                                 -- ⊥                       /  _|_
   | ProcE Exp                                -- proc e                  /  proc e
   | ReturnE Exp                              -- return e                /  return e
+  | NizkWitnessE Prot (𝐿 PrinExp) Exp        -- nizk-witness{φ:P} e     /  nizk-witness{φ:P} e
+  | NizkCommitE Prot (𝐿 PrinExp) Exp         -- nizk-commit{φ:P} e      /  nizk-commit{φ:P} e
   deriving (Eq,Ord,Show)
   -- [e₁;…;eₙ] ≜ e₁ ∷ ⋯ ∷ eₙ ∷ []
 makePrettySum ''ExpR

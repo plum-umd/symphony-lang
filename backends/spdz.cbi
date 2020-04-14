@@ -1,0 +1,44 @@
+proto : spdz
+impl : spdz.cpp
+
+malicious {
+  security {
+    parties: any
+    corruptible: n - 1
+  }
+
+  share bool : spdz_mal_bool_t
+
+  share nat 32: spdz_mal_nat_t
+
+  share int 32: spdz_mal_int_t
+
+  share float 53 11: spdz_mal_float64_t
+
+  SHARE-INT {
+    crand: 
+    impl: spdz_mal_share_int
+    gates: ??
+    rounds: ?? }
+
+  REVEAL-INT {
+    crand:
+    impl: spdz_mal_reveal_int
+    gates: ??
+    rounds: ?? }
+
+  PLUS {
+    crand:
+    impl: spdz_mal_plus
+    gates: ??
+    rounds: ?? }
+
+  MULT {
+    crand: beaver
+    impl: spdz_mal_mult
+    gates: ??
+    rounds: ??
+  }
+
+  // Ben, Ryan: fill in other operations here
+}

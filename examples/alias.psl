@@ -1,8 +1,8 @@
 principal A B
 
-def main • = 
+def main () =
   par{A,B}
     let x = ref 0
     do  par{A} x := 2
-    in 
+    in
     par{B} !x

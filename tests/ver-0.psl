@@ -5,10 +5,9 @@
 principal Alice Bob
 
 def main () =
-  ()
-{-
   -- pf: the proof constructed by A that she knows a non-negative
   -- integer.
+  let pf : (nizk-verify {Alice} bool){Alice}
   let pf = par { Alice }
     -- There are two aspirational families of types that will be used
     -- to represent NIZK proofs. The first is the type of tests of
@@ -25,7 +24,8 @@ def main () =
     -- 
     -- is Alice's witness that she knows a non-negative value (namely,
     -- 1).
-    let w = nizk-witness { Alice } 1 in
+    let w : nizk-test { Alice } int in
+    let w = nizk-witness { yao: Alice } 1 in
 
     -- Witness tests can be composed using all operators that shadown
     -- all operators for which can we construct circuits for Boolean
@@ -53,7 +53,7 @@ def main () =
     -- [nizk-commit]. E.g., the following evaluates to a NIZK proof
     -- that Alice knows a value that yields of [true] when substituted
     -- for [x] in the expression [0 <= x]:
-    nizk-commit test-non-neg in
+    nizk-commit {yao:Alice} test-non-neg in
 
   -- once Alice has constructed her NIZK proof, she is free to send it
   -- to other parties, largely like other secret values in the
@@ -65,4 +65,7 @@ def main () =
   -- "nests" under the location type modality. I.e., it would be
   -- allowed that Bob would hold a proof that Alice knows a witness
   -- that evaluates to a particular value.
--}
+
+def expected = 
+  send {Alice -> Bob}
+    (par {Alice} nizk-commit {yao:Alice} (nizk-witness {yao:Alice} true))

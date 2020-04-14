@@ -84,12 +84,12 @@ restrictValP ṽ = do
     (SecM ρs, ISecVP ρvs) → do
       let ρvs' = restrict ρs ρvs
       return $ ISecVP ρvs'
-    (SecM ρs₁, ShareVP φ ρs₂ v) → do
+    (SecM ρs₁, ShareVP zk φ ρs₂ v) → do
       guardErr (ρs₂ ⊆ ρs₁) (throwIErrorCxt TypeIError "restrictValP: ρs₂ ⊈ ρs₁" $ frhs
                             [ ("ρs₁",pretty ρs₁)
                             , ("ρs₂",pretty ρs₂)
                             ])
-      return $ ShareVP φ ρs₂ v
+      return $ ShareVP zk φ ρs₂ v
     (SecM ρs, AllVP v) → do
       v' ← restrictValPRecVal v
       return $ SSecVP ρs v'
@@ -129,13 +129,16 @@ restrictValPRecVal v = case v of
     v₂ ← restrictValP ṽ₂
     return $ PairV v₁ v₂
   DefaultV → return DefaultV
+  NizkVerifyV ρvs ṽ → do
+    ṽ' ← restrictValP ṽ
+    return $ NizkVerifyV ρvs ṽ'
 
 joinShareInfo ∷ (STACK) ⇒ ShareInfo → ShareInfo → IM ShareInfo
 joinShareInfo si₁ si₂ = case (si₁,si₂) of
   (NotShared,_) → return si₂
   (_,NotShared) → return si₁
-  (Shared φ₁ ρs₁,Shared φ₂ ρs₂)
-    | (φ₁ ≡ φ₂) ⩓ (ρs₁ ≡ ρs₂) → return $ Shared φ₁ ρs₁
+  (Shared zk₁ φ₁ ρs₁,Shared zk₂ φ₂ ρs₂)
+    | (zk₁ ≡ zk₂) ⩓ (φ₁ ≡ φ₂) ⩓ (ρs₁ ≡ ρs₂) → return $ Shared zk₁ φ₁ ρs₁
   _ → throwIErrorCxt TypeIError "bad" null
 
 joinShareInfos ∷ (STACK,ToIter ShareInfo t) ⇒ t → IM ShareInfo
@@ -151,9 +154,9 @@ unShareValPMode m = \case
   SSecVP ρs v → do
     guardErr (m ⊑ SecM ρs) $ throwIErrorCxt TypeIError "bad" null
     unShareValMode m v
-  ShareVP φ ρs vmpc → do
+  ShareVP zk φ ρs vmpc → do
     guardErr (SecM ρs ⊑ m) $ throwIErrorCxt TypeIError "bad" null
-    return $ (Shared φ ρs) :* vmpc
+    return $ (Shared zk φ ρs) :* vmpc
   AllVP v → do
     unShareValMode m v
   PairVP ṽ₁ ṽ₂ → do
@@ -202,20 +205,20 @@ unShareValPs = mfoldrFromWith (NotShared :* null) $ \ ṽ (siᵢ :* vmpcs) → d
 reShareValP ∷ (STACK) ⇒ ValMPC → ShareInfo → IM ValP
 reShareValP ṽ = \case
   NotShared → valFrMPC ṽ
-  Shared φ ρs → reShareValPShared φ ρs ṽ
+  Shared zk φ ρs → reShareValPShared zk φ ρs ṽ
 
-reShareValPShared ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → ValMPC → IM ValP
-reShareValPShared φ ρs = \case
-  BaseMV md bvmpc → return $ ShareVP φ ρs $ BaseMV md bvmpc
+reShareValPShared ∷ (STACK) ⇒ 𝔹 → Prot → 𝑃 PrinVal → ValMPC → IM ValP
+reShareValPShared zk φ ρs = \case
+  BaseMV md bvmpc → return $ ShareVP zk φ ρs $ BaseMV md bvmpc
   PairMV vmpc₁ vmpc₂ → do
-    ṽ₁ ← reShareValPShared φ ρs vmpc₁
-    ṽ₂ ← reShareValPShared φ ρs vmpc₂
+    ṽ₁ ← reShareValPShared zk φ ρs vmpc₁
+    ṽ₂ ← reShareValPShared zk φ ρs vmpc₂
     return $ PairVP ṽ₁ ṽ₂
-  SumMV md b vmpc₁ vmpc₂ → return $ ShareVP φ ρs $ SumMV md b vmpc₁ vmpc₂
+  SumMV md b vmpc₁ vmpc₂ → return $ ShareVP zk φ ρs $ SumMV md b vmpc₁ vmpc₂
   NilMV → introValP NilV
   ConsMV vmpc₁ vmpc₂ → do
-    ṽ₁ ← reShareValPShared φ ρs vmpc₁
-    ṽ₂ ← reShareValPShared φ ρs vmpc₂
+    ṽ₁ ← reShareValPShared zk φ ρs vmpc₁
+    ṽ₂ ← reShareValPShared zk φ ρs vmpc₂
     introValP $ ConsV ṽ₁ ṽ₂
   DefaultMV → introValP DefaultV
 
@@ -303,22 +306,25 @@ valFrBaseMPC = \case
   FltMV pr d → introValP $ FltV pr d
   PrinMV pe → introValP $ PrinV $ ValPEV pe
 
-revealValP ∷ (STACK) ⇒ 𝑃 PrinVal → ValP → IM ValP
-revealValP ρsʳ = \case
-  AllVP v → revealVal ρsʳ v
-  SSecVP ρs' v | ρsʳ ⊆ ρs' → revealVal ρsʳ v
-  ShareVP φ ρsˢ vmpc → restrictMode (SecM ρsʳ) $ restrictValP *$ valFrMPCF vmpc $ \ md bvmpc → 
-    tellL iOutResEvsL $ ResEv φ pø ρsˢ ρsʳ (getTypeBaseMPC  bvmpc) "REVEAL" md ↦ 1
+revealValP ∷ (STACK) ⇒ 𝔹 → 𝑃 PrinVal → ValP → IM ValP
+revealValP zkʳ ρsʳ = \case
+  AllVP v → revealVal zkʳ ρsʳ v
+  SSecVP ρs' v | ρsʳ ⊆ ρs' → revealVal zkʳ ρsʳ v
+  ShareVP zk φ ρsˢ vmpc → do
+    when (zk ≢ zkʳ) $ \ _ → 
+      throwIErrorCxt TypeIError "wrong zk mode for reveal" null
+    restrictMode (SecM ρsʳ) $ restrictValP *$ valFrMPCF vmpc $ \ md bvmpc → 
+      tellL iOutResEvsL $ ResEv zk φ pø ρsˢ ρsʳ (getTypeBaseMPC  bvmpc) "REVEAL" md ↦ 1
   PairVP ṽ₁ ṽ₂ → do
-    ṽ₁' ← revealValP ρsʳ ṽ₁
-    ṽ₂' ← revealValP ρsʳ ṽ₂
+    ṽ₁' ← revealValP zkʳ ρsʳ ṽ₁
+    ṽ₂' ← revealValP zkʳ ρsʳ ṽ₂
     return $ PairVP ṽ₁' ṽ₂'
   LocVP m ℓ | SecM ρsʳ ⊑ m → return $ LocVP m ℓ
   ṽ → throwIErrorCxt TypeIError "can't reveal" $ frhs
     [ ("ṽ",pretty ṽ) ]
 
-revealVal ∷ (STACK) ⇒ 𝑃 PrinVal → Val → IM ValP
-revealVal ρsʳ = \case
+revealVal ∷ (STACK) ⇒ 𝔹 → 𝑃 PrinVal → Val → IM ValP
+revealVal zkʳ ρsʳ = \case
   BoolV b → introValP $ BoolV b
   StrV s → introValP $ StrV s
   NatV p n → introValP $ NatV p n
@@ -326,19 +332,19 @@ revealVal ρsʳ = \case
   FltV p f → introValP $ FltV p f
   BulV → introValP BulV
   PairV ṽ₁ ṽ₂ → do
-    ṽ₁' ← revealValP ρsʳ ṽ₁
-    ṽ₂' ← revealValP ρsʳ ṽ₂
+    ṽ₁' ← revealValP zkʳ ρsʳ ṽ₁
+    ṽ₂' ← revealValP zkʳ ρsʳ ṽ₂
     return $ PairVP ṽ₁' ṽ₂'
   LV ṽ → do
-    ṽ' ← revealValP ρsʳ ṽ
+    ṽ' ← revealValP zkʳ ρsʳ ṽ
     introValP $ LV ṽ'
   RV ṽ → do
-    ṽ' ← revealValP ρsʳ ṽ
+    ṽ' ← revealValP zkʳ ρsʳ ṽ
     introValP $ RV ṽ'
   NilV → introValP NilV
   ConsV ṽ₁ ṽ₂ → do
-    ṽ₁' ← revealValP ρsʳ ṽ₁
-    ṽ₂' ← revealValP ρsʳ ṽ₂
+    ṽ₁' ← revealValP zkʳ ρsʳ ṽ₁
+    ṽ₂' ← revealValP zkʳ ρsʳ ṽ₂
     introValP $ ConsV ṽ₁' ṽ₂'
   PrinV pev → introValP $ PrinV pev
   PrinSetV pevs → introValP $ PrinSetV pevs

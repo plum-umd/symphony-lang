@@ -49,7 +49,7 @@ def iter_sec_nat_ls = iter_sec_nat_spdz mux_ls
 
 -- range m n: the list of elements from m to n
 def range m n =
-  if n < m then [ ]
+  if n < m then []
   else map (plus m)
     (elim_nat (n - m)
        [ 0n ]
@@ -236,7 +236,7 @@ def main () =
       (par { Ctr, Cost } karmarkar_loop
         -- read in the matrix of constraints and share them
         (fold-f
-          [ ]
+          []
           (fun Q ctr -> cons (map (shr-w-comp { Q }) (send-ls { Q } comps ctr)))
           (solo { Ctr } as c in read_vec ()) )
         -- read in the vector of costs and share them

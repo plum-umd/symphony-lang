@@ -137,17 +137,18 @@ def snd x = case x { (_, b) -> b }
 ---
 --- isec library
 --- 
-def solo-f : ∀ A:☆. (P:ℙs) → ((p:ℙ | {p}⊆P) →{p} A) →{P} A{isec:P}
+def solo-f : forall A:type. (P:prins) -> ((p:prin | {p} <= P) -> {p} A) -> {P} A{isec:P}
 def solo-f P f = case P
-  { {} → ⟪⟫
-  ; {p}∪P′ → ⟪ p | par {p} f p ⟫ ⧺ solo-f P′ f
+  { {} -> <<>>
+  ; {p} \/ P' -> << p | par {p} f p >> ++ solo-f P' f
   }
 
 
-def fold-f : ∀ A:☆,B:☆,P:ℙs. B → ((p:ℙ | {p}⊆P) → A → B →{P} B) → A{isec:P} →{P} B
+def fold-f : forall A:type, B:type, P:prins.
+           bool -> ((p:prin | {p} <= P) -> A -> B -> {P} B) -> A{isec:P} -> {P} B
 def fold-f i f xs = case xs
-  { ⟪⟫ → i
-  ; ⟪p|x⟫⧺xs′ → f p x (fold-f i f xs′)
+  { <<>> -> i
+  ; <<p | x>> ++ xs' -> f p x (fold-f i f xs')
   }
 
 
@@ -164,7 +165,7 @@ def cons x l = x :: l
 -- decons_ls: wrapper around case matching a list
 def decons_ls : list t -> u -> (t -> list t -> u) -> u
 def decons_ls l a0 f = case l
-  { [ ] -> a0
+  { [] -> a0
   ; x :: l' -> f x l'
   }
 
@@ -239,7 +240,7 @@ def len l = elim_list l 0n (const inc)
 
 -- const_ls a n: a list of a's of size n
 def const-ls : t -> nat -> list t
-def const-ls c n = elim_nat n [ ] (cons c)
+def const-ls c n = elim_nat n [] (cons c)
 
 def zero-ls-flt = const-ls 0.0
 def one-ls-flt = const-ls 1.0
@@ -351,9 +352,9 @@ def snoc x l = append l [ x ]
 
 
 def zip xs ys = case (xs,ys)
-  { ([],_) → []
-  ; (_,[]) → []
-  ; (x∷xs',y∷ys') → (x,y)∷(zip xs' ys')
+  { ([],_) -> []
+  ; (_,[]) -> []
+  ; (x::xs',y::ys') -> (x,y)::(zip xs' ys')
   }
 
 
@@ -377,11 +378,11 @@ def mux_ls guard l0 l1 = zip-map (mux-wrap guard) l0 l1
 def get l i =
   (elim_nat i
     (fun l' -> case l'
-      { [ ] -> err "get: 0th of empty list"
+      { [] -> err "get: 0th of empty list"
       ; x :: l'' -> x
       })
     (fun g l' -> case l'
-      { [ ] -> err "get: ith of non-empty list"
+      { [] -> err "get: ith of non-empty list"
       ; x :: l'' -> g l''
       }) )
     l
@@ -390,11 +391,11 @@ def get l i =
 def upd l i v =
   (elim_nat i
     (fun l' -> case l'
-      { [ ] -> err "set: setting 0th of empty list"
+      { [] -> err "set: setting 0th of empty list"
       ; x :: l' -> v :: l'
       })
     (fun s l' -> case l'
-     { [ ] -> err "set : setting ith of non-empty list"
+     { [] -> err "set : setting ith of non-empty list"
      ; x :: l'' -> x :: (s l'')
      }) )
     l
@@ -452,7 +453,7 @@ def reveal-wrap P x = reveal { P } x
 -- TODO: can this and the following two functions be refactored?
 def send-ls p0 P1 l = 
   case (send{ p0 -> P1 } l)
-  { [ ] -> [ ]
+  { [] -> []
   ; x :: l' -> x :: (send-ls p0 P1 l') 
   }
 
@@ -460,9 +461,9 @@ def send-ls p0 P1 l =
 -- Convert a known list into a list of known objects.
 -- The list will contain the first `n` elements of the known list.
 -- If `n` exceeds the length of the list, the list will be padded with default.
-def sequenceKnownnessN :
-  forall knowers:prin.
-  int -> int -> (list int){ssec:knowers} -> list (int{ssec:knowers})
+-- def sequenceKnownnessN :
+--   forall knowers:prin.
+--   int -> int -> (list int){ssec:knowers} -> list (int{ssec:knowers})
 def sequenceKnownnessN knowers n default xs =
   let shareHead : (list int){ssec:knowers} -> int{ssec:knowers}
   let shareHead = fun xs ->
@@ -470,80 +471,80 @@ def sequenceKnownnessN knowers n default xs =
                   { [] -> default
                   ; x::_ -> x
                   }
-
-  if n == 0
-  then []
-  else
-    shareHead xs ::
-      sequenceKnownnessN knowers (n - 1) default (par {knowers} (tail xs))
+  in
+    if n == 0
+    then []
+    else
+      shareHead xs ::
+        sequenceKnownnessN knowers (n - 1) default (par {knowers} (tail xs))
 
 
 -- Convert a known list into a list of known objects.
 -- WARNING: This shares the length of the list in cleartext.
-def sequenceKnownness :
-  forall knowers:prin.
-  (list int){ssec:knowers} -> list (int{ssec:knowers})
+-- def sequenceKnownness :
+--   forall knowers:prin.
+--   (list int){ssec:knowers} -> list (int{ssec:knowers})
 def sequenceKnownness knowers xs =
   let n = par {knowers} length xs
   let n' = send {knowers -> this} n
   in sequenceKnownnessN {knowers} n' 0 xs
 
-def obliv-head : ∀ P:☆. ℤ → (list ℤ){isec:P} → ℤ{isec:P}
-def obliv-head P i xs = solo {P} as α in case xs@α
-  { [] → i
-  ; x∷_ → x
+def obliv-head : forall P:type. int -> (list int){isec:P} -> int{isec:P}
+def obliv-head P i xs = solo {P} as a in case xs@a
+  { [] -> i
+  ; x :: _ -> x
   }
 
-def obliv-tail : ∀ P:☆. (list ℤ){isec:P} → (list ℤ){isec:P}
-def obliv-tail P xs = solo {P} as α in case xs@α
-  { [] → []
-  ; _∷xs′ → xs′
+def obliv-tail : forall P:type. (list int){isec:P} -> (list int){isec:P}
+def obliv-tail P xs = solo {P} as a in case xs@a
+  { [] -> []
+  ; _ :: xs' -> xs'
   }
 
-def preprocess-lists : (P:ℙ) → ℕ → ℤ → (list ℤ){isec:P} → list ℤ{isec:P}
+def preprocess-lists : (P:prin) -> nat -> int -> (list int){isec:P} -> list int{isec:P}
 def preprocess-lists P n i xs =
   if n <= 0
   then []
   else
-    let x′ : ℤ{isec:P}
-    let x′ = obliv-head P i xs
-    let xs′ : list ℤ{isec:P}
-    let xs′ = preprocess-lists P (n - 1) i (obliv-tail P xs)
+    let x' : int{isec:P}
+    let x' = obliv-head P i xs
+    let xs' : list int{isec:P}
+    let xs' = preprocess-lists P (n - 1) i (obliv-tail P xs)
     in
-    x′ ∷ xs′
+    x' :: xs'
 
 -- Pair an item with each element in a list
-def pair-with-list : a → list b → list (a × b)
+def pair-with-list : a -> list b -> list (a * b)
 def pair-with-list v xs = case xs
-  { [] → []
-  ; x∷xs' → (v, x)∷(pair-with-list v xs')
+  { [] -> []
+  ; x::xs' -> (v, x)::(pair-with-list v xs')
   }
 
 -- Get the head of a list or a default value
 def get-head-or-default ys d = case ys
-    { [] → d
-    ; y∷_ → y
+    { [] -> d
+    ; y::_ -> y
     }
 
 -- Get the element from a list at an index. Default value if out of range
-def elem-at : ℤ → list a → a
+def elem-at : int -> list a -> a
 def elem-at i xs = case xs
-  { [] → -1
-  ; x∷xs' →
-    let b = i ≡ 0
-    in b ? x ◇ (elem-at (i - 1) xs')
+  { [] -> -1
+  ; x::xs' ->
+    let b = i == 0
+    in b ? x >< (elem-at (i - 1) xs')
   }
 
 -- Find out if a pair is an element of a list of triples, ignoring the first element of the triple.
 def elem-triple :
-    (ℤ{bgw:A,B} × ℙ{bgw:A,B})
-  → list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
-  → 𝔹{bgw:A,B}
+    (int{bgw:A,B} * prin{bgw:A,B})
+  -> list (bool{bgw:A,B} * (int{bgw:A,B} * prin{bgw:A,B}))
+  -> bool{bgw:A,B}
 def elem-triple y xs = case (xs,y)
-  { ([],_) → false
-  ; ((_,(a,b))∷xs,(a',b')) →
+  { ([],_) -> false
+  ; ((_,(a,b))::xs,(a',b')) ->
     let b = (a == a') && (b == b')
-    in b ? true ◇ (elem-triple y xs)
+    in b ? true >< (elem-triple y xs)
   }
 
 
@@ -556,16 +557,16 @@ def preprocess-lists-n-triples p t len zs d =
     let b = par {p} fst v
     let q = par {p} fst (snd v)
     let tr = par {p} snd (snd v)
-    in (share{bgw:p → t} b, (share{bgw:p → t} q, share{bgw:p → t} tr)) ∷ (preprocess-lists-n-triples p t (len - 1) (par {p} tail zs) d)
+    in (share{bgw:p -> t} b, (share{bgw:p -> t} q, share{bgw:p -> t} tr)) :: (preprocess-lists-n-triples p t (len - 1) (par {p} tail zs) d)
 
 def preprocess-lists-n p t len zs d =
   if len == 0
   then []
-  else (share{bgw:p → t} (par {p} get-head-or-default zs d)) ∷ (preprocess-lists-n p t (len - 1) (par {p} tail zs) d)
+  else (share{bgw:p -> t} (par {p} get-head-or-default zs d)) :: (preprocess-lists-n p t (len - 1) (par {p} tail zs) d)
 
 def preprocess-lists-reveal-lengths p t xs d =
   let l = par {p} length xs
-  let l' = send {p → t} l
+  let l' = send {p -> t} l
   in preprocess-lists-n p t l' xs d
 
 
@@ -866,10 +867,10 @@ def map-has predicate map =
   in b
 
 def loop-f f n =
-  if n ≡ 0n
-  then •
+  if n == 0n
+  then ()
   else 
-    do f •
+    do f ()
     in loop-f f (n - 1n)
 
 
@@ -964,9 +965,9 @@ def upd-matrix m (i, j) v = upd m i (upd (get m i) j v)
 -- transpose m: transposition of m
 def transpose : list (list t) -> list (list t)
 def transpose m = elim_list m
-  (const-ls [ ]
+  (const-ls []
     (case m
-     { [ ] -> 0n
+     { [] -> 0n
      ; v :: m' -> len v
      }) )
   (zip-map cons)
@@ -990,7 +991,7 @@ def mult-matrices-flt = mult-matrices 0.0
 
 -- dimensions_of m: dimensions of matrix m
 def dimensions_of m = case m
-  { [ ] -> (0n, 0n)
+  { [] -> (0n, 0n)
   ; rv :: m' -> (inc (len m'), len rv)
   }
 
@@ -998,7 +999,7 @@ def dimensions_of m = case m
 -- diagonal-matrix z v: the diagonal matrix of vector v, a vector of
 -- numerics with zero element z.
 def diagonal-matrix z v = elim_list v
-  [ ]
+  []
   (fun x diag -> (x :: (const-ls z (len diag))) :: (map (cons z) diag))
 
 -- diagonal_matrix v: diagonal matrix of floats
@@ -1007,7 +1008,7 @@ def diagonal-matrix-flt = diagonal-matrix 0.0
 
 -- const-sq-mat c n: n x n matrix of constant c
 def const-sq-mat c n = elim_nat n
-  [ ]
+  []
   (cons (const-ls c n))
 
 -- zero-mat: matrix of zero flt's
