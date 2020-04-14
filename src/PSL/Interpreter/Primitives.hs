@@ -106,9 +106,9 @@ opName = \case
   CondO → "COND"
   AbsO → "ABS"
   SqrtO → "SQRT"
-  NatO _p → "TO_NAT" -- change to "NAT" later
-  IntO _p → "TO_INT" -- change to "INT" later
-  FltO _p → "TO_FLT" -- change to "FLT" later
+  NatO _p → "NAT"
+  IntO _p → "INT"
+  FltO _p → "FLT"
   CeilO _p → "CEIL"
 
 
