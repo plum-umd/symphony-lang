@@ -135,9 +135,9 @@ def snd : (a * b) -> a
 def snd x = case x { (_, b) -> b }
 
 ---
---- isec library
+--- bundle library
 --- 
-def solo-f : forall A:type. (P:prins) -> ((p:prin | {p} <= P) -> {p} A) -> {P} A{isec:P}
+def solo-f : forall A:type. (P:prins) -> ((p:prin | {p} <= P) -> {p} A) -> {P} A{bundle:P}
 def solo-f P f = case P
   { {} -> <<>>
   ; {p} \/ P' -> << p | par {p} f p >> ++ solo-f P' f
@@ -145,7 +145,7 @@ def solo-f P f = case P
 
 
 def fold-f : forall A:type, B:type, P:prins.
-           bool -> ((p:prin | {p} <= P) -> A -> B -> {P} B) -> A{isec:P} -> {P} B
+           bool -> ((p:prin | {p} <= P) -> A -> B -> {P} B) -> A{bundle:P} -> {P} B
 def fold-f i f xs = case xs
   { <<>> -> i
   ; <<p | x>> ++ xs' -> f p x (fold-f i f xs')
@@ -463,9 +463,9 @@ def send-ls p0 P1 l =
 -- If `n` exceeds the length of the list, the list will be padded with default.
 -- def sequenceKnownnessN :
 --   forall knowers:prin.
---   int -> int -> (list int){ssec:knowers} -> list (int{ssec:knowers})
+--   int -> int -> (list int){knowers} -> list (int{knowers})
 def sequenceKnownnessN knowers n default xs =
-  let shareHead : (list int){ssec:knowers} -> int{ssec:knowers}
+  let shareHead : (list int){knowers} -> int{knowers}
   let shareHead = fun xs ->
     par {knowers} case xs
                   { [] -> default
@@ -483,32 +483,32 @@ def sequenceKnownnessN knowers n default xs =
 -- WARNING: This shares the length of the list in cleartext.
 -- def sequenceKnownness :
 --   forall knowers:prin.
---   (list int){ssec:knowers} -> list (int{ssec:knowers})
+--   (list int){knowers} -> list (int{knowers})
 def sequenceKnownness knowers xs =
   let n = par {knowers} length xs
   let n' = send {knowers -> this} n
   in sequenceKnownnessN {knowers} n' 0 xs
 
-def obliv-head : forall P:type. int -> (list int){isec:P} -> int{isec:P}
+def obliv-head : forall P:type. int -> (list int){bundle:P} -> int{bundle:P}
 def obliv-head P i xs = solo {P} as a in case xs@a
   { [] -> i
   ; x :: _ -> x
   }
 
-def obliv-tail : forall P:type. (list int){isec:P} -> (list int){isec:P}
+def obliv-tail : forall P:type. (list int){bundle:P} -> (list int){bundle:P}
 def obliv-tail P xs = solo {P} as a in case xs@a
   { [] -> []
   ; _ :: xs' -> xs'
   }
 
-def preprocess-lists : (P:prin) -> nat -> int -> (list int){isec:P} -> list int{isec:P}
+def preprocess-lists : (P:prin) -> nat -> int -> (list int){bundle:P} -> list int{bundle:P}
 def preprocess-lists P n i xs =
   if n <= 0
   then []
   else
-    let x' : int{isec:P}
+    let x' : int{bundle:P}
     let x' = obliv-head P i xs
-    let xs' : list int{isec:P}
+    let xs' : list int{bundle:P}
     let xs' = preprocess-lists P (n - 1) i (obliv-tail P xs)
     in
     x' :: xs'
@@ -548,7 +548,7 @@ def elem-triple y xs = case (xs,y)
   }
 
 
--- Preprocess list functions. Convert lists of isec data with unknown structure into lists of shared data with known structure
+-- Preprocess list functions. Convert lists of bundle data with unknown structure into lists of shared data with known structure
 def preprocess-lists-n-triples p t len zs d =
   if len == 0
   then []

@@ -14,7 +14,7 @@ def list-cond b xs ys = case (xs,ys)
   ; (x :: xs', y :: ys') -> b ? x >< y :: list-cond b xs' ys'
   }
 
-def split : list int{isec:A,B} -> list int{isec:A,B} * list int{isec:A,B}
+def split : list int{bundle:A,B} -> list int{bundle:A,B} * list int{bundle:A,B}
 def split xs = case xs
   { [] -> [] , []
   ; [x] -> [] , [x]
@@ -36,7 +36,7 @@ def merge xs ys = case (xs,ys)
                 (y :: merge xs ys')
   }
 
-def msort : list int{isec:A,B} -> list int{yao:C}
+def msort : list int{bundle:A,B} -> list int{yao:C}
 def msort xs = case xs
   { [] -> []
   ; [xy] ->
@@ -61,10 +61,10 @@ def map f xs = case xs
   ; x::xs' -> f x::map f xs'
   }
 
-def main : unit -> {inp:A,B;rev:E} list int{ssec:E}
+def main : unit -> {inp:A,B;rev:E} list int{E}
 def main () =
-  let xys-pre : (list int){isec:A,B}
+  let xys-pre : (list int){bundle:A,B}
   let xys-pre = solo {A,B} as a in read (list int) from "msort-input.txt"
-  let xys : list int{isec:A,B}
+  let xys : list int{bundle:A,B}
   let xys = preprocess-lists {A,B} 5 0 xys-pre
   in map (fun x -> reveal{E} x) (msort xys)

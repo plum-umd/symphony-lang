@@ -57,7 +57,7 @@ lexer = lexerBasic puns kws prim ops
       ]
     prim = list
       [ "yao","gmw","bgw","bgv","spdz","auto"
-      , "ssec","isec"
+      , "ssec","isec","bundle"
       , "☆","type"
       , "ℙ","prin"
       , "ℙs","prins"
@@ -332,17 +332,17 @@ pType = cpNewContext "type" $ mixfix $ concat
       cpSyntax "}"
       return $ SecT ρes
   -- τ{ssec:P}
+  -- , mixPostfix levelMODE $ do 
+  --     cpSyntax "{"
+  --     cpSyntax "ssec"
+  --     cpSyntax ":"
+  --     ρes ← pPrinExps
+  --     cpSyntax "}"
+  --     return $ SSecT ρes
+  -- τ{bundle:P}
   , mixPostfix levelMODE $ do 
       cpSyntax "{"
-      cpSyntax "ssec"
-      cpSyntax ":"
-      ρes ← pPrinExps
-      cpSyntax "}"
-      return $ SSecT ρes
-  -- τ{isec:P}
-  , mixPostfix levelMODE $ do 
-      cpSyntax "{"
-      cpSyntax "isec"
+      cpSyntax "bundle"
       cpSyntax ":"
       ρes ← pPrinExps
       cpSyntax "}"
