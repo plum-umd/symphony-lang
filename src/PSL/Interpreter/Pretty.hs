@@ -184,6 +184,11 @@ asListV = \case
   NilV → return $ Nil :* None
   _ → abort
 
+asNtupVP ∷ ValP → 𝐼 ValP
+asNtupVP = \case
+  PairVP ṽ₁ ṽ₂ → asNtupVP ṽ₁ ⧺ single ṽ₂
+  ṽ → single ṽ
+
 instance Pretty PrinVal where
   pretty = \case
     SinglePV ρ → ppCon ρ
@@ -216,7 +221,9 @@ instance Pretty ValP where
          pretty vmpc
      AllVP (v ∷ Val) → pretty v
      UnknownVP → ppCon "unknown" 
-     PairVP (ṽ₁ ∷ ValP) (ṽ₂ ∷ ValP) → ppInflF ppTight levelCOMMA (ppPun ",") (pretty ṽ₁) $ pretty ṽ₂
+     PairVP ṽ₁ ṽ₂ → 
+       let ṽs = asNtupVP ṽ₁ ⧺ single ṽ₂
+       in ppLevel levelCOMMA $ ppCollection ppSpaceIfBreak null (ppPun ",") $ map pretty $ iter ṽs
 
 instance Pretty ValMPC where
   pretty = \case
