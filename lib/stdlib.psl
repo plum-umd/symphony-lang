@@ -1013,3 +1013,5 @@ def const-sq-mat c n = elim_nat n
 
 -- zero-mat: matrix of zero flt's
 def zero-mat = const-sq-mat 0.0
+
+def to_flt x = flt x
