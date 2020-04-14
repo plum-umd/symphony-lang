@@ -80,6 +80,53 @@ The Docker image can be built without Stack being installed.])[
 esac
 ]AC_SUBST([STACK_MISSING])[
 
+]AC_CACHE_CHECK(
+  [if ${STACK:-stack} is new enough],
+  [psl_cv_stack_version_check],
+  [[
+    psl_cv_stack_version_check=no
+    case "$psl_cv_stack_check" in
+      yes)
+        while :; do
+          STACK_VERSION=`eval " $STACK --numeric-version 2>&1"`
+          STACK_STATUS=$?
+          printf '%s\n' "$STACK_VERSION" >&]AS_MESSAGE_LOG_FD[ || exit $?
+          printf '%s\n' "$STACK_VERSION" > conftest_stack_version.txt || exit $?
+          case $STACK_STATUS in
+            0) ;;
+            *) break ;;
+          esac
+          grep '^\(0\|[1-9][0-9]*\)\.\(0\|[1-9][0-9]*\)\.\(0\|[1-9][0-9]*\)$' conftest_stack_version.txt >/dev/null
+          case $? in
+            0) ;;
+            1) break ;;
+            *) exit $? ;;
+          esac
+          case "$STACK_VERSION" in
+            2.1.[3-9] | 2.1.??* | \
+            2.[2-9].* | 2.??*.* | \
+            [3-9].*.* | ??*.*.* \
+            ) psl_cv_stack_version_check=yes ;;
+          esac
+          break
+        done
+      ;;
+      esac
+  ]])[
+
+case $psl_cv_stack_version_check in
+  yes)
+    STACK_OLD=no
+  ;;
+  *)
+    STACK_OLD=yes
+    ]AC_MSG_WARN(
+[Haskell Stack is too old to build this project.
+The Docker image can be built without Stack.])[
+  ;;
+esac
+]AC_SUBST([STACK_OLD])[
+
 ]dnl begin_includes
 [
 
