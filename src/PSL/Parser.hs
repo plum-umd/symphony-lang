@@ -743,6 +743,10 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntax "flt" 
       fp ← pFPrecision
       return $ \ e → PrimE (FltO fp) $ list [e]
+  , fmixPrefix levelAPP $ do 
+      cpSyntax "ceil" 
+      ip ← pIPrecision
+      return $ \ e → PrimE (CeilO ip) $ list [e]
   , fmixInfixR levelCOND $ do
       cpSyntax "?"
       e₂ ← pExp

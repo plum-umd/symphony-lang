@@ -1,5 +1,6 @@
-module PSL.Interpreter.Pretty where
+module PSL.Interpreter.PrettyFuture where
 
+{-
 import UVMHS
 
 import PSL.Syntax
@@ -227,3 +228,4 @@ ppInflF f i oM x₁M x₂M = ppGA $ ppLevel i $ f $ map ppAlign $ iter [x₁M,oM
 
 ppTight ∷ (ToIter Doc t) ⇒ t → Doc
 ppTight = ppGroup ∘ concat ∘ inbetween ppNewlineIfBreak ∘ iter
+-}

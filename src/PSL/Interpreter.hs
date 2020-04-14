@@ -360,7 +360,9 @@ interpExp = wrapInterp $ \case
   MuxIfE e₁ e₂ e₃ → do
     ṽ₁ ← interpExp e₁
     si₁ :* vmpc₁ ← unShareValP ṽ₁
-    md₁ :* bvmpc₁ ← error𝑂 (view baseMVL vmpc₁) $ throwIErrorCxt TypeIError "bad" null
+    md₁ :* bvmpc₁ ← error𝑂 (view baseMVL vmpc₁) $ 
+      throwIErrorCxt TypeIError "interpExp: MuxIfE: vmpc₁ ≠ BaseMV _ _" $ frhs
+        [ ("vmpc₁",pretty vmpc₁) ]
     b₁ ← error𝑂 (view boolMVL bvmpc₁) $ throwIErrorCxt TypeIError "bad" null
     ṽ₂ ← mapEnvL iCxtMPCPathConditionL ((md₁:* b₁ :* si₁) :&) $ do
       interpExp e₂
@@ -707,7 +709,6 @@ interpExp = wrapInterp $ \case
       localL iCxtMPCPathConditionL null $ 
       interpExp e
     si₀ :* vmpc₀ ← unShareValP ṽ
-    pptraceM κ
     si :* vmpc ← mfoldrOnFrom (reverse κ) (si₀ :* vmpc₀) $ \ (pcᴿ :* si₁ :* vmpcᴿ₀) (si₂ :*  vmpc) →  do
       si₃ ← joinShareInfo si₁ si₂
       mfoldrOnFrom pcᴿ (si₃ :* vmpcᴿ₀) $ \ (mdᵖᶜ :* bᵖᶜ :* siᵖᶜ) (si :* vmpcᴿ) → do
