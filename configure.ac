@@ -88,9 +88,14 @@ esac
     case "$psl_cv_stack_check" in
       yes)
         while :; do
-          eval " $STACK --numeric-version 2>&1" > conftest_stack_version.txt || break
-          STACK_VERSION=`cat conftest_stack_version.txt` || exit $?
-          printf '%s\n' "$STACK_VERSION" >&]AS_MESSAGE_LOG_FD[
+          STACK_VERSION=`eval " $STACK --numeric-version 2>&1"`
+          STACK_STATUS=$?
+          printf '%s\n' "$STACK_VERSION" >&]AS_MESSAGE_LOG_FD[ || exit $?
+          printf '%s\n' "$STACK_VERSION" > conftest_stack_version.txt || exit $?
+          case $STACK_STATUS in
+            0) ;;
+            *) break ;;
+          esac
           grep '^\(0\|[1-9][0-9]*\)\.\(0\|[1-9][0-9]*\)\.\(0\|[1-9][0-9]*\)$' conftest_stack_version.txt >/dev/null
           case $? in
             0) ;;
