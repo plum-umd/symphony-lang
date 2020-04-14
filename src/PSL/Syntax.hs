@@ -162,12 +162,12 @@ iprDefault ∷ IPrecision
 iprDefault = FixedIPr 64 0
 
 data FPrecision = 
-    FixedFPr ℕ
+    FixedFPr ℕ ℕ
   deriving (Eq,Ord,Show)
 makePrettySum ''FPrecision
 
 fprDefault ∷ FPrecision
-fprDefault = FixedFPr 64
+fprDefault = FixedFPr 11 53
 
 ----------
 -- Type --
@@ -191,8 +191,8 @@ data Type =
   | (𝕏 ∧ Type ∧ 𝐿 Constr) :→†: (Effect ∧ Type)  --  (x : τ | c,…,c) →{η} τ     /  (x : τ | c,…,c) ->{η} τ
   | ForallT (𝐿 (TVar ∧ Kind)) (𝐿 Constr) Type   --  ∀ α:κ,…,α:κ | c,…,c. τ     /  forall α:κ,…,α:κ | c,…,c. τ
   | SecT (𝐿 PrinExp) Type                       --  τ{P}                       /  τ{P}
-  | SSecT (𝐿 PrinExp) Type                      --  τ{ssec:P}                  /  τ{ssec:P}
-  | ISecT (𝐿 PrinExp) Type                      --  τ{isec:P}                  /  τ{isec:P}
+  -- | SSecT (𝐿 PrinExp) Type                      --  τ{ssec:P}                  /  τ{ssec:P}
+  | ISecT (𝐿 PrinExp) Type                      --  τ{bundle:P}                /  τ{bundle:P}
   | ShareT Prot (𝐿 PrinExp) Type                --  τ{φ:P}                     /  τ{φ:P}
   | NizkTestT (𝐿 PrinExp) Type                  --  nizk-test{P} τ             /  nizk-test{P} τ
   | NizkVerifyT (𝐿 PrinExp) Type                --  nizk-verify{P} τ           /  nizk-verify{P} τ
@@ -230,6 +230,36 @@ data Pat =
 makePrettySum ''Pat
 makePrisms ''Pat
 
+--------------------------
+-- Primitive Operations --
+--------------------------
+
+data Op = 
+    OrO
+  | AndO
+  | NotO
+  | PlusO
+  | MinusO
+  | TimesO
+  | ExpO
+  | DivO
+  | ModO 
+  | EqO
+  | LTO
+  | GTO
+  | LTEO
+  | GTEO
+  | CondO
+  | AbsO
+  | SqrtO
+  | NatO IPrecision
+  | IntO IPrecision
+  | FltO FPrecision
+  | CeilO IPrecision
+  deriving (Eq,Ord,Show)
+makePrettySum ''Op
+makePrisms ''Op
+
 -------------------
 -- Program Terms --
 -------------------
@@ -259,7 +289,6 @@ data ExpR =
   | AppE Exp Exp                             -- e e                     /  e e
   | TLamE TVar Exp                           -- Λ α → e                 /  abs α → e
   | TAppE Exp Type                           -- e@τ                     /  e@τ
-  -- | SoloE (𝐿 PrinExp) Exp                 -- {P} e                   /  {P} e
   | ParE (𝐿 PrinExp) Exp                     -- par {P} e               /  par {P} e
   | ShareE Prot (𝐿 PrinExp) (𝐿 PrinExp) Exp  -- share{φ:P→P} e          /  share{φ:P->P} e
   | AccessE Exp PrinExp                      -- e@ρ                     /  e@ρ
@@ -274,7 +303,7 @@ data ExpR =
   | RandRangeE Type Exp                      -- rand-range τ e          /  rand-range τ e
   | InferE                                   -- _                       /  _
   | HoleE                                    -- ⁇                       /  ??
-  | PrimE 𝕊 (𝐿 Exp)                          -- prim[⊙](e,…,e)          /  prim[⊙](e,…,e)
+  | PrimE Op (𝐿 Exp)                         -- prim[⊙](e,…,e)          /  prim[⊙](e,…,e)
   | TraceE Exp Exp                           -- trace e in e            /  trace e in e
   | SetE (𝐿 PrinExp)                         -- {P}                     /  {P}
   | RefE Exp                                 -- ref e                   /  ref e
@@ -284,8 +313,6 @@ data ExpR =
   | ArrayReadE Exp Exp                       -- e.e                     /  e.e
   | ArrayWriteE Exp Exp                      -- e ← e                   /  e <- e
   | SizeE Exp                                -- size e                  /  size e
-  | ToIntE IPrecision Exp                    -- int#n.n                 /  int#n.n
-  | ToNatE IPrecision Exp                    -- nat#n.n                 /  nat#n.n
   | DefaultE                                 -- ⊥                       /  _|_
   | ProcE Exp                                -- proc e                  /  proc e
   | ReturnE Exp                              -- return e                /  return e

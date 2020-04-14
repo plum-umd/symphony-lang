@@ -11,12 +11,12 @@ psl: build
 	ln -s `stack path --dist-dir`/build/psl/psl ./
 
 all-examples: psl
-	./psl example $(FLAGS) euclid
 	./psl example $(FLAGS) msort
-	./psl example $(FLAGS) qsort-pure
-	# ./psl example db-stats
-	./psl example $(FLAGS) atq
+	./psl example $(FLAGS) qsort
+	./psl example $(FLAGS) euclid
 	./psl example $(FLAGS) karmarkar
+	./psl example $(FLAGS) db-stats
+	# ./psl example $(FLAGS) atq
 
 .stack-work:
 	stack setup

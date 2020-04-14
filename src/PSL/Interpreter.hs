@@ -192,16 +192,20 @@ interpApp ṽ₁ ṽ₂ = do
 wrapInterp ∷ (STACK) ⇒ (ExpR → IM ValP) → Exp → IM ValP
 wrapInterp f e = localL iCxtSourceL (Some $ annotatedTag e) $ f $ extract e
 
-reportPrimop ∷ (STACK) ⇒ 𝕊 → 𝕊 → ℕ → ShareInfo → IM ()
-reportPrimop τ op md = \case
+reportPrimop ∷ (STACK) ⇒ 𝕊 → 𝕊 → 𝕊 → ℕ → ShareInfo → IM ()
+reportPrimop τ₁ τ₂ op md = \case
   NotShared → skip
-  Shared zk φ ρs →
-    tellL iOutResEvsL $ ResEv zk φ ρs pø pø τ op md ↦ 1
+  Shared zk φ ρs → do
+    let τ :* τf :* τt =
+          if τ₂ ≡ null 
+          then τ₁ :* null :* null
+          else null :* τ₁ :* τ₂
+    tellL iOutResEvsL $ ResEv zk φ ρs pø pø τ τf τt op md ↦ 1
 
-interpReportPrim ∷ 𝕊 → ℕ → ShareInfo → 𝐿 BaseValMPC → IM (ℕ ∧ BaseValMPC)
+interpReportPrim ∷ Op → ℕ → ShareInfo → 𝐿 BaseValMPC → IM (ℕ ∧ BaseValMPC)
 interpReportPrim op md si vmpcs = do
-  τ :* vmpc ← interpPrim op vmpcs
-  reportPrimop τ op md si
+  τ₁ :* τ₂ :* vmpc ← interpPrim op vmpcs
+  reportPrimop τ₁ τ₂ (opName op) md si
   return $ (md + multDepthShareInfo op si) :* vmpc
 
 defaultBaseVal ∷ (STACK) ⇒ BaseValMPC → BaseValMPC
@@ -217,15 +221,15 @@ sumMPCVal si vmpc₁ vmpc₂ = case (vmpc₁,vmpc₂) of
   (DefaultMV,DefaultMV) → return DefaultMV
   (BaseMV md₁ bvmpc₁,BaseMV md₂ bvmpc₂) → do
     let md = md₁ ⊔ md₂
-    md' :* vmpc ← interpReportPrim "PLUS" md si $ list [bvmpc₁,bvmpc₂]
+    md' :* vmpc ← interpReportPrim PlusO md si $ list [bvmpc₁,bvmpc₂]
     return $ BaseMV md' vmpc
   (BaseMV md₁ bvmpc₁,DefaultMV) → do
     let bvmpc₂ = defaultBaseVal bvmpc₁
-    md' :* vmpc ← interpReportPrim "PLUS" md₁ si $ list [bvmpc₁,bvmpc₂]
+    md' :* vmpc ← interpReportPrim PlusO md₁ si $ list [bvmpc₁,bvmpc₂]
     return $ BaseMV md' vmpc
   (DefaultMV,BaseMV md₂ bvmpc₂) → do
     let bvmpc₁ = defaultBaseVal bvmpc₁
-    md' :* vmpc ← interpReportPrim "PLUS" md₂ si $ list [bvmpc₁,bvmpc₂]
+    md' :* vmpc ← interpReportPrim PlusO md₂ si $ list [bvmpc₁,bvmpc₂]
     return $ BaseMV md' vmpc
   (PairMV vmpc₁₁ vmpc₁₂,PairMV vmpc₂₁ vmpc₂₂) → do
     vmpc₁' ← sumMPCVal si vmpc₁₁ vmpc₂₁
@@ -241,21 +245,21 @@ sumMPCVal si vmpc₁ vmpc₂ = case (vmpc₁,vmpc₂) of
     return $ PairMV vmpc₁' vmpc₂'
   (SumMV md₁ b₁ mvpc₁₁ mvpc₁₂,SumMV md₂ b₂ mvpc₂₁ mvpc₂₂) → do
     let md = md₁ ⊔ md₂
-    md₁' :* bvmpc ← interpReportPrim "OR" md si $ list [BoolMV b₁,BoolMV b₂]
+    md₁' :* bvmpc ← interpReportPrim OrO md si $ list [BoolMV b₁,BoolMV b₂]
     b₁' ← error𝑂 (view boolMVL bvmpc) $ throwIErrorCxt InternalIError "bad" null
     vmpc₁' ← sumMPCVal si mvpc₁₁ mvpc₂₁
     vmpc₂' ← sumMPCVal si mvpc₁₂ mvpc₂₂
     return $ SumMV md₁' b₁' vmpc₁' vmpc₂'
   (SumMV md₁ b₁ mvpc₁₁ mvpc₁₂,DefaultMV) → do
     let md = md₁
-    md₁' :* bvmpc ← interpReportPrim "OR" md si $ list [BoolMV b₁,BoolMV False]
+    md₁' :* bvmpc ← interpReportPrim OrO md si $ list [BoolMV b₁,BoolMV False]
     b₁' ← error𝑂 (view boolMVL bvmpc) $ throwIErrorCxt InternalIError "bad" null
     vmpc₁' ← sumMPCVal si mvpc₁₁ DefaultMV
     vmpc₂' ← sumMPCVal si mvpc₁₂ DefaultMV
     return $ SumMV md₁' b₁' vmpc₁' vmpc₂'
   (DefaultMV,SumMV md₂ b₂ mvpc₂₁ mvpc₂₂) → do
     let md = md₂
-    md₁' :* bvmpc ← interpReportPrim "OR" md si $ list [BoolMV False,BoolMV b₂]
+    md₁' :* bvmpc ← interpReportPrim OrO md si $ list [BoolMV False,BoolMV b₂]
     b₁' ← error𝑂 (view boolMVL bvmpc) $ throwIErrorCxt InternalIError "bad" null
     vmpc₁' ← sumMPCVal si DefaultMV mvpc₂₁
     vmpc₂' ← sumMPCVal si DefaultMV mvpc₂₂
@@ -270,17 +274,17 @@ muxMPCVal md₁ si b₁ vmpc₂ vmpc₃ = case (vmpc₂, vmpc₃) of
   (DefaultMV,DefaultMV) → return DefaultMV
   (BaseMV md₂ bvmpc₂,BaseMV md₃ bvmpc₃) → do
     let md = md₁ ⊔ md₂ ⊔ md₃
-    md' :* vmpc ← interpReportPrim "COND" md si $ list [BoolMV b₁,bvmpc₂,bvmpc₃]
+    md' :* vmpc ← interpReportPrim CondO md si $ list [BoolMV b₁,bvmpc₂,bvmpc₃]
     return $ BaseMV md' vmpc
   (BaseMV md₂ bvmpc₂,DefaultMV) → do
     let bvmpc₃ = defaultBaseVal bvmpc₂
     let md = md₁ ⊔ md₂
-    md' :* vmpc ← interpReportPrim "COND" md si $ list [BoolMV b₁,bvmpc₂,bvmpc₃]
+    md' :* vmpc ← interpReportPrim CondO md si $ list [BoolMV b₁,bvmpc₂,bvmpc₃]
     return $ BaseMV md' vmpc
   (DefaultMV,BaseMV md₃ bvmpc₃) → do
     let bvmpc₂ = defaultBaseVal bvmpc₃
     let md = md₁ ⊔ md₃
-    md' :* vmpc ← interpReportPrim "COND" md si $ list [BoolMV b₁,bvmpc₂,bvmpc₃]
+    md' :* vmpc ← interpReportPrim CondO md si $ list [BoolMV b₁,bvmpc₂,bvmpc₃]
     return $ BaseMV md' vmpc
   (PairMV vmpc₂₁ vmpc₂₂,PairMV vmpc₃₁ vmpc₃₂) → do
     vmpc₁' ← muxMPCVal md₁ si b₁ vmpc₂₁ vmpc₃₁
@@ -296,21 +300,21 @@ muxMPCVal md₁ si b₁ vmpc₂ vmpc₃ = case (vmpc₂, vmpc₃) of
     return $ PairMV vmpc₁' vmpc₂'
   (SumMV md₂ b₂ vmpc₂₂ vmpc₂₃,SumMV md₃ b₃ vmpc₃₂ vmpc₃₃) → do
     let md = md₁ ⊔ md₂ ⊔ md₃
-    md₁' :* bvmpc₁' ← interpReportPrim "COND" md si $ list [BoolMV b₁,BoolMV b₂,BoolMV b₃]
+    md₁' :* bvmpc₁' ← interpReportPrim CondO md si $ list [BoolMV b₁,BoolMV b₂,BoolMV b₃]
     b₁' ← error𝑂 (view boolMVL bvmpc₁') $ throwIErrorCxt InternalIError "bad" null
     vmpc₁' ← muxMPCVal md₁ si b₁ vmpc₂₂ vmpc₃₂
     vmpc₂' ← muxMPCVal md₁ si b₁ vmpc₂₃ vmpc₃₃
     return $ SumMV md₁' b₁' vmpc₁' vmpc₂'
   (SumMV md₂ b₂ vmpc₂₂ vmpc₂₃,DefaultMV) → do
     let md = md₁ ⊔ md₂
-    md₁' :* bvmpc₁' ← interpReportPrim "COND" md si $ list [BoolMV b₁,BoolMV b₂,BoolMV False]
+    md₁' :* bvmpc₁' ← interpReportPrim CondO md si $ list [BoolMV b₁,BoolMV b₂,BoolMV False]
     b₁' ← error𝑂 (view boolMVL bvmpc₁') $ throwIErrorCxt InternalIError "bad" null
     vmpc₁' ← muxMPCVal md₁ si b₁ vmpc₂₂ DefaultMV
     vmpc₂' ← muxMPCVal md₁ si b₁ vmpc₂₃ DefaultMV
     return $ SumMV md₁' b₁' vmpc₁' vmpc₂'
   (DefaultMV,SumMV md₃ b₃ vmpc₃₂ vmpc₃₃) → do
     let md = md₁ ⊔ md₃
-    md₁' :* bvmpc₁' ← interpReportPrim "COND" md si $ list [BoolMV b₁,BoolMV False,BoolMV b₃]
+    md₁' :* bvmpc₁' ← interpReportPrim CondO md si $ list [BoolMV b₁,BoolMV False,BoolMV b₃]
     b₁' ← error𝑂 (view boolMVL bvmpc₁') $ throwIErrorCxt InternalIError "bad" null
     vmpc₁' ← muxMPCVal md₁ si b₁ DefaultMV vmpc₃₂
     vmpc₂' ← muxMPCVal md₁ si b₁ DefaultMV vmpc₃₃
@@ -356,7 +360,9 @@ interpExp = wrapInterp $ \case
   MuxIfE e₁ e₂ e₃ → do
     ṽ₁ ← interpExp e₁
     si₁ :* vmpc₁ ← unShareValP ṽ₁
-    md₁ :* bvmpc₁ ← error𝑂 (view baseMVL vmpc₁) $ throwIErrorCxt TypeIError "bad" null
+    md₁ :* bvmpc₁ ← error𝑂 (view baseMVL vmpc₁) $ 
+      throwIErrorCxt TypeIError "interpExp: MuxIfE: vmpc₁ ≠ BaseMV _ _" $ frhs
+        [ ("vmpc₁",pretty vmpc₁) ]
     b₁ ← error𝑂 (view boolMVL bvmpc₁) $ throwIErrorCxt TypeIError "bad" null
     ṽ₂ ← mapEnvL iCxtMPCPathConditionL ((md₁:* b₁ :* si₁) :&) $ do
       interpExp e₂
@@ -436,7 +442,7 @@ interpExp = wrapInterp $ \case
     sv ← restrictMode (SecM ρvs₁) $ do
       v ← elimValP ṽ
       mpcFrValF v $ \ bv → do
-        tellL iOutResEvsL $ ResEv False φ pø ρvs₁ ρvs₂ (getTypeBaseMPC bv) "SHARE" 0 ↦ 1
+        tellL iOutResEvsL $ ResEv False φ pø ρvs₁ ρvs₂ (getTypeBaseMPC bv) null null "SHARE" 0 ↦ 1
     reShareValPShared False φ ρvs₂ sv 
   AccessE e ρ → do
     ρv ← interpPrinExpSingle ρ
@@ -564,19 +570,20 @@ interpExp = wrapInterp $ \case
         [ ("τ',bv₁,bv₂",pretty (τ' :* bv₁ :* bv₂)) ]
     si' ← joinShareInfos [si₀,si₁,si₂]
     let md = 1 + (md₁ ⊔ md₂)
-    reportPrimop (getTypeBaseMPC bv₁) "RANDR" md si'
+    case si' of
+      NotShared → skip
+      Shared zk φ ρs → do
+        tellL iOutResEvsL $ ResEv zk φ ρs pø pø (getTypeBaseMPC bv₁) null null "RANDR" md ↦ 1
     reShareValP (BaseMV (md₁ ⊔ md₂) bv') si'
   -- InferE
   -- HoleE
   PrimE o es → do
     ṽs ← mapM interpExp es
     si :* vmpcs ← unShareValPs ṽs
-    mds :* bvmpcs ← split ^$ error𝑂 (mapMOn vmpcs $ \ vmpc → frhs ^$ view baseMVL vmpc) $ throwIErrorCxt TypeIError "bad" null
+    mds :* bvmpcs ← split ^$ error𝑂 (mapMOn vmpcs $ view baseMVL) $ throwIErrorCxt TypeIError "bad" null
     let md = joins mds
     md' :* bvmpc ← interpReportPrim o md si $ list bvmpcs
-    case si of
-      NotShared → valFrBaseMPC bvmpc
-      Shared zk φ ρs → return $ ShareVP zk φ ρs $ BaseMV md' bvmpc
+    reShareValP (BaseMV md' bvmpc) si
   TraceE e₁ e₂ → do
     v ← interpExp e₁
     pptrace v $ interpExp e₂
@@ -591,29 +598,21 @@ interpExp = wrapInterp $ \case
   RefReadE e → do 
     ṽ ← interpExp e
     v ← elimValP ṽ
-    case v of
-      LocV ℓ → do
-        σ ← getL iStateStoreL
-        case σ ⋕? ℓ of
-          Some ṽ' → restrictValP ṽ'
-          None → throwIErrorCxt InternalIError "interpExp: RefReadE: ℓ ∉ dom(σ)" $ frhs
-            [ ("ℓ",pretty ℓ)
-            , ("dom(σ)",pretty $ keys𝑊 σ)
-            ]
-      _ → throwIErrorCxt TypeIError "interpExp: RefReadE: v ≠ LocV _" $ frhs
-        [ ("v",pretty v)
+    ℓ ← elimLocV v
+    σ ← getL iStateStoreL
+    case σ ⋕? ℓ of
+      Some ṽ' → restrictValP ṽ'
+      None → throwIErrorCxt InternalIError "interpExp: RefReadE: ℓ ∉ dom(σ)" $ frhs
+        [ ("ℓ",pretty ℓ)
+        , ("dom(σ)",pretty $ keys𝑊 σ)
         ]
   RefWriteE e₁ e₂ → do
     ṽ₁ ← interpExp e₁ 
     ṽ₂ ← interpExp e₂
     v₁ ← elimValP ṽ₁
-    case v₁ of
-      LocV ℓ → do
-        modifyL iStateStoreL $ \ σ → (ℓ ↦♮ ṽ₂) ⩌♮ σ
-        return ṽ₂
-      _ → throwIErrorCxt TypeIError "interpExp: RefWriteE: v₁ ≠ Loc ℓ" $ frhs
-        [ ("v₁",pretty v₁)
-        ]
+    ℓ ← elimLocV v₁
+    modifyL iStateStoreL $ \ σ → (ℓ ↦♮ ṽ₂) ⩌♮ σ
+    return ṽ₂
   ArrayE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
@@ -632,8 +631,9 @@ interpExp = wrapInterp $ \case
     ṽ₂ ← interpExp e₂
     v₁ ← elimValP ṽ₁
     v₂ ← elimValP ṽ₂
-    case (v₁,v₂) of
-      (LocV ℓ,NatV _ n) → do
+    ℓ ← elimLocV v₁
+    case v₂ of
+      NatV _ n → do
         σ ← getL iStateStoreL
         case σ ⋕? ℓ of
           Some ṽ' → do
@@ -651,7 +651,7 @@ interpExp = wrapInterp $ \case
             [ ("ℓ",pretty ℓ)
             , ("dom(σ)",pretty $ keys𝑊 σ)
             ]
-      _ → throwIErrorCxt TypeIError "interpExp: ArrayReadE: (v₁,v₂) ≠ (LocV _,NatV _ _)" $ frhs
+      _ → throwIErrorCxt TypeIError "interpExp: ArrayReadE: v₂ ≠ NatV _ _" $ frhs
         [ ("v₁",pretty v₁)
         , ("v₂",pretty v₂)
         ]
@@ -661,8 +661,9 @@ interpExp = wrapInterp $ \case
     ṽ₃ ← interpExp e₃
     v₁ ← elimValP ṽ₁
     v₂ ← elimValP ṽ₂
-    case (v₁,v₂) of
-      (LocV ℓ,NatV _ n) → do
+    ℓ ← elimLocV v₁
+    case v₂ of
+      NatV _ n → do
         σ ← getL iStateStoreL
         case σ ⋕? ℓ of
           Some ṽ' → do
@@ -685,36 +686,22 @@ interpExp = wrapInterp $ \case
             [ ("ℓ",pretty ℓ)
             , ("dom(σ)",pretty $ keys𝑊 σ)
             ]
-      _ → throwIErrorCxt TypeIError "interpExp: ArrayWriteE: (v₁,v₂) ≠ (LocV _,NatV _ _)" $ frhs
+      _ → throwIErrorCxt TypeIError "interpExp: ArrayWriteE: v₂ ≠ NatV _ _" $ frhs
         [ ("v₁",pretty v₁)
         , ("v₂",pretty v₂)
         ]
   SizeE e → do
     ṽ ← interpExp e
     v ← elimValP ṽ
-    case v of
-      LocV ℓ → do
-        σ ← getL iStateStoreL
-        case σ ⋕? ℓ of
-          Some ṽ' → do
-            v' ← elimValP ṽ'
-            case v' of
-              ArrayV ṽs → introValP $ NatV InfIPr $ nat $ size ṽs
-              _ → throwIErrorCxt TypeIError "interpExp: SizeE: v' ≠ ArrayV _" null
-          _ → throwIErrorCxt TypeIError "interpExp: SizeE: ℓ ∉ dom(σ)" null
-      _ → throwIErrorCxt TypeIError "interpExp: SizeE: v ≠ LocV _" null
-  ToIntE p e → do
-    ṽ ← interpExp e
-    v ← elimValP ṽ
-    case v of
-      NatV _ n → introValP $ IntV p $ trPrInt p $ int n
-      _ → throwIErrorCxt TypeIError "interpExp: ToIntE: v ∉ {NatV _ n}" null
-  ToNatE p e → do
-    ṽ ← interpExp e
-    v ← elimValP ṽ
-    case v of
-      IntV _ i → introValP $ NatV p $ trPrNat p $ natΩ i
-      _ → throwIErrorCxt TypeIError "interpExp: ToIntE: v ∉ {NatV _ n}" null
+    ℓ ← elimLocV v
+    σ ← getL iStateStoreL
+    case σ ⋕? ℓ of
+      Some ṽ' → do
+        v' ← elimValP ṽ'
+        case v' of
+          ArrayV ṽs → introValP $ NatV InfIPr $ nat $ size ṽs
+          _ → throwIErrorCxt TypeIError "interpExp: SizeE: v' ≠ ArrayV _" null
+      _ → throwIErrorCxt TypeIError "interpExp: SizeE: ℓ ∉ dom(σ)" null
   DefaultE → introValP DefaultV
   ProcE e → do
     κ :* ṽ ← 
@@ -722,7 +709,6 @@ interpExp = wrapInterp $ \case
       localL iCxtMPCPathConditionL null $ 
       interpExp e
     si₀ :* vmpc₀ ← unShareValP ṽ
-    pptraceM κ
     si :* vmpc ← mfoldrOnFrom (reverse κ) (si₀ :* vmpc₀) $ \ (pcᴿ :* si₁ :* vmpcᴿ₀) (si₂ :*  vmpc) →  do
       si₃ ← joinShareInfo si₁ si₂
       mfoldrOnFrom pcᴿ (si₃ :* vmpcᴿ₀) $ \ (mdᵖᶜ :* bᵖᶜ :* siᵖᶜ) (si :* vmpcᴿ) → do
@@ -741,7 +727,7 @@ interpExp = wrapInterp $ \case
     ṽ ← interpExp e
     v ← elimValP ṽ
     sv ← mpcFrValF v $ \ bv → do
-        tellL iOutResEvsL $ ResEv True φ ρvs pø pø (getTypeBaseMPC bv) "SHARE" 0 ↦ 1
+        tellL iOutResEvsL $ ResEv True φ ρvs pø pø (getTypeBaseMPC bv) null null "SHARE" 0 ↦ 1
     reShareValPShared True φ ρvs sv 
   NizkCommitE _φ ρes e → do
     ρvs ← prinExpValss *$ mapM interpPrinExp ρes
