@@ -17,9 +17,8 @@ def gcd gcd_rec (a, b) =
     gcd_rec (r, a)
 
 def main () =
-  -- TODO: replace with file input
-  let a = par {A} 3 in
-  let b = par {B} 6 in
+  let a = par {A} (read int from "euclid.txt") in
+  let b = par {B} (read int from "euclid.txt") in 
   reveal{E} (int-eval-upto gcd 93n
     (int-minmax
       (share{yao:A -> C,D} a)

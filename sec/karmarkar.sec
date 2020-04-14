@@ -11,10 +11,10 @@ revealed {
 }
 
 verified {
-  foreach i:
-  { prover : mpc node[i] node_o
-    verifier : node[i]
-  }
+  foreach i in nodes_in:
+    { prover : mpc i node_o
+      verifier : i
+    }
 
   { prover : mpc node_c node_o
     verifier : node_c

@@ -8,7 +8,7 @@
 
 %token NODE_NM VAR
 
-%token VERIFIED PROVER VERIFIER MPC FORALL 
+%token VERIFIED PROVER VERIFIER MPC FOREACH IN
 
 %token ATTACK CORRUPTIBLE
 
@@ -73,10 +73,7 @@ node_exp : NODE_NM opt_access
 ;
 
 opt_access :
-| '[' idx ']'
-;
-
-idx : NAT | VAR
+| '[' NAT ']'
 ;
 
 reveal_decl : REVEAL '{' link_clauses '}'
@@ -90,18 +87,10 @@ ver_clauses :
 ;
 
 ver_clause :
-opt_forall
 '{' PROVER ':' mpc_opt node_set
     VERIFIER ':' node_set
 '}'
-;
-
-opt_forall :
-| FORALL var_seq '.'
-;
-
-var_seq :
-| VAR var_seq
+| FOREACH VAR IN node_set ':' ver_clause
 ;
 
 mpc_opt :
