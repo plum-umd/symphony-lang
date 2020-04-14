@@ -1,6 +1,6 @@
 nodes_in[8] { encryption : 256 }
 node_c { encryption : 256 }
-node_o
+node_o { encryption : 256 }
 
 connected {
   full : nodes_in, node_c, node_o
@@ -11,10 +11,10 @@ revealed {
 }
 
 verified {
-  foreach i:
-  { prover : mpc node[i] node_o
-    verifier : node[i]
-  }
+  foreach i in nodes_in:
+    { prover : mpc i node_o
+      verifier : i
+    }
 
   { prover : mpc node_c node_o
     verifier : node_c

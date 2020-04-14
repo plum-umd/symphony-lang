@@ -6,9 +6,9 @@
 
 %token FULL UNI BI
 
-%token NODE_NM
+%token NODE_NM VAR
 
-%token VERIFIED PROVER VERIFIER MPC 
+%token VERIFIED PROVER VERIFIER MPC FOREACH IN
 
 %token ATTACK CORRUPTIBLE
 
@@ -43,9 +43,11 @@ opt_dim :
 | '[' NAT ']'
 ;
 
-connect_decl : CONNECT '{'
+connect_decl :
+CONNECT '{'
   broadcast_opt
-  link_clauses '}'
+  link_clauses
+'}'
 ;
 
 broadcast_opt :
@@ -63,8 +65,15 @@ FULL ':' node_set
 ;
 
 node_set :
-NODE_NM
-| NODE_NM ',' node_set
+node_exp
+| node_exp ',' node_set
+;
+
+node_exp : NODE_NM opt_access
+;
+
+opt_access :
+| '[' NAT ']'
 ;
 
 reveal_decl : REVEAL '{' link_clauses '}'
@@ -81,6 +90,7 @@ ver_clause :
 '{' PROVER ':' mpc_opt node_set
     VERIFIER ':' node_set
 '}'
+| FOREACH VAR IN node_set ':' ver_clause
 ;
 
 mpc_opt :

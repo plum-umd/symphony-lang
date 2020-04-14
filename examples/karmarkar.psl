@@ -238,9 +238,10 @@ def main () =
         (fold-f
           []
           (fun Q ctr -> cons (map (shr-w-comp { Q }) (send-ls { Q } comps ctr)))
-          (solo { Ctr } as c in read_vec ()) )
+          (solo { Ctr } as c in read (list flt) from "in.txt") )
+--          (solo { Ctr } as c in read_vec ()) )
         -- read in the vector of costs and share them
         (map (shr-w-comp { Cost })
-          (send-ls { Cost } comps (par { Cost } read_vec ())) ) ) ) ) in
+          (send-ls { Cost } comps (par { Cost } read_vec ()) ) ) ) ) ) in
   -- Ctr and Cost forget the structure of the solution
   par { Out } send-ls { Out } { Out } soln
