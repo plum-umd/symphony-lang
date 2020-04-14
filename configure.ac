@@ -71,11 +71,6 @@ case $psl_cv_stack_check in
   ;;
   *)
     STACK_MISSING=yes
-    ]AC_MSG_WARN(
-[Haskell Stack is not installed.
-Follow these installation instructions: https://www.haskell.org/downloads/.
-If it is installed, use "./configure STACK=/path/to/stack".
-The Docker image can be built without Stack being installed.])[
   ;;
 esac
 ]AC_SUBST([STACK_MISSING])[
@@ -120,12 +115,24 @@ case $psl_cv_stack_version_check in
   ;;
   *)
     STACK_OLD=yes
+  ;;
+esac
+]AC_SUBST([STACK_OLD])[
+
+case no in
+  $psl_cv_stack_check)
+    ]AC_MSG_WARN(
+[Haskell Stack is not installed.
+Follow these installation instructions: https://www.haskell.org/downloads/.
+If it is installed, use "./configure STACK=/path/to/stack".
+The Docker image can be built without Stack being installed.])[
+  ;;
+  $psl_cv_stack_version_check)
     ]AC_MSG_WARN(
 [Haskell Stack is too old to build this project.
 The Docker image can be built without Stack.])[
   ;;
 esac
-]AC_SUBST([STACK_OLD])[
 
 ]dnl begin_includes
 [
