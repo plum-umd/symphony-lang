@@ -26,14 +26,12 @@ data PrinVal =
     SinglePV Prin
   | AccessPV Prin ℕ
   deriving (Eq,Ord,Show)
-makePrettySum ''PrinVal
     
 data PrinExpVal =
     ValPEV PrinVal
   | PowPEV (𝑃 PrinVal)
   | SetPEV ℕ Prin
   deriving (Eq,Ord,Show)
-makePrettySum ''PrinExpVal
 
 data PrinExp =
     VarPE 𝕏
@@ -73,7 +71,6 @@ data Mode =
     SecM (𝑃 PrinVal)
   | TopM
   deriving (Eq,Ord,Show)
-makePrettySum ''Mode
 makePrisms ''Mode
 
 instance POrd Mode where 
@@ -145,8 +142,6 @@ data Prot =
   | SPDZP -- spdz
   | AutoP -- auto
   deriving (Eq,Ord,Show)
-makePrettySum ''Prot
-
 
 ---------------
 -- Precision --
@@ -156,7 +151,6 @@ data IPrecision =
     InfIPr
   | FixedIPr ℕ ℕ -- whole number precision, and decimal precision
   deriving (Eq,Ord,Show)
-makePrettySum ''IPrecision
 
 iprDefault ∷ IPrecision
 iprDefault = FixedIPr 64 0
@@ -164,7 +158,6 @@ iprDefault = FixedIPr 64 0
 data FPrecision = 
     FixedFPr ℕ ℕ
   deriving (Eq,Ord,Show)
-makePrettySum ''FPrecision
 
 fprDefault ∷ FPrecision
 fprDefault = FixedFPr 11 53

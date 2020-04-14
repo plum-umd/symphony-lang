@@ -331,14 +331,6 @@ pType = cpNewContext "type" $ mixfix $ concat
       ρes ← pPrinExps
       cpSyntax "}"
       return $ SecT ρes
-  -- τ{ssec:P}
-  -- , mixPostfix levelMODE $ do 
-  --     cpSyntax "{"
-  --     cpSyntax "ssec"
-  --     cpSyntax ":"
-  --     ρes ← pPrinExps
-  --     cpSyntax "}"
-  --     return $ SSecT ρes
   -- τ{bundle:P}
   , mixPostfix levelMODE $ do 
       cpSyntax "{"

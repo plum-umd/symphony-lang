@@ -71,15 +71,9 @@ data BaseValMPC =
 type Env = 𝕏 ⇰ ValP
 
 makePrisms ''Val
-
 makePrisms ''ValP
-makePrettySum ''ValP
-
 makePrisms ''ValMPC
-makePrettySum ''ValMPC
-
 makePrisms ''BaseValMPC
-makePrettySum ''BaseValMPC
 
 data ShareInfo = 
     NotShared
