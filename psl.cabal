@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 7556c14f0b7f51e1376367d5b5aea08609ea1ed499c5781cbf27edcc3531efaa
+-- hash: 1d3c228eacc06bef91710a1ea5fefd8bb5d7418c4202bc5fb7839eca23c14e97
 
 name:           psl
 version:        0.1.0.0
@@ -120,6 +120,7 @@ data-files:
     tests/return-mux.psl
     tests/return-twice.psl
     tests/reveal-ssec.psl
+    tests/shared-bullet.psl
     tests/solo-no-self.psl
     tests/solo.psl
     tests/sums.psl
@@ -367,6 +368,7 @@ library
       PSL.Interpreter.Access
       PSL.Interpreter.Json
       PSL.Interpreter.Pretty
+      PSL.Interpreter.PrettyFuture
       PSL.Interpreter.Primitives
       PSL.Interpreter.PrinExp
       PSL.Interpreter.ReadType

@@ -3,7 +3,7 @@ principal B
 principal C[2]
 principal E
 
-def split : list ℤ{isec:A,B} → list ℤ{isec:A,B} × list ℤ{isec:A,B}
+def split : list ℤ{bundle:A,B} → list ℤ{bundle:A,B} × list ℤ{bundle:A,B}
 def split xs = case xs
   { [] → [] , []
   ; [x] → [] , [x]
@@ -25,7 +25,7 @@ def merge xs ys = case xs,ys
       else y ∷ merge xs ys′
   }
 
-def msort : list ℤ{isec:A,B} → list ℤ{yao:C}
+def msort : list ℤ{bundle:A,B} → list ℤ{yao:C}
 def msort xs = case xs 
   { [] → []
   ; [xy] →
@@ -50,11 +50,11 @@ def map f xs = case xs
   ; x∷xs′ → f x∷map f xs′
   }
 
-def main : 𝟙 →{inp:A,B;rev:E} list ℤ{ssec:E}
+def main : 𝟙 →{inp:A,B;rev:E} list ℤ{E}
 def main • = 
-  let xys-pre : (list ℤ){isec:A,B}
+  let xys-pre : (list ℤ){bundle:A,B}
   let xys-pre = solo {A,B} as α in read (list ℤ) from "msort-input.txt"
-  let xys : list ℤ{isec:A,B}
+  let xys : list ℤ{bundle:A,B}
   let xys = preprocess-lists {A,B} 5 0 xys-pre
   in map (λ x → reveal{E} x) (msort xys)
 

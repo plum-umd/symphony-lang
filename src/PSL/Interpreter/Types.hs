@@ -25,7 +25,7 @@ data Val =
   | TCloV TVar Exp Env
   | PrinV PrinExpVal
   | PrinSetV (𝑃 PrinVal)
-  | LocV ℤ64
+  | LocV Mode ℤ64
   | ArrayV (𝕍 ValP)
   | DefaultV
   | NizkVerifyV (𝑃 PrinVal) ValP
@@ -37,7 +37,6 @@ data ValP =
     SSecVP (𝑃 PrinVal) Val
   | ISecVP (PrinVal ⇰ Val)
   | ShareVP 𝔹 Prot (𝑃 PrinVal) ValMPC
-  | LocVP Mode ℤ64
   | AllVP Val
   | UnknownVP
   | PairVP ValP ValP
@@ -51,6 +50,7 @@ data ValMPC =
   | SumMV ℕ 𝔹 ValMPC ValMPC
   | NilMV
   | ConsMV ValMPC ValMPC
+  | BulMV
   | DefaultMV
   deriving (Eq,Ord,Show)
 
@@ -86,27 +86,6 @@ data ShareInfo =
   | Shared 𝔹 Prot (𝑃 PrinVal)
   deriving (Eq,Ord,Show)
 makePrettySum ''ShareInfo
-
--- data Share a = Share
---   { shareProtocol ∷ Prot
---   , sharePrincipals ∷ 𝑃 PrinVal
---   , shareValue ∷ a
---   } deriving (Eq,Ord,Show)
--- makeLenses ''Share
--- makePrettySum ''Share
--- 
--- elimShare ∷ ValP → 𝑂 (Share ValMPC)
--- elimShare = \case
---   ShareVP φ ρs v → Some $ Share φ ρs v
---   _ → None
--- 
--- instance Functor Share where 
---   map f (Share φ ρs x) = Share φ ρs $ f x
--- 
--- instance FunctorM Share where
---   mapM f (Share φ ρs x) = do
---     y ← f x
---     return $ Share φ ρs y
 
 -----------
 -- STORE --
@@ -186,6 +165,8 @@ data ResEv = ResEv
   , resEvPrinsFrom ∷ 𝑃 PrinVal
   , resEvPrinsTo ∷ 𝑃 PrinVal
   , resEvType ∷ 𝕊
+  , resEvTypeFrom ∷ 𝕊
+  , resEvTypeTo ∷ 𝕊
   , resEvOp ∷ 𝕊
   , resEvMd ∷ ℕ
   } deriving (Eq,Ord,Show)

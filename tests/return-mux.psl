@@ -10,8 +10,8 @@ def main • =
     then L 1
     else R 2
   do mux case sum
-       { L x → trace 1 in return x + 10
-       ; R y → trace 2 in return y + 100
+       { L x → return x + 10
+       ; R y → return y + 100
        }
   in 0
 
