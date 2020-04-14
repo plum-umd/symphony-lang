@@ -7,7 +7,7 @@ import PSL.Interpreter
 mainDefaultArgs ∷ 𝐿 𝕊
 mainDefaultArgs = 
   list ["test","--version","--help"]
-  -- list ["example","qsort"]
+  -- list ["example","msort"]
 
 main ∷ IO ()
 main = do

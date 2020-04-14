@@ -4,40 +4,7 @@ import UVMHS
 -- import AddToUVMHS
 
 import PSL.Syntax
-
-levelIF,levelLAM,levelLET,levelPAR,levelUPDATE ∷ ℕ64
-levelIF     = 𝕟64 10
-levelLAM    = 𝕟64 10
-levelLET    = 𝕟64 10
-levelPAR    = 𝕟64 10
-levelUPDATE = 𝕟64 15
-
-levelCOMMA,levelASCR,levelCONS,levelREVEAL ∷ ℕ64
-
-levelCOMMA   = 𝕟64 20
-levelASCR    = 𝕟64 21
-levelCONS    = 𝕟64 22
-levelREVEAL  = 𝕟64 25
-
-levelCOND,levelCOMPARE,levelARROW,levelPLUS,levelTIMES,levelEXP ∷ ℕ64
-levelCOND    = 𝕟64 30
-levelCOMPARE = 𝕟64 35
-levelARROW   = 𝕟64 40
-levelPLUS    = 𝕟64 50
-levelTIMES   = 𝕟64 60
-levelEXP     = 𝕟64 70
-
-levelAPP ∷ ℕ64
-levelAPP = 𝕟64 100
-
-levelDEREF ∷ ℕ64
-levelDEREF = 𝕟64 120
-
-levelACCESS ∷ ℕ64 
-levelACCESS = 𝕟64 130
-
-levelMODE ∷ ℕ64
-levelMODE  = 𝕟64 200
+import PSL.Interpreter.Pretty
 
 lexer ∷ Lexer CharClass ℂ TokenClassBasic ℕ64 TokenBasic
 lexer = lexerBasic puns kws prim ops
@@ -131,7 +98,6 @@ lexer = lexerBasic puns kws prim ops
       , "&&","∧"
       , "true","false"
       , "L","R"
-      , "to_flt"
       , "abs_val"
       , "ceil"
       , "sqrt"
@@ -274,8 +240,10 @@ pIPrecision = ifNone iprDefault ^$ cpOptional $ do
 pFPrecision ∷ CParser TokenBasic FPrecision
 pFPrecision = ifNone fprDefault ^$ cpOptional $ do
   cpSyntax "#"
-  n ← natΩ ^$ cpInteger
-  return $ FixedFPr n
+  n₁ ← natΩ ^$ cpInteger
+  cpSyntax "."
+  n₂ ← natΩ ^$ cpInteger
+  return $ FixedFPr n₁ n₂
 
 ----------
 -- Type --
@@ -549,14 +517,6 @@ pExp = fmixfixWithContext "exp" $ concat
   , fmixPrefix levelAPP $ do cpSyntax "L" ; return LE
   -- R e
   , fmixPrefix levelAPP $ do cpSyntax "R" ; return RE
-  -- to_flt
-  , fmixPrefix levelAPP $ do cpSyntax "to_flt" ; return $ \ e → PrimE "FLT" $ list [e]
-  -- abs_val
-  , fmixPrefix levelAPP $ do cpSyntax "abs_val" ; return $ \ e → PrimE "ABS" $ list [e]
-  -- ceil
-  , fmixPrefix levelAPP $ do cpSyntax "ceil" ; return $ \ e → PrimE "CEIL" $ list [e]
-  -- sqrt
-  , fmixPrefix levelAPP $ do cpSyntax "sqrt" ; return $ \ e → PrimE "SQRT" $ list [e]
   -- e,e
   , fmixInfixL levelCOMMA $ do cpSyntax "," ; return TupE
   -- []
@@ -574,14 +534,6 @@ pExp = fmixfixWithContext "exp" $ concat
       return $ case eO of
         None → LetTyE ψ
         Some e → LetE ψ e
-  -- -- let ψ = e in e
-  -- , fmixPrefix levelLET $ do
-  --     cpSyntax "let"
-  --     ψ ← pPat
-  --     cpSyntax "="
-  --     e ← pExp
-  --     void $ cpOptional $ cpSyntax "in"
-  --     return $ LetE ψ e
   -- [mux] case e {ψ→e;…;ψ→e}
   , fmixTerminal $ do 
       b ← cpOptional $ cpSyntax "mux"
@@ -622,12 +574,6 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntax "@"
       τ ← pType
       return $ \ e → TAppE e τ
-  -- -- {ρ} e
-  -- , fmixPrefix levelPAR $ do
-  --   cpSyntax "{"
-  --   ρes ← pPrinExps
-  --   cpSyntax "}"
-  --   return $ SoloE ρes
   -- par {P} e
   , fmixPrefix levelPAR $ do 
       cpSyntax "par"
@@ -769,33 +715,40 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntax "}"
       return $ NizkCommitE φ ρs
   -- prim[⊙](e,…,e)
-  , fmixInfixL levelPLUS $ do concat [cpSyntax "∨",cpSyntax "||"] ; return $ \ e₁ e₂ → PrimE "OR" $ list [e₁,e₂]
-  , fmixInfixL levelTIMES $ do concat [cpSyntax "∧",cpSyntax "&&"] ; return $ \ e₁ e₂ → PrimE "AND" $ list [e₁,e₂]
-  , fmixPrefix levelEXP $ do concat [cpSyntax "not",cpSyntax "¬"] ; return $ \ e → PrimE "NOT" $ list [e]
-  , fmixInfixL levelPLUS $ do cpSyntax "+" ; return $ \ e₁ e₂ → PrimE "PLUS" $ list [e₁,e₂]
-  , fmixInfixL levelPLUS $ do cpSyntax "-" ; return $ \ e₁ e₂ → PrimE "MINUS" $ list [e₁,e₂]
-  , fmixInfixL levelTIMES $ do concat [cpSyntax "×",cpSyntax "*"] ; return $ \ e₁ e₂ → PrimE "TIMES" $ list [e₁,e₂]
-  , fmixInfixL levelEXP $ do cpSyntax "^" ; return $ \ e₁ e₂ → PrimE "EXP" $ list [e₁,e₂]
-  , fmixInfixL levelTIMES $ do cpSyntax "/" ; return $ \ e₁ e₂ → PrimE "DIV" $ list [e₁,e₂]
-  , fmixInfixL levelTIMES $ do cpSyntax "%" ; return $ \ e₁ e₂ → PrimE "MOD" $ list [e₁,e₂]
-  , fmixInfix levelCOMPARE $ do concat [cpSyntax "≡",cpSyntax "=="] ; return $ \ e₁ e₂ → PrimE "EQ" $ list [e₁,e₂]
-  , fmixInfix levelCOMPARE $ do cpSyntax "<" ; return $ \ e₁ e₂ → PrimE "LT" $ list [e₁,e₂]
-  , fmixInfix levelCOMPARE $ do cpSyntax ">" ; return $ \ e₁ e₂ → PrimE "GT" $ list [e₁,e₂]
-  , fmixInfix levelCOMPARE $ do concat [cpSyntax "≤",cpSyntax "<="] ; return $ \ e₁ e₂ → PrimE "LTE" $ list [e₁,e₂]
-  , fmixInfix levelCOMPARE $ do concat [cpSyntax "≥",cpSyntax ">="] ; return $ \ e₁ e₂ → PrimE "GTE" $ list [e₁,e₂]
-  , fmixPrefix levelAPP $ do 
-      cpSyntax "int" 
-      ip ← pIPrecision
-      return $ ToIntE ip
+  , fmixInfixL levelPLUS $ do concat [cpSyntax "∨",cpSyntax "||"] ; return $ \ e₁ e₂ → PrimE OrO $ list [e₁,e₂]
+  , fmixInfixL levelTIMES $ do concat [cpSyntax "∧",cpSyntax "&&"] ; return $ \ e₁ e₂ → PrimE AndO $ list [e₁,e₂]
+  , fmixPrefix levelEXP $ do concat [cpSyntax "not",cpSyntax "¬"] ; return $ \ e → PrimE NotO $ list [e]
+  , fmixInfixL levelPLUS $ do cpSyntax "+" ; return $ \ e₁ e₂ → PrimE PlusO $ list [e₁,e₂]
+  , fmixInfixL levelPLUS $ do cpSyntax "-" ; return $ \ e₁ e₂ → PrimE MinusO $ list [e₁,e₂]
+  , fmixInfixL levelTIMES $ do concat [cpSyntax "×",cpSyntax "*"] ; return $ \ e₁ e₂ → PrimE TimesO $ list [e₁,e₂]
+  , fmixInfixL levelEXP $ do cpSyntax "^" ; return $ \ e₁ e₂ → PrimE ExpO $ list [e₁,e₂]
+  , fmixInfixL levelTIMES $ do cpSyntax "/" ; return $ \ e₁ e₂ → PrimE DivO $ list [e₁,e₂]
+  , fmixInfixL levelTIMES $ do cpSyntax "%" ; return $ \ e₁ e₂ → PrimE ModO $ list [e₁,e₂]
+  , fmixInfix levelCOMPARE $ do concat [cpSyntax "≡",cpSyntax "=="] ; return $ \ e₁ e₂ → PrimE EqO $ list [e₁,e₂]
+  , fmixInfix levelCOMPARE $ do cpSyntax "<" ; return $ \ e₁ e₂ → PrimE LTO $ list [e₁,e₂]
+  , fmixInfix levelCOMPARE $ do cpSyntax ">" ; return $ \ e₁ e₂ → PrimE GTO $ list [e₁,e₂]
+  , fmixInfix levelCOMPARE $ do concat [cpSyntax "≤",cpSyntax "<="] ; return $ \ e₁ e₂ → PrimE LTEO $ list [e₁,e₂]
+  , fmixInfix levelCOMPARE $ do concat [cpSyntax "≥",cpSyntax ">="] ; return $ \ e₁ e₂ → PrimE GTEO $ list [e₁,e₂]
+  , fmixPrefix levelAPP $ do cpSyntax "abs_val" ; return $ \ e → PrimE AbsO $ list [e]
+  , fmixPrefix levelAPP $ do cpSyntax "sqrt" ; return $ \ e → PrimE SqrtO $ list [e]
   , fmixPrefix levelAPP $ do 
       cpSyntax "nat" 
       ip ← pIPrecision
-      return $ ToNatE ip
+      return $ \ e → PrimE (NatO ip) $ list [e]
+  , fmixPrefix levelAPP $ do 
+      cpSyntax "int" 
+      ip ← pIPrecision
+      return $ \ e → PrimE (IntO ip) $ list [e]
+  , fmixPrefix levelAPP $ do 
+      cpSyntax "flt" 
+      fp ← pFPrecision
+      return $ \ e → PrimE (FltO fp) $ list [e]
   , fmixInfixR levelCOND $ do
       cpSyntax "?"
       e₂ ← pExp
       concat [cpSyntax "◇",cpSyntax "><"]
-      return $ \ e₁ e₃ → PrimE "COND" $ list [e₁,e₂,e₃]
+      return $ \ e₁ e₃ → PrimE CondO $ list [e₁,e₂,e₃]
+  -- trace e in e
   , fmixPrefix levelLET $ do
       cpSyntax "trace"
       e₁ ← pExp

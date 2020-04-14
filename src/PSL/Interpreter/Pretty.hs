@@ -2,9 +2,43 @@ module PSL.Interpreter.Pretty where
 
 import UVMHS
 
-import PSL.Parser
 import PSL.Interpreter.Types
 import PSL.Interpreter.Json
+
+levelIF,levelLAM,levelLET,levelPAR,levelUPDATE ∷ ℕ64
+levelIF     = 𝕟64 10
+levelLAM    = 𝕟64 10
+levelLET    = 𝕟64 10
+levelPAR    = 𝕟64 10
+levelUPDATE = 𝕟64 15
+
+levelCOMMA,levelASCR,levelCONS,levelREVEAL ∷ ℕ64
+
+levelCOMMA   = 𝕟64 20
+levelASCR    = 𝕟64 21
+levelCONS    = 𝕟64 22
+levelREVEAL  = 𝕟64 25
+
+levelCOND,levelCOMPARE,levelARROW,levelPLUS,levelTIMES,levelEXP ∷ ℕ64
+levelCOND    = 𝕟64 30
+levelCOMPARE = 𝕟64 35
+levelARROW   = 𝕟64 40
+levelPLUS    = 𝕟64 50
+levelTIMES   = 𝕟64 60
+levelEXP     = 𝕟64 70
+
+levelAPP ∷ ℕ64
+levelAPP = 𝕟64 100
+
+levelDEREF ∷ ℕ64
+levelDEREF = 𝕟64 120
+
+levelACCESS ∷ ℕ64 
+levelACCESS = 𝕟64 130
+
+levelMODE ∷ ℕ64
+levelMODE  = 𝕟64 200
+
 
 instance Pretty Val where
   pretty = \case
@@ -39,7 +73,7 @@ instance Pretty Val where
             pretty e
     PrinV ρe → pretty ρe
     PrinSetV ρs → pretty ρs
-    LocV ℓ → ppApp (ppCon "loc") [pretty ℓ]
+    LocV m ℓ → ppApp (ppCon "loc") [pretty m,pretty ℓ]
     ArrayV ṽs → pretty ṽs
     PairV ṽ₁ ṽ₂ → pretty $ pretty ṽ₁ :* ṽ₂
     DefaultV → ppPun "⊥"

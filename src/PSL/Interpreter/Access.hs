@@ -30,7 +30,21 @@ introValP v = do
 locValP ∷ (STACK) ⇒ ℤ64 → IM ValP
 locValP ℓ = do
   m ← askL iCxtModeL
-  return $ LocVP m ℓ
+  introValP $ LocV m ℓ
+
+elimLocV ∷ (STACK) ⇒ Val → IM ℤ64
+elimLocV v = do
+  m ← askL iCxtModeL
+  case v of
+    LocV m' ℓ → do
+      guardErr (m ≡ m') $
+        throwIErrorCxt TypeIError "elimLocV: m ≠ m'" $ frhs
+          [ ("m",pretty m)
+          , ("m'",pretty m')
+          ]
+      return ℓ
+    _ → throwIErrorCxt TypeIError "elimLocV: v ≠ LocV _ _" $ frhs
+          [ ("v",pretty v) ]
 
 -- look at a value; fails if value has mode smaller than execution mode
 -- e.g., 
@@ -51,13 +65,13 @@ elimValP ṽ = do
       return v'
     AllVP v' → return v'
     PairVP ṽ₁ ṽ₂ → return $ PairV ṽ₁ ṽ₂
-    LocVP m' ℓ → do
-      guardErr (m ≡ m') $
-        throwIErrorCxt TypeIError "elimValP: m ≠ m'" $ frhs
-          [ ("m",pretty m)
-          , ("m'",pretty m')
-          ]
-      return $ LocV ℓ
+    -- LocVP m' ℓ → do
+    --   guardErr (m ≡ m') $
+    --     throwIErrorCxt TypeIError "elimValP: m ≠ m'" $ frhs
+    --       [ ("m",pretty m)
+    --       , ("m'",pretty m')
+    --       ]
+    --   return $ LocV ℓ
     _ → throwIErrorCxt TypeIError "elimValP: ṽ ∉ {AllVP _,SSecVP _ _,PairVP _ _,LocVP _ _}" $ frhs
         [ ("ṽ",pretty ṽ)
         ]
@@ -76,7 +90,7 @@ restrictValP ṽ = do
       ṽ₁' ← restrictValP ṽ₁
       ṽ₂' ← restrictValP ṽ₂
       return $ PairVP ṽ₁' ṽ₂'
-    (_,LocVP m' _) | m ≡ m' → return ṽ
+    -- (_,LocVP m' _) | m ≡ m' → return ṽ
     (SecM ρs₁, SSecVP ρs₂ v) → do
       v' ← restrictValPRecVal v
       let ρs = ρs₁ ∩ ρs₂
@@ -122,7 +136,7 @@ restrictValPRecVal v = case v of
   TCloV _ _ _ → return v
   PrinV _ → return v
   PrinSetV _ → return v
-  LocV _ → return v
+  LocV _ _ → return v
   ArrayV ṽs → ArrayV ∘ vec ^$ mapMOn (list ṽs) restrictValP
   PairV ṽ₁ ṽ₂ → do
     v₁ ← restrictValP ṽ₁
@@ -165,7 +179,7 @@ unShareValPMode m = \case
     si ← joinShareInfo si₁ si₂
     return $ si :* PairMV vmpc₁ vmpc₂
   ISecVP _ → throwIErrorCxt TypeIError "bad" null
-  LocVP _ _ → throwIErrorCxt TypeIError "bad" null
+  -- LocVP _ _ → throwIErrorCxt TypeIError "bad" null
   UnknownVP → throwIErrorCxt TypeIError "bad" null
 
 unShareValMode ∷ (STACK) ⇒ Mode → Val → IM (ShareInfo ∧ ValMPC)
@@ -314,12 +328,12 @@ revealValP zkʳ ρsʳ = \case
     when (zk ≢ zkʳ) $ \ _ → 
       throwIErrorCxt TypeIError "wrong zk mode for reveal" null
     restrictMode (SecM ρsʳ) $ restrictValP *$ valFrMPCF vmpc $ \ md bvmpc → 
-      tellL iOutResEvsL $ ResEv zk φ pø ρsˢ ρsʳ (getTypeBaseMPC  bvmpc) "REVEAL" md ↦ 1
+      tellL iOutResEvsL $ ResEv zk φ pø ρsˢ ρsʳ (getTypeBaseMPC  bvmpc) null null "REVEAL" md ↦ 1
   PairVP ṽ₁ ṽ₂ → do
     ṽ₁' ← revealValP zkʳ ρsʳ ṽ₁
     ṽ₂' ← revealValP zkʳ ρsʳ ṽ₂
     return $ PairVP ṽ₁' ṽ₂'
-  LocVP m ℓ | SecM ρsʳ ⊑ m → return $ LocVP m ℓ
+  -- LocVP m ℓ | SecM ρsʳ ⊑ m → return $ LocVP m ℓ
   ṽ → throwIErrorCxt TypeIError "can't reveal" $ frhs
     [ ("ṽ",pretty ṽ) ]
 
@@ -348,7 +362,7 @@ revealVal zkʳ ρsʳ = \case
     introValP $ ConsV ṽ₁' ṽ₂'
   PrinV pev → introValP $ PrinV pev
   PrinSetV pevs → introValP $ PrinSetV pevs
-  LocV ℓ → introValP $ LocV ℓ
+  LocV m ℓ → introValP $ LocV m ℓ
   DefaultV → introValP DefaultV
   v → throwIErrorCxt TypeIError "can't reveal" $ frhs
     [ ("v",pretty v) ]
