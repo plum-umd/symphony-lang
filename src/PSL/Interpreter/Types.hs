@@ -50,6 +50,7 @@ data ValMPC =
   | SumMV ℕ 𝔹 ValMPC ValMPC
   | NilMV
   | ConsMV ValMPC ValMPC
+  | BulMV
   | DefaultMV
   deriving (Eq,Ord,Show)
 

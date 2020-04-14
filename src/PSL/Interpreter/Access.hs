@@ -235,6 +235,7 @@ reShareValPShared zk φ ρs = \case
     ṽ₂ ← reShareValPShared zk φ ρs vmpc₂
     introValP $ ConsV ṽ₁ ṽ₂
   DefaultMV → introValP DefaultV
+  BulMV → introValP BulV
 
 ----------------
 -- MPC VALUES --
@@ -278,6 +279,7 @@ mpcFrValFWith f = \case
     vmpc₁ ← mpcFrValFWith f *$ elimValP ṽ₁
     vmpc₂ ← mpcFrValFWith f *$ elimValP ṽ₂
     return $ ConsMV vmpc₁ vmpc₂
+  BulV → return $ BulMV
   _ → throwIErrorCxt TypeIError "bad" null
 
 mpcFrVal ∷ (STACK) ⇒ Val → IM ValMPC

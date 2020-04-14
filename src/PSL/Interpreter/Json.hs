@@ -53,6 +53,7 @@ getTypeMPC = \case
   NilMV → "list"
   ConsMV _ _ → "list"
   DefaultMV → "default"
+  BulMV → "unit"
 
 getTypeBaseMPC ∷ BaseValMPC → 𝕊
 getTypeBaseMPC = \case
