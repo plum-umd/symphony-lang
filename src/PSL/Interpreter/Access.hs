@@ -180,7 +180,6 @@ unShareValPMode m = \case
     si ← joinShareInfo si₁ si₂
     return $ si :* PairMV vmpc₁ vmpc₂
   ISecVP _ → throwIErrorCxt TypeIError "bad" null
-  -- LocVP _ _ → throwIErrorCxt TypeIError "bad" null
   UnknownVP → throwIErrorCxt TypeIError "bad" null
 
 unShareValMode ∷ (STACK) ⇒ Mode → Val → IM (ShareInfo ∧ ValMPC)
@@ -208,6 +207,7 @@ unShareValMode m = \case
     si ← joinShareInfo si₁ si₂
     return $ si :* ConsMV vmpc₁ vmpc₂
   DefaultV → return $ NotShared :* DefaultMV
+  BulV → return $ NotShared :* BulMV
   v → throwIErrorCxt NotImplementedIError "unShareValMode" $ frhs
     [ ("v",pretty v) ]
 
@@ -280,7 +280,8 @@ mpcFrValFWith f = \case
     vmpc₁ ← mpcFrValFWith f *$ elimValP ṽ₁
     vmpc₂ ← mpcFrValFWith f *$ elimValP ṽ₂
     return $ ConsMV vmpc₁ vmpc₂
-  BulV → return $ BulMV
+  BulV → return BulMV
+  DefaultV → return DefaultMV
   _ → throwIErrorCxt TypeIError "bad" null
 
 mpcFrVal ∷ (STACK) ⇒ Val → IM ValMPC
@@ -313,7 +314,13 @@ valFrMPCFWith f = \case
       ṽ ← valFrMPCF vmpc₂ f
       ṽ' ← introValP $ RV ṽ
       return ṽ'
-  _ → error "TODO: not implemented"
+  NilMV → introValP NilV
+  ConsMV vmpc₁ vmpc₂ → do
+    ṽ₁ ← valFrMPCFWith f vmpc₁
+    ṽ₂ ← valFrMPCFWith f vmpc₂
+    introValP $ ConsV ṽ₁ ṽ₂
+  BulMV → introValP BulV
+  DefaultMV → introValP DefaultV
 
 valFrBaseMPC ∷ (STACK) ⇒ BaseValMPC → IM ValP
 valFrBaseMPC = \case
