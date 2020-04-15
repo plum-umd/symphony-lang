@@ -13,7 +13,8 @@ psl: build
 all-examples: psl
 	./psl example $(FLAGS) msort-dedup
 	./psl example $(FLAGS) qsort
-	./psl example $(FLAGS) euclid
+	./psl example $(FLAGS) gcd-gc
+	./psl example $(FLAGS) gcd-bgv
 	./psl example $(FLAGS) karmarkar
 	./psl example $(FLAGS) db-stats
 	# ./psl example $(FLAGS) atq

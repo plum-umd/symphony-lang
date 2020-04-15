@@ -1,9 +1,5 @@
 -- input parties
-principal A B
--- compute parties
-principal C D
--- output party
-principal E
+principal node_1 node_2
 
 -- Listing 5: Greatest Common Divisor.
 def gcd gcd_rec (a, b) =
@@ -17,9 +13,9 @@ def gcd gcd_rec (a, b) =
     gcd_rec (r, a)
 
 def main () =
-  let a = par {A} (read int from "euclid.txt") in
-  let b = par {B} (read int from "euclid.txt") in 
-  reveal{E} (int-eval-upto gcd 93n
+  let a = par {node_1} (read int from "gcd.txt") in
+  let b = par {node_2} (read int from "gcd.txt") in 
+  reveal{node_1} (int-eval-upto gcd 93n
     (int-minmax
-      (share{yao:A -> C,D} a)
-      (share{yao:B -> C,D} b) ) )
+      (share{bgv: node_1 -> node_1, node_2} a)
+      (share{bgv: node_2 -> node_1, node_2} b) ) )
