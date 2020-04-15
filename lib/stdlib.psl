@@ -245,7 +245,6 @@ def const-ls c n = elim_nat n [] (cons c)
 def zero-ls-flt = const-ls 0.0
 def one-ls-flt = const-ls 1.0
 
-
 -- Oblivious friendly insert to list.
 def insert : (a -> a -> bool) -> a -> list a -> list a
 def insert lt x xs = case xs
@@ -387,6 +386,8 @@ def get l i =
       }) )
     l
 
+def arr_get l i = get l (dec i)
+
 -- upd l i v: list l with the ith element updated to be v
 def upd l i v =
   (elim_nat i
@@ -442,6 +443,19 @@ def reverse-help xs acc =
 def reverse : list a -> list a
 def reverse xs = reverse-help xs []
 
+-- zipper-n l n: zipper into list l where head is of length n
+def zipper-n l n = eliml_nat n
+  ([ ], l)
+  (fun (begin, end) -> case end
+   { [ ] -> (begin, [ ])
+   ; x :: end' -> (x :: begin, end')
+   })
+
+def head-n l n = reverse (fst (zipper-n l n))
+
+def tail-n l n = snd (zipper-n l n)
+
+def sub-list l start end = tail-n (head-n l end) (dec start)
 
 -- reveal-wrap: wrapper around reveal syntax
 def reveal-wrap P x = reveal { P } x

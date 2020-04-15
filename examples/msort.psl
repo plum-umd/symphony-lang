@@ -1,7 +1,5 @@
-principal A
-principal B
-principal C[2]
-principal E
+principal A[2]
+principal C
 
 def split : list ℤ{bundle:A,B} → list ℤ{bundle:A,B} × list ℤ{bundle:A,B}
 def split xs = case xs
@@ -45,11 +43,6 @@ def msort xs = case xs
       in merge ys₁ ys₂
   }
 
-def map f xs = case xs
-  { [] → []
-  ; x∷xs′ → f x∷map f xs′
-  }
-
 def main : 𝟙 →{inp:A,B;rev:E} list ℤ{E}
 def main • = 
   let xys-pre : (list ℤ){bundle:A,B}
@@ -57,4 +50,3 @@ def main • =
   let xys : list ℤ{bundle:A,B}
   let xys = preprocess-lists {A,B} 5 0 xys-pre
   in map (λ x → reveal{E} x) (msort xys)
-
