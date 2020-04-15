@@ -68,6 +68,7 @@ data-files:
     examples/partial-diverge.psl
     examples/partial-diverge.psl~
     examples/pfold.psl
+    examples/play.psl
     examples/qsort.psl
     examples/rand-range-encrypted-inputs-failing.psl
     examples/rand-range-shared.psl
