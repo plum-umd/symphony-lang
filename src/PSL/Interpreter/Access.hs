@@ -322,9 +322,9 @@ valFrBaseMPC = \case
   IntMV pr i → introValP $ IntV pr i
   FltMV pr d → introValP $ FltV pr d
   PrinMV peO → case peO of
-    BotBTD → throwIErrorCxt TypeIError "valFrBaseMPC: PrinMV = TopBT" null
+    BotBTD → introValP DefaultV
     AddBTD pe → introValP $ PrinV $ ValPEV pe 
-    TopBTD → throwIErrorCxt TypeIError "valFrBaseMPC: PrinMV = TopBT" null
+    TopBTD → introValP BulV
 
 revealValP ∷ (STACK) ⇒ 𝔹 → 𝑃 PrinVal → ValP → IM ValP
 revealValP zkʳ ρsʳ = \case
