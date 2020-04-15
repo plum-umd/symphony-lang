@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 6e7fcf9043611906a425e9eec1f39d93103faf19059a7e12ab21f34d5c3f2cb9
+-- hash: 89c7d940f8fbfb34acb997c74a80e28e802a6d68a056b4725463287b024b5bb4
 
 name:           psl
 version:        0.1.0.0
@@ -103,6 +103,7 @@ data-files:
     tests/ver-0.psl
     tests/ver-mpc.psl
     tests/ver-sign.psl
+    tests/weird-mux-prin.psl
     tests/when.psl
     examples-input/A/atq-data.txt
     examples-input/A/cmp-input.txt

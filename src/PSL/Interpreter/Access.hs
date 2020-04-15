@@ -282,7 +282,7 @@ mpcFrValFWith f = \case
     return $ ConsMV vmpc₁ vmpc₂
   BulV → return BulMV
   DefaultV → return DefaultMV
-  _ → throwIErrorCxt TypeIError "bad" null
+  v → throwIErrorCxt TypeIError "bad" $ frhs [("v", pretty v)]
 
 mpcFrVal ∷ (STACK) ⇒ Val → IM ValMPC
 mpcFrVal = mpcFrValFWith $ const skip
