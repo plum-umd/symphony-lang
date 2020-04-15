@@ -1,7 +1,7 @@
 principal A[8]
 -- actual:
 --principal A[512]
-principal C
+principal Central
 
 -- alias names of operations that are already defined in stdlib:
 -- def concat = uncurry append
@@ -13,7 +13,7 @@ def merge_dedup (a, b) =
   let blen = len b in
     if alen < 1n then sub-list b 1n blen
     else if blen < 1n then sub-list a 1n alen
-    else if (reveal { A, C } (arr_get a 1n) == (arr_get b 1n)) then
+    else if (reveal { A, Central } (arr_get a 1n) == (arr_get b 1n)) then
       merge_dedup (sub-list a 1n alen, sub-list b 2n blen)
     else mux if (arr_get a 1n) < (arr_get b 1n) then
       concat (arr_get a 1n,
@@ -33,10 +33,11 @@ def merge_sort_dedup a =
 
 def main () =
   let inputs = solo { A } as a in read (int) from "msort-dedup-in.txt" in
-  let input_ls = fold-f
-                 [ ]
-                 (fun Q input -> cons (share{bgv : Q -> A, C } input)) inputs in
-  let out = par { A, C }
+  let input_ls =
+    fold-f
+      [ ]
+      (fun Q input -> cons (share{bgv : Q -> A, Central } input)) inputs in
+  let out = par { A, Central }
     (map (reveal-wrap { A }) (merge_sort_dedup input_ls)) in
   out
   -- par { A } send-ls A[0n] { A } out

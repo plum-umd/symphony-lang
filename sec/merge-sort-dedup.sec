@@ -1,6 +1,5 @@
-// declare principals
 Ins[512] { encryption : 256 }
-Central
+Central  { encryption : 256 }
 
 connected {
   Ins <-> Central 
