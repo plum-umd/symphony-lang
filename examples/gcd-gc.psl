@@ -2,7 +2,8 @@
 principal node_1 node_2
 
 -- Listing 5: Greatest Common Divisor.
-def gcd gcd_rec (a, b) =
+-- def gcd gcd_rec (a, b) =
+def sec gcd (a, b) =
   -- 0 is divisible by any number, so when we reach it we can stop
   mux if (a == 0) then
     b
@@ -10,7 +11,7 @@ def gcd gcd_rec (a, b) =
     let r = b % a in -- remainder (B / A)
 
     -- gcd (A, B) = gcd ( A, R +kA) = gcd( R, A ), so use recursion
-    gcd_rec (r, a)
+    gcd (r, a)
 
 def main () =
   let a = par {node_1} (read int from "gcd.txt") in
