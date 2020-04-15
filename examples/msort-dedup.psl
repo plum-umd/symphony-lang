@@ -18,7 +18,7 @@ def merge_dedup (a, b) =
     else mux if (arr_get a 1n) < (arr_get b 1n) then
       concat (arr_get a 1n,
               merge_dedup (sub-list a 2n alen, sub-list b 1n blen) )
-    else 
+    else mux when ((arr_get a 1n) > (arr_get b 1n)) then
       concat (arr_get b 1n,
               merge_dedup (sub-list a 1n alen, sub-list b 2n blen) )
 
