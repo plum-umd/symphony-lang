@@ -4,7 +4,8 @@ principal A[8]
 principal C
 
 -- alias names of operations that are already defined in stdlib:
-def concat = uncurry append
+-- def concat = uncurry append
+def concat = uncurry cons
 
 -- Listing 2: Pseudocode for merge sort
 def merge_dedup (a, b) =
@@ -15,10 +16,10 @@ def merge_dedup (a, b) =
     else if (reveal { A, C } (arr_get a 1n) == (arr_get b 1n)) then
       merge_dedup (sub-list a 1n alen, sub-list b 2n blen)
     else mux if (arr_get a 1n) < (arr_get b 1n) then
-      concat ([ arr_get a 1n ],
+      concat (arr_get a 1n,
               merge_dedup (sub-list a 2n alen, sub-list b 1n blen) )
     else 
-      concat ([ arr_get b 1n ],
+      concat (arr_get b 1n,
               merge_dedup (sub-list a 1n alen, sub-list b 2n blen) )
 
 -- Let A be an array data structure with index values starting with 1
