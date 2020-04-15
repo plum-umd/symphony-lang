@@ -11,7 +11,7 @@ psl: build
 	ln -s `stack path --dist-dir`/build/psl/psl ./
 
 all-examples: psl
-	./psl example $(FLAGS) msort
+	./psl example $(FLAGS) msort-dedup
 	./psl example $(FLAGS) qsort
 	./psl example $(FLAGS) euclid
 	./psl example $(FLAGS) karmarkar
