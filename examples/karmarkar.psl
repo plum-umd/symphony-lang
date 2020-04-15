@@ -6,17 +6,17 @@ def m = 8n
 def n : nat
 def n = 8n
 
--- Ctr[m]: parties that bring the constraints
-principal Ctr[8]
+-- Node_in[m]: parties that bring the constraints
+principal Node_in[8]
 
 -- party that provides the cost vector:
-principal Cost
+principal Node_c
 
 -- party that gets the output:
-principal Out
+principal Node_o
 
--- comps: the parties that do computation, Ctr and Cost
-def comps = { Ctr, Cost }
+-- comps: the parties that do computation, Node_in and Node_c
+def comps = { Node_in, Node_c }
 
 -- TODO: define these properly
 def log_2_real = id
@@ -40,7 +40,7 @@ def row-of-ones = one-ls-flt
 -- shr-w-comp x: x, SPDZ-shared with the computation parties
 def shr-w-comp sender x = share{ spdz : sender -> comps } x
 
-def zero-vec-shrs n = map (shr-w-comp { Cost }) (zero-vec n)
+def zero-vec-shrs n = map (shr-w-comp { Node_c }) (zero-vec n)
 
 -- DEP? Combinators that may be redundant with stdlib or PSL.
 def iter_sec_nat_spdz muxer = iter_sec_nat muxer 
@@ -165,10 +165,10 @@ def karmarkar_iteration initial_point a c =
   -- Calculate a unit vector of cp
   -- Dimensions of unitcp: n x 1
   let unit_cp =
-    mux_ls (eq-vecs cp (zero-vec n)) -- If cp is the zero vector
+    mux if eq-vecs cp (zero-vec n) then -- If cp is the zero vector
       -- If cp is the zero vector, assign it to be 0
       (zero-vec-shrs n)
-      (div-scalar-vec (zero-vec n) (l2norm cp)) in
+    else div-scalar-vec (zero-vec n) (l2norm cp) in
 
   -- Take a step of 1/3n in the direction of -cp, row-of-ones(n)/n is
   -- the "transformed" initial point
@@ -201,8 +201,12 @@ def karmarkar_loop a c =
   let max_iterations = 12n * n * l in
 
   -- If this initial point is an optimal solution, return
-  mux_ls ((dot-prod-flt c !x) < epsilon) !x
+  mux if (dot-prod-flt c !x) < epsilon then !x
   -- hand-computed bound
+  else
+    sec-iter-nat max_iterations 1n (fun i ->
+    )
+
   (iter_sec_nat_ls max_iterations 1n (fun i -> 
     let x_new = karmarkar_iteration !x a c in cont_seq'
 
@@ -210,38 +214,30 @@ def karmarkar_loop a c =
     -- iteration, return
     (if-then-ret-ls 
       ((((dot-prod-flt c !x) - (dot-prod-flt c x_new)) /
-         (max-muxable (shr-w-comp { Cost } 1.0) (dot-prod-flt c !x)) ) <
+         (max-muxable (shr-w-comp { Node_c } 1.0) (dot-prod-flt c !x)) ) <
          epsilon )
       x_new)
     (x := x_new) )
   x)
 
--- main: entry point; Ctr, Cost read inputs and run the algorithm,
--- distributes results to Out
-def main : unit ->{ inp : Ctr, Cost; rev : Out } (list out_sec)
+-- main: entry point; Node_in, Node_c read inputs and run the algorithm,
+-- distributes results to Node_o
+def main : unit ->{ inp : Node_in, Node_c; rev : Node_o } (list out_sec)
 def main () =
-  -- read_vec: reads an input vector on a principal's machine
-  -- let read_vec = fun () -> read (list flt) "in.txt" in
-  -- TODO: replace with file input
-  let read_vec = fun () -> [ 1.0 ; 2.0; 3.0; 4.0; 5.0; 6.0; 7.0; 8.0 ] in 
-
-  -- FANCY MPC: Ctr and Cost send the data in the list to Out. This
-  -- may change if the PSL model of isec's changes as a result of
-  -- issue #31
-  let soln = par { Ctr, Cost, Out } (map
-    (reveal-wrap { Out })
-    -- Cost reveals the structure of the list to out:
-    (send-ls { Cost } { Ctr, Cost, Out }
-      -- Ctr and Cost compute the solution point:
-      (par { Ctr, Cost } karmarkar_loop
+  let soln = par { Node_in, Node_c, Node_o } (map
+    (reveal-wrap { Node_o })
+    -- Node_c reveals the structure of the list to out:
+    (send-ls { Node_c } { Node_in, Node_c, Node_o }
+      -- Node_in and Node_c compute the solution point:
+      (par { Node_in, Node_c } karmarkar_loop
         -- read in the matrix of constraints and share them
         (fold-f
           []
           (fun Q ctr -> cons (map (shr-w-comp { Q }) (send-ls { Q } comps ctr)))
-          (solo { Ctr } as c in read (list flt) from "in.txt") )
---          (solo { Ctr } as c in read_vec ()) )
+          (solo { Node_in } as c in read (list flt) from "in.txt") )
         -- read in the vector of costs and share them
-        (map (shr-w-comp { Cost })
-          (send-ls { Cost } comps (par { Cost } read_vec ()) ) ) ) ) ) in
-  -- Ctr and Cost forget the structure of the solution
-  par { Out } send-ls { Out } { Out } soln
+        (map (shr-w-comp { Node_c })
+          (send-ls { Node_c } comps
+            (par { Node_c } read (list flt) from "in.txt") ) ) ) ) ) in
+  -- Node_in and Node_c forget the structure of the solution
+  par { Node_o } send-ls { Node_o } { Node_o } soln

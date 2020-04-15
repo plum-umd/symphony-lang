@@ -1,17 +1,17 @@
-nodes_in[8] { encryption : 256 }
+node_in[8] { encryption : 256 }
 node_c { encryption : 256 }
 node_o { encryption : 256 }
 
 connected {
-  full : nodes_in, node_c, node_o
+  full : node_in, node_c, node_o
 }
 
 revealed {
-  nodes_in, node_c -> node_o
+  node_in, node_c -> node_o
 }
 
 verified {
-  foreach i in nodes_in:
+  foreach i in node_in:
     { prover : mpc i node_o
       verifier : i
     }
@@ -22,13 +22,13 @@ verified {
 }
 
 attacks {
-  semi-honest corruptible : { nodes_in, node_c, node_o : n/2 - 1 }
+  semi-honest corruptible : { node_in, node_c, node_o : n/2 - 1 }
 }
 
 crand {
-  beaver : nodes_in, node_c
+  beaver : node_in, node_c
 }
 
 setup {
-  pki : nodes_in, node_c, node_o
+  pki : node_in, node_c, node_o
 }

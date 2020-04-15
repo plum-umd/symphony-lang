@@ -15,7 +15,7 @@ def gcd gcd_rec (a, b) =
 def main () =
   let a = par {node_1} (read int from "gcd.txt") in
   let b = par {node_2} (read int from "gcd.txt") in 
-  reveal{node_1} (int-eval-upto gcd 93n
+  reveal{node_1} (eval-upto gcd 93n
     (int-minmax
       (share{bgv: node_1 -> node_1, node_2} a)
       (share{bgv: node_2 -> node_1, node_2} b) ) )

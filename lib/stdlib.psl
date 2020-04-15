@@ -902,10 +902,7 @@ def bnd_rec f init fuel = elim_nat fuel init f
 
 
 -- t-eval-upto (f : t -> int) fuel: f, bounded to execute fuel steps.
-def int-eval-upto f = bnd_rec f (const 0) 
-def nat-eval-upto f = bnd_rec f (const 0n) 
-def flt-eval-upto f = bnd_rec f (const 0.0) 
-
+def eval-upto f = bnd_rec f (const ⊥)
 
 ---
 --- early return library
