@@ -1,6 +1,7 @@
 module PSL.Interpreter where
 
 import UVMHS
+import AddToUVMHS
 
 import PSL.Config
 import PSL.Parser
@@ -135,16 +136,16 @@ bindPatMPC si ψ vmpc = case ψ of
     md :* b :* vmpc₁ :* _vmpc₂ ← view sumMVL vmpc
     f ← bindPatMPC si ψ' vmpc₁
     return $ \ xM → do
-      si' :* vmpc' ← mapEnvL iCxtMPCPathConditionL ((md :* not b :* si) :&) $ f xM
-      vmpc'' ← muxMPCVal md si b DefaultMV vmpc'
+      si' :* vmpc' ← mapEnvL iCxtMPCPathConditionL ((md :* b :* si) :&) $ f xM
+      vmpc'' ← muxMPCVal md si b vmpc' DefaultMV
       si'' ← joinShareInfo si si'
       return $ si'' :* vmpc''
   RP ψ' → do
     md :* b :* _vmpc₁ :* vmpc₂ ← view sumMVL vmpc
     f ← bindPatMPC si ψ' vmpc₂
     return $ \ xM → do
-      si' :* vmpc' ← mapEnvL iCxtMPCPathConditionL ((md :* b :* si) :&) $ f xM
-      vmpc'' ← muxMPCVal md si b vmpc' DefaultMV
+      si' :* vmpc' ← mapEnvL iCxtMPCPathConditionL ((md :* not b :* si) :&) $ f xM
+      vmpc'' ← muxMPCVal md si b DefaultMV vmpc'
       si'' ← joinShareInfo si si'
       return $ si'' :* vmpc''
   BulP → do
@@ -217,7 +218,7 @@ defaultBaseVal = \case
   NatMV p _ → NatMV p zero
   IntMV p _ → IntMV p zero
   FltMV p _ → FltMV p zero
-  PrinMV _ → PrinMV $ SinglePV "<DEFAULT>"
+  PrinMV _ → PrinMV BotBTD
 
 sumMPCVal ∷ (STACK) ⇒ ShareInfo → ValMPC → ValMPC → IM ValMPC
 sumMPCVal si vmpc₁ vmpc₂ = case (vmpc₁,vmpc₂) of

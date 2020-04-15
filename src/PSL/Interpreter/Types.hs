@@ -1,6 +1,7 @@
 module PSL.Interpreter.Types where
 
 import UVMHS
+import AddToUVMHS
 import PSL.Syntax
 
 ------------
@@ -59,7 +60,7 @@ data BaseValMPC =
   | NatMV IPrecision ℕ
   | IntMV IPrecision ℤ
   | FltMV FPrecision 𝔻
-  | PrinMV PrinVal
+  | PrinMV (AddBTD PrinVal)
   deriving (Eq,Ord,Show)
 
 -----------------

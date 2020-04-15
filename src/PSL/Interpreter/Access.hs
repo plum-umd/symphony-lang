@@ -1,6 +1,7 @@
 module PSL.Interpreter.Access where
 
 import UVMHS
+import AddToUVMHS
 
 import PSL.Syntax
 
@@ -188,7 +189,7 @@ unShareValMode m = \case
   NatV pr n → return $ NotShared :* BaseMV 0 (NatMV pr n)
   IntV pr i → return $ NotShared :* BaseMV 0 (IntMV pr i)
   FltV pr i → return $ NotShared :* BaseMV 0 (FltMV pr i)
-  PrinV (ValPEV ρe) → return $ NotShared :* BaseMV 0 (PrinMV ρe)
+  PrinV (ValPEV ρe) → return $ NotShared :* BaseMV 0 (PrinMV $ AddBTD ρe)
   PairV ṽ₁ ṽ₂ → do
     si₁ :* vmpc₁ ← unShareValPMode m ṽ₁
     si₂ :* vmpc₂ ← unShareValPMode m ṽ₂
@@ -196,10 +197,10 @@ unShareValMode m = \case
     return $ si :* PairMV vmpc₁ vmpc₂
   LV ṽ → do
     si :* vmpc ← unShareValPMode m ṽ
-    return $ si :* SumMV zero False vmpc DefaultMV
+    return $ si :* SumMV zero True vmpc DefaultMV
   RV ṽ → do
     si :* vmpc ← unShareValPMode m ṽ
-    return $ si :* SumMV zero True DefaultMV vmpc
+    return $ si :* SumMV zero False DefaultMV vmpc
   NilV → return $ NotShared :* NilMV
   ConsV ṽ₁ ṽ₂ → do
     si₁ :* vmpc₁ ← unShareValPMode m ṽ₁
@@ -262,18 +263,18 @@ mpcFrValFWith f = \case
     let bvmpc = FltMV pr i
     f bvmpc
     return $ BaseMV zero bvmpc
-  PrinV (ValPEV ρe) → return $ BaseMV zero $ PrinMV ρe
+  PrinV (ValPEV ρe) → return $ BaseMV zero $ PrinMV $ AddBTD ρe
   PairV ṽ₁ ṽ₂ → do
     vmpc₁ ← mpcFrValFWith f *$ elimValP ṽ₁
     vmpc₂ ← mpcFrValFWith f *$ elimValP ṽ₂
     return $ PairMV vmpc₁ vmpc₂
   LV ṽ → do
     vmpc ← mpcFrValFWith f *$ elimValP ṽ
-    return $ SumMV zero False vmpc DefaultMV
+    return $ SumMV zero True vmpc DefaultMV
   RV ṽ → do
     v ← elimValP ṽ
     vmpc ← mpcFrValFWith f v
-    return $ SumMV zero True DefaultMV vmpc
+    return $ SumMV zero False DefaultMV vmpc
   NilV → return $ NilMV
   ConsV ṽ₁ ṽ₂ → do
     vmpc₁ ← mpcFrValFWith f *$ elimValP ṽ₁
@@ -320,7 +321,10 @@ valFrBaseMPC = \case
   NatMV pr n → introValP $ NatV pr n
   IntMV pr i → introValP $ IntV pr i
   FltMV pr d → introValP $ FltV pr d
-  PrinMV pe → introValP $ PrinV $ ValPEV pe
+  PrinMV peO → case peO of
+    BotBTD → throwIErrorCxt TypeIError "valFrBaseMPC: PrinMV = TopBT" null
+    AddBTD pe → introValP $ PrinV $ ValPEV pe 
+    TopBTD → throwIErrorCxt TypeIError "valFrBaseMPC: PrinMV = TopBT" null
 
 revealValP ∷ (STACK) ⇒ 𝔹 → 𝑃 PrinVal → ValP → IM ValP
 revealValP zkʳ ρsʳ = \case

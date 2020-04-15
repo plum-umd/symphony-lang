@@ -5,4 +5,4 @@ def main • =
   let y : int{A} = par {A} x + 1
   in par {A} x + y
 
-def expecteed = par {A} 2
+def expected = par {A} 3
