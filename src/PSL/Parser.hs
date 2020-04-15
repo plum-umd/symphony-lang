@@ -30,7 +30,7 @@ lexer = lexerBasic puns kws prim ops
     kws = list
       [ "primitive"
       , "principal"
-      , "def"
+      , "def","sec"
       , "λ","fun"
       , "Λ","abs"
       , "∀","forall"
@@ -825,15 +825,18 @@ pExp = fmixfixWithContext "exp" $ concat
 pTL ∷ CParser TokenBasic TL
 pTL = cpNewWithContextRendered "tl" $ concat
   [ do cpSyntax "def"
+       b ← ifNone False ^$ cpOptional $ do
+         cpSyntax "sec"
+         return True
        x ← pVar
        ψs ← cpMany pPat
        concat
          [ do cpSyntax ":"
               τ ← pType
-              return $ DeclTL x τ
+              return $ DeclTL b x τ
          , do cpSyntax "="
               e ← pExp
-              return $ DefnTL x ψs e
+              return $ DefnTL b x ψs e
          ]
   , do cpSyntax "principal"
        ρds ← cpOneOrMore $ do

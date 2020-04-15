@@ -752,9 +752,12 @@ interpExp = wrapInterp $ \case
 
 interpTL ∷ TL → ITLM ()
 interpTL tl = case extract tl of
-  DeclTL _ _ → skip
-  DefnTL x ψs e →  do
-    let e' = buildLambda (annotatedTag tl) x ψs e
+  DeclTL _ _ _ → skip
+  DefnTL b x ψs e →  do
+    let e' = 
+          if b 
+          then buildUnfixedLambda (annotatedTag tl) x ψs e
+          else buildLambda (annotatedTag tl) x ψs e
     v ← asTLM $ interpExp e'
     modifyL itlStateEnvL ((x ↦ v) ⩌)
   PrinTL ps → do

@@ -319,11 +319,11 @@ buildLambda ∷ FullContext → Var → 𝐿 Pat → Exp → Exp
 buildLambda c x ψs e 
   | ψs ≡ Nil = e
   | otherwise = Annotated c $ LamE (Some x) ψs e
-  -- case ψs of
-  -- Nil → e
-  -- ψ :& ψs' →
-  --   let e' = foldrOnFrom ψs' e $ \ ψ'' e'' → Annotated c $ LamE None ψ'' e''
-  --   in Annotated c $ LamE (Some x) ψ e'
+
+buildUnfixedLambda ∷ FullContext → Var → 𝐿 Pat → Exp → Exp
+buildUnfixedLambda c x ψs e 
+  | ψs ≡ Nil = e
+  | otherwise = Annotated c $ LamE None (VarP x :& ψs) e
 
 ---------------
 -- Top-level --
@@ -332,10 +332,10 @@ buildLambda c x ψs e
 -- tl ∈ top-level ⩴  …
 type TL = Annotated FullContext TLR
 data TLR =
-    DeclTL Var Type          -- def x : τ        /  def x : τ
-  | DefnTL Var (𝐿 Pat) Exp   -- def x ψ₁ … = e   /  def x  ψ₁ … = e
-  | PrinTL (𝐿 PrinDecl)      -- principal ρ …    /  principal ρ …
-  | PrimTL Var Type          -- primitive x : τ  /  primitive x : τ
-  | ImportTL 𝕊               -- import "file"    /  import "file"
+    DeclTL 𝔹 Var Type        -- def [sec] x : τ       /  def [sec] x : τ
+  | DefnTL 𝔹 Var (𝐿 Pat) Exp -- def [sec] x ψ₁ … = e  /  def [sec] x  ψ₁ … = e
+  | PrinTL (𝐿 PrinDecl)      -- principal ρ …         /  principal ρ …
+  | PrimTL Var Type          -- primitive x : τ       /  primitive x : τ
+  | ImportTL 𝕊               -- import "file"         /  import "file"
   deriving (Eq,Ord)
 makePrettySum ''TLR

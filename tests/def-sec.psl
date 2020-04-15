@@ -1,0 +1,17 @@
+def sec sum n = 
+  if n ≤ 0
+  then 0
+  else 1 + sum (n - 1)
+
+def sec sum-forever n = 1 + sum-forever n
+
+def fix f x = f (fix f) x
+
+def fix-n n i f x =
+  if n ≤ 0
+  then i
+  else f (fix-n (n - 1) i f) x
+
+def main • = fix sum 10 , fix-n 20 0 sum-forever 100
+
+def expected = 10 , 20
