@@ -4,27 +4,21 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f6350b087a034201628d8f2d4205b05046f0fc7a250bc6e9c790564fcfa2d982
+-- hash: 89c7d940f8fbfb34acb997c74a80e28e802a6d68a056b4725463287b024b5bb4
 
 name:           psl
 version:        0.1.0.0
 build-type:     Simple
 data-files:
     lib/stdlib.psl
-    examples/#karmarkar-decl.psl#
     examples/alias.psl
     examples/arg-par-contains.psl
-    examples/arg-par-contains.psl~
     examples/assoc-map.psl
     examples/atq-nounicode.psl
     examples/atq.psl
-    examples/bak.txt
     examples/bind-fp-const.psl
-    examples/bind-fp-const.psl~
     examples/bind-shares.psl
-    examples/bind-shares.psl~
     examples/cmp-fn-flt.psl
-    examples/cmp-fn-flt.psl~
     examples/cmp-tutorial.psl
     examples/cmp-tutorial.psl.html
     examples/cmp-tutorial.psl.pdf
@@ -33,44 +27,27 @@ data-files:
     examples/cmp.psl.pdf
     examples/concat.psl
     examples/cont-monad.psl
-    examples/cont_monad.psl~
     examples/db-stats.psl
     examples/dheath.psl
     examples/elim-sec-ls.psl
-    examples/elim-sec-ls.psl~
     examples/empty-par-diverge.psl
-    examples/empty-par-diverge.psl~
     examples/euclid-dh.psl
     examples/gcd-bgv.psl
-    examples/gcd-bgv.psl~
     examples/gcd-gc.psl
-    examples/gcd.sec
-    examples/gcd.sec~
     examples/indy-pars.psl
-    examples/indy-pars.psl~
     examples/karmarkar-decl.psl
-    examples/karmarkar-decl.psl~
     examples/karmarkar-sane.psl
     examples/karmarkar-setup.psl
-    examples/karmarkar-setup.psl~
     examples/karmarkar-silly.psl
-    examples/karmarkar-silly.psl~
     examples/karmarkar-simple.psl
-    examples/karmarkar-simple.psl~
     examples/karmarkar.psl
-    examples/karmarkar.psl~
     examples/mill.psl.sec
     examples/mod-a.psl
     examples/mod-b.psl
     examples/msort-dedup.psl
-    examples/msort-dedup.psl~
     examples/msort.psl
-    examples/msort.psl.bak
     examples/mult-depth-test.psl
-    examples/notes.md
-    examples/notes.md~
     examples/partial-diverge.psl
-    examples/partial-diverge.psl~
     examples/pfold.psl
     examples/play.psl
     examples/qsort.psl
@@ -78,25 +55,15 @@ data-files:
     examples/rand-range-shared.psl
     examples/rand.psl
     examples/reshare.psl
-    examples/reshare.psl~
     examples/share-ls.psl
-    examples/share-ls.psl~
     examples/simple-read.psl
     examples/simple-write.psl
-    examples/single-share.psl
-    examples/single-share.psl~
-    examples/ssec-ineq-ssec.psl~
     examples/ssec-other-ssec.psl
     examples/ssec-shr.psl
-    examples/ssec-shr.psl~
     examples/sumprod.psl
-    examples/test.psl~
-    examples/todo.txt
-    examples/todo.txt~
     examples/uninspecting-par.psl
     examples/vector.psl
     examples/yao.psl.bmi
-    tests/#ver-sign.psl#
     tests/andor.psl
     tests/arrays.psl
     tests/bgv.psl
@@ -111,10 +78,9 @@ data-files:
     tests/located-type.psl
     tests/loop.psl
     tests/micro-let.psl
-    tests/mult-spdz.psl
-    tests/mult-spdz.psl~
     tests/mux-deep.psl
     tests/mux-pair.psl
+    tests/mux-prin.psl
     tests/mux-sum.psl
     tests/natfold.psl
     tests/overflow-int.psl
@@ -130,18 +96,14 @@ data-files:
     tests/solo-no-self.psl
     tests/solo.psl
     tests/sums.psl
-    tests/test.psl
-    tests/test.psl~
     tests/this.psl
     tests/underflow-int.psl
     tests/underflow-nat.psl
     tests/uninspecting-par.psl
     tests/ver-0.psl
-    tests/ver-0.psl~
     tests/ver-mpc.psl
-    tests/ver-mpc.psl~
     tests/ver-sign.psl
-    tests/ver-sign.psl~
+    tests/weird-mux-prin.psl
     tests/when.psl
     examples-input/A/atq-data.txt
     examples-input/A/cmp-input.txt
@@ -154,10 +116,8 @@ data-files:
     examples-input/A/simple-read.txt
     examples-input/A_0/atq-data.txt
     examples-input/A_0/msort-dedup-in.txt
-    examples-input/A_0/msort-dedup-in.txt~
     examples-input/A_1/atq-data.txt
     examples-input/A_1/msort-dedup-in.txt
-    examples-input/A_1/msort-dedup-in.txt~
     examples-input/A_10/atq-data.txt
     examples-input/A_10/msort-dedup-in.txt
     examples-input/A_100/msort-dedup-in.txt
@@ -878,19 +838,6 @@ data-files:
     examples-input/Ctr_5/in.txt
     examples-input/Ctr_6/in.txt
     examples-input/Ctr_7/in.txt
-    examples-input/node_1/gcd.txt
-    examples-input/node_2/gcd.txt
-    examples-input/Node_c/in.txt
-    examples-input/Node_in_0/in.txt
-    examples-input/Node_in_1/in.txt
-    examples-input/Node_in_2/in.txt
-    examples-input/Node_in_3/in.txt
-    examples-input/Node_in_4/in.txt
-    examples-input/Node_in_5/in.txt
-    examples-input/Node_in_6/in.txt
-    examples-input/Node_in_7/in.txt
-    examples-input/setup.sh
-    examples-input/setup.sh~
 
 library
   exposed-modules:

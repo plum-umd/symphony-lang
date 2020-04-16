@@ -35,6 +35,7 @@ interpPrim o vs = case (o,tohs vs) of
   (PlusO   ,[NatMV p₁ n₁,NatMV p₂ n₂])         |p₁≡p₂→r (tnat p₁) (null   ) $ NatMV p₁ $ trPrNat p₁ $ n₁ + n₂
   (PlusO   ,[IntMV p₁ i₁,IntMV p₂ i₂])         |p₁≡p₂→r (tint p₁) (null   ) $ IntMV p₁ $ trPrInt p₁ $ i₁ + i₂
   (PlusO   ,[FltMV p₁ f₁,FltMV p₂ f₂])         |p₁≡p₂→r (tflt p₁) (null   ) $ FltMV p₁ $ f₁ + f₂
+  (PlusO   ,[PrinMV ρ₁  ,PrinMV ρ₂  ])               →r (tprn   ) (null   ) $ PrinMV   $ ρ₁ ⊔ ρ₂
   (MinusO  ,[NatMV p₁ n₁,NatMV p₂ n₂])         |p₁≡p₂→r (tnat p₁) (null   ) $ NatMV p₁ $ trPrNat p₁ $ buPrNat p₁ n₁ - n₂
   (MinusO  ,[IntMV p₁ i₁,IntMV p₂ i₂])         |p₁≡p₂→r (tint p₁) (null   ) $ IntMV p₁ $ trPrInt p₁ $ i₁ - i₂
   (MinusO  ,[FltMV p₁ f₁,FltMV p₂ f₂])         |p₁≡p₂→r (tflt p₁) (null   ) $ FltMV p₁ $ f₁ - f₂

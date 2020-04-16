@@ -1,6 +1,5 @@
-principal A[96] -- Parties who supply just integers
-principal B[32] -- Parties who supply both integers and queries
-principal Dummy
+principal A[2] -- Parties who supply just integers
+principal B[2] -- Parties who supply both integers and queries
 
 -- Query functions
 
@@ -44,46 +43,78 @@ def num-unique xs = case xs
 -- mpc/list manip
 
 def remove-dups :
-    list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
-  → list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
+    list ((ℤ{bgw:A,B} × ℙ{bgw:A,B}) + 𝟙)
+  → list ((ℤ{bgw:A,B} × ℙ{bgw:A,B}) + 𝟙)
 def remove-dups qs = case qs
   { [] → []
-  ; (b,query)∷qs' →
-    let h = mux if (elem-triple query qs')
-            then (false, (-1,Dummy))
-            else (b,query)
-    in h∷(remove-dups qs')
+  ; queryOpt∷qs' →
+    let queryOpt' =
+      mux if (elem (λ x y →
+        mux case x
+        { L (x1, x2) →
+          mux case y
+          { L (y1, y2) → (y1 == x1) && (x2 == y2)
+          ; R • → false
+          }
+        ; R • → false
+        }
+        ) queryOpt qs')
+      then R •
+      else queryOpt
+    in queryOpt'::(remove-dups qs')
   }
 
 -- Publishing results
 
-def publish-result :
-    ℙ{bgw:A,B}
-  → (t : ℙ{A,B})
-  → ℤ{bgw:A,B}
-  → 𝔹{bgw:A,B}
-  → list (𝔹{various} × ℤ{various})
-def publish-result allParties target value isValid = case allParties
-  { {} → []
-  ; {currentParty}∪remainingParties →
-    let validTag = isValid ? (target ≡ currentParty) ◇ false
-    let valueOutput = isValid ? ((target ≡ currentParty) ? value ◇ -1) ◇ -1
-    let output = reveal {currentParty} validTag, reveal {currentParty} valueOutput
-    let remainingOutput = publish-result remainingParties target value isValid
-    in output ∷ remainingOutput
+def reveal-results :
+    list (ℙ{bgw:A,B} × (ℤ{bgw:A,B} × ℤ{bgw:A,B}))
+  → (ℤ{bundle:A,B} × ℤ{bundle:A,B})
+def reveal-results xs = case xs
+  { [] → ⟪⟫,⟪⟫
+  ; (p,(q, r))∷xs' →
+    let q' = reveal {p} q
+    let r' = reveal {p} r
+    let (qs,rs) = reveal-results xs'
+    in ⟪p | q'⟫ ⧺ qs, ⟪p | r'⟫ ⧺ rs
   }
 
 def publish-results :
     list ℤ{bgw:A,B}
-  → list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
-  → list list (𝔹{various} × ℤ{various})
+  → list ((ℤ{bgw:A,B} × ℙ{bgw:A,B}) + 𝟙)
+  → list (ℤ{bundle:A,B} × ℤ{bundle:A,B})
 def publish-results results queryTargetOptionals = case queryTargetOptionals
   { [] → []
-  ; (isValid,(query,target))∷remaining →
-    let output = publish-result {A,B} (reveal{A,B} target) (elem-at query results) isValid
+  ; qto∷remaining →
+    let qto' =
+      fold-p (λ l p →
+        let out = mux case qto
+          { L (q, t) → (p ≡ t ? q ◇ -1, p ≡ t ? elem-at q results ◇ -1)
+          ; R • → (-1, -1)
+          }
+        in (p, out) ∷ l
+      ) [] {A,B}
+    let output = reveal-results qto'
     let remainingOutput = publish-results results remaining
     in output ∷ remainingOutput
   }
+
+def post-process :
+    list (ℤ{bundle:A,B} × ℤ{bundle:A,B})
+  → (p:ℙ)
+  → (list (𝕊{p} × ℤ{p})){p}
+def post-process xs α = foldl xs [] (λ (q,r) l →
+  let q' = q@α
+  let r' = r@α
+  if q' ≡ -1
+  then l
+  else
+    let s =
+      if 0 ≡ q' then "Median" else
+      if 1 ≡ q' then "Number Unique" else
+      if 2 ≡ q' then "Min" else
+      if 3 ≡ q' then "Max" else ⊥
+    in (s, r') ∷ l
+  )
 
 -- ATQ
 
@@ -91,20 +122,20 @@ def main : 𝟙 →{inp:A,B;rev:A,B} list ℤ{any}
 def main • = par {A,B}
 
   -- All parties read in data input
-  let inputLists : (list ℤ){isec:A,B}
+  let inputLists : (list ℤ){bundle:A,B}
   let inputLists = solo {A,B} as α in read (list ℤ) from "atq-data.txt"
 
   -- Parties in group B read in queries
-  let inputQueries : ℤ{isec:B}
+  let inputQueries : ℤ{bundle:B}
   let inputQueries = solo {B} as α in read ℤ from "atq-query.txt"
 
   -- Parties in group B read in targets for the previously read in queries
-  let inputTargets : (list ℙ){isec:B}
+  let inputTargets : (list ℙ){bundle:B}
   let inputTargets = solo {B} as α in read (list ℙ) from "atq-targets.txt"
 
   -- Secret share the elements of each party's list
   let inputListsShared : list list (ℤ{bgw:A,B})
-  let inputListsShared = fold-f [] (λ P x i → (preprocess-lists-reveal-lengths P {A,B} x 0) ∷ i) inputLists
+  let inputListsShared = fold-f [] (λ P x i → (preprocess-lists-reveal-lengths P {A,B} x) ∷ i) inputLists
 
   -- Merge and sort the input lists into a single list
   let dataList : list ℤ{bgw:A,B}
@@ -112,7 +143,7 @@ def main • = par {A,B}
 
   -- Produce a single sorted list of all input integers
   let dataListSorted : list ℤ{bgw:A,B}
-  let dataListSorted = sort (λ a b → mux if a ≤ b then (a, b) else (b, a)) dataList
+  let dataListSorted = sort (λ a b → mux if a ≤ b then true else false) dataList
 
   -- Find the median of the integer list
   let medianResult : ℤ{bgw:A,B}
@@ -135,21 +166,24 @@ def main • = par {A,B}
   let results = [medianResult; uniqueResult; minResult; maxResult]
 
   -- Pair the input queries and targets up along with a tag denoting that it is not dummy data
-  let queriesWithTargets : (list (𝔹{B} × (ℤ{B} × ℙ{B}))){isec:B}
-  let queriesWithTargets = solo {B} as α in (pair-with-list true (pair-with-list inputQueries@α inputTargets@α))
+  let queriesWithTargets : (list (ℤ{B} × ℙ{B})){bundle:B}
+  let queriesWithTargets = solo {B} as α in (pair-with-list inputQueries@α inputTargets@α)
 
   -- Secret share queries and targets without revealing the number of targets each party supplied by setting an upper bound and padding data out with dummy data
-  let queriesWithTargetsShared : list list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
-  let queriesWithTargetsShared = fold-f [] (λ P x i → (preprocess-lists-n-triples P {A,B} 8 x (false,(-1,Dummy))) ∷ i) queriesWithTargets
+  let queriesWithTargetsShared : list list ((ℤ{bgw:A,B} × ℙ{bgw:A,B}) + 𝟙)
+  let queriesWithTargetsShared = fold-f [] (λ P x i → (preprocess-lists-n-pairs P {A,B} 8 x) ∷ i) queriesWithTargets
 
   -- Combine queries and targets into one list
-  let allQueriesWithTargetsShared : list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
+  let allQueriesWithTargetsShared : list ((ℤ{bgw:A,B} × ℙ{bgw:A,B}) + 𝟙)
   let allQueriesWithTargetsShared = concat queriesWithTargetsShared
 
   -- Remove duplicate queries so that recipients will not learn how many times they were targeted
-  let finalQueries : list (𝔹{bgw:A,B} × (ℤ{bgw:A,B} × ℙ{bgw:A,B}))
+  let finalQueries : list ((ℤ{bgw:A,B} × ℙ{bgw:A,B}) + 𝟙)
   let finalQueries = remove-dups allQueriesWithTargetsShared
 
   -- For each query from each party in B with duplicates replaced by dummy data, plus dummy padding to achieve upper bounds, publish the results of the query to the target of the query
-  in concat (publish-results results finalQueries)
+  let published-results = publish-results results finalQueries
+
+  -- Have each party post-process the output to make things look nice
+  in solo {A,B} as α in post-process published-results α
 

@@ -1,0 +1,17 @@
+principal A B C
+def main • =
+  let x  = share{yao:A → A,B} A
+  let y  = share{yao:A → A,B} B
+  let z  = share{yao:A → A,B} C
+  let b₁ = share{yao:B → A,B} false
+  let b₂ = share{yao:B → A,B} R •
+  in
+  mux if b₁
+  then x
+  else
+    mux case b₂
+    { L • → y
+    ; R • → z
+    }
+
+def expected = share{yao:A → A,B} C

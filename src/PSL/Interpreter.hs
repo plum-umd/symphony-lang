@@ -1,6 +1,7 @@
 module PSL.Interpreter where
 
 import UVMHS
+import AddToUVMHS
 
 import PSL.Config
 import PSL.Parser
@@ -135,16 +136,16 @@ bindPatMPC si ψ vmpc = case ψ of
     md :* b :* vmpc₁ :* _vmpc₂ ← view sumMVL vmpc
     f ← bindPatMPC si ψ' vmpc₁
     return $ \ xM → do
-      si' :* vmpc' ← mapEnvL iCxtMPCPathConditionL ((md :* not b :* si) :&) $ f xM
-      vmpc'' ← muxMPCVal md si b DefaultMV vmpc'
+      si' :* vmpc' ← mapEnvL iCxtMPCPathConditionL ((md :* b :* si) :&) $ f xM
+      vmpc'' ← muxMPCVal md si b vmpc' DefaultMV
       si'' ← joinShareInfo si si'
       return $ si'' :* vmpc''
   RP ψ' → do
     md :* b :* _vmpc₁ :* vmpc₂ ← view sumMVL vmpc
     f ← bindPatMPC si ψ' vmpc₂
     return $ \ xM → do
-      si' :* vmpc' ← mapEnvL iCxtMPCPathConditionL ((md :* b :* si) :&) $ f xM
-      vmpc'' ← muxMPCVal md si b vmpc' DefaultMV
+      si' :* vmpc' ← mapEnvL iCxtMPCPathConditionL ((md :* not b :* si) :&) $ f xM
+      vmpc'' ← muxMPCVal md si b DefaultMV vmpc'
       si'' ← joinShareInfo si si'
       return $ si'' :* vmpc''
   BulP → do
@@ -217,7 +218,7 @@ defaultBaseVal = \case
   NatMV p _ → NatMV p zero
   IntMV p _ → IntMV p zero
   FltMV p _ → FltMV p zero
-  PrinMV _ → PrinMV $ SinglePV "<DEFAULT>"
+  PrinMV _ → PrinMV BotBTD
 
 sumMPCVal ∷ (STACK) ⇒ ShareInfo → ValMPC → ValMPC → IM ValMPC
 sumMPCVal si vmpc₁ vmpc₂ = case (vmpc₁,vmpc₂) of
@@ -267,9 +268,24 @@ sumMPCVal si vmpc₁ vmpc₂ = case (vmpc₁,vmpc₂) of
     vmpc₁' ← sumMPCVal si DefaultMV mvpc₂₁
     vmpc₂' ← sumMPCVal si DefaultMV mvpc₂₂
     return $ SumMV md₁' b₁' vmpc₁' vmpc₂'
-  (BulMV,BulMV) → return $ BulMV
-  (BulMV,DefaultMV) → return $ BulMV
-  (DefaultMV,BulMV) → return $ BulMV
+  (ConsMV vmpc₁₁ vmpc₁₂,ConsMV vmpc₂₁ vmpc₂₂) → do
+    vmpc₁' ← sumMPCVal si vmpc₁₁ vmpc₂₁
+    vmpc₂' ← sumMPCVal si vmpc₁₂ vmpc₂₂
+    return $ ConsMV vmpc₁' vmpc₂'
+  (ConsMV vmpc₁₁ vmpc₁₂,DefaultMV) → do
+    vmpc₁' ← sumMPCVal si vmpc₁₁ DefaultMV
+    vmpc₂' ← sumMPCVal si vmpc₁₂ DefaultMV
+    return $ ConsMV vmpc₁' vmpc₂'
+  (DefaultMV,ConsMV vmpc₂₁ vmpc₂₂) → do
+    vmpc₁' ← sumMPCVal si DefaultMV vmpc₂₁
+    vmpc₂' ← sumMPCVal si DefaultMV vmpc₂₂
+    return $ ConsMV vmpc₁' vmpc₂'
+  (NilMV,NilMV) → return NilMV
+  (NilMV,DefaultMV) → return NilMV
+  (DefaultMV,NilMV) → return NilMV
+  (BulMV,BulMV) → return BulMV
+  (BulMV,DefaultMV) → return BulMV
+  (DefaultMV,BulMV) → return BulMV
   _ → throwIErrorCxt TypeIError "sumMPCVal: not implemented" $ frhs
     [ ("vmpc₁",pretty vmpc₁)
     , ("vmpc₂",pretty vmpc₂)
@@ -732,6 +748,8 @@ interpExp = wrapInterp $ \case
     modifyL iStateMPCContL $ \ κ → (pc :* si :* vmpc) :& κ
     introValP DefaultV
   NizkWitnessE φ ρes e → do
+    -- TODO: implement share -> nizk-witness
+    -- see commented out mpcFrValPFWith and notes
     ρvs ← prinExpValss *$ mapM interpPrinExp ρes
     ṽ ← interpExp e
     v ← elimValP ṽ
