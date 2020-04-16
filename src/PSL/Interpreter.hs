@@ -268,9 +268,24 @@ sumMPCVal si vmpc₁ vmpc₂ = case (vmpc₁,vmpc₂) of
     vmpc₁' ← sumMPCVal si DefaultMV mvpc₂₁
     vmpc₂' ← sumMPCVal si DefaultMV mvpc₂₂
     return $ SumMV md₁' b₁' vmpc₁' vmpc₂'
-  (BulMV,BulMV) → return $ BulMV
-  (BulMV,DefaultMV) → return $ BulMV
-  (DefaultMV,BulMV) → return $ BulMV
+  (ConsMV vmpc₁₁ vmpc₁₂,ConsMV vmpc₂₁ vmpc₂₂) → do
+    vmpc₁' ← sumMPCVal si vmpc₁₁ vmpc₂₁
+    vmpc₂' ← sumMPCVal si vmpc₁₂ vmpc₂₂
+    return $ ConsMV vmpc₁' vmpc₂'
+  (ConsMV vmpc₁₁ vmpc₁₂,DefaultMV) → do
+    vmpc₁' ← sumMPCVal si vmpc₁₁ DefaultMV
+    vmpc₂' ← sumMPCVal si vmpc₁₂ DefaultMV
+    return $ ConsMV vmpc₁' vmpc₂'
+  (DefaultMV,ConsMV vmpc₂₁ vmpc₂₂) → do
+    vmpc₁' ← sumMPCVal si DefaultMV vmpc₂₁
+    vmpc₂' ← sumMPCVal si DefaultMV vmpc₂₂
+    return $ ConsMV vmpc₁' vmpc₂'
+  (NilMV,NilMV) → return NilMV
+  (NilMV,DefaultMV) → return NilMV
+  (DefaultMV,NilMV) → return NilMV
+  (BulMV,BulMV) → return BulMV
+  (BulMV,DefaultMV) → return BulMV
+  (DefaultMV,BulMV) → return BulMV
   _ → throwIErrorCxt TypeIError "sumMPCVal: not implemented" $ frhs
     [ ("vmpc₁",pretty vmpc₁)
     , ("vmpc₂",pretty vmpc₂)
