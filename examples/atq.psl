@@ -66,48 +66,55 @@ def remove-dups qs = case qs
 
 -- Publishing results
 
-def publish-result :
-    ℙ{bgw:A,B}
-  → (t : ℙ{A,B})
-  → ℤ{bgw:A,B}
-  → list (𝔹{various} × ℤ{various})
-def publish-result allParties target value = case allParties
-  { {} → ⟪⟫,⟪⟫
-  ; {currentParty}∪remainingParties →
-    let validTag = target ≡ currentParty
-    let valueOutput = validTag ? value ◇ -1
-    let outputTag = reveal {currentParty} validTag
-    let outputData = reveal {currentParty} valueOutput
-    let remainingTags, remainingData = publish-result remainingParties target value
-    in ⟪currentParty | outputTag⟫ ⧺ remainingTags, ⟪currentParty | outputData⟫ ⧺ remainingData
-  }
-
-def publish-dummy :
-    ℙ{bgw:A,B}
-  → list (𝔹{various} × ℤ{various})
-def publish-dummy allParties = case allParties
-  { {} → ⟪⟫,⟪⟫
-  ; {currentParty}∪remainingParties →
-    let outputTag = reveal {currentParty} false
-    let outputData = reveal {currentParty} -1
-    let remainingTags, remainingData = publish-dummy remainingParties
-    in ⟪currentParty | outputTag⟫ ⧺ remainingTags, ⟪currentParty | outputData⟫ ⧺ remainingData
+def reveal-results :
+    list (ℙ{bgw:A,B} × (ℤ{bgw:A,B} × ℤ{bgw:A,B}))
+  → (ℤ{bundle:A,B} × ℤ{bundle:A,B})
+def reveal-results xs = case xs
+  { [] → ⟪⟫,⟪⟫
+  ; (p,(q, r))∷xs' →
+    let q' = reveal {p} q
+    let r' = reveal {p} r
+    let (qs,rs) = reveal-results xs'
+    in ⟪p | q'⟫ ⧺ qs, ⟪p | r'⟫ ⧺ rs
   }
 
 def publish-results :
     list ℤ{bgw:A,B}
   → list ((ℤ{bgw:A,B} × ℙ{bgw:A,B}) + 𝟙)
-  → list list (𝔹{various} × ℤ{various})
+  → list (ℤ{bundle:A,B} × ℤ{bundle:A,B})
 def publish-results results queryTargetOptionals = case queryTargetOptionals
   { [] → []
   ; qto∷remaining →
-    let output = mux case qto
-                   { L (query, target) → publish-result {A,B} (reveal{A,B} target) (elem-at query results)
-                   ; R • → publish-dummy {A,B}
-                   }
+    let qto' =
+      fold-p (λ l p →
+        let out = mux case qto
+          { L (q, t) → (p ≡ t ? q ◇ -1, p ≡ t ? elem-at q results ◇ -1)
+          ; R • → (-1, -1)
+          }
+        in (p, out) ∷ l
+      ) [] {A,B}
+    let output = reveal-results qto'
     let remainingOutput = publish-results results remaining
     in output ∷ remainingOutput
   }
+
+def post-process :
+    list (ℤ{bundle:A,B} × ℤ{bundle:A,B})
+  → (p:ℙ)
+  → (list (𝕊{p} × ℤ{p})){p}
+def post-process xs α = foldl xs [] (λ (q,r) l →
+  let q' = q@α
+  let r' = r@α
+  if q' ≡ -1
+  then l
+  else
+    let s =
+      if 0 ≡ q' then "Median" else
+      if 1 ≡ q' then "Number Unique" else
+      if 2 ≡ q' then "Min" else
+      if 3 ≡ q' then "Max" else ⊥
+    in (s, r') ∷ l
+  )
 
 -- ATQ
 
@@ -175,5 +182,8 @@ def main • = par {A,B}
   let finalQueries = remove-dups allQueriesWithTargetsShared
 
   -- For each query from each party in B with duplicates replaced by dummy data, plus dummy padding to achieve upper bounds, publish the results of the query to the target of the query
-  in concat (publish-results results finalQueries)
+  let published-results = publish-results results finalQueries
+
+  -- Have each party post-process the output to make things look nice
+  in solo {A,B} as α in post-process published-results α
 

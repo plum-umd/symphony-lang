@@ -151,6 +151,11 @@ def fold-f i f xs = case xs
   ; <<p | x>> ++ xs' -> f p x (fold-f i f xs')
   }
 
+def fold-p f i P = case P
+  { {} -> i
+  ; {p} \/ P' -> f (fold-p f i P') p
+  }
+
 
 
 ---
