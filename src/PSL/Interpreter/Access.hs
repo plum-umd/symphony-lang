@@ -167,7 +167,11 @@ unShareValP ṽ = do
 unShareValPMode ∷ (STACK) ⇒ Mode → ValP → IM (ShareInfo ∧ ValMPC)
 unShareValPMode m = \case
   SSecVP ρs v → do
-    guardErr (m ⊑ SecM ρs) $ throwIErrorCxt TypeIError "bad" null
+    guardErr (m ⊑ SecM ρs) $ 
+      throwIErrorCxt TypeIError "unShareValPMode: SSecVP: ¬ m ⊑ SecM ρs " $ frhs
+        [ ("m",pretty m)
+        , ("ρs",pretty ρs)
+        ]
     unShareValMode m v
   ShareVP zk φ ρs vmpc → do
     guardErr (SecM ρs ⊑ m) $ throwIErrorCxt TypeIError "bad" null
@@ -179,8 +183,9 @@ unShareValPMode m = \case
     si₂ :* vmpc₂ ← unShareValPMode m ṽ₂
     si ← joinShareInfo si₁ si₂
     return $ si :* PairMV vmpc₁ vmpc₂
-  ISecVP _ → throwIErrorCxt TypeIError "bad" null
-  UnknownVP → throwIErrorCxt TypeIError "bad" null
+  ṽ → throwIErrorCxt TypeIError 
+    "unShareValPMode: ṽ ∉ {SSecVP _ _,ShareVP _ _ _ _,AllVP _,PairVP _ _}" $ frhs
+      [ ("ṽ",pretty ṽ) ]
 
 unShareValMode ∷ (STACK) ⇒ Mode → Val → IM (ShareInfo ∧ ValMPC)
 unShareValMode m = \case
@@ -286,6 +291,29 @@ mpcFrValFWith f = \case
 
 mpcFrVal ∷ (STACK) ⇒ Val → IM ValMPC
 mpcFrVal = mpcFrValFWith $ const skip
+
+-- TODO: to implement share -> nizk-share
+-- first function is to emit share events
+-- second function is to convert shares to nizk shares, and to emit convert events
+-- ideally, mpcFrVal would be an instantiation of this which throws an error in the second function
+--
+-- mpcFrValPFWith ∷ (STACK) ⇒ (BaseValMPC → IM ()) → (𝔹 → Prot → 𝑃 Prin → ValMPC → IM ValP) → ValP → IM ValMPC
+-- mcpFrValPFWith f g = \case
+--   SSecVP ρs v → do
+--     m ← askL iCxtModeL
+--     guardErr (m ⊑ SecM ρs) $
+--       throwIErrorCxt TypeIError "mpcFrValPFWith: m ⋢ PSecM ρs" $ frhs
+--         [ ("m",pretty m)
+--         , ("ρs",pretty ρs)
+--         ]
+--     mpcFrValFWith f g v
+--   ISecVP (PrinVal ⇰ Val)
+--   ShareVP 𝔹 Prot (𝑃 PrinVal) ValMPC
+--   AllVP Val
+--   UnknownVP
+--   PairVP ValP ValP
+  
+-- mpcFrValFWith ∷ (STACK) ⇒ (BaseValMPC → IM ()) → (𝔹 → Prot → 𝑃 Prin → ValMPC → IM ValP) → ValP → IM ValMPC
 
 valFrMPC ∷ (STACK) ⇒ ValMPC → IM ValP
 valFrMPC = valFrMPCFWith $ const $ const skip

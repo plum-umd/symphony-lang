@@ -733,6 +733,8 @@ interpExp = wrapInterp $ \case
     modifyL iStateMPCContL $ \ κ → (pc :* si :* vmpc) :& κ
     introValP DefaultV
   NizkWitnessE φ ρes e → do
+    -- TODO: implement share -> nizk-witness
+    -- see commented out mpcFrValPFWith and notes
     ρvs ← prinExpValss *$ mapM interpPrinExp ρes
     ṽ ← interpExp e
     v ← elimValP ṽ
