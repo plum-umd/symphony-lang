@@ -2,7 +2,6 @@
 principal node_1 node_2
 
 -- Listing 5: Greatest Common Divisor.
--- def gcd gcd_rec (a, b) =
 def sec gcd (a, b) =
   -- 0 is divisible by any number, so when we reach it we can stop
   mux if (a == 0) then

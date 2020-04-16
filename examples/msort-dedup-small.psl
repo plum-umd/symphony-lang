@@ -1,4 +1,4 @@
-principal A[512]
+principal A[8]
 principal Central
 
 -- alias names of operations that are already defined in stdlib:
