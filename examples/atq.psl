@@ -72,24 +72,26 @@ def publish-result :
   → ℤ{bgw:A,B}
   → list (𝔹{various} × ℤ{various})
 def publish-result allParties target value = case allParties
-  { {} → []
+  { {} → ⟪⟫,⟪⟫
   ; {currentParty}∪remainingParties →
     let validTag = target ≡ currentParty
     let valueOutput = validTag ? value ◇ -1
-    let output = reveal {currentParty} validTag, reveal {currentParty} valueOutput
-    let remainingOutput = publish-result remainingParties target value
-    in output ∷ remainingOutput
+    let outputTag = reveal {currentParty} validTag
+    let outputData = reveal {currentParty} valueOutput
+    let remainingTags, remainingData = publish-result remainingParties target value
+    in ⟪currentParty | outputTag⟫ ⧺ remainingTags, ⟪currentParty | outputData⟫ ⧺ remainingData
   }
 
 def publish-dummy :
     ℙ{bgw:A,B}
   → list (𝔹{various} × ℤ{various})
 def publish-dummy allParties = case allParties
-  { {} → []
+  { {} → ⟪⟫,⟪⟫
   ; {currentParty}∪remainingParties →
-    let output = reveal {currentParty} false, reveal {currentParty} -1
-    let remainingOutput = publish-dummy remainingParties
-    in output ∷ remainingOutput
+    let outputTag = reveal {currentParty} false
+    let outputData = reveal {currentParty} -1
+    let remainingTags, remainingData = publish-dummy remainingParties
+    in ⟪currentParty | outputTag⟫ ⧺ remainingTags, ⟪currentParty | outputData⟫ ⧺ remainingData
   }
 
 def publish-results :
@@ -99,7 +101,6 @@ def publish-results :
 def publish-results results queryTargetOptionals = case queryTargetOptionals
   { [] → []
   ; qto∷remaining →
-    trace qto
     let output = mux case qto
                    { L (query, target) → publish-result {A,B} (reveal{A,B} target) (elem-at query results)
                    ; R • → publish-dummy {A,B}
