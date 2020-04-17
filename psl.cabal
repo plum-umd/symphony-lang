@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 89c7d940f8fbfb34acb997c74a80e28e802a6d68a056b4725463287b024b5bb4
+-- hash: 0c8b93a9adee2fcdcb92fd94a23dcd7aa811122bc0ace987aae658cca2495bb6
 
 name:           psl
 version:        0.1.0.0
@@ -44,6 +44,7 @@ data-files:
     examples/mill.psl.sec
     examples/mod-a.psl
     examples/mod-b.psl
+    examples/msort-dedup-small.psl
     examples/msort-dedup.psl
     examples/msort.psl
     examples/mult-depth-test.psl
@@ -95,8 +96,10 @@ data-files:
     tests/shared-bullet.psl
     tests/solo-no-self.psl
     tests/solo.psl
+    tests/string-concat.psl
     tests/sums.psl
     tests/this.psl
+    tests/to-string.psl~
     tests/underflow-int.psl
     tests/underflow-nat.psl
     tests/uninspecting-par.psl

@@ -311,6 +311,8 @@ data ExpR =
   | ReturnE Exp                              -- return e                /  return e
   | NizkWitnessE Prot (𝐿 PrinExp) Exp        -- nizk-witness{φ:P} e     /  nizk-witness{φ:P} e
   | NizkCommitE Prot (𝐿 PrinExp) Exp         -- nizk-commit{φ:P} e      /  nizk-commit{φ:P} e
+  | StringConcatE Exp Exp                    -- e ⧻ e          /  e +++ e
+  | ToStringE Exp                            -- str e                   /  str e
   deriving (Eq,Ord,Show)
   -- [e₁;…;eₙ] ≜ e₁ ∷ ⋯ ∷ eₙ ∷ []
 makePrettySum ''ExpR

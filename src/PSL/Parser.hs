@@ -102,6 +102,8 @@ lexer = lexerBasic puns kws prim ops
       , "ceil"
       , "sqrt"
       , "size"
+      , "⧻", "+++"
+      , "to_str"
       ]
 
 ----------
@@ -739,6 +741,12 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntax "ceil" 
       ip ← pIPrecision
       return $ \ e → PrimE (CeilO ip) $ list [e]
+  , fmixPrefix levelAPP $ do
+      cpSyntax "to_str"
+      return $ \ e → ToStringE e
+  , fmixInfixR levelAPP $ do
+      concat [cpSyntax "⧻", cpSyntax "+++"]
+      return StringConcatE
   , fmixInfixR levelCOND $ do
       cpSyntax "?"
       e₂ ← pExp
