@@ -245,6 +245,7 @@ data Op =
   | CondO
   | AbsO
   | SqrtO
+  | LogO
   | NatO IPrecision
   | IntO IPrecision
   | FltO FPrecision

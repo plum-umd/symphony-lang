@@ -2,6 +2,8 @@ module AddToUVMHS where
 
 import UVMHS
 
+import qualified Prelude as HS
+
 -- ====== --
 -- AddBTD --
 -- ====== --
@@ -54,3 +56,6 @@ instance (Pretty a) ⇒ Pretty (AddBTD a) where
   pretty BotBTD = ppCon "⊥"
   pretty TopBTD = ppCon "⊤"
   pretty (AddBTD x) = pretty x
+
+logBase ∷ 𝔻 → 𝔻 → 𝔻
+logBase = HS.logBase
