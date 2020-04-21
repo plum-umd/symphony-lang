@@ -56,6 +56,9 @@ def square a = a * a
 def max muxer a b = muxer (a <= b) b a
 
 
+def ite-wrap guard tc fc = if guard then tc else fc
+
+
 -- mux-wrap: wrapper around mux syntax
 def mux-wrap guard tc fc = mux if guard then tc else fc
 
@@ -377,19 +380,15 @@ def eq_lists l0 l1 = all_true (zip-map eq l0 l1)
 -- mux_ls: multiplex over a pair of lists:
 def mux_ls guard l0 l1 = zip-map (mux-wrap guard) l0 l1
 
+def get-gen muxer l i = snd
+  (foldl l
+    (0n, _|_)
+    (fun x (idx, elt) -> (inc idx, muxer (idx == i) x elt)) )
 
 -- get i l: the ith element of l
-def get l i =
-  (elim_nat i
-    (fun l' -> case l'
-      { [] -> err "get: 0th of empty list"
-      ; x :: l'' -> x
-      })
-    (fun g l' -> case l'
-      { [] -> err "get: ith of non-empty list"
-      ; x :: l'' -> g l''
-      }) )
-    l
+def get = get-gen ite-wrap 
+
+def sec-get = get-gen mux-wrap
 
 def arr_get l i = get l (dec i)
 
@@ -401,7 +400,7 @@ def upd l i v =
       ; x :: l' -> v :: l'
       })
     (fun s l' -> case l'
-     { [] -> err "set : setting ith of non-empty list"
+     { [] -> err "set : setting ith of empty list"
      ; x :: l'' -> x :: (s l'')
      }) )
     l
@@ -436,6 +435,13 @@ def rangen-help n goal =
 def rangen : nat -> list nat
 def rangen n = rangen-help 0 n
 
+-- range m n: the list of elements from m to n
+def range m n =
+  if n < m then []
+  else map (plus m)
+    (elim_nat (n - m)
+       [ 0n ]
+       (fun rng -> snoc (len rng) rng) )
 
 def reverse-help : list a -> list a -> list a
 def reverse-help xs acc =

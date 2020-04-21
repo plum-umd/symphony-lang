@@ -18,10 +18,8 @@ principal Node_o
 -- comps: the parties that do computation, Node_in and Node_c
 def comps = { Node_in, Node_c }
 
--- TODO: define these properly
+-- TODO: define properly
 def log_2_real = id
-
-def magn x = 1n
 
 -- aliases of definitions in the standard lib:
 
@@ -46,14 +44,6 @@ def zero-vec-shrs n = map (shr-w-comp { Node_c }) (zero-vec n)
 def iter_sec_nat_spdz muxer = iter_sec_nat muxer 
 
 def iter_sec_nat_ls = iter_sec_nat_spdz mux_ls
-
--- range m n: the list of elements from m to n
-def range m n =
-  if n < m then []
-  else map (plus m)
-    (elim_nat (n - m)
-       [ 0n ]
-       (fun rng -> snoc (len rng) rng) )
 
 -- nz_prod z u l: the product of non-z entries in l, with
 -- multiplicative unit u
@@ -196,17 +186,14 @@ def karmarkar_loop a c =
   -- product of non-zero entries in c and A
   let p = (nz-prod-flt c) * (nz-prod-mat-flt a) in
   let l = (m + 1n) * n +
-    (magn (ceil (log_2_real (abs-val-flt-shr p)))) +
-    n * (magn (ceil (log_2_real (to_flt n)))) in
+    (abs_val (ceil (log_base_2 (abs-val-flt-shr p)))) +
+    n * (abs_val (ceil (log_base_2 (to_flt n)))) in
   let max_iterations = 12n * n * l in
 
   -- If this initial point is an optimal solution, return
   mux if (dot-prod-flt c !x) < epsilon then !x
   -- hand-computed bound
   else
-    sec-iter-nat max_iterations 1n (fun i ->
-    )
-
   (iter_sec_nat_ls max_iterations 1n (fun i -> 
     let x_new = karmarkar_iteration !x a c in cont_seq'
 

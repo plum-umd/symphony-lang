@@ -1,4 +1,5 @@
 Nodes[64] { encryption : 256 }
+External
 
 connected {
   full : Nodes
@@ -9,8 +10,8 @@ revealed {
 }
 
 verified {
-  { prover : mpc nodes
-    verifier : external
+  { prover : mpc Nodes
+    verifier : External
   }
 }
 
