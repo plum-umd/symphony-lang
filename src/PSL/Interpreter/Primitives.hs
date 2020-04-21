@@ -8,6 +8,8 @@ import PSL.Interpreter.Pretty ()
 import PSL.Syntax
 import PSL.Interpreter.Json
 
+import AddToUVMHS
+
 valWithType ∷ Val → Val ∧ 𝕊
 valWithType v = v :* getType v
 
@@ -73,6 +75,7 @@ interpPrim o vs = case (o,tohs vs) of
   (CondO   ,[BoolMV b,FltMV p₁ f₁,FltMV p₂ f₂])|p₁≡p₂→r (tflt p₁) (null   ) $ FltMV p₁ $ if b then f₁ else f₂
   (CondO   ,[BoolMV b,PrinMV p₁  ,PrinMV p₂  ])      →r (tprn   ) (null   ) $ PrinMV   $ if b then p₁ else p₂
   (AbsO    ,[IntMV p i])                             →r (tint p ) (null   ) $ NatMV p  $ zabs i
+  (LogO    ,[FltMV p f])                             →r (tflt p ) (null   ) $ FltMV p  $ logBase 2.0 f
   (SqrtO   ,[FltMV p f])                             →r (tflt p ) (null   ) $ FltMV p  $ root f
   (NatO p₁ ,[NatMV p₂ n])                            →r (tnat p₂) (tnat p₁) $ NatMV p₁ $ trPrNat p₁ n
   (NatO p₁ ,[IntMV p₂ i])                            →r (tnat p₂) (tint p₁) $ NatMV p₁ $ trPrNat p₁ $ natΩ i
@@ -108,6 +111,7 @@ opName = \case
   CondO → "COND"
   AbsO → "ABS"
   SqrtO → "SQRT"
+  LogO → "LOG₂"
   NatO _p → "NAT"
   IntO _p → "INT"
   FltO _p → "FLT"

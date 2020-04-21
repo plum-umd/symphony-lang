@@ -1,5 +1,5 @@
-principal A[2] -- Parties who supply just integers
-principal B[2] -- Parties who supply both integers and queries
+principal A[96] -- Parties who supply just integers
+principal B[32] -- Parties who supply both integers and queries
 
 -- Query functions
 
@@ -109,11 +109,11 @@ def post-process xs α = foldl xs [] (λ (q,r) l →
   then l
   else
     let s =
-      if 0 ≡ q' then "Median" else
-      if 1 ≡ q' then "Number Unique" else
-      if 2 ≡ q' then "Min" else
-      if 3 ≡ q' then "Max" else ⊥
-    in (s, r') ∷ l
+      if 0 ≡ q' then "Median is " else
+      if 1 ≡ q' then "Number Unique is " else
+      if 2 ≡ q' then "Min is " else
+      if 3 ≡ q' then "Max is " else ⊥
+    in (s ⧻ (to_str r')) ∷ l
   )
 
 -- ATQ

@@ -1,0 +1,3 @@
+def main • = (to_str 5, to_str 5n, to_str 5.0)
+
+def expected = ("5", "5", "5.0")

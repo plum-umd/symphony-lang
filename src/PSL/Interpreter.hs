@@ -535,6 +535,22 @@ interpExp = wrapInterp $ \case
         [ ("ṽ",pretty ṽ)
         ]
   -- AscrE
+  ToStringE e → do
+    ṽ ← interpExp e
+    v ← elimValP ṽ
+    case v of
+      NatV _p n → introValP $ StrV $ show𝕊 n
+      IntV _p i → introValP $ StrV $ show𝕊 i
+      FltV _p f → introValP $ StrV $ show𝕊 f
+      _ → throwIErrorCxt TypeIError "interpExp: ToStringE: v ∉ {NatV _ _ , IntV _ _, FltV _ _}" $ null
+  StringConcatE e₁ e₂ → do
+    ṽ₁ ← interpExp e₁
+    ṽ₂ ← interpExp e₂
+    v₁ ← elimValP ṽ₁
+    v₂ ← elimValP ṽ₂
+    case (v₁,v₂) of
+      (StrV s₁, StrV s₂) → introValP $ StrV (s₁ ⧺ s₂)
+      _ → throwIErrorCxt TypeIError "interpExp: StringConcatE: v₁,v₂ ∉ {StrV _}" $ null
   ReadE τA e → do
     ṽ ← interpExp e
     v ← elimValP ṽ
