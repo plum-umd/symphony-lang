@@ -18,9 +18,6 @@ principal Node_o
 -- comps: the parties that do computation, Node_in and Node_c
 def comps = { Node_in, Node_c }
 
--- TODO: define properly
-def log_2_real = id
-
 -- aliases of definitions in the standard lib:
 
 -- order: alias for list length

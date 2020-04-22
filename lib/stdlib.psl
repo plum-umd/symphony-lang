@@ -22,6 +22,7 @@ def id : t -> t
 def id x = x
 
 def thunk x = fun () -> x
+def force t = t ()
 
 def uncurry : (a -> b -> c) -> (a * b -> c)
 def uncurry f (a, b) = f a b
@@ -55,6 +56,7 @@ def square a = a * a
 -- max:
 def max muxer a b = muxer (a <= b) b a
 
+def min muxer a b = muxer (a <= b) a b
 
 def ite-wrap guard tc fc = if guard then tc else fc
 
@@ -66,6 +68,7 @@ def mux-wrap guard tc fc = mux if guard then tc else fc
 -- max-muxable: max operator over muxable types
 def max-muxable = max mux-wrap
 
+def min-muxable = min mux-wrap
 
 --- 
 --- bool library
@@ -88,6 +91,8 @@ def inc = plus 1n
 -- dec n: decrement of nat n
 def dec : nat -> nat
 def dec n = n - 1n
+
+def sec-dec n = mux if n == 0n then 0n else n - 1n
 
 -- elim_nat: elimination form for nats
 def elim_nat m z s = 
@@ -213,7 +218,7 @@ def elim_list l acc0 f = foldr f acc0 l
 
 -- foldl: left fold
 def foldl : list t -> acc -> (t -> acc -> acc) -> acc
-def foldl l acc0 f = (elim_list l id (fun x acc -> compose acc (f x))) acc0
+def foldl l acc0 f = (elim_list l id (fun x acc -> compose (f x) acc)) acc0
 
 
 -- iter: left fold that accumulates the unit
@@ -380,31 +385,6 @@ def eq_lists l0 l1 = all_true (zip-map eq l0 l1)
 -- mux_ls: multiplex over a pair of lists:
 def mux_ls guard l0 l1 = zip-map (mux-wrap guard) l0 l1
 
-def get-gen muxer l i = snd
-  (foldl l
-    (0n, _|_)
-    (fun x (idx, elt) -> (inc idx, muxer (idx == i) x elt)) )
-
--- get i l: the ith element of l
-def get = get-gen ite-wrap 
-
-def sec-get = get-gen mux-wrap
-
-def arr_get l i = get l (dec i)
-
--- upd l i v: list l with the ith element updated to be v
-def upd l i v =
-  (elim_nat i
-    (fun l' -> case l'
-      { [] -> err "set: setting 0th of empty list"
-      ; x :: l' -> v :: l'
-      })
-    (fun s l' -> case l'
-     { [] -> err "set : setting ith of empty list"
-     ; x :: l'' -> x :: (s l'')
-     }) )
-    l
-
 
 -- minus-lists l0 l1: vector subtraction over lists of numerics l0 and
 -- l1
@@ -462,6 +442,29 @@ def zipper-n l n = eliml_nat n
    ; x :: end' -> (x :: begin, end')
    })
 
+def get-gen muxer l i = snd
+  (foldl l
+    (0n, _|_)
+    (fun x (idx, elt) -> (inc idx, muxer (idx == i) x elt)) )
+
+def get = get-gen ite-wrap 
+
+def sec-get = get-gen mux-wrap
+
+def arr_get l i = get l (dec i)
+
+def upd-gen muxer l i v = reverse (snd
+  (foldl l
+    (0n, [ ])
+    (fun x (idx, l') -> (inc idx, (muxer (idx == i) v x) :: l')) ) )
+
+def sec-upd = upd-gen mux-wrap
+
+def upd = upd-gen ite-wrap
+    
+def swap-ls l i j =
+  sec-upd (sec-upd l i (sec-get l j)) j (sec-get l i)
+
 def head-n l n = reverse (fst (zipper-n l n))
 
 def tail-n l n = snd (zipper-n l n)
@@ -471,6 +474,23 @@ def sub-list l start end = tail-n (head-n l end) (dec start)
 -- reveal-wrap: wrapper around reveal syntax
 def reveal-wrap P x = reveal { P } x
 
+
+-- wrap-deref: wrapper around dereference syntax
+def wrap-deref r = !r
+
+def swap a i j =
+  a := swap-ls !a i j 
+
+def upd-if fp guard act =
+  let vals = map wrap-deref fp in
+  do force act in
+    zip-map (fun x v -> x := (mux if guard then !x else v))
+      fp vals
+
+def sec-iter fp lb ub n body =
+  iter (range 0n (dec n)) (fun i ->
+    upd-if fp ((lb <= i) && (i < ub))
+      (fun () -> body i) )
 
 -- send_ls P0 P1 l: send the strucuture of list l (but not its
 -- contents) from p0 to P1.
