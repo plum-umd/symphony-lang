@@ -1,0 +1,69 @@
+principal A
+principal B
+
+-- TODO
+-- generalize to 64 players
+
+def partition (a, lo, hi) =
+  -- In order to avoid deterministic worst case behaviour pick the
+  -- pivot element at random and put it in the alst position (HI)
+
+  -- random (LO, HI) selects a random integer between LO and HI,
+  -- inclusively
+  let r = rand-range nat{bgw:this} (lo, hi)
+  let r = hi -- DEBUG:
+  do swap a r hi
+
+  -- Now use A[HI] as the pivot value
+
+  -- Elements in positions below I will be known to be less than the
+  -- pivot value
+  let i = ref lo 
+
+  -- Compare each element of A with the pivot value A[HI], and if less
+  -- than the pivot value, move it to the beginning of the list
+  do sec-iter [ a ; i ] lo hi (len !a) (fun j ->
+      upd-if [ a ; i ] ((sec-get !a j) < (sec-get !a hi)) (fun () ->
+        (do swap a !i j in
+         i := !i + 1n) ) )
+
+  -- Move the pivot value into its right place
+  do swap a !i hi in
+
+  -- Now the pivot value is in A[I] and all the elements smaller than
+  -- the pivot are before it in A[]
+
+  -- Return the pivot index I
+  !i
+
+def sec quick_sort (a, lo, hi) = 
+    upd-if [ a ] (lo < hi) (fun () ->
+      -- Find PIVOT: e < PIVOT <=> A[e] < A[PIVOT]; e > PIVOT <=> A[e]
+      -- > A[PIVOT]
+      let pivot = partition (a, lo, hi)
+
+      -- Recursively sort the elements smaller than PIVOT
+      do quick_sort (a, lo, sec-dec pivot) in
+
+      -- Recursively Sort the elements larger than PIVOT
+      quick_sort (a, pivot + 1n, hi) )
+
+def main : unit -> {inp:A,B ; rev:A,B} (list flt)
+def main () =
+  par {A,B}
+    let sbool = fun P -> (fun x -> share{bgw:P -> this} x)
+    let sflt = fun P -> (fun x -> share{bgw:P -> this} x)
+    let rflt = fun f -> reveal {this} f
+
+    let a = share-as-vec A (sbool A) (sflt A) 0.0 10
+      (par {A} read (list flt) from "qsort-input.txt")
+    let b = share-as-vec B (sbool B) (sflt B) 0.0 10
+      (par {B} read (list flt) from "qsort-input.txt")
+
+    let inps = ref (map (fun x -> share{ bgw : A -> A, B } x) [ 2.0 ; 1.0 ; 3.0 ])
+    let n = len !inps 
+    in
+    do eval-upto quick_sort n (inps, 0n, n - 1n) in
+    !inps
+--      vec-reveal rflt (eval-upto quick_sort n (inps, 0n, (n - 1n)))
+      -- vec-reveal rflt (partition n 0 (n - 1) inps)
