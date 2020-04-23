@@ -211,7 +211,7 @@ instance Pretty ValP where
      ISecVP ρvs → ppISecPSL ρvs
      ShareVP zk φ ρs vmpc → 
        ppPostF concat levelMODE
-         (concat
+         (ppSetBotLevel $ concat
              [ ppPun "{"
              , if zk then concat [ppBdr "zk",ppPun ":"] else null
              , pretty φ
