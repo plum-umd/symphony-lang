@@ -176,6 +176,9 @@ def prin-bundle f P = fold-p
      << Q | v >> ++ acc)
 
 
+-- bundle-map f: functorial map over bundles. This is more flexible
+-- than solo mode because f can be computed by parties other than the
+-- party in solo mode.
 def bundle-map f = fold-f
   <<>>
   (fun Q x acc ->
@@ -1071,3 +1074,7 @@ def const-sq-mat c n = elim_nat n
 def zero-mat = const-sq-mat 0.0
 
 def to_flt x = flt x
+
+-- PKI library:
+def wrap-sign P = id
+-- def wrap-sign P x = sign { P } x
