@@ -32,7 +32,6 @@ getType = \case
   BulV → "bul"
   LV _ → "left"
   RV _ → "right"
-  -- PairV _ _ → "pair"
   NilV → "list"
   ConsV _ _ → "list"
   CloV _ _ _ _ → "clo"
@@ -77,6 +76,7 @@ jsonPrinVal ∷ PrinVal → 𝕊
 jsonPrinVal = \case
   SinglePV s → s
   AccessPV s i → s ⧺ "_" ⧺ show𝕊 i
+  VirtualPV s → s
 
 jsonPrins ∷ 𝑃 PrinVal → JSON.Value
 jsonPrins = JSON.toJSON ∘ lazyList ∘ map jsonPrinVal ∘ iter

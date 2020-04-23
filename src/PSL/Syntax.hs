@@ -25,6 +25,7 @@ type Prin = 𝕊
 data PrinVal =
     SinglePV Prin
   | AccessPV Prin ℕ
+  | VirtualPV Prin
   deriving (Eq,Ord,Show)
     
 data PrinExpVal =
@@ -50,6 +51,7 @@ makePrettySum ''PrinDecl
 data PrinKind =
     SinglePK
   | SetPK ℕ
+  | VirtualPK
   deriving (Eq,Ord,Show)
 makePrettySum ''PrinKind
 
@@ -312,7 +314,7 @@ data ExpR =
   | ReturnE Exp                              -- return e                /  return e
   | NizkWitnessE Prot (𝐿 PrinExp) Exp        -- nizk-witness{φ:P} e     /  nizk-witness{φ:P} e
   | NizkCommitE Prot (𝐿 PrinExp) Exp         -- nizk-commit{φ:P} e      /  nizk-commit{φ:P} e
-  | StringConcatE Exp Exp                    -- e ⧻ e          /  e +++ e
+  | StringConcatE Exp Exp                    -- e ⧻ e                   /  e +++ e
   | ToStringE Exp                            -- str e                   /  str e
   deriving (Eq,Ord,Show)
   -- [e₁;…;eₙ] ≜ e₁ ∷ ⋯ ∷ eₙ ∷ []
@@ -335,10 +337,11 @@ buildUnfixedLambda c x ψs e
 -- tl ∈ top-level ⩴  …
 type TL = Annotated FullContext TLR
 data TLR =
-    DeclTL 𝔹 Var Type        -- def [sec] x : τ       /  def [sec] x : τ
-  | DefnTL 𝔹 Var (𝐿 Pat) Exp -- def [sec] x ψ₁ … = e  /  def [sec] x  ψ₁ … = e
-  | PrinTL (𝐿 PrinDecl)      -- principal ρ …         /  principal ρ …
-  | PrimTL Var Type          -- primitive x : τ       /  primitive x : τ
-  | ImportTL 𝕊               -- import "file"         /  import "file"
+    DeclTL 𝔹 Var Type               -- def [sec] x : τ            /  def [sec] x : τ
+  | DefnTL 𝔹 Var (𝐿 Pat) Exp        -- def [sec] x ψ₁ … = e       /  def [sec] x  ψ₁ … = e
+  | PrinTL (𝐿 PrinDecl)             -- principal ρ …              /  principal ρ …
+  | PrimTL Var Type                 -- primitive x : τ            /  primitive x : τ
+  | ImportTL 𝕊 (𝐿 (𝕊 ∧ 𝐿 PrinExp))  -- import s with [x = {P}] …  /  import s with [x = {P}] …
+  | VirtualPartyTL (𝐿 𝕊)            -- virtual party x            /  virtual party x
   deriving (Eq,Ord)
 makePrettySum ''TLR

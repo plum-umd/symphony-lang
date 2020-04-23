@@ -52,8 +52,9 @@ lexer = lexerBasic puns kws prim ops
       , "proc","return"
       , "loop"
       , "when"
-      , "import"
+      , "import","with"
       , "nizk-witness","nizk-commit"
+      , "virtual","party"
       ]
     prim = list
       [ "yao","gmw","bgw","bgv","spdz","auto"
@@ -867,7 +868,20 @@ pTL = cpNewWithContextRendered "tl" $ concat
        return $ PrimTL x τ
   , do cpSyntax "import"
        s ← cpString
-       return $ ImportTL s
+       xρs ← ifNone Nil ^$ cpOptional $ do
+         cpSyntax "with"
+         cpOneOrMore $ do
+           x ← 𝕩name ^$ pVar
+           cpSyntax "="
+           cpSyntax "{"
+           ρs ← pPrinExps
+           cpSyntax "}"
+           return $ x :* ρs
+       return $ ImportTL s xρs
+  , do cpSyntax "virtual"
+       cpSyntax "party"
+       xs ← 𝕩name ^^$ cpOneOrMore pVar
+       return $ VirtualPartyTL xs
   ]
 
 cpTLs ∷ CParser TokenBasic (𝐿 TL)

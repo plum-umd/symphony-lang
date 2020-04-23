@@ -99,12 +99,13 @@ type Store = 𝑊 ValP
 data IParams = IParams
   { iParamsDoResources ∷ 𝔹
   , iParamsIsExample ∷ 𝔹
+  , iParamsVirtualPartyArgs ∷ 𝕊 ⇰ 𝑃 PrinVal
   } deriving (Eq,Ord,Show)
 makeLenses ''IParams
 makePrettySum ''IParams
 
 θ₀ ∷ IParams
-θ₀ = IParams False False
+θ₀ = IParams False False dø
 
 -------------
 -- CONTEXT --
@@ -301,22 +302,27 @@ evalITLMIO ∷ IParams → ITLState → 𝕊 → ITLM a → IO a
 evalITLMIO θ ωtl name = map snd ∘ runITLMIO θ ωtl name
 
 asTLM ∷ IM a → ITLM a
-asTLM xM = mkITLM $ \ θ ωtl → do
-  let ds = itlStateDeclPrins ωtl
-      -- princpal declarations as values
-      γ' = dict $ mapOn (iter $ itlStateDeclPrins ωtl) $ \ (ρ :* κ) → case κ of
-        SinglePK → (var ρ ↦) $  AllVP $ PrinV $ ValPEV $ SinglePV ρ
-        SetPK n → (var ρ ↦) $  AllVP $ PrinV $ SetPEV n ρ
-      -- top-level defs
-      γ = itlStateEnv ωtl
-      ξ = compose 
-            [ update iCxtEnvL (γ' ⩌ γ)
-            , update iCxtDeclPrinsL ds
-            , update iCxtParamsL θ
-            ]
-            ξ₀
-      ω = itlStateExp ωtl
-  rox ← runIM ξ ω xM
-  return $ case rox of
-    Inl r → Inl r
-    Inr (ω' :* o :* x) → Inr $ update itlStateExpL ω' ωtl :* o :* x
+asTLM xM = do
+  vps ← askL iParamsVirtualPartyArgsL
+  mkITLM $ \ θ ωtl → do
+    let ds = itlStateDeclPrins ωtl
+        -- princpal declarations as values
+        γ' = dict $ mapOn (iter $ itlStateDeclPrins ωtl) $ \ (ρ :* κ) → case κ of
+          SinglePK → (var ρ ↦) $ AllVP $ PrinV $ ValPEV $ SinglePV ρ
+          SetPK n → (var ρ ↦) $ AllVP $ PrinV $ SetPEV n ρ
+          VirtualPK → (var ρ ↦) $ AllVP $ PrinV $ case vps ⋕? ρ of
+            Some ρv → PowPEV ρv
+            None → ValPEV $ VirtualPV ρ
+        -- top-level defs
+        γ = itlStateEnv ωtl
+        ξ = compose 
+              [ update iCxtEnvL (γ' ⩌ γ)
+              , update iCxtDeclPrinsL ds
+              , update iCxtParamsL θ
+              ]
+              ξ₀
+        ω = itlStateExp ωtl
+    rox ← runIM ξ ω xM
+    return $ case rox of
+      Inl r → Inl r
+      Inr (ω' :* o :* x) → Inr $ update itlStateExpL ω' ωtl :* o :* x

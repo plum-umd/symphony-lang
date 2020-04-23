@@ -1,0 +1,12 @@
+principal A B
+virtual party V
+virtual party W
+
+def cmp () =
+  let x = par {A} read int from "cmp-input.txt"
+  let y = par {B} read int from "cmp-input.txt"
+  let s = (share{gmw:A -> V} x) <= (share{gmw:B -> V} y)
+  in
+  s , reveal{W} s
+
+def main = cmp

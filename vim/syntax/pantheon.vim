@@ -131,8 +131,11 @@ syn match pantheonKeyword "\v<return>"
 syn match pantheonKeyword "\v<loop>"
 syn match pantheonKeyword "\v<when>"
 syn match pantheonKeyword "\v<import>"
+syn match pantheonKeyword "\v<with>"
 syn match pantheonKeyword "\v<nizk-witness>"
 syn match pantheonKeyword "\v<nizk-commit>"
+syn match pantheonKeyword "\v<virtual>"
+syn match pantheonKeyword "\v<party>"
 
 
 syn match pantheonKeyword "\v∀"

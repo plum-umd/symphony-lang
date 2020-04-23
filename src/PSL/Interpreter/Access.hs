@@ -247,11 +247,88 @@ reShareValPShared zk φ ρs = \case
 -- MPC VALUES --
 ----------------
 
-mpcFrValF ∷ (STACK) ⇒ Val → (BaseValMPC → IM ()) → IM ValMPC
-mpcFrValF = flip mpcFrValFWith
+-- mpcFrValF ∷ (STACK) ⇒ Val → (BaseValMPC → IM ()) → IM ValMPC
+-- mpcFrValF = flip mpcFrValFWith
+-- 
+-- mpcFrValFWith ∷ (STACK) ⇒ (BaseValMPC → IM ()) → Val → IM ValMPC
+-- mpcFrValFWith f = \case
+--   BoolV b → do
+--     let bvmpc = BoolMV b
+--     f bvmpc
+--     return $ BaseMV zero bvmpc
+--   NatV pr n → do
+--     let bvmpc = NatMV pr n
+--     f bvmpc
+--     return $ BaseMV zero bvmpc
+--   IntV pr i → do
+--     let bvmpc = IntMV pr i
+--     f bvmpc
+--     return $ BaseMV zero bvmpc
+--   FltV pr i → do
+--     let bvmpc = FltMV pr i
+--     f bvmpc
+--     return $ BaseMV zero bvmpc
+--   PrinV (ValPEV ρe) → return $ BaseMV zero $ PrinMV $ AddBTD ρe
+--   PairV ṽ₁ ṽ₂ → do
+--     vmpc₁ ← mpcFrValFWith f *$ elimValP ṽ₁
+--     vmpc₂ ← mpcFrValFWith f *$ elimValP ṽ₂
+--     return $ PairMV vmpc₁ vmpc₂
+--   LV ṽ → do
+--     vmpc ← mpcFrValFWith f *$ elimValP ṽ
+--     return $ SumMV zero True vmpc DefaultMV
+--   RV ṽ → do
+--     v ← elimValP ṽ
+--     vmpc ← mpcFrValFWith f v
+--     return $ SumMV zero False DefaultMV vmpc
+--   NilV → return $ NilMV
+--   ConsV ṽ₁ ṽ₂ → do
+--     vmpc₁ ← mpcFrValFWith f *$ elimValP ṽ₁
+--     vmpc₂ ← mpcFrValFWith f *$ elimValP ṽ₂
+--     return $ ConsMV vmpc₁ vmpc₂
+--   BulV → return BulMV
+--   DefaultV → return DefaultMV
+--   v → throwIErrorCxt TypeIError "bad" $ frhs [("v", pretty v)]
+-- 
+-- mpcFrVal ∷ (STACK) ⇒ Val → IM ValMPC
+-- mpcFrVal = mpcFrValFWith $ const skip
 
-mpcFrValFWith ∷ (STACK) ⇒ (BaseValMPC → IM ()) → Val → IM ValMPC
-mpcFrValFWith f = \case
+-- TODO: to implement share -> nizk-share
+-- first function is to emit share events
+-- second function is to convert shares to nizk shares, and to emit convert events
+-- ideally, mpcFrVal would be an instantiation of this which throws an error in the second function
+
+mpcFrValPFBaseVals ∷ (STACK) ⇒ ValP → (BaseValMPC → IM ()) → IM ValMPC
+mpcFrValPFBaseVals ṽ f = mpcFrValPFWith f (\ _ _ _ _ → skip) ṽ
+
+mpcFrValPFWith ∷ (STACK) ⇒ (BaseValMPC → IM ()) → (𝔹 → Prot → 𝑃 PrinVal → ValMPC → IM ()) → ValP → IM ValMPC
+mpcFrValPFWith f g = \case
+  SSecVP ρs v → do
+    m ← askL iCxtModeL
+    guardErr (m ⊑ SecM ρs) $
+      throwIErrorCxt TypeIError "mpcFrValPFWith: m ⋢ PSecM ρs" $ frhs
+        [ ("m",pretty m)
+        , ("ρs",pretty ρs)
+        ]
+    mpcFrValFWith f g v
+  ShareVP b φ ρs vmpc → do
+    m ← askL iCxtModeL
+    guardErr (m ≡ SecM ρs) $
+      throwIErrorCxt TypeIError "mpcFrValPFWith: m ≠ PSecM ρs" $ frhs
+        [ ("m",pretty m)
+        , ("ρs",pretty ρs)
+        ]
+    g b φ ρs vmpc
+    return vmpc
+  AllVP v → mpcFrValFWith f g v
+  PairVP ṽ₁ ṽ₂ → do
+    vmpc₁ ← mpcFrValPFWith f g ṽ₁
+    vmpc₂ ← mpcFrValPFWith f g ṽ₂
+    return $ PairMV vmpc₁ vmpc₂
+  ṽ → throwIErrorCxt TypeIError "mpcFrValFWith: cannot convert ṽ to mpc value" $ frhs 
+    [ ("ṽ", pretty ṽ) ]
+
+mpcFrValFWith ∷ (STACK) ⇒ (BaseValMPC → IM ()) → (𝔹 → Prot → 𝑃 PrinVal → ValMPC → IM ()) → Val → IM ValMPC
+mpcFrValFWith f g = \case
   BoolV b → do
     let bvmpc = BoolMV b
     f bvmpc
@@ -268,53 +345,50 @@ mpcFrValFWith f = \case
     let bvmpc = FltMV pr i
     f bvmpc
     return $ BaseMV zero bvmpc
-  PrinV (ValPEV ρe) → return $ BaseMV zero $ PrinMV $ AddBTD ρe
+  PrinV (ValPEV ρe) → do
+    let bvmpc = PrinMV $ AddBTD ρe
+    f bvmpc
+    return $ BaseMV zero bvmpc
   PairV ṽ₁ ṽ₂ → do
-    vmpc₁ ← mpcFrValFWith f *$ elimValP ṽ₁
-    vmpc₂ ← mpcFrValFWith f *$ elimValP ṽ₂
+    vmpc₁ ← mpcFrValPFWith f g ṽ₁
+    vmpc₂ ← mpcFrValPFWith f g ṽ₂
     return $ PairMV vmpc₁ vmpc₂
   LV ṽ → do
-    vmpc ← mpcFrValFWith f *$ elimValP ṽ
+    vmpc ← mpcFrValPFWith f g ṽ
     return $ SumMV zero True vmpc DefaultMV
   RV ṽ → do
-    v ← elimValP ṽ
-    vmpc ← mpcFrValFWith f v
+    vmpc ← mpcFrValPFWith f g ṽ
     return $ SumMV zero False DefaultMV vmpc
   NilV → return $ NilMV
   ConsV ṽ₁ ṽ₂ → do
-    vmpc₁ ← mpcFrValFWith f *$ elimValP ṽ₁
-    vmpc₂ ← mpcFrValFWith f *$ elimValP ṽ₂
+    vmpc₁ ← mpcFrValPFWith f g ṽ₁
+    vmpc₂ ← mpcFrValPFWith f g ṽ₂
     return $ ConsMV vmpc₁ vmpc₂
   BulV → return BulMV
   DefaultV → return DefaultMV
-  v → throwIErrorCxt TypeIError "bad" $ frhs [("v", pretty v)]
+  v → throwIErrorCxt TypeIError "mpcFrValFWith: cannot convert v to mpc value" $ frhs 
+    [ ("v", pretty v) ]
 
-mpcFrVal ∷ (STACK) ⇒ Val → IM ValMPC
-mpcFrVal = mpcFrValFWith $ const skip
+eachBaseValWith ∷ (ℕ → BaseValMPC → IM ()) → ValMPC → IM ()
+eachBaseValWith f = \case
+  BaseMV md bvmpc → f md bvmpc
+  PairMV vmpc₁ vmpc₂ → do
+    eachBaseValWith f vmpc₁
+    eachBaseValWith f vmpc₂
+  SumMV md b vmpc₁ vmpc₂ → do
+    f md $ BoolMV b
+    eachBaseValWith f vmpc₁
+    eachBaseValWith f vmpc₂
+  NilMV → skip
+  ConsMV vmpc₁ vmpc₂ → do
+    eachBaseValWith f vmpc₁
+    eachBaseValWith f vmpc₂
+  BulMV → skip
+  DefaultMV → skip
 
--- TODO: to implement share -> nizk-share
--- first function is to emit share events
--- second function is to convert shares to nizk shares, and to emit convert events
--- ideally, mpcFrVal would be an instantiation of this which throws an error in the second function
---
--- mpcFrValPFWith ∷ (STACK) ⇒ (BaseValMPC → IM ()) → (𝔹 → Prot → 𝑃 Prin → ValMPC → IM ValP) → ValP → IM ValMPC
--- mcpFrValPFWith f g = \case
---   SSecVP ρs v → do
---     m ← askL iCxtModeL
---     guardErr (m ⊑ SecM ρs) $
---       throwIErrorCxt TypeIError "mpcFrValPFWith: m ⋢ PSecM ρs" $ frhs
---         [ ("m",pretty m)
---         , ("ρs",pretty ρs)
---         ]
---     mpcFrValFWith f g v
---   ISecVP (PrinVal ⇰ Val)
---   ShareVP 𝔹 Prot (𝑃 PrinVal) ValMPC
---   AllVP Val
---   UnknownVP
---   PairVP ValP ValP
+eachBaseVal ∷ ValMPC → (ℕ → BaseValMPC → IM ()) → IM ()
+eachBaseVal = flip eachBaseValWith
   
--- mpcFrValFWith ∷ (STACK) ⇒ (BaseValMPC → IM ()) → (𝔹 → Prot → 𝑃 Prin → ValMPC → IM ValP) → ValP → IM ValMPC
-
 valFrMPC ∷ (STACK) ⇒ ValMPC → IM ValP
 valFrMPC = valFrMPCFWith $ const $ const skip
 
