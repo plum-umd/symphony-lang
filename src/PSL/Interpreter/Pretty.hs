@@ -193,6 +193,7 @@ instance Pretty PrinVal where
   pretty = \case
     SinglePV ρ → ppCon ρ
     AccessPV ρ n → concat [ppCon ρ,ppPun ".",pretty n]
+    VirtualPV ρ → ppApp (ppCon "VIRT") [ppCon ρ]
 
 instance Pretty PrinExpVal where
   pretty = \case

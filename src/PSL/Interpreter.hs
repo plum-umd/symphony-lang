@@ -805,12 +805,19 @@ interpTL tl = case extract tl of
           SinglePD ρ → ρ ↦ SinglePK
           ArrayPD ρ n → ρ ↦ SetPK n
     modifyL itlStateDeclPrinsL (kinds ⩌)
-  ImportTL path → do
+  ImportTL path xρss → do
+    xρvs ← assoc ^$ mapMOn xρss $ \ (x :* ρs) → do
+      ρv ← asTLM $ prinExpValss *$ mapM interpPrinExp ρs
+      return $ x :* ρv
     s ← io $ fread path
     let ts = tokens s
     ls ← io $ tokenizeIO lexer path ts
     tls ← io $ parseIO cpTLs path ls
-    interpTLs tls
+    mapEnvL iParamsVirtualPartyArgsL ((⩌) xρvs) $
+      interpTLs tls
+  VirtualPartyTL ρs → do
+    modifyL itlStateDeclPrinsL $ (⩌) $ 
+      dict $ mapOn ρs $ \ ρ → ρ ↦ VirtualPK
   _ → pptrace (annotatedTag tl) $ error "interpTL: not implemented"
 
 interpTLs ∷ 𝐿 TL → ITLM ()
