@@ -170,6 +170,7 @@ def karmarkar_iteration initial_point a c =
     (dot-prod-flt (row-of-ones n) (mult-matrix-vec-flt d bprime)) in
   b
 
+
 -- Listing 7: Loop for Karmarkar's Algorithm
 def karmarkar_loop a c =
   let (m, n) = dimensions_of a in
@@ -204,11 +205,30 @@ def karmarkar_loop a c =
     (x := x_new) )
   x)
 
+
+-- verify-dot-prod P0 P1 v0 v1: commit to vectors and whether their
+-- dot product is less than epsilon:
+def verify-dot-prod P0 P1 v0 v1 = par{ P0, P1 }
+  let shr2p = fun Q x -> share { spdz : Q -> P0, P1 } x in
+  let shr-by-p0 = shr2p P0 in
+  let share-wits = fun Q v -> map
+    (compose
+       (shr2p Q)
+       (fun x -> nizk-witness{ spdz : P0, P1 } x))
+    (send-ls { Q } { P0, P1 } v) in
+  ()
+  -- TODO: uncomment when supported in PSL
+  -- nizk-commit { spdz : P0, P1 }
+  --   (dot-prod (shr-by-p0 0.0) (share-wits P0 v0) (share-wits P1 v1) ) <
+  --   (shr-by-p0 (10.0 ^ -8.0)) in
+
+
 -- main: entry point; Node_in, Node_c read inputs and run the algorithm,
 -- distributes results to Node_o
-def main : unit ->{ inp : Node_in, Node_c; rev : Node_o } (list out_sec)
 def main () =
-  let soln = par { Node_in, Node_c, Node_o } (map
+  let ctrs = solo { Node_in } as c in read (list flt) from "in.txt" in
+  let cost = par { Node_c } read (list flt) from "in.txt" in
+  let shrd-soln = par { Node_in, Node_c, Node_o } (map
     (reveal-wrap { Node_o })
     -- Node_c reveals the structure of the list to out:
     (send-ls { Node_c } { Node_in, Node_c, Node_o }
@@ -218,10 +238,21 @@ def main () =
         (fold-f
           []
           (fun Q ctr -> cons (map (shr-w-comp { Q }) (send-ls { Q } comps ctr)))
-          (solo { Node_in } as c in read (list flt) from "in.txt") )
+          ctrs)
         -- read in the vector of costs and share them
         (map (shr-w-comp { Node_c })
-          (send-ls { Node_c } comps
-            (par { Node_c } read (list flt) from "in.txt") ) ) ) ) ) in
+          (send-ls { Node_c } comps cost) ) ) ) ) in
   -- Node_in and Node_c forget the structure of the solution
-  par { Node_o } send-ls { Node_o } { Node_o } soln
+  let soln = par { Node_o } send-ls { Node_o } { Node_o } shrd-soln in
+
+  -- verification: proofs of correctness of soln:
+  let verification =
+    (bundle-map
+       (fun Node_i ctr -> (send{ Node_i -> Node_i }
+         (verify-dot-prod Node_i Node_o ctr soln) ) )
+       ctrs,
+     send{ Node_c -> Node_c}
+       (verify-dot-prod Node_c Node_o cost soln) ) in
+
+  (soln, verification)
+   
