@@ -465,8 +465,7 @@ interpExp = wrapInterp $ \case
         ]
     ṽ ← interpExp e
     sv ← restrictMode (SecM ρvs₁) $ do
-      v ← elimValP ṽ
-      mpcFrValF v $ \ bv → do
+      mpcFrValPFBaseVals ṽ $ \ bv → do
         tellL iOutResEvsL $ ResEv False φ pø ρvs₁ ρvs₂ (getTypeBaseMPC bv) null null "SHARE" 0 ↦ 1
     reShareValPShared False φ ρvs₂ sv 
   AccessE e ρ → do
@@ -575,18 +574,22 @@ interpExp = wrapInterp $ \case
         introValP $ BulV
       _ → throwIErrorCxt TypeIError "interpExp: WriteE: m ≠ SecM {ρ}" null
   RandE τ → do
-    wrap :* τ' ← case τ of
+    si :* τ' ← case τ of
       ShareT φ ρes τ' → do
         ρvs ← prinExpValss *$ mapM interpPrinExp ρes
-        return $ (ShareVP False φ ρvs ^∘ mpcFrVal) :* τ'
-      _ → return $ introValP :* τ
-    v ← case τ' of
-      ℕT ip → io $ NatV ip ∘ trPrNat ip ∘ nat ^$ R.randomIO @ℕ64
-      ℤT ip → io $ IntV ip ∘ trPrInt ip ∘ int ^$ R.randomIO @ℤ64
-      𝔽T fp → io $ FltV fp ^$ R.randomIO @𝔻
-      𝔹T → io $ BoolV ^$ R.randomIO @𝔹
+        return $ Shared False φ ρvs :* τ'
+      _ → return $ NotShared :* τ
+    bvmpc ← case τ' of
+      ℕT ip → io $ NatMV ip ∘ trPrNat ip ∘ nat ^$ R.randomIO @ℕ64
+      ℤT ip → io $ IntMV ip ∘ trPrInt ip ∘ int ^$ R.randomIO @ℤ64
+      𝔽T fp → io $ FltMV fp ^$ R.randomIO @𝔻
+      𝔹T → io $ BoolMV ^$ R.randomIO @𝔹
       _ → error "TODO: not implemented"
-    wrap v
+    case si of
+      NotShared → skip
+      Shared zk φ ρs → do
+        tellL iOutResEvsL $ ResEv zk φ ρs pø pø (getTypeBaseMPC bvmpc) null null "RAND" 0 ↦ 1
+    reShareValP (BaseMV 0 bvmpc) si
   RandRangeE τ e → do
     si₀ :* τ' ← case τ of
       ShareT φ ρes τ' → do
@@ -764,13 +767,16 @@ interpExp = wrapInterp $ \case
     modifyL iStateMPCContL $ \ κ → (pc :* si :* vmpc) :& κ
     introValP DefaultV
   NizkWitnessE φ ρes e → do
-    -- TODO: implement share -> nizk-witness
-    -- see commented out mpcFrValPFWith and notes
     ρvs ← prinExpValss *$ mapM interpPrinExp ρes
     ṽ ← interpExp e
-    v ← elimValP ṽ
-    sv ← mpcFrValF v $ \ bv → do
-        tellL iOutResEvsL $ ResEv True φ ρvs pø pø (getTypeBaseMPC bv) null null "SHARE" 0 ↦ 1
+    sv ← mpcFrValPFWith 
+      (\ bv → tellL iOutResEvsL $ ResEv True φ ρvs pø pø (getTypeBaseMPC bv) null null "SHARE" 0 ↦ 1)
+      (\ zk φ' ρs' vmpc → do
+        guardErr (zk ≡ False) $
+          throwIErrorCxt TypeIError "interpExp: NizkWitnessE: cannot convert from nizk to nizk" $ frhs
+            [ ("vmpc", pretty vmpc) ]
+        eachBaseVal vmpc $ \ md bvmpc → tellL iOutResEvsL $ ResEv True φ' pø ρs' ρvs (getTypeBaseMPC bvmpc) null null "NIZK-SHARE" md ↦ 1)
+      ṽ
     reShareValPShared True φ ρvs sv 
   NizkCommitE _φ ρes e → do
     ρvs ← prinExpValss *$ mapM interpPrinExp ρes
