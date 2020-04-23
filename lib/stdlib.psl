@@ -74,8 +74,11 @@ def min-muxable = min mux-wrap
 --- bool library
 --- 
 
--- and: wrapper for conjunction
+-- and: wrapper for conjunction:
 def and b0 b1 = b0 && b1
+
+-- or: wrapper for disjunction:
+def or b0 b1 = b0 || b1
 
 -- neg: wrapper for negation
 def neg b = not b
@@ -159,10 +162,18 @@ def fold-f i f xs = case xs
   ; <<p | x>> ++ xs' -> f p x (fold-f i f xs')
   }
 
+
 def fold-p f i P = case P
   { {} -> i
   ; {p} \/ P' -> f (fold-p f i P') p
   }
+
+
+def prin-bundle f P = fold-p
+  <<>>
+  (fun acc Q ->
+     let v = f Q in
+     << Q | v >> ++ acc)
 
 
 def bundle-map f = fold-f

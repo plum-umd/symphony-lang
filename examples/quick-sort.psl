@@ -1,5 +1,4 @@
-principal A
-principal B
+principal Nodes
 
 -- TODO
 -- generalize to 64 players
@@ -47,6 +46,64 @@ def sec quick_sort (a, lo, hi) =
 
       -- Recursively Sort the elements larger than PIVOT
       quick_sort (a, pivot + 1n, hi) )
+
+
+-- verify inputs result: NIZK proof that result has signed inputs from
+-- each party and is sorted
+def verify inputs result =
+  let shr-w-nodes = fun x -> share{ bgw : Nodes } x in
+  let test-bool b = nizk-witness{ bgw : Nodes } (shr-w-nodes b) in
+  let test-true = test-bool true in
+  let test-false = test-bool false in
+
+  -- input-wits: bundle of witnesses built from signed inputs:
+  let input-wits = bundle-map
+    (fun i -> nizk-witness{ bgw : Nodes } (shr-w-nodes i))
+    inputs in
+
+  -- all-inputs-signed: test that each input is signed
+  let all-inputs-signed = fold-f
+    test-true
+    (fun N w -> and (is-signed { N } w))
+    input-wits in
+
+  -- res-wits: witnesses from the sorted result
+  let res-wits = map (fun x -> nizk-witness{ bgw : Nodes} x) result in
+
+  -- res-is-inj: test that unsignature of each input is in result:
+  let res-is-inj = fold-f
+    test-true
+    (const and)
+    (bundle-map
+      (fun N i ->
+         let unsign-wit = unsign { N } i in
+         elim_list res-wits
+           test-false
+           (fun r -> or (unsign-wit == r)) )
+      input-wits) in
+
+  -- test-is-sorted: test that the list is sorted:
+  let test-is-sorted =
+    let res-is-sorted = foldr
+      (L ())
+      (fun x acc -> R
+         (x,
+          case acc
+          { L _ -> test-true
+          ; R (x', is-sorted') -> and (x <= x') is-sorted'
+          }) )
+      res-wits in
+    case res-is-sorted
+      { L _ -> test-true
+      ; R (_, t) -> t
+      } in
+
+  -- commit to witness for all tests
+  nizk-commit { bgw : Nodes }
+    all-inputs-signed &&
+    res-is-inj &&
+    res-is-sorted
+
 
 def main : unit -> {inp:A,B ; rev:A,B} (list flt)
 def main () =
