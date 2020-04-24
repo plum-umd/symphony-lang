@@ -162,6 +162,7 @@ bindPatMPC si ψ vmpc = case ψ of
       si' :* vmpc' ← compose [f₁,f₂] xM
       si'' ← joinShareInfo si si'
       return $ si'' :* vmpc'
+  WildP → return id
   _ → error "TODO: not implemented"
 
 interpCase ∷ (STACK) ⇒ ValP → 𝐿 (Pat ∧ Exp) → IM ValP
