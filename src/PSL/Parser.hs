@@ -55,6 +55,8 @@ lexer = lexerBasic puns kws prim ops
       , "import","with"
       , "nizk-witness","nizk-commit"
       , "virtual","party"
+      , "sign","unsign"
+      , "is-signed"
       ]
     prim = list
       [ "yao","gmw","bgw","bgv","spdz","auto"
@@ -647,6 +649,27 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntax "rand-range"
       τ ← pType
       return $ RandRangeE τ
+  -- sign {P} e
+  , fmixPrefix levelAPP $ do 
+      cpSyntax "sign"
+      cpSyntax "{"
+      ρs ← pPrinExps
+      cpSyntax "}"
+      return $ SignE ρs
+  -- unsign {P} e
+  , fmixPrefix levelAPP $ do 
+      cpSyntax "unsign"
+      cpSyntax "{"
+      ρs ← pPrinExps
+      cpSyntax "}"
+      return $ UnsignE ρs
+  -- is-signed {P} e
+  , fmixPrefix levelAPP $ do 
+      cpSyntax "is-signed" 
+      cpSyntax "{"
+      ρs ← pPrinExps
+      cpSyntax "}"
+      return $ IsSignedE ρs
   -- _
   , fmixTerminal $ do cpSyntax "_" ; return InferE
   -- ⁇

@@ -65,7 +65,7 @@ def verify inputs result =
   let test-one = mk-wit shr-one in
   let test-ub = mk-wit shr-ub in
 
-  let is-signed = fun N x -> test-true in
+  let wrap-is-signed = fun N x -> is-signed { N } x in
   -- PSL: replace with actual form that emits instruction
 
   -- input-wits: bundle of witnesses built from signed inputs:
@@ -77,7 +77,7 @@ def verify inputs result =
     (fun w -> and 
       (elim-prins Node_in
          test-false
-         (fun N -> or (is-signed N w)) ) ) in
+         (fun N -> or (wrap-is-signed N w)) ) ) in
 
   let test-count = fun p l -> elim-list l
     test-zero
@@ -87,7 +87,7 @@ def verify inputs result =
   let bounded-sig-nums = elim-prins Node_in
     test-true
     (fun P -> and
-       ((test-count (fun x -> is-signed P x) input-wits) <= test-ub) ) in
+       ((test-count (fun x -> wrap-is-signed P x) input-wits) <= test-ub) ) in
 
   -- res-wits: witnesses from the sorted result
   let res-wits = map (fun x -> nizk-witness{ bgw : Node_in } x) result in

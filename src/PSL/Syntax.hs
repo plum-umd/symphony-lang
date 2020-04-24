@@ -316,6 +316,9 @@ data ExpR =
   | NizkCommitE Prot (𝐿 PrinExp) Exp         -- nizk-commit{φ:P} e      /  nizk-commit{φ:P} e
   | StringConcatE Exp Exp                    -- e ⧻ e                   /  e +++ e
   | ToStringE Exp                            -- str e                   /  str e
+  | SignE (𝐿 PrinExp) Exp                    -- sign {P} e              /  sign {P} e
+  | UnsignE (𝐿 PrinExp) Exp                  -- unsign {P} e            /  unsign {P} e
+  | IsSignedE (𝐿 PrinExp) Exp                -- is-signed {P} e         /  is-signed {P} e
   deriving (Eq,Ord,Show)
   -- [e₁;…;eₙ] ≜ e₁ ∷ ⋯ ∷ eₙ ∷ []
 makePrettySum ''ExpR
