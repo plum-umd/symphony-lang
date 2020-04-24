@@ -1,8 +1,5 @@
 principal Ext
-principal Node_in[2]
-
--- TODO
--- generalize to 64 players
+principal Node_in[64]
 
 def partition (a, lo, hi) =
   -- In order to avoid deterministic worst case behaviour pick the
