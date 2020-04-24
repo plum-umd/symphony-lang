@@ -1,5 +1,5 @@
 principal Ext
-principal Node_in[3]
+principal Node_in[2]
 
 -- TODO
 -- generalize to 64 players
