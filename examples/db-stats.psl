@@ -20,16 +20,50 @@ def db-read k db = snd (map-read key-eql k db)
 
 def med vec = snd (vec-median (fun x y -> x < y) vec)
 
-def mean xs = to_flt (vec-int-sum xs) / to_flt (vec-length xs)
 
-def meanf xs = (vec-flt-sum xs) / to_flt (vec-length xs)
+def mean values =
+  let sum = ref 0
+  do vec-for values (fun value ->
+    sum := !sum + value)
+  in to_flt !sum / to_flt (vec-length values)
 
 
-def stddev xs =
-  let m = mean xs
-  let square = fun x -> x * x
-  let diffs = vec-map (fun x -> square (to_flt x - m)) xs
-  in sqrt (meanf diffs)
+def stdev values =
+  -- Ensure we don't divide by zero
+  mux if vec-length values < 2
+  then 0.0
+  else
+    let mean_value = mean values
+
+    let sum = ref 0.0
+    do vec-for values (fun value ->
+      let diff = to_flt value - mean_value
+      in sum := !sum + (diff * diff))
+    let sigma_squared = !sum / to_flt (vec-length values - 1)
+    in sqrt sigma_squared
+
+
+-- def split values =
+--   let lst = ref empty-row
+--   let blocks = ref (vec-init empty-row 10)
+--   do vec-for values (fun element ->
+--     do lst := vec-push element !lst
+--     in mux if vec-length lst == 5 then
+--       do (
+--         blocks := vec-push lst !blocks
+--         -- in lst := ref empty-row
+--         )
+--     else
+--       ())
+-- 
+--   -- If the length of values was not divisible by 5, the last block will have < 5 elements
+--   if vec-length !lst > 0
+--   then
+--     do blocks := vec-push lst !blocks
+--   else
+--     ()
+--   in !blocks
+
 
 
 -- Parse data insertion request from raw request
@@ -94,10 +128,10 @@ def stats-report data key1 key2 =
     -- Collect the statistics
     let S_MEDIAN = med S_list
     let S_MEAN = mean S_list
-    let S_STDDEV = stddev S_list
+    let S_STDDEV = stdev S_list
     let L_MEDIAN = med L_list
     let L_MEAN = mean L_list
-    let L_STDDEV = stddev L_list
+    let L_STDDEV = stdev L_list
 
     in key1, key2, N_RECORDS, S_MEDIAN, S_MEAN, S_STDDEV, L_MEDIAN, L_MEAN, L_STDDEV
 
@@ -136,11 +170,12 @@ def DATA = false
 def KEYED_QUERY = true
 
 
-def publish values =
-  let io_name, label, value = values in
+-- Write the output value to a private file on a per player basis
+def publish io_name label value =
   let value' = reveal {io_name} value
   in
-    par {A} (write value' to "output.txt")
+    par {io_name} (write value' to "output.txt")
+
 
 -- Main function for database statistics
 -- A loop handles inputs one at a time
@@ -151,52 +186,48 @@ def database_stats_main inputs =
   let data = init num-keys
 
   -- At each loop iteration, process one input
-  in foldl inputs data (fun input data ->
+  do foldl inputs data (fun input data ->
+    -- io_name is the node sending the input
+    -- label is the input label of the input
+    -- values contains the data (e.g., the keys)
+    -- This call sets the three values
     let io_name, label, values = input
+
+    -- Process the input based on its input label
+    -- Send an acknowledgement to sender
     in mux if label == DATA
       then
         let success, data = process_data data values
-        do publish (io_name, label, success)
+        do publish io_name label success
+        in data
+
+      -- process a query with keys and send the report to the sender
+      else mux if label == KEYED_QUERY
+      then
+        let result = process_query data values
+        -- do publish io_name label result
         in data
       else
-        let result = process_query data values
-        do publish (io_name, label, result)
+        let result = (false, 0, 0)
+        do publish io_name label result
         in data)
+  in ()
 
-
--- Main function for database statistics
--- A loop handles inputs one at a time
--- Each input attempts to add a record to the databse or requests a query
--- def database_stats_main inputs =
---
---   let data = init num-keys
---
---     -- io-name is the principal sending the input
---     -- label is the input label of the input
---     -- values contains the data (e.g., the keys)
---     let io-name, label, values = input
---
---     -- Process the input based on its input label
---     -- Send an acknowledgement to the sender
---     )
 
 
 def main : unit -> list float
 def main () =
-  par {A}
-    write (true, 0) to "output.txt"
---  par {A,B}
---    let db = init 20
---    let k1 = par {A} 2
---    let k2 = par {A} 4
---
---    let inputs =
---      [ A, DATA, share {bgv:A -> this} (par {A} L (10, 999, k1, k2))
---      ; A, DATA, share {bgv:A -> this} (par {A} L (15, 25, k1, k2))
---      ; A, KEYED_QUERY, share {bgv:A -> this} (par {A} R (17, k1, k2))
---      ]
---
---    in database_stats_main inputs
+  par {A,B}
+    let db = init 20
+    let k1 = par {A} 2
+    let k2 = par {A} 4
+
+    let inputs =
+      [ A, share {bgv:A -> this} DATA, share {bgv:A -> this} (par {A} L (10, 999, k1, k2))
+      ; A, share {bgv:A -> this} DATA, share {bgv:A -> this} (par {A} L (15, 25, k1, k2))
+      ; A, KEYED_QUERY, share {bgv:A -> this} (par {A} R (17, k1, k2))
+      ]
+    in database_stats_main inputs
 
 --    let db, _ = handler (share {bgv:A -> this} ()) db
 --    let db, _ = handler (share {bgv:A -> this} (par {A} L (15, 25, k1, k2))) db

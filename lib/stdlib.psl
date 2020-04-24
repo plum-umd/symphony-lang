@@ -839,6 +839,12 @@ def vec-fold f acc vec =
   let _, xs = vec
   in content-fold f acc xs
 
+-- for loop over vector
+def vec-for xs f =
+  vec-fold (fun x _ ->
+    let _ = f x
+    in ()) () xs
+
 def vec-int-sum =
   vec-fold (fun x y -> x + y) 0
 
