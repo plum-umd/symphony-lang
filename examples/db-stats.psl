@@ -9,10 +9,14 @@ def key-eql a b =
   let (sb, tb) = b
   in (sa == sb) && (ta == tb)
 
-def db-init n = map-init (0, 0) (vec-init (0, 0) 10) n
+def empty-row = vec-init (0, 0) 10
+def singleton-row v = vec-push v empty-row
 
-def singleton-row v =
-  vec-push v (vec-init (0, 0) 10)
+def init n = map-init (0, 0) (vec-init (0, 0) 10) n
+def has k db = map-has (key-eql k) db
+def insert k v db = map-insert key-eql k v db
+def append k v data = map-insert-with key-eql vec-append k (singleton-row v) data
+def db-read k db = snd (map-read key-eql k db)
 
 def med vec = snd (vec-median (fun x y -> x < y) vec)
 
@@ -28,52 +32,136 @@ def stddev xs =
   in sqrt (meanf diffs)
 
 
-def process-data data values =
-  let (s, l), key1, key2 = values
-  in
-    map-insert-with key-eql vec-append (key1, key2) (singleton-row (s, l)) data
-
-def update : Key -> Value -> Database -> Database
-def update k v db =
-  map-insert-with key-eql (flip vec-append) k (singleton-row v) db
+-- Parse data insertion request from raw request
+def parse_data values =
+  mux case values
+  { L (s, l, key1, key2) -> true, s, l, key1, key2
+  ; a -> false, 0, 0, 0, 0
+  }
 
 
-def threshold = 5
+-- Parse query request from raw request
+def parse_query values =
+  mux case values
+  { R (q_id, key1, key2) -> true, q_id, key1, key2
+  ; a -> false, 0, 0, 0
+  }
+
+
+-- This function adds a data record to the database
+-- data is the database before the new record is added
+-- values contains the new input to be added
+def process_data data values =
+  -- Attempt to parse the given values as a data record
+  let success, s, l, key1, key2 = parse_data values
+
+  -- If the data record is well formed, add it to the databse
+  in mux if success
+  then
+    -- Add the data record to the database
+    let data = mux if not (has (key1, key2) data)
+    then
+      -- Each pair of key1 and key2 is its own unique key
+      -- Create an empty list if that key has not been used
+      insert (key1, key2) empty-row data
+    else
+      data
+
+    -- Add the value to the list of other values with the same keys
+    in true, append (key1, key2) (s, l) data
+  else
+    false, _|_
+
+
+def THRESHOLD = 5
 
 -- This takes key1 and key2 as a key into the database data
 def stats-report data key1 key2 =
+
   -- Separate out the records to use in the report
-  let _, record_subset = map-read key-eql (key1, key2) data
+  let record_subset = db-read (key1, key2) data
+
   -- Record the number of records matching the key
-  let n_records = vec-length record_subset
+  let N_RECORDS = vec-length record_subset
+
   -- Ensure that it is above the threshold
-  in mux if n_records > threshold
+  in mux if N_RECORDS > THRESHOLD
   then
     -- Collect the S values
-    let s_list = vec-map fst record_subset
+    let S_list = vec-map fst record_subset
     -- Collect the L values
-    let s_list = vec-map snd record_subset
+    let L_list = vec-map snd record_subset
     -- Collect the statistics
-    let s_median = med s_list
-    let s_mean = mean s_list
-    let s_stddev = stddev s_list
-    let l_median = med s_list
-    let l_mean = mean s_list
-    let l_stddev = stddev s_list
+    let S_MEDIAN = med S_list
+    let S_MEAN = mean S_list
+    let S_STDDEV = stddev S_list
+    let L_MEDIAN = med L_list
+    let L_MEAN = mean L_list
+    let L_STDDEV = stddev L_list
 
-    in (key1, key2, n_records, s_median, s_mean, s_stddev, l_median, l_mean, l_stddev)
+    in key1, key2, N_RECORDS, S_MEDIAN, S_MEAN, S_STDDEV, L_MEDIAN, L_MEAN, L_STDDEV
 
   else
     _|_
 
 
-def handler key1 key2 input db =
-  let is-query, v = input
-  in mux if (is-query)
-          then db, stats-report db key1 key2
-          else process-data db (v, key1, key2), _|_
+-- Generate a report in reponse to a value for key1 and a value for key2
+def process_query data values =
+  -- Attempt to parse the given values as a query with two keys
+  let success, q_id, key1, key2 = parse_query values
+  mux if success
+  then
+    -- Return data if present, or a failure code otherwise
+    mux if has (key1, key2) data
+      then
+        let report = stats-report data key1 key2
+        in true, q_id, report
+      else
+        false, q_id, _|_
+
+  -- Ignore the submitted query if it is not well formed
+  else
+    false, q_id, _|_
+
+
+def handler input data =
+  let _, db' = process_data data input
+  let _, q = process_query data input
+  in db', q
+
 
 def num-keys = 20
+
+def DATA = false
+def KEYED_QUERY = true
+
+
+def publish values =
+  let io_name, label, value = values in
+  let value' = reveal {io_name} value
+  in
+    par {A} (write value' to "output.txt")
+
+-- Main function for database statistics
+-- A loop handles inputs one at a time
+-- Each input attempts to add a record to the databse or requests a query
+def database_stats_main inputs =
+
+  -- The structure holding the data
+  let data = init num-keys
+
+  -- At each loop iteration, process one input
+  in foldl inputs data (fun input data ->
+    let io_name, label, values = input
+    in mux if label == DATA
+      then
+        let success, data = process_data data values
+        do publish (io_name, label, success)
+        in data
+      else
+        let result = process_query data values
+        do publish (io_name, label, result)
+        in data)
 
 
 -- Main function for database statistics
@@ -81,11 +169,8 @@ def num-keys = 20
 -- Each input attempts to add a record to the databse or requests a query
 -- def database_stats_main inputs =
 --
---   -- The structure holding the data
---   let data = db-init num-keys
+--   let data = init num-keys
 --
---   -- At each loop iteration, process one input
---   foldl inputs data (fun input ->
 --     -- io-name is the principal sending the input
 --     -- label is the input label of the input
 --     -- values contains the data (e.g., the keys)
@@ -98,15 +183,26 @@ def num-keys = 20
 
 def main : unit -> list float
 def main () =
-  par {A,B}
-    let db = db-init 20
-    let k1 = share {bgv:A -> A,B} (par {A} 2)
-    let k2 = share {bgv:A -> A,B} (par {A} 4)
-    let db, _ = handler k1 k2 (share {bgv:A -> this} (par {A} (false, (10, 999)))) db
-    let db, _ = handler k1 k2 (share {bgv:A -> this} (par {A} (false, (15, 25)))) db
-    let db, _ = handler k1 k2 (share {bgv:A -> this} (par {A} (false, (44, 35)))) db
-    let db, _ = handler k1 k2 (share {bgv:A -> this} (par {A} (false, (13, 404)))) db
-    let db, _ = handler k1 k2 (share {bgv:A -> this} (par {A} (false, (29, 5)))) db
-    let db, _ = handler k1 k2 (share {bgv:A -> this} (par {A} (false, (13, 19)))) db
-    let _, r = handler k1 k2 (share {bgv:A -> this} (par {A} (true, (0, 0)))) db
-    in reveal {A} r
+  par {A}
+    write (true, 0) to "output.txt"
+--  par {A,B}
+--    let db = init 20
+--    let k1 = par {A} 2
+--    let k2 = par {A} 4
+--
+--    let inputs =
+--      [ A, DATA, share {bgv:A -> this} (par {A} L (10, 999, k1, k2))
+--      ; A, DATA, share {bgv:A -> this} (par {A} L (15, 25, k1, k2))
+--      ; A, KEYED_QUERY, share {bgv:A -> this} (par {A} R (17, k1, k2))
+--      ]
+--
+--    in database_stats_main inputs
+
+--    let db, _ = handler (share {bgv:A -> this} ()) db
+--    let db, _ = handler (share {bgv:A -> this} (par {A} L (15, 25, k1, k2))) db
+--    let db, _ = handler (share {bgv:A -> this} (par {A} L (44, 35, k1, k2))) db
+--    let db, _ = handler (share {bgv:A -> this} (par {A} L (13, 404, k1, k2))) db
+--    let db, _ = handler (share {bgv:A -> this} (par {A} L (29, 5, k1, k2))) db
+--    let db, _ = handler (share {bgv:A -> this} (par {A} L (13, 19, k1, k2))) db
+--    let _, r = handler (share {bgv:A -> this} (par {A} R (17, k1, k2))) db
+--    in reveal {A} r
