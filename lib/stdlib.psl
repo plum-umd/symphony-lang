@@ -1082,8 +1082,8 @@ def zero-mat = const-sq-mat 0.0
 def to_flt x = flt x
 
 -- PKI library:
-def wrap-sign P = id
--- def wrap-sign P x = sign { P } x
+-- def wrap-sign P = id
+def wrap-sign P x = sign { P } x
 
 def wrap-unsign = id
 
