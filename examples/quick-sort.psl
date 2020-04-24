@@ -1,3 +1,4 @@
+principal Const
 principal Node_in[3]
 
 -- TODO
@@ -48,79 +49,96 @@ def sec quick_sort (a, lo, hi) =
       quick_sort (a, pivot + 1n, hi) )
 
 
+def shr-true = share{ bgw : Const -> Node_in } true 
+def shr-false = share{ bgw : Const -> Node_in } false
+def shr-zero = share{ bgw : Const -> Node_in } 0n 
+def shr-one = share{ bgw : Const -> Node_in } 1n 
+def shr-ub = share{ bgw : Const -> Node_in } 8n 
+
 -- verify inputs result: NIZK proof that result has signed inputs from
 -- each party and is sorted
 def verify inputs result =
-  let shr-w-nodes = fun N x ->
-    nizk-witness{ bgw : Node_in } (share{ bgw : N -> Node_in } x) in
-  let test-const = shr-w-nodes Node_in.0 in
-  let test-true = test-bool true in
-  let test-false = test-bool false in
+  let mk-wit = fun x -> nizk-witness{ bgw : Node_in } x in
+  let test-true = mk-wit shr-true in
+  let test-false = mk-wit shr-false in
+  let test-zero = mk-wit shr-zero in
+  let test-one = mk-wit shr-one in
+  let test-ub = mk-wit shr-ub in
+
+  let is-signed = fun N x -> test-true in
+  -- PSL: replace with actual form that emits instruction
 
   -- input-wits: bundle of witnesses built from signed inputs:
-  let input-wits = bundle-map shr-w-nodes inputs in
+  let input-wits = map mk-wit inputs in
 
   -- all-inputs-signed: test that each input is signed
-  let all-inputs-signed = fold-f
+  let all-inputs-signed = elim-list input-wits
     test-true
-    (fun N w -> and (is-signed { N } w))
-    input-wits in
+    (fun w -> and 
+      (elim-prins Node_in
+         test-false
+         (fun N -> or (is-signed N w)) ) ) in
+
+  let test-count = fun p l -> elim-list l
+    test-zero
+    (fun x -> plus (mux if p x then test-one else test-zero) ) in
+  let test-elt-count = fun x -> test-count (eq x) in
+
+  -- bounded-sig-nums: number of inputs signed by each party is in bounds
+  let bounded-sig-nums = elim-prins Node_in
+    test-true
+    (fun P -> and
+       ((test-count (fun x -> is-signed P x) input-wits) <= test-ub) ) in
 
   -- res-wits: witnesses from the sorted result
   let res-wits = map (fun x -> nizk-witness{ bgw : Node_in } x) result in
 
-  -- res-is-inj: test that unsignature of each input is in result:
-  let res-is-inj = fold-f
-    test-true
-    (const and)
-    (bundle-map
-      (fun N i ->
-         let unsign-wit = unsign { N } i in
-         elim_list res-wits
-           test-false
-           (fun r -> or (unsign-wit == r)) )
-      input-wits) in
+  -- res-is-perm: test that unsignature of each input is in result:
+  let res-is-perm =
+    let unsigned = map wrap-unsign input-wits in
+    elim-list unsigned
+      test-true
+      (fun i -> and
+         (let i-count = test-elt-count i in
+          (i-count unsigned) == (i-count res-wits) ) ) in
 
   -- test-is-sorted: test that the list is sorted:
-  let test-is-sorted =
-    let res-is-sorted = foldr
+  let res-is-sorted =
+    let test-is-sorted = elim-list res-wits
       (L ())
       (fun x acc -> R
          (x,
           case acc
           { L _ -> test-true
           ; R (x', is-sorted') -> and (x <= x') is-sorted'
-          }) )
-      res-wits in
-    case res-is-sorted
+          }) ) in
+    case test-is-sorted
       { L _ -> test-true
       ; R (_, t) -> t
       } in
 
   -- commit to witness for all tests
   nizk-commit { bgw : Node_in }
-    all-inputs-signed &&
-    res-is-inj &&
-    res-is-sorted
+    (all-inputs-signed &&
+     bounded-sig-nums &&
+     res-is-perm &&
+     res-is-sorted)
 
 
 def main () = par{ Node_in }
-  -- inputs: read the inputs
-  let inputs = solo { Node_in } as N in
-    map (wrap-sign N) (read (list flt) from "quick-sort-in.txt") in
-
-  -- input-ls: share the inputs
-  let input-ls = fold-f
+  -- inputs: shares of the inputs
+  let inputs = fold-f
     [ ]
     (fun N l -> append 
       (map (fun x -> share{ bgw : N -> Node_in } x)
          (send-ls { N } { Node_in } l) ) )
-    inputs in
+    (solo { Node_in } as N in
+       map (wrap-sign N) (read (list flt) from "quick-sort-in.txt") ) in
 
   -- run the sorting function:
-  let n = len input-ls in
-  let ls-ref = ref input-ls in
+  let n = len inputs in
+  let ls-ref = ref inputs in
   do eval-upto quick_sort n (ls-ref, 0n, n - 1n) in
-  !ls-ref
+  let sorted = !ls-ref in
 
-  -- TODO: add verification code
+  (sorted, verify inputs sorted)

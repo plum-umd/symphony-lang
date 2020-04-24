@@ -44,7 +44,7 @@ def iter_sec_nat_ls = iter_sec_nat_spdz mux_ls
 
 -- nz_prod z u l: the product of non-z entries in l, with
 -- multiplicative unit u
-def nz-prod z u l = elim_list l
+def nz-prod z u l = elim-list l
   u
   (fun x p -> mux if (x == z) then p else x * p)
 

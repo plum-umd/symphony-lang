@@ -169,6 +169,12 @@ def fold-p f i P = case P
   }
 
 
+def elim-prins P i f = fold-f
+  i
+  (fun p -> const (f p))
+  (solo { P } ())
+
+
 def prin-bundle f P = fold-p
   <<>>
   (fun acc Q ->
@@ -232,12 +238,12 @@ def foldr f acc xs = case xs
   }
 
 
-def elim_list l acc0 f = foldr f acc0 l
+def elim-list l acc0 f = foldr f acc0 l
 
 
 -- foldl: left fold
 def foldl : list t -> acc -> (t -> acc -> acc) -> acc
-def foldl l acc0 f = (elim_list l id (fun x acc -> compose (f x) acc)) acc0
+def foldl l acc0 f = (elim-list l id (fun x acc -> compose (f x) acc)) acc0
 
 
 -- iter: left fold that accumulates the unit
@@ -267,7 +273,7 @@ def length = foldr (fun _ n -> n+1) 0
 
 -- len l: length of list l, as a nat
 def len : list t -> nat
-def len l = elim_list l 0n (const inc)
+def len l = elim-list l 0n (const inc)
 
 
 -- const_ls a n: a list of a's of size n
@@ -303,7 +309,7 @@ def median lt default xs =
 
 -- sum: the sum over a list of numerics
 -- TODO: rename these to [sum] and [sum-flt] ?
-def sum-gen v z = elim_list v z plus
+def sum-gen v z = elim-list v z plus
 
 def sum : list float -> float
 def sum = foldr (fun x y -> x + y) 0.0
@@ -393,7 +399,7 @@ def zip-map : (t -> u -> v) -> list t -> list u -> list v
 def zip-map f l0 l1 = map (uncurry f) (zip l0 l1)
 
 -- all_true l: tests if all elements in l are (an encoding of) true
-def all_true l = elim_list l true and
+def all_true l = elim-list l true and
 
 
 -- eq_lists l0 l1: test equaltity of l0 and l1, which contain lists of
@@ -1023,7 +1029,7 @@ def upd-matrix m (i, j) v = upd m i (upd (get m i) j v)
 
 -- transpose m: transposition of m
 def transpose : list (list t) -> list (list t)
-def transpose m = elim_list m
+def transpose m = elim-list m
   (const-ls []
     (case m
      { [] -> 0n
@@ -1057,7 +1063,7 @@ def dimensions_of m = case m
 
 -- diagonal-matrix z v: the diagonal matrix of vector v, a vector of
 -- numerics with zero element z.
-def diagonal-matrix z v = elim_list v
+def diagonal-matrix z v = elim-list v
   []
   (fun x diag -> (x :: (const-ls z (len diag))) :: (map (cons z) diag))
 
@@ -1078,3 +1084,6 @@ def to_flt x = flt x
 -- PKI library:
 def wrap-sign P = id
 -- def wrap-sign P x = sign { P } x
+
+def wrap-unsign = id
+
