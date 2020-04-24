@@ -798,14 +798,15 @@ interpExp = wrapInterp $ \case
     void $ mpcFrValP ṽ
     return ṽ
   UnsignE _ρs e → interpExp e
-  IsSignedE _ρs e → do
+  IsSignedE ρs e → do
+    ρvs ← prinExpValss *$ mapM interpPrinExp ρs
     ṽ ← interpExp e
     void $ mpcFrValPFWith
       (\ bv → 
-        tellL iOutResEvsL $ ResEv False AutoP pø pø pø (getTypeBaseMPC bv) null null "IS-SIGNED" 0 ↦ 1)
+        tellL iOutResEvsL $ ResEv False AutoP ρvs pø pø (getTypeBaseMPC bv) null null "IS-SIGNED" 0 ↦ 1)
       (\ zk φ' ρs' vmpc →
         eachBaseVal vmpc $ \ md bvmpc → 
-          tellL iOutResEvsL $ ResEv zk φ' ρs' pø pø (getTypeBaseMPC bvmpc) null null "IS-SIGNED" md ↦ 1)
+          tellL iOutResEvsL $ ResEv zk φ' pø ρvs ρs' (getTypeBaseMPC bvmpc) null null "IS-SIGNED" md ↦ 1)
       ṽ
     introValP $ BoolV True
   _ → throwIErrorCxt NotImplementedIError "interpExp: not implemented" null
