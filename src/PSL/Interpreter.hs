@@ -465,7 +465,7 @@ interpExp = wrapInterp $ \case
         ]
     ṽ ← interpExp e
     sv ← restrictMode (SecM ρvs₁) $ do
-      mpcFrValPFBaseVals ṽ $ \ bv → do
+      mpcFrValPBaseVals ṽ $ \ bv → do
         tellL iOutResEvsL $ ResEv False φ pø ρvs₁ ρvs₂ (getTypeBaseMPC bv) null null "SHARE" 0 ↦ 1
     reShareValPShared False φ ρvs₂ sv 
   AccessE e ρ → do
@@ -783,7 +783,31 @@ interpExp = wrapInterp $ \case
     ṽ ← interpExp e
     ṽ' ← revealValP True ρvs ṽ
     introValP $ NizkVerifyV ρvs ṽ'
-
+  SignE ρs e → do
+    ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρs
+    ρv ← error𝑂 (view singleL $ list ρvs₁) $
+      throwIErrorCxt TypeIError "interpExp: SignE: ρvs₁ not a singleton principal" $ frhs
+        [ ("ρvs₁",pretty ρvs₁) ]
+    m ← askL iCxtModeL
+    guardErr (SecM (single ρv) ⊑ m) $ 
+      throwIErrorCxt TypeIError "interpExp: SignE: ρv ⋢ m" $ frhs
+        [ ("ρv",pretty ρv) 
+        , ("m",pretty m)
+        ]
+    ṽ ← interpExp e
+    void $ mpcFrValP ṽ
+    return ṽ
+  UnsignE _ρs e → interpExp e
+  IsSignedE _ρs e → do
+    ṽ ← interpExp e
+    void $ mpcFrValPFWith
+      (\ bv → 
+        tellL iOutResEvsL $ ResEv False AutoP pø pø pø (getTypeBaseMPC bv) null null "IS-SIGNED" 0 ↦ 1)
+      (\ zk φ' ρs' vmpc →
+        eachBaseVal vmpc $ \ md bvmpc → 
+          tellL iOutResEvsL $ ResEv zk φ' ρs' pø pø (getTypeBaseMPC bvmpc) null null "IS-SIGNED" md ↦ 1)
+      ṽ
+    introValP $ BoolV True
   _ → throwIErrorCxt NotImplementedIError "interpExp: not implemented" null
 
 ---------------

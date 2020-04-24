@@ -136,7 +136,9 @@ syn match pantheonKeyword "\v<nizk-witness>"
 syn match pantheonKeyword "\v<nizk-commit>"
 syn match pantheonKeyword "\v<virtual>"
 syn match pantheonKeyword "\v<party>"
-
+syn match pantheonKeyword "\v<sign>"
+syn match pantheonKeyword "\v<unsign>"
+syn match pantheonKeyword "\v<is-signed>"
 
 syn match pantheonKeyword "\v∀"
 

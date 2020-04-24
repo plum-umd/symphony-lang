@@ -20,8 +20,7 @@
 principal A B C
 principal Ext
 
-def main () = ()
-  {-
+def main () =
   -- A/B/C each get their private inputs. Given that we'll be proving
   -- knowledge of values that have been signed by parties, we need a
   -- way of introducing signed values, and this seems like a fine
@@ -146,4 +145,8 @@ def main () = ()
   --
   -- 2. the NIZK proof, sent to Ext
   (max, send{ A -> Ext } pf)
-  -}
+
+def expected = 
+  (par {A,B,C} 5)
+  , 
+  send {A -> Ext} (par {A,B,C} (nizk-commit{gmw:A,B,C} (nizk-witness{gmw:A,B,C} true)))

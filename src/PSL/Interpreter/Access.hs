@@ -297,8 +297,11 @@ reShareValPShared zk φ ρs = \case
 -- second function is to convert shares to nizk shares, and to emit convert events
 -- ideally, mpcFrVal would be an instantiation of this which throws an error in the second function
 
-mpcFrValPFBaseVals ∷ (STACK) ⇒ ValP → (BaseValMPC → IM ()) → IM ValMPC
-mpcFrValPFBaseVals ṽ f = mpcFrValPFWith f (\ _ _ _ _ → skip) ṽ
+mpcFrValP ∷ (STACK) ⇒ ValP → IM ValMPC
+mpcFrValP = mpcFrValPFWith (\ _ → skip) (\ _ _ _ _ → skip)
+
+mpcFrValPBaseVals ∷ (STACK) ⇒ ValP → (BaseValMPC → IM ()) → IM ValMPC
+mpcFrValPBaseVals ṽ f = mpcFrValPFWith f (\ _ _ _ _ → skip) ṽ
 
 mpcFrValPFWith ∷ (STACK) ⇒ (BaseValMPC → IM ()) → (𝔹 → Prot → 𝑃 PrinVal → ValMPC → IM ()) → ValP → IM ValMPC
 mpcFrValPFWith f g = \case
