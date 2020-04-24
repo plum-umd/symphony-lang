@@ -1,4 +1,4 @@
-principal Nodes_in[3]
+principal Node_in[3]
 
 -- TODO
 -- generalize to 64 players
@@ -52,16 +52,13 @@ def sec quick_sort (a, lo, hi) =
 -- each party and is sorted
 def verify inputs result =
   let shr-w-nodes = fun N x ->
-    (share{ bgw : N -> Nodes_in } x) in
-  let test-bool = fun b ->
-    nizk-witness{ bgw : Nodes_in } (shr-w-nodes Nodes_in.0 b) in
+    nizk-witness{ bgw : Node_in } (share{ bgw : N -> Node_in } x) in
+  let test-const = shr-w-nodes Node_in.0 in
   let test-true = test-bool true in
   let test-false = test-bool false in
 
   -- input-wits: bundle of witnesses built from signed inputs:
-  let input-wits = bundle-map
-    (fun i -> nizk-witness{ bgw : Nodes_in } (shr-w-nodes i))
-    inputs in
+  let input-wits = bundle-map shr-w-nodes inputs in
 
   -- all-inputs-signed: test that each input is signed
   let all-inputs-signed = fold-f
@@ -70,7 +67,7 @@ def verify inputs result =
     input-wits in
 
   -- res-wits: witnesses from the sorted result
-  let res-wits = map (fun x -> nizk-witness{ bgw : Nodes_in } x) result in
+  let res-wits = map (fun x -> nizk-witness{ bgw : Node_in } x) result in
 
   -- res-is-inj: test that unsignature of each input is in result:
   let res-is-inj = fold-f
@@ -101,27 +98,24 @@ def verify inputs result =
       } in
 
   -- commit to witness for all tests
-  nizk-commit { bgw : Nodes_in }
+  nizk-commit { bgw : Node_in }
     all-inputs-signed &&
     res-is-inj &&
     res-is-sorted
 
 
-def main () = 
+def main () = par{ Node_in }
   -- inputs: read the inputs
-  let inputs = solo { Nodes_in } as N in
+  let inputs = solo { Node_in } as N in
     map (wrap-sign N) (read (list flt) from "quick-sort-in.txt") in
-  
-  -- input-shrs: share the inputs
-  let input-shrs = bundle-map
-    (fun N -> map (fun x -> share{ bgw : N -> Nodes } x))
-    inputs in
 
-  -- input-ls: list of all inputs
+  -- input-ls: share the inputs
   let input-ls = fold-f
     [ ]
-    (const append)
-    input-shrs in
+    (fun N l -> append 
+      (map (fun x -> share{ bgw : N -> Node_in } x)
+         (send-ls { N } { Node_in } l) ) )
+    inputs in
 
   -- run the sorting function:
   let n = len input-ls in
