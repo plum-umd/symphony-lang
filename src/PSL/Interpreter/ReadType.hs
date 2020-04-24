@@ -101,6 +101,7 @@ serializeVal ∷ Val → IM (𝐼 𝕊)
 serializeVal = \case
   IntV _ i → return $ single $ show𝕊 i
   NatV _ n → return $ single $ show𝕊 n
+  FltV _ d → return $ single $ show𝕊 d
   BoolV b → return $ single $ show𝕊 b
   PairV ṽ₁ ṽ₂ → do
     v₁ ← elimValP ṽ₁
