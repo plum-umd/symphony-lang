@@ -151,6 +151,17 @@ bindPatMPC si ψ vmpc = case ψ of
   BulP → do
     view bulMVL vmpc
     return id
+  NilP → do
+    view nilMVL vmpc
+    return id
+  ConsP ψ₁ ψ₂ → do
+    vmpc₁ :* vmpc₂ ← view consMVL vmpc
+    f₁ ← bindPatMPC si ψ₁ vmpc₁
+    f₂ ← bindPatMPC si ψ₂ vmpc₂
+    return $ \ xM → do
+      si' :* vmpc' ← compose [f₁,f₂] xM
+      si'' ← joinShareInfo si si'
+      return $ si'' :* vmpc'
   _ → error "TODO: not implemented"
 
 interpCase ∷ (STACK) ⇒ ValP → 𝐿 (Pat ∧ Exp) → IM ValP
