@@ -2,7 +2,6 @@ principal A[512]
 principal Central
 
 -- alias names of operations that are already defined in stdlib:
--- def concat = uncurry append
 def concat = uncurry cons
 
 -- Listing 2: Pseudocode for merge sort
