@@ -12,9 +12,9 @@ do
     ./psl example -r msort-dedup-$y
 done
 
-./psl example -r db-stats-small
-./psl example -r db-stats-medium
-./psl example -r db-stats-large
-./psl example -r karmakar
-./psl example -r gcd-bgv
-./psl example -r gcd-gc
+./psl example -r db-stats-small &
+./psl example -r db-stats-medium &
+./psl example -r db-stats-large &
+./psl example -r karmakar &
+./psl example -r gcd-bgv &
+./psl example -r gcd-gc &
