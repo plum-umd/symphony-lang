@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 72fe5f7cb2dc05760cb3ec46318604e5299e7866dcb2ff9cb7d079f9d9a100c6
+-- hash: 464c12f6d1cba15373dfc95c5a92609961ca32c287cbd0ff70fbcf5ffee6d6e5
 
 name:           psl
 version:        0.1.0.0
@@ -14,7 +14,27 @@ data-files:
     examples/alias.psl
     examples/arg-par-contains.psl
     examples/assoc-map.psl
-    examples/atq-nounicode.psl
+    examples/atq-bgw-12.psl
+    examples/atq-bgw-16.psl
+    examples/atq-bgw-20.psl
+    examples/atq-bgw-24.psl
+    examples/atq-bgw-28.psl
+    examples/atq-bgw-32.psl
+    examples/atq-bgw-36.psl
+    examples/atq-bgw-40.psl
+    examples/atq-bgw-8.psl
+    examples/atq-bgw.psl
+    examples/atq-spdz-12.psl
+    examples/atq-spdz-16.psl
+    examples/atq-spdz-20.psl
+    examples/atq-spdz-24.psl
+    examples/atq-spdz-28.psl
+    examples/atq-spdz-32.psl
+    examples/atq-spdz-36.psl
+    examples/atq-spdz-40.psl
+    examples/atq-spdz-8.psl
+    examples/atq-spdz.psl
+    examples/atq.psl
     examples/bind-fp-const.psl
     examples/bind-shares.psl
     examples/cmp-fn-flt.psl
@@ -31,7 +51,6 @@ data-files:
     examples/elim-sec-ls.psl
     examples/empty-par-diverge.psl
     examples/euclid-dh.psl
-    examples/euclid.psl~
     examples/gcd-bgv.psl
     examples/gcd-gc.psl
     examples/indy-pars.psl
@@ -44,7 +63,15 @@ data-files:
     examples/mill.psl.sec
     examples/mod-a.psl
     examples/mod-b.psl
-    examples/msort-dedup-small.psl
+    examples/msort-dedup-12.psl
+    examples/msort-dedup-16.psl
+    examples/msort-dedup-20.psl
+    examples/msort-dedup-24.psl
+    examples/msort-dedup-28.psl
+    examples/msort-dedup-32.psl
+    examples/msort-dedup-36.psl
+    examples/msort-dedup-40.psl
+    examples/msort-dedup-8.psl
     examples/msort-dedup.psl
     examples/msort.psl
     examples/mult-depth-test.psl
@@ -52,6 +79,27 @@ data-files:
     examples/pfold.psl
     examples/play.psl
     examples/qsort.psl
+    examples/quick-sort-bgw-12.psl
+    examples/quick-sort-bgw-16.psl
+    examples/quick-sort-bgw-20.psl
+    examples/quick-sort-bgw-24.psl
+    examples/quick-sort-bgw-28.psl
+    examples/quick-sort-bgw-32.psl
+    examples/quick-sort-bgw-36.psl
+    examples/quick-sort-bgw-4.psl
+    examples/quick-sort-bgw-40.psl
+    examples/quick-sort-bgw-8.psl
+    examples/quick-sort-bgw.psl
+    examples/quick-sort-spdz-12.psl
+    examples/quick-sort-spdz-16.psl
+    examples/quick-sort-spdz-20.psl
+    examples/quick-sort-spdz-24.psl
+    examples/quick-sort-spdz-28.psl
+    examples/quick-sort-spdz-32.psl
+    examples/quick-sort-spdz-36.psl
+    examples/quick-sort-spdz-4.psl
+    examples/quick-sort-spdz-40.psl
+    examples/quick-sort-spdz-8.psl
     examples/rand-range-encrypted-inputs-failing.psl
     examples/rand-range-shared.psl
     examples/rand.psl
@@ -82,6 +130,7 @@ data-files:
     tests/log.psl
     tests/loop.psl
     tests/micro-let.psl
+    tests/mux-case-list.psl
     tests/mux-deep.psl
     tests/mux-pair.psl
     tests/mux-prin.psl
