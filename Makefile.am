@@ -108,6 +108,8 @@ docker: resource-estimation.tar.gz
 	  $(DOCKER) tag psl:latest psl:$(PACKAGE_VERSION) || exit; \
 	}
 
+maintainer-clean-local: resource-estimation.tar.gz/clean
+
 mostlyclean-local: psl/clean
 
 psl: $(psl_files)
