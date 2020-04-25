@@ -638,9 +638,18 @@ def preprocess-lists-reveal-lengths p t xs =
   in preprocess-lists-n p t l' xs
 
 
+def replicate x n =
+  if n == 0
+  then []
+  else x :: (replicate x (n - 1))
 
-
-
+def update-list x n ls = case ls
+  { [] -> []
+  ; l::ls' ->
+    mux if (n == 0)
+    then (x::ls')
+    else (l::(update-list x (n - 1) ls'))
+  }
 
 ---
 --- VECTOR LIBRARY

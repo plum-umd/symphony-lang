@@ -135,15 +135,17 @@ def verify inputs medianResult uniqueResult minResult maxResult =
       (elim-prins {A,B}
          test-false
          (fun N -> or (wrap-is-signed N w)) ) ) in
-  
+
   let correct-median =
+    let (lt, eq) = foldr (λ x (lt, eq) → (x < median-result-wit ? lt + 1 ◇ lt, x ≡ median-result-wit ? eq + 1 ◇ eq)) (0, 0) input-wits in
     let l = length input-wits
     let idx = l / 2 in
-    let idx' = ((l % 2) ≡ 0) ? (idx - 1) ◇ idx in
-    median-result-wit ≡ (elem-at idx' input-wits)
-  in
+    let idx' = (l % 2) ≡ 0 ? idx - 1 ◇ idx in
+    (lt ≤ idx') && (idx' ≤ eq + lt)
 
-  let correct-unique = unique-result-wit ≡ snd (foldr (λ x (last, c) → (x, x ≡ last ? c ◇ c + 1)) (head ⊥ input-wits, 0) (tail input-wits)) in
+  let correct-unique =
+    let seen = replicate (false, -1) (128 * 32) in
+    unique-result-wit ≡ fst (foldr (λ x (idx, s) → mux if (elem (λ (at, av) (bt, bv) → at && bt && (av ≡ bv))) (true, x) s then (idx, s) else (idx + 1, update-list (true, x) idx s)) (0, seen) input-wits)
 
   let correct-min = (foldr (λ x b → (min-result-wit ≤ x) && b) test-true input-wits) && (foldr (λ x b → min-result-wit ≡ x ? test-true ◇ b) test-false input-wits) in
 
@@ -197,7 +199,7 @@ def main • = par {A,B}
   let maxResult = max dataListSorted
 
   -- Verify that all inputs are signed and results are correct
-  let verification = verify dataListSorted medianResult uniqueResult minResult maxResult
+  let verification = verify dataList medianResult uniqueResult minResult maxResult
 
   -- Group results into an indexable data structure
   let results : list ℤ{bgw:A,B}
