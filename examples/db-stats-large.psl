@@ -1,5 +1,5 @@
-def instance_size = 128
-principal A[128]
+def instance_size = 18
+principal A[18]
 
 principal B
 
