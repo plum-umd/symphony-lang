@@ -1,6 +1,8 @@
-principal Ext
 principal Node_in[64]
+principal Ext
 
+
+-- Listing 4: Pseudocode for quick sort partition
 def partition (a, lo, hi) =
   -- In order to avoid deterministic worst case behaviour pick the
   -- pivot element at random and put it in the alst position (HI)
@@ -8,7 +10,6 @@ def partition (a, lo, hi) =
   -- random (LO, HI) selects a random integer between LO and HI,
   -- inclusively
   let r = rand-range nat{bgw:this} (lo, hi)
-  let r = hi -- DEBUG:
   do swap a r hi
 
   -- Now use A[HI] as the pivot value
@@ -32,6 +33,7 @@ def partition (a, lo, hi) =
 
   -- Return the pivot index I
   !i
+
 
 def sec quick_sort (a, lo, hi) = 
     upd-if [ a ] (lo < hi) (fun () ->
