@@ -42,5 +42,5 @@ run gcd-gc
 
 for pid in ${pids[@]}; do
   printf 'waiting: %s\n' ${names[$pid]}
-  wait $pid
+  wait $pid || printf 'FAILED: %s\n' ${names[$pid]}
 done
