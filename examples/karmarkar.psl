@@ -194,11 +194,9 @@ def karmarkar_loop a c = proc
 
     -- if we are within the stopping condition in the current
     -- iteration, return
-    let done =
-      ((((dot-prod-flt c !x) - (dot-prod-flt c x_new)) /
+    mux if ((((dot-prod-flt c !x) - (dot-prod-flt c x_new)) /
          (max-muxable (shr-w-comp { Node_c } 1.0) (dot-prod-flt c !x)) ) <
-         epsilon ) in
-    mux if done then return x_new
+         epsilon ) then return x_new
     else x := x_new) ) in
   !x
 
