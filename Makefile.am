@@ -133,7 +133,8 @@ psl/clean: FORCE
 	}
 	-rm -f psl.cabal stack.yaml.lock
 
-resource-estimation.tar.gz: build-aux/gitbundles/hector-mockups.gitbundle
+resource-estimation.tar.gz:
+	$(MAKE) $(AM_MAKEFLAGS) build-aux/gitbundles/hector-mockups.gitbundle
 	rm -f -r $@$(TMPEXT).tmp*
 	$(GIT) clone build-aux/gitbundles/hector-mockups.gitbundle $@$(TMPEXT).tmp.repo
 	cd $@$(TMPEXT).tmp.repo/resource-estimates && bash package.bash
