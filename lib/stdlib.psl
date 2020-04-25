@@ -285,9 +285,9 @@ def const-ls c n = elim_nat n [] (cons c)
 def zero-ls-flt = const-ls 0.0
 def one-ls-flt = const-ls 1.0
 
-def max-vec = const-ls max-flt
+def max-vec-flt = const-ls max-flt
 
-def max-mat m n = const-ls (max-vec n) m
+def max-mat-flt m n = const-ls (max-vec-flt n) m
 
 -- Oblivious friendly insert to list.
 def insert : (a -> a -> bool) -> a -> list a -> list a

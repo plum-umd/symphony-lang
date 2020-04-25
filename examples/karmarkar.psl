@@ -185,7 +185,7 @@ def karmarkar_loop a c =
     12n * n * l in
 
   let max_iterations = num-iters c a in
-  let ub = num-iters (max-vec n) (max-mat m n) in
+  let ub = num-iters (max-vec-flt n) (max-mat-flt m n) in
 
   -- If this initial point is an optimal solution, return
   mux if (dot-prod-flt c !x) < epsilon then !x
