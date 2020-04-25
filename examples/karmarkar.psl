@@ -176,17 +176,21 @@ def karmarkar_loop a c =
   -- x is our initial point
   let x = ref (div-scalar-vec (row-of-ones n) (to_flt n)) in
 
-  -- product of non-zero entries in c and A
-  let p = (nz-prod-flt c) * (nz-prod-mat-flt a) in
-  let l = (m + 1n) * n +
-    (abs_val (ceil (log_base_2 (abs-val-flt-shr p)))) +
-    n * (abs_val (ceil (log_base_2 (to_flt n)))) in
-  let max_iterations = 12n * n * l in
+  let num-iters = fun costs ctrs ->
+    -- product of non-zero entries in c and A
+    let p = (nz-prod-flt costs) * (nz-prod-mat-flt ctrs) in
+    let l = (m + 1n) * n +
+      (abs_val (ceil (log_base_2 (abs-val-flt-shr p)))) +
+      n * (abs_val (ceil (log_base_2 (to_flt n)))) in
+    12n * n * l in
+
+  let max_iterations = num-iters c a in
+  let ub = num-iters (max-vec n) (max-mat m n) in
 
   -- If this initial point is an optimal solution, return
   mux if (dot-prod-flt c !x) < epsilon then !x
   else do
-  (sec-iter [ x ] 0n max_iterations 229n (fun i -> 
+  (sec-iter [ x ] 0n max_iterations ub (fun i -> 
     let x_new = karmarkar_iteration !x a c in cont-seq
 
     -- if we are within the stopping condition in the current
