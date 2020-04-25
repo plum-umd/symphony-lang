@@ -10,6 +10,7 @@ EXTRA_DIST += $(psl_files)
 EXTRA_DIST += COMMIT
 EXTRA_DIST += DATE
 EXTRA_DIST += VERSION
+EXTRA_DIST += resource-estimation.tar.gz
 
 MOSTLYCLEANFILES =
 MOSTLYCLEANFILES += psl
@@ -94,6 +95,7 @@ VERSION:
 
 docker: Dockerfile
 docker: dist-gzip
+docker: resource-estimation.tar.gz
 	@case '$(DOCKER)' in \
 	  '') \
 	    printf 'DOCKER is unset\n' >&2; \
