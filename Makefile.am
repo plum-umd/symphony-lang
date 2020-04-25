@@ -143,8 +143,12 @@ include $(srcdir)/src/posix-like/bin/psl.am
 
 include $(srcdir)/build-aux/GATBPS_CONFIG_FILE_RULES.am
 include $(srcdir)/build-aux/GATBPS_CONFIG_LATER_RULES.am
+include $(srcdir)/build-aux/GATBPS_GIT_ARCHIVE_RULES.am
+include $(srcdir)/build-aux/GATBPS_GIT_BUNDLE_RULES.am
+include $(srcdir)/build-aux/GATBPS_GIT_CLONE_RULES.am
 include $(srcdir)/build-aux/GATBPS_VPATH_SEARCH.am
 include $(srcdir)/build-aux/GATBPS_WGET_RULES.am
+include $(srcdir)/build-aux/git.am
 include $(srcdir)/build-aux/wget.am
 
 ## end_includes
