@@ -167,7 +167,7 @@ def karmarkar_iteration initial_point a c =
 
 
 -- Listing 7: Loop for Karmarkar's Algorithm
-def karmarkar_loop a c =
+def karmarkar_loop a c = proc
   let (m, n) = dimensions_of a in
   -- Epsilon is the stopping condition. This value should be close to
   -- 0, so we choose 10^(-8)
@@ -185,24 +185,60 @@ def karmarkar_loop a c =
     12n * n * l in
 
   let max_iterations = num-iters c a in
-  let ub = num-iters (max-vec-flt n) (max-mat-flt m n) in
+  let upper-bound = num-iters (max-vec-flt n) (max-mat-flt m n) in
 
   -- If this initial point is an optimal solution, return
   mux if (dot-prod-flt c !x) < epsilon then !x
-  else do
-  (sec-iter [ x ] 0n max_iterations ub (fun i -> 
-    let x_new = karmarkar_iteration !x a c in cont-seq
+  else do (sec-iter [ x ] 0n max_iterations upper-bound (fun i -> 
+    let x_new = karmarkar_iteration !x a c in 
 
     -- if we are within the stopping condition in the current
     -- iteration, return
-    (if-then-ret
+    let done =
       ((((dot-prod-flt c !x) - (dot-prod-flt c x_new)) /
          (max-muxable (shr-w-comp { Node_c } 1.0) (dot-prod-flt c !x)) ) <
-         epsilon )
-      x_new)
-    (x := x_new) ) ) in
+         epsilon ) in
+    mux if done then return x_new
+    else x := x_new) ) in
   !x
 
+
+-- -- Listing 7: Loop for Karmarkar's Algorithm
+-- def karmarkar_loop a c = 
+--   let (m, n) = dimensions_of a in
+--   -- Epsilon is the stopping condition. This value should be close to
+--   -- 0, so we choose 10^(-8)
+--   let epsilon = 10.0 ^ -8.0 in
+
+--   -- x is our initial point
+--   let x = ref (div-scalar-vec (row-of-ones n) (to_flt n)) in
+
+--   let num-iters = fun costs ctrs ->
+--     -- product of non-zero entries in c and A
+--     let p = (nz-prod-flt costs) * (nz-prod-mat-flt ctrs) in
+--     let l = (m + 1n) * n +
+--       (abs_val (ceil (log_base_2 (abs-val-flt-shr p)))) +
+--       n * (abs_val (ceil (log_base_2 (to_flt n)))) in
+--     12n * n * l in
+
+--   let max_iterations = num-iters c a in
+--   let ub = num-iters (max-vec-flt n) (max-mat-flt m n) in
+
+--   -- If this initial point is an optimal solution, return
+--   mux if (dot-prod-flt c !x) < epsilon then !x
+--   else do
+--   (sec-iter [ x ] 0n max_iterations ub (fun i -> 
+--     let x_new = karmarkar_iteration !x a c in cont-seq
+
+--     -- if we are within the stopping condition in the current
+--     -- iteration, return
+--     (if-then-ret
+--       ((((dot-prod-flt c !x) - (dot-prod-flt c x_new)) /
+--          (max-muxable (shr-w-comp { Node_c } 1.0) (dot-prod-flt c !x)) ) <
+--          epsilon )
+--       x_new)
+--     (x := x_new) ) ) in
+--   !x
 
 -- verify-dot-prod P0 P1 v0 v1: commit to vectors and whether their
 -- dot product is less than epsilon:
