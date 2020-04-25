@@ -9,3 +9,5 @@ do
 done
 ./psl example -r db-stats
 ./psl example -r karmakar
+./psl example -r gcd-bgv
+./psl example -r gcd-gc
