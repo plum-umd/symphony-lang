@@ -186,7 +186,7 @@ def karmarkar_loop a c =
   -- If this initial point is an optimal solution, return
   mux if (dot-prod-flt c !x) < epsilon then !x
   else do
-  (sec-iter [ x ] 0n max_iterations 1n (fun i -> 
+  (sec-iter [ x ] 0n max_iterations 229n (fun i -> 
     let x_new = karmarkar_iteration !x a c in cont-seq
 
     -- if we are within the stopping condition in the current
