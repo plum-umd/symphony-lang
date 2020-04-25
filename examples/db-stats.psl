@@ -49,9 +49,6 @@ def tag_with_index values =
       let value, _ = element
       in value, i) values) values (rangen len)
 
---    fst (snd (vec-read i values)), i) values)
---      values (rangen len)
-
 
 def sort_index values i =
   let sorted_values = vec-sort values
@@ -284,20 +281,20 @@ def database_stats_main inputs =
 
     -- Process the input based on its input label
     -- Send an acknowledgement to sender
-    in mux if label == 0
+    in mux if label == DATA
       then
         let success, data = process_data data values
         do publish true io_name label success
         in data
 
       -- process a query with keys and send the report to the sender
-      else mux if label == 1
+      else mux if label == KEYED_QUERY
       then
         let result = process_query data values
         do publish true io_name label result
         in data
       else
-        let result = (false, 0, 1)
+        let result = (false, 0, 0)
         do publish false io_name label result
         in data)
   in ()
