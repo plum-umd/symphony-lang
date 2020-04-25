@@ -1,4 +1,4 @@
-principal Node_in[64]
+principal Node_in[40]
 principal External
 
 
@@ -9,7 +9,7 @@ def partition (a, lo, hi) =
 
   -- random (LO, HI) selects a random integer between LO and HI,
   -- inclusively
-  do swap a (rand-range nat{ bgw:Node_in } (lo, hi)) hi
+  do swap a (rand-range nat{ spdz:Node_in } (lo, hi)) hi
 
   -- Now use A[HI] as the pivot value
 
@@ -51,9 +51,9 @@ def sec quick_sort (a, lo, hi) =
 -- verify inputs result: NIZK proof that result has signed inputs from
 -- each party and is sorted
 def verify inputs result =
-  let mk-wit = fun x -> nizk-witness{ bgw : Node_in } x in
+  let mk-wit = fun x -> nizk-witness{ spdz : Node_in } x in
   let mk-const-wit = fun c ->
-    mk-wit (share{ bgw : Node_in.0 -> Node_in} c) in
+    mk-wit (share{ spdz : Node_in.0 -> Node_in} c) in
   let test-true = mk-const-wit true in
   let test-false = mk-const-wit false in
   let test-zero = mk-const-wit 0n in
@@ -82,7 +82,7 @@ def verify inputs result =
        ((test-count (fun x -> wrap-is-signed P x) input-wits) <= test-ub) ) in
 
   -- res-wits: witnesses from the sorted result
-  let res-wits = map (fun x -> nizk-witness{ bgw : Node_in } x) result in
+  let res-wits = map (fun x -> nizk-witness{ spdz : Node_in } x) result in
 
   -- res-is-perm: test that unsignature of each input is in result:
   let res-is-perm =
@@ -109,7 +109,7 @@ def verify inputs result =
       } in
 
   -- commit to witness for all tests
-  nizk-commit { bgw : Node_in }
+  nizk-commit { spdz : Node_in }
     (all-inputs-signed &&
      bounded-sig-nums &&
      res-is-perm &&
@@ -122,7 +122,7 @@ def main () =
     let inputs = fold-f
       [ ]
       (fun N l -> append 
-        (map (fun x -> share{ bgw : N -> Node_in } x)
+        (map (fun x -> share{ spdz : N -> Node_in } x)
            (send-ls { N } { Node_in } l) ) )
       (solo { Node_in } as N in
          map (wrap-sign N) (read (list flt) from "quick-sort-in.txt") ) in
