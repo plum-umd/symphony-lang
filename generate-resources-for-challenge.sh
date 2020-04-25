@@ -14,11 +14,17 @@ run() {
   if [[ -x ./psl ]]; then
     psl=./psl
   fi
-  $psl example -r $1 &
+  >$1.log
+  printf 'Start time: '; date >>$1.log
+  (
+    s=0
+    $psl example -r $1 &>>$1.log || s=$?
+    printf 'Stop time: '; date >>$1.log
+    printf 'Exit status: %s\n' $s >>$1.log
+  ) &
   pid=$!
   pids+=($pid)
   names[$pid]=$1
-  printf 'started: %s\n' $1
 }
 
 for x in quick-sort-bgw quick-sort-spdz atq-bgw atq-spdz
@@ -41,6 +47,5 @@ run gcd-bgv
 run gcd-gc
 
 for pid in ${pids[@]}; do
-  printf 'waiting: %s\n' ${names[$pid]}
-  wait $pid || printf 'FAILED: %s\n' ${names[$pid]}
+  wait $pid || :
 done
