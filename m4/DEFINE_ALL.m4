@@ -25,6 +25,8 @@ AC_DEFUN([DEFINE_ALL], [[{
     ($# ]m4_if([$#], [1], [[was]], [[were]])[ given)
   ])])[
 
+]AC_REQUIRE([DEFINE_ALL_GITBUNDLE_COMMITS])[
+]AC_REQUIRE([DEFINE_ALL_GITBUNDLE_URLS])[
 ]AC_REQUIRE([DEFINE_ALL_WGET_URLS])[
 
 ]dnl begin_prerequisites

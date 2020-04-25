@@ -9,104 +9,321 @@ def key-eql a b =
   let (sb, tb) = b
   in (sa == sb) && (ta == tb)
 
-def db-init n = map-init (0, 0) (vec-init (0, 0) 10) n
+def empty-row = vec-init (0, 0) 10
+def singleton-row v = vec-push v empty-row
 
-def singleton-row v =
-  vec-push v (vec-init (0, 0) 10)
+def init n = map-init (0, 0) (vec-init (0, 0) 10) n
+def has k db = map-has (key-eql k) db
+def insert k v db = map-insert key-eql k v db
+def append k v data = map-insert-with key-eql vec-append k (singleton-row v) data
+def db-read k db = snd (map-read key-eql k db)
 
-def med vec = snd (vec-median (fun x y -> x < y) vec)
-
-def mean xs = to_flt (vec-int-sum xs) / to_flt (vec-length xs)
-
-def meanf xs = (vec-flt-sum xs) / to_flt (vec-length xs)
-
-
-def stddev xs =
-  let m = mean xs
-  let square = fun x -> x * x
-  let diffs = vec-map (fun x -> square (to_flt x - m)) xs
-  in sqrt (meanf diffs)
+def mean values =
+  let sum = ref 0
+  do vec-for values (fun value ->
+    sum := !sum + value)
+  in to_flt !sum / to_flt (vec-length values)
 
 
-def process-data data values =
-  let (s, l), key1, key2 = values
-  in
-    map-insert-with key-eql vec-append (key1, key2) (singleton-row (s, l)) data
+def stdev values =
+  -- Ensure we don't divide by zero
+  mux if vec-length values < 2
+  then 0.0
+  else
+    let mean_value = mean values
 
-def update : Key -> Value -> Database -> Database
-def update k v db =
-  map-insert-with key-eql (flip vec-append) k (singleton-row v) db
+    let sum = ref 0.0
+    do vec-for values (fun value ->
+      let diff = to_flt value - mean_value
+      in sum := !sum + (diff * diff))
+    let sigma_squared = !sum / to_flt (vec-length values - 1)
+    in sqrt sigma_squared
 
 
-def threshold = 5
+def tag_with_index values =
+  let len = vec-capacity values
+  let values = vec-map (fun value -> (value, 0)) values
+
+  in foldr (fun i values ->
+    vec-over i (fun element ->
+      let value, _ = element
+      in value, i) values) values (rangen len)
+
+
+def sort_index values i =
+  let sorted_values = vec-sort values
+  in snd (vec-read i values)
+
+def split values =
+  let lst = empty-row
+  let blocks = vec-init empty-row 10
+
+  let (lst, blocks) = vec-fold (fun element acc ->
+    let (lst, blocks) = acc
+    let lst = vec-push element lst
+    mux if vec-length lst == 5
+    then
+      (empty-row, vec-push lst blocks)
+    else
+      (lst, blocks)) (lst, blocks) values
+
+  -- If the length of values was not divisible by 5, the last block will have < 5 elements
+  mux if vec-length lst > 0
+  then
+    vec-push lst blocks
+  else
+    blocks
+
+
+def median_of_medians values i =
+  -- Returns a tuple containing the ith of the list and its index in values
+
+  -- If we have a list of length less than 5, sorting and indexing into it may be considered constant
+  if vec-capacity values < 5
+  then
+    sort_index values i
+
+  -- Otherwise we use the medians of medians approach to select a pivot point
+  else
+    -- Find a good pivot point
+    let blocks = split values
+    let cap = vec-capacity values
+    let default-vec = fun cap -> vec-init (vec-default values) cap
+    let medians = default-vec (cap / 5)
+
+    -- Find the median of each block - note that for all but (possibly) the last block, the median is the third element (index 2)
+    let medians = vec-fold (fun block medians ->
+      vec-push (sort_index block (vec-length block / 2)) medians) medians blocks
+
+    -- Find an appropriate pivot
+    let pivot = mux if vec-length medians <= 5
+      then
+        sort_index medians (vec-length medians / 2)
+      else
+        median_of_medians medians (vec-length medians / 2)
+
+    -- Partition the list into two sublists of elements less than and greater than pivot respectively
+    let low = default-vec (cap - 1)
+    let high = default-vec (cap - 1)
+    let pivotValue, pivotIndex = pivot
+    let (low, high) = vec-fold (fun element acc ->
+      let low, high = acc
+
+      -- Unpack the tuple
+      let value, index = element
+
+      in mux if value < pivotValue
+      then
+        vec-push element low, high
+      else mux if value > pivotValue
+      then
+        low, vec-push element high
+      else -- value == pivotValue
+        mux if index < pivotIndex
+        then
+          vec-push element low, high
+        else
+          low, vec-push element high) (low, high) values
+
+    let k = vec-length low
+
+    -- The element to be found is in the lower sublist, recursively search the lower sublist
+    mux if i < k
+    then median_of_medians low i
+
+    -- The element to be found is in the higher sublist, recursively search the higher sublist
+    else mux if i > k
+    then median_of_medians high (i - k - 1)
+
+    else -- i == k, the pivot we chose is the element we were looking for at index k == i
+      pivot
+
+
+-- Return the median value
+-- If there are an even number of values, select the higher middle value
+def median_ values =
+  let values = tag_with_index values
+  let med, index = median_of_medians values (vec-length values / 2)
+  in med
+
+
+-- Parse data insertion request from raw request
+def parse_data values =
+  mux case values
+  { L (s, l, key1, key2) -> true, s, l, key1, key2
+  ; a -> false, 0, 0, 0, 0
+  }
+
+
+-- Parse query request from raw request
+def parse_query values =
+  mux case values
+  { R (q_id, key1, key2) -> true, q_id, key1, key2
+  ; a -> false, 0, 0, 0
+  }
+
+
+-- This function adds a data record to the database
+-- data is the database before the new record is added
+-- values contains the new input to be added
+def process_data data values =
+  -- Attempt to parse the given values as a data record
+  let success, s, l, key1, key2 = parse_data values
+
+  -- If the data record is well formed, add it to the databse
+  in mux if success
+  then
+    -- Add the data record to the database
+    let data = mux if not (has (key1, key2) data)
+    then
+      -- Each pair of key1 and key2 is its own unique key
+      -- Create an empty list if that key has not been used
+      insert (key1, key2) empty-row data
+    else
+      data
+
+    -- Add the value to the list of other values with the same keys
+    in true, append (key1, key2) (s, l) data
+  else
+    false, _|_
+
+
+def THRESHOLD = 5
 
 -- This takes key1 and key2 as a key into the database data
 def stats-report data key1 key2 =
+
   -- Separate out the records to use in the report
-  let _, record_subset = map-read key-eql (key1, key2) data
+  let record_subset = db-read (key1, key2) data
+
   -- Record the number of records matching the key
-  let n_records = vec-length record_subset
+  let N_RECORDS = vec-length record_subset
+
   -- Ensure that it is above the threshold
-  in mux if n_records > threshold
+  in mux if N_RECORDS > THRESHOLD
   then
     -- Collect the S values
-    let s_list = vec-map fst record_subset
+    let S_list = vec-map fst record_subset
     -- Collect the L values
-    let s_list = vec-map snd record_subset
+    let L_list = vec-map snd record_subset
     -- Collect the statistics
-    let s_median = med s_list
-    let s_mean = mean s_list
-    let s_stddev = stddev s_list
-    let l_median = med s_list
-    let l_mean = mean s_list
-    let l_stddev = stddev s_list
+    let S_MEDIAN = median_ S_list
+    let S_MEAN = mean S_list
+    let S_STDDEV = stdev S_list
+    let L_MEDIAN = median_ L_list
+    let L_MEAN = mean L_list
+    let L_STDDEV = stdev L_list
 
-    in (key1, key2, n_records, s_median, s_mean, s_stddev, l_median, l_mean, l_stddev)
+    in key1, key2, N_RECORDS, S_MEDIAN, S_MEAN, S_STDDEV, L_MEDIAN, L_MEAN, L_STDDEV
 
   else
     _|_
 
 
-def handler key1 key2 input db =
-  let is-query, v = input
-  in mux if (is-query)
-          then db, stats-report db key1 key2
-          else process-data db (v, key1, key2), _|_
+-- Generate a report in reponse to a value for key1 and a value for key2
+def process_query data values =
+  -- Attempt to parse the given values as a query with two keys
+  let success, q_id, key1, key2 = parse_query values
+  mux if success
+  then
+    -- Return data if present, or a failure code otherwise
+    mux if has (key1, key2) data
+      then
+        let report = stats-report data key1 key2
+        in true, q_id, report
+      else
+        false, q_id, _|_
+
+  -- Ignore the submitted query if it is not well formed
+  else
+    false, q_id, _|_
+
+
+def handler input data =
+  let _, db' = process_data data input
+  let _, q = process_query data input
+  in db', q
+
 
 def num-keys = 20
+
+def DATA = 0
+def KEYED_QUERY = 1
+
+
+-- Write the output value to a private file on a per player basis
+def publish flag io_name label value =
+  let value = reveal {io_name} value
+  in
+    par {io_name}
+      if flag
+      then
+        write value to "output.txt"
+      else
+        ()
 
 
 -- Main function for database statistics
 -- A loop handles inputs one at a time
 -- Each input attempts to add a record to the databse or requests a query
--- def database_stats_main inputs =
---
---   -- The structure holding the data
---   let data = db-init num-keys
---
---   -- At each loop iteration, process one input
---   foldl inputs data (fun input ->
---     -- io-name is the principal sending the input
---     -- label is the input label of the input
---     -- values contains the data (e.g., the keys)
---     let io-name, label, values = input
---
---     -- Process the input based on its input label
---     -- Send an acknowledgement to the sender
---     )
+def database_stats_main inputs =
+
+  -- The structure holding the data
+  let data = init num-keys
+
+  -- At each loop iteration, process one input
+  do foldl inputs data (fun input data ->
+    -- io_name is the node sending the input
+    -- label is the input label of the input
+    -- values contains the data (e.g., the keys)
+    -- This call sets the three values
+    let io_name, label, values = input
+
+    -- Process the input based on its input label
+    -- Send an acknowledgement to sender
+    in mux if label == DATA
+      then
+        let success, data = process_data data values
+        do publish true io_name label success
+        in data
+
+      -- process a query with keys and send the report to the sender
+      else mux if label == KEYED_QUERY
+      then
+        let result = process_query data values
+        do publish true io_name label result
+        in data
+      else
+        let result = (false, 0, 0)
+        do publish false io_name label result
+        in data)
+  in ()
+
 
 
 def main : unit -> list float
 def main () =
+--  par {A,B}
+--  median_ (share-as-vec
+--      {A}
+--      (fun flag -> share{bgv:A -> this} flag)
+--      (fun content -> share{bgv:A -> this} content)
+--      0
+--      10
+--      (par {A} [0;1;2;3;4;5;6;7;8]))
+
   par {A,B}
-    let db = db-init 20
-    let k1 = share {bgv:A -> A,B} (par {A} 2)
-    let k2 = share {bgv:A -> A,B} (par {A} 4)
-    let db, _ = handler k1 k2 (share {bgv:A -> this} (par {A} (false, (10, 999)))) db
-    let db, _ = handler k1 k2 (share {bgv:A -> this} (par {A} (false, (15, 25)))) db
-    let db, _ = handler k1 k2 (share {bgv:A -> this} (par {A} (false, (44, 35)))) db
-    let db, _ = handler k1 k2 (share {bgv:A -> this} (par {A} (false, (13, 404)))) db
-    let db, _ = handler k1 k2 (share {bgv:A -> this} (par {A} (false, (29, 5)))) db
-    let db, _ = handler k1 k2 (share {bgv:A -> this} (par {A} (false, (13, 19)))) db
-    let _, r = handler k1 k2 (share {bgv:A -> this} (par {A} (true, (0, 0)))) db
-    in reveal {A} r
+    let db = init 20
+    let k1 = par {A} 2
+    let k2 = par {A} 4
+
+    let inputs =
+      [ A, share {bgv:A -> this} DATA, share {bgv:A -> this} (par {A} L (10, 999, k1, k2))
+      ; A, share {bgv:A -> this} DATA, share {bgv:A -> this} (par {A} L (15, 25, k1, k2))
+      ; A, share {bgv:A -> this} DATA, share {bgv:A -> this} (par {A} L (15, 25, k1, k2))
+      ; A, share {bgv:A -> this} DATA, share {bgv:A -> this} (par {A} L (15, 25, k1, k2))
+      ; A, share {bgv:A -> this} DATA, share {bgv:A -> this} (par {A} L (15, 25, k1, k2))
+      ; A, share {bgv:A -> this} DATA, share {bgv:A -> this} (par {A} L (15, 25, k1, k2))
+      ; A, share {bgv:A -> this} KEYED_QUERY, share {bgv:A -> this} (par {A} R (17, k1, k2))
+      ]
+    in database_stats_main inputs
