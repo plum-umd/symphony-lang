@@ -115,6 +115,8 @@ def nat_log b n =
 --- flt LIBRARY
 ---
 
+def max-flt = 10.0 ^ 3.0
+
 -- abs-val-flt-shr: compute the absolute value of a share of a float:
 def abs-val-flt-shr a = max mux-wrap a (-1.0 * a)
 
@@ -282,6 +284,10 @@ def const-ls c n = elim_nat n [] (cons c)
 
 def zero-ls-flt = const-ls 0.0
 def one-ls-flt = const-ls 1.0
+
+def max-vec-flt = const-ls max-flt
+
+def max-mat-flt m n = const-ls (max-vec-flt n) m
 
 -- Oblivious friendly insert to list.
 def insert : (a -> a -> bool) -> a -> list a -> list a
@@ -496,8 +502,8 @@ def tail-n l n = snd (zipper-n l n)
 
 def sub-list l start end = tail-n (head-n l end) (dec start)
 
--- reveal-wrap: wrapper around reveal syntax
-def reveal-wrap P x = reveal { P } x
+-- wrap-reveal: wrapper around reveal syntax
+def wrap-reveal P x = reveal { P } x
 
 
 -- wrap-deref: wrapper around dereference syntax
@@ -638,9 +644,18 @@ def preprocess-lists-reveal-lengths p t xs =
   in preprocess-lists-n p t l' xs
 
 
+def replicate x n =
+  if n == 0
+  then []
+  else x :: (replicate x (n - 1))
 
-
-
+def update-list x n ls = case ls
+  { [] -> []
+  ; l::ls' ->
+    mux if (n == 0)
+    then (x::ls')
+    else (l::(update-list x (n - 1) ls'))
+  }
 
 ---
 --- VECTOR LIBRARY
@@ -1002,18 +1017,16 @@ def cont_join m = cont_bind m id
 def cont_seq m cv = cont_bind m (const cv)
 
 -- cont_seq': lift a raw value, then us it in a bind
-def cont_seq' m v = cont_seq m (cont_return v)
+def cont-seq m v = cont_seq m (cont_return v)
 
 -- if-then-ret guard tc: an if-then branch 
-def if-then-ret muxer guard tc = ((muxer guard tc), ())
-
--- if_then guard tc: an if-then branch 
-def if-then-ret-ls = if-then-ret mux_ls
+def if-then-ret guard tc = ((mux-wrap guard tc), ())
 
 -- iter_sec_nat muxer n bnd s rv: iterate bnd times, but return the
 -- bound stored in rv after the loop executes n times.
-def iter_sec_nat muxer n bnd s rv = cont_run
-  (cont_seq'
+-- DEP?
+def iter-sec-nat n bnd s rv = cont_run
+  (cont-seq
     (snd
       (eliml_nat bnd
         (n, cont_return ())
@@ -1021,7 +1034,7 @@ def iter_sec_nat muxer n bnd s rv = cont_run
           (n' - 1n,
            cont_bind
              (cont_bind cv
-               ((fun () -> (muxer (n' == 0n) !rv), ())) )
+               ((fun () -> (mux-wrap (n' == 0n) !rv), ())) )
              s) ) ) )
     !rv)
 
@@ -1092,7 +1105,8 @@ def zero-mat = const-sq-mat 0.0
 def to_flt x = flt x
 
 -- PKI library:
--- def wrap-sign P = id
+def wrap-is-signed N x = is-signed { N } x 
+
 def wrap-sign P x = sign { P } x
 
 def wrap-unsign = id

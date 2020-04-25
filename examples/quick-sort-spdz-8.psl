@@ -1,15 +1,15 @@
-principal Ext
-principal Node_in[2]
+principal Node_in[8]
+principal External
 
+
+-- Listing 4: Pseudocode for quick sort partition
 def partition (a, lo, hi) =
   -- In order to avoid deterministic worst case behaviour pick the
   -- pivot element at random and put it in the alst position (HI)
 
   -- random (LO, HI) selects a random integer between LO and HI,
   -- inclusively
-  let r = rand-range nat{bgw:this} (lo, hi)
-  let r = hi -- DEBUG:
-  do swap a r hi
+  do swap a (rand-range nat{ spdz:Node_in } (lo, hi)) hi
 
   -- Now use A[HI] as the pivot value
 
@@ -33,6 +33,8 @@ def partition (a, lo, hi) =
   -- Return the pivot index I
   !i
 
+
+-- Listing 3: Pseudocode for quick sort
 def sec quick_sort (a, lo, hi) = 
     upd-if [ a ] (lo < hi) (fun () ->
       -- Find PIVOT: e < PIVOT <=> A[e] < A[PIVOT]; e > PIVOT <=> A[e]
@@ -46,24 +48,17 @@ def sec quick_sort (a, lo, hi) =
       quick_sort (a, pivot + 1n, hi) )
 
 
-def shr-true = share{ bgw : Ext -> Node_in } true 
-def shr-false = share{ bgw : Ext -> Node_in } false
-def shr-zero = share{ bgw : Ext -> Node_in } 0n 
-def shr-one = share{ bgw : Ext -> Node_in } 1n 
-def shr-ub = share{ bgw : Ext -> Node_in } 8n 
-
 -- verify inputs result: NIZK proof that result has signed inputs from
 -- each party and is sorted
 def verify inputs result =
-  let mk-wit = fun x -> nizk-witness{ bgw : Node_in } x in
-  let test-true = mk-wit shr-true in
-  let test-false = mk-wit shr-false in
-  let test-zero = mk-wit shr-zero in
-  let test-one = mk-wit shr-one in
-  let test-ub = mk-wit shr-ub in
-
-  let wrap-is-signed = fun N x -> is-signed { N } x in
-  -- PSL: replace with actual form that emits instruction
+  let mk-wit = fun x -> nizk-witness{ spdz : Node_in } x in
+  let mk-const-wit = fun c ->
+    mk-wit (share{ spdz : Node_in.0 -> Node_in} c) in
+  let test-true = mk-const-wit true in
+  let test-false = mk-const-wit false in
+  let test-zero = mk-const-wit 0n in
+  let test-one = mk-const-wit 1n in
+  let test-ub = mk-const-wit 8n in
 
   -- input-wits: bundle of witnesses built from signed inputs:
   let input-wits = map mk-wit inputs in
@@ -87,7 +82,7 @@ def verify inputs result =
        ((test-count (fun x -> wrap-is-signed P x) input-wits) <= test-ub) ) in
 
   -- res-wits: witnesses from the sorted result
-  let res-wits = map (fun x -> nizk-witness{ bgw : Node_in } x) result in
+  let res-wits = map (fun x -> nizk-witness{ spdz : Node_in } x) result in
 
   -- res-is-perm: test that unsignature of each input is in result:
   let res-is-perm =
@@ -114,28 +109,29 @@ def verify inputs result =
       } in
 
   -- commit to witness for all tests
-  nizk-commit { bgw : Node_in }
+  nizk-commit { spdz : Node_in }
     (all-inputs-signed &&
      bounded-sig-nums &&
      res-is-perm &&
      res-is-sorted)
 
 
-def main () = par{ Node_in }
-  -- inputs: shares of the inputs
-  let inputs = fold-f
-    [ ]
-    (fun N l -> append 
-      (map (fun x -> share{ bgw : N -> Node_in } x)
-         (send-ls { N } { Node_in } l) ) )
-    (solo { Node_in } as N in
-       map (wrap-sign N) (read (list flt) from "quick-sort-in.txt") ) in
-  let unsigned-inputs = map wrap-unsign inputs in
+def main () =
+  let (sorted, corr-pf) = par{ Node_in }
+    -- inputs: shares of the inputs
+    let inputs = fold-f
+      [ ]
+      (fun N l -> append 
+        (map (fun x -> share{ spdz : N -> Node_in } x)
+           (send-ls { N } { Node_in } l) ) )
+      (solo { Node_in } as N in
+         map (wrap-sign N) (read (list flt) from "quick-sort-in.txt") ) in
+    let unsigned-inputs = map wrap-unsign inputs in
 
-  -- run the sorting function:
-  let n = len unsigned-inputs in
-  let ls-ref = ref unsigned-inputs in
-  do eval-upto quick_sort n (ls-ref, 0n, n - 1n) in
-  let sorted = !ls-ref in
-
-  (sorted, verify inputs sorted)
+    -- run the sorting function:
+    let n = len unsigned-inputs in
+    let ls-ref = ref unsigned-inputs in
+    do eval-upto quick_sort n (ls-ref, 0n, n - 1n) in
+    let sorted = !ls-ref in
+    (map (wrap-reveal Node_in) sorted, verify inputs sorted) in
+  (sorted, send { Node_in.0 -> External } corr-pf)

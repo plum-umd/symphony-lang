@@ -6,6 +6,12 @@
 - `make dev` for interactive typechecking/running (using `ghcid`)
 - `make build` just to build (using `stack build`)
 
+# Running Challenge Problem Solutions
+
+- Build PSL (see above)
+- To run a challenge problem solution in `examples/soln.psl`, run
+  `psl example soln`
+
 # Unicode Instructions
 
 - See https://github.com/davdar/dotfiles/tree/master/unicode

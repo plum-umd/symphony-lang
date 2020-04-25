@@ -9,7 +9,9 @@ EXTRA_DIST =
 EXTRA_DIST += $(psl_files)
 EXTRA_DIST += COMMIT
 EXTRA_DIST += DATE
+EXTRA_DIST += README.md
 EXTRA_DIST += VERSION
+EXTRA_DIST += resource-estimation.tar.gz
 
 MOSTLYCLEANFILES =
 MOSTLYCLEANFILES += psl
@@ -76,6 +78,7 @@ share_psldir = $(datadir)/psl
 
 .PHONY: FORCE
 .PHONY: docker
+.PHONY: resource-estimation.tar.gz/clean
 
 COMMIT:
 	bash build-aux/COMMIT.bash >COMMIT$(TMPEXT)
@@ -93,6 +96,7 @@ VERSION:
 
 docker: Dockerfile
 docker: dist-gzip
+docker: resource-estimation.tar.gz
 	@case '$(DOCKER)' in \
 	  '') \
 	    printf 'DOCKER is unset\n' >&2; \
@@ -104,6 +108,8 @@ docker: dist-gzip
 	  $(DOCKER) build -t psl:latest . || exit; \
 	  $(DOCKER) tag psl:latest psl:$(PACKAGE_VERSION) || exit; \
 	}
+
+maintainer-clean-local: resource-estimation.tar.gz/clean
 
 mostlyclean-local: psl/clean
 
@@ -130,6 +136,16 @@ psl/clean: FORCE
 	}
 	-rm -f psl.cabal stack.yaml.lock
 
+resource-estimation.tar.gz:
+	$(MAKE) $(AM_MAKEFLAGS) build-aux/gitbundles/hector-mockups.gitbundle
+	rm -f -r $@$(TMPEXT).tmp*
+	$(GIT) clone build-aux/gitbundles/hector-mockups.gitbundle $@$(TMPEXT).tmp.repo
+	cd $@$(TMPEXT).tmp.repo/resource-estimates && bash package.bash
+	cp $@$(TMPEXT).tmp.repo/resource-estimates/resource-estimation.tar.gz $@
+
+resource-estimation.tar.gz/clean: FORCE
+	-rm -f -r $(@D) $(@D)$(TMPEXT).tmp*
+
 ## end_rules
 
 ## begin_includes
@@ -143,8 +159,13 @@ include $(srcdir)/src/posix-like/bin/psl.am
 
 include $(srcdir)/build-aux/GATBPS_CONFIG_FILE_RULES.am
 include $(srcdir)/build-aux/GATBPS_CONFIG_LATER_RULES.am
+include $(srcdir)/build-aux/GATBPS_CP_RULES.am
+include $(srcdir)/build-aux/GATBPS_GIT_ARCHIVE_RULES.am
+include $(srcdir)/build-aux/GATBPS_GIT_BUNDLE_RULES.am
+include $(srcdir)/build-aux/GATBPS_GIT_CLONE_RULES.am
 include $(srcdir)/build-aux/GATBPS_VPATH_SEARCH.am
 include $(srcdir)/build-aux/GATBPS_WGET_RULES.am
+include $(srcdir)/build-aux/git.am
 include $(srcdir)/build-aux/wget.am
 
 ## end_includes

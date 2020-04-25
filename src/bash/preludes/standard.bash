@@ -3,6 +3,18 @@
 # directory tree for the first README file.
 #
 
+case ${already_bootstrapped-} in
+  "")
+    already_bootstrapped=x
+    export already_bootstrapped
+    case $# in
+      0) bash - "$0" ;;
+      *) bash - "$0" "$@" ;;
+    esac
+    exit
+  ;;
+esac
+
 set -Eeuo pipefail
 
 export LC_ALL=C

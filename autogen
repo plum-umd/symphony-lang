@@ -28,6 +28,7 @@ autogen_am_var_append_files \
 ;
 
 autogen_downloads build-aux/downloads
+autogen_gitbundles build-aux/gitbundles
 
 autogen_ac_finish
 autogen_am_finish

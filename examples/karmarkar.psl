@@ -37,11 +37,6 @@ def shr-w-comp sender x = share{ spdz : sender -> comps } x
 
 def zero-vec-shrs n = map (shr-w-comp { Node_c }) (zero-vec n)
 
--- DEP? Combinators that may be redundant with stdlib or PSL.
-def iter_sec_nat_spdz muxer = iter_sec_nat muxer 
-
-def iter_sec_nat_ls = iter_sec_nat_spdz mux_ls
-
 -- nz_prod z u l: the product of non-z entries in l, with
 -- multiplicative unit u
 def nz-prod z u l = elim-list l
@@ -103,7 +98,7 @@ def cholesky_decomposition m =
           sum := !sum + (get-matrix !l (i, j)) * (get-matrix !l (i, j)) ) 
       do l := upd-matrix !l (i, i) (sqrt ((get-matrix m (i, i)) - !sum)) in
       -- Now fill in the remaining entries in this column
-      if-then (i < n - 1n) 
+      when (i < n - 1n) then
         (iter (range (i + 1n) (n - 1n))
           (fun j ->
             do sum := 0.0 in
@@ -172,7 +167,7 @@ def karmarkar_iteration initial_point a c =
 
 
 -- Listing 7: Loop for Karmarkar's Algorithm
-def karmarkar_loop a c =
+def karmarkar_loop a c = proc
   let (m, n) = dimensions_of a in
   -- Epsilon is the stopping condition. This value should be close to
   -- 0, so we choose 10^(-8)
@@ -181,29 +176,29 @@ def karmarkar_loop a c =
   -- x is our initial point
   let x = ref (div-scalar-vec (row-of-ones n) (to_flt n)) in
 
-  -- product of non-zero entries in c and A
-  let p = (nz-prod-flt c) * (nz-prod-mat-flt a) in
-  let l = (m + 1n) * n +
-    (abs_val (ceil (log_base_2 (abs-val-flt-shr p)))) +
-    n * (abs_val (ceil (log_base_2 (to_flt n)))) in
-  let max_iterations = 12n * n * l in
+  let num-iters = fun costs ctrs ->
+    -- product of non-zero entries in c and A
+    let p = (nz-prod-flt costs) * (nz-prod-mat-flt ctrs) in
+    let l = (m + 1n) * n +
+      (abs_val (ceil (log_base_2 (abs-val-flt-shr p)))) +
+      n * (abs_val (ceil (log_base_2 (to_flt n)))) in
+    12n * n * l in
+
+  let max_iterations = num-iters c a in
+  let upper-bound = num-iters (max-vec-flt n) (max-mat-flt m n) in
 
   -- If this initial point is an optimal solution, return
   mux if (dot-prod-flt c !x) < epsilon then !x
-  -- hand-computed bound
-  else
-  (iter_sec_nat_ls max_iterations 1n (fun i -> 
-    let x_new = karmarkar_iteration !x a c in cont_seq'
+  else do (sec-iter [ x ] 0n max_iterations upper-bound (fun i -> 
+    let x_new = karmarkar_iteration !x a c in 
 
     -- if we are within the stopping condition in the current
     -- iteration, return
-    (if-then-ret-ls 
-      ((((dot-prod-flt c !x) - (dot-prod-flt c x_new)) /
+    mux if ((((dot-prod-flt c !x) - (dot-prod-flt c x_new)) /
          (max-muxable (shr-w-comp { Node_c } 1.0) (dot-prod-flt c !x)) ) <
-         epsilon )
-      x_new)
-    (x := x_new) )
-  x)
+         epsilon ) then return x_new
+    else x := x_new) ) in
+  !x
 
 
 -- verify-dot-prod P0 P1 v0 v1: commit to vectors and whether their
@@ -224,7 +219,7 @@ def main () =
   let ctrs = solo { Node_in } as c in read (list flt) from "in.txt" in
   let cost = par { Node_c } read (list flt) from "in.txt" in
   let shrd-soln = par { Node_in, Node_c, Node_o } (map
-    (reveal-wrap { Node_o })
+    (wrap-reveal { Node_o })
     -- Node_c reveals the structure of the list to out:
     (send-ls { Node_c } { Node_in, Node_c, Node_o }
       -- Node_in and Node_c compute the solution point:

@@ -636,7 +636,7 @@ interpExp = wrapInterp $ \case
   PrimE o es → do
     ṽs ← mapM interpExp es
     si :* vmpcs ← unShareValPs ṽs
-    mds :* bvmpcs ← split ^$ error𝑂 (mapMOn vmpcs $ view baseMVL) $ throwIErrorCxt TypeIError "bad" null
+    mds :* bvmpcs ← split ^$ error𝑂 (mapMOn vmpcs $ view baseMVL) $ throwIErrorCxt TypeIError "bad" $ frhs [("vmpcs", pretty vmpcs)]
     let md = joins mds
     md' :* bvmpc ← interpReportPrim o md si $ list bvmpcs
     reShareValP (BaseMV md' bvmpc) si
