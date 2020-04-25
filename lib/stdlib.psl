@@ -115,6 +115,8 @@ def nat_log b n =
 --- flt LIBRARY
 ---
 
+def max-flt = 10.0 ^ 3.0
+
 -- abs-val-flt-shr: compute the absolute value of a share of a float:
 def abs-val-flt-shr a = max mux-wrap a (-1.0 * a)
 
@@ -282,6 +284,10 @@ def const-ls c n = elim_nat n [] (cons c)
 
 def zero-ls-flt = const-ls 0.0
 def one-ls-flt = const-ls 1.0
+
+def max-vec = const-ls max-flt
+
+def max-mat m n = const-ls (max-vec n) m
 
 -- Oblivious friendly insert to list.
 def insert : (a -> a -> bool) -> a -> list a -> list a
