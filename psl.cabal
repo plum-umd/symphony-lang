@@ -15,7 +15,6 @@ data-files:
     examples/arg-par-contains.psl
     examples/assoc-map.psl
     examples/atq-nounicode.psl
-    examples/atq.psl
     examples/bind-fp-const.psl
     examples/bind-shares.psl
     examples/cmp-fn-flt.psl
@@ -32,6 +31,7 @@ data-files:
     examples/elim-sec-ls.psl
     examples/empty-par-diverge.psl
     examples/euclid-dh.psl
+    examples/euclid.psl~
     examples/gcd-bgv.psl
     examples/gcd-gc.psl
     examples/indy-pars.psl
@@ -52,7 +52,6 @@ data-files:
     examples/pfold.psl
     examples/play.psl
     examples/qsort.psl
-    examples/quick-sort.psl
     examples/rand-range-encrypted-inputs-failing.psl
     examples/rand-range-shared.psl
     examples/rand.psl
