@@ -22,10 +22,9 @@ RUN : \
   && ./configure \
   && make \
   && make DESTDIR=/x/destdir install \
-  && cd .. \
+  && mkdir /x/destdir/root \
+  && cd /x/destdir/root \
   && tar xzf /x/psl-@PACKAGE_VERSION@/resource-estimation.tar.gz \
-  && mv resource-estimation root \
-  && cp -R root /x/destdir \
 ;
 
 FROM $base_image
