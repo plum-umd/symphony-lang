@@ -18,9 +18,6 @@ def insert k v db = map-insert key-eql k v db
 def append k v data = map-insert-with key-eql vec-append k (singleton-row v) data
 def db-read k db = snd (map-read key-eql k db)
 
-def med vec = snd (vec-median (fun x y -> x < y) vec)
-
-
 def mean values =
   let sum = ref 0
   do vec-for values (fun value ->
@@ -43,27 +40,114 @@ def stdev values =
     in sqrt sigma_squared
 
 
--- def split values =
---   let lst = ref empty-row
---   let blocks = ref (vec-init empty-row 10)
---   do vec-for values (fun element ->
---     do lst := vec-push element !lst
---     in mux if vec-length lst == 5 then
---       do (
---         blocks := vec-push lst !blocks
---         -- in lst := ref empty-row
---         )
---     else
---       ())
--- 
---   -- If the length of values was not divisible by 5, the last block will have < 5 elements
---   if vec-length !lst > 0
---   then
---     do blocks := vec-push lst !blocks
---   else
---     ()
---   in !blocks
+def tag_with_index values =
+  let len = vec-capacity values
+  let values = vec-map (fun value -> (value, 0)) values
 
+  in foldr (fun i values ->
+    vec-over i (fun element ->
+      let value, _ = element
+      in value, i) values) values (rangen len)
+
+--    fst (snd (vec-read i values)), i) values)
+--      values (rangen len)
+
+
+def sort_index values i =
+  let sorted_values = vec-sort values
+  in snd (vec-read i values)
+
+def split values =
+  let lst = empty-row
+  let blocks = vec-init empty-row 10
+
+  let (lst, blocks) = vec-fold (fun element acc ->
+    let (lst, blocks) = acc
+    let lst = vec-push element lst
+    mux if vec-length lst == 5
+    then
+      (empty-row, vec-push lst blocks)
+    else
+      (lst, blocks)) (lst, blocks) values
+
+  -- If the length of values was not divisible by 5, the last block will have < 5 elements
+  mux if vec-length lst > 0
+  then
+    vec-push lst blocks
+  else
+    blocks
+
+
+def median_of_medians values i =
+  -- Returns a tuple containing the ith of the list and its index in values
+
+  -- If we have a list of length less than 5, sorting and indexing into it may be considered constant
+  if vec-capacity values < 5
+  then
+    sort_index values i
+
+  -- Otherwise we use the medians of medians approach to select a pivot point
+  else
+    -- Find a good pivot point
+    let blocks = split values
+    let cap = vec-capacity values
+    let default-vec = fun cap -> vec-init (vec-default values) cap
+    let medians = default-vec (cap / 5)
+
+    -- Find the median of each block - note that for all but (possibly) the last block, the median is the third element (index 2)
+    let medians = vec-fold (fun block medians ->
+      vec-push (sort_index block (vec-length block / 2)) medians) medians blocks
+
+    -- Find an appropriate pivot
+    let pivot = mux if vec-length medians <= 5
+      then
+        sort_index medians (vec-length medians / 2)
+      else
+        median_of_medians medians (vec-length medians / 2)
+
+    -- Partition the list into two sublists of elements less than and greater than pivot respectively
+    let low = default-vec (cap - 1)
+    let high = default-vec (cap - 1)
+    let pivotValue, pivotIndex = pivot
+    let (low, high) = vec-fold (fun element acc ->
+      let low, high = acc
+
+      -- Unpack the tuple
+      let value, index = element
+
+      in mux if value < pivotValue
+      then
+        vec-push element low, high
+      else mux if value > pivotValue
+      then
+        low, vec-push element high
+      else -- value == pivotValue
+        mux if index < pivotIndex
+        then
+          vec-push element low, high
+        else
+          low, vec-push element high) (low, high) values
+
+    let k = vec-length low
+
+    -- The element to be found is in the lower sublist, recursively search the lower sublist
+    mux if i < k
+    then median_of_medians low i
+
+    -- The element to be found is in the higher sublist, recursively search the higher sublist
+    else mux if i > k
+    then median_of_medians high (i - k - 1)
+
+    else -- i == k, the pivot we chose is the element we were looking for at index k == i
+      pivot
+
+
+-- Return the median value
+-- If there are an even number of values, select the higher middle value
+def median_ values =
+  let values = tag_with_index values
+  let med, index = median_of_medians values (vec-length values / 2)
+  in med
 
 
 -- Parse data insertion request from raw request
@@ -126,10 +210,10 @@ def stats-report data key1 key2 =
     -- Collect the L values
     let L_list = vec-map snd record_subset
     -- Collect the statistics
-    let S_MEDIAN = med S_list
+    let S_MEDIAN = median_ S_list
     let S_MEAN = mean S_list
     let S_STDDEV = stdev S_list
-    let L_MEDIAN = med L_list
+    let L_MEDIAN = median_ L_list
     let L_MEAN = mean L_list
     let L_STDDEV = stdev L_list
 
@@ -166,15 +250,20 @@ def handler input data =
 
 def num-keys = 20
 
-def DATA = false
-def KEYED_QUERY = true
+def DATA = 0
+def KEYED_QUERY = 1
 
 
 -- Write the output value to a private file on a per player basis
-def publish io_name label value =
-  let value' = reveal {io_name} value
+def publish flag io_name label value =
+  let value = reveal {io_name} value
   in
-    par {io_name} (write value' to "output.txt")
+    par {io_name}
+      if flag
+      then
+        write value to "output.txt"
+      else
+        ()
 
 
 -- Main function for database statistics
@@ -195,21 +284,21 @@ def database_stats_main inputs =
 
     -- Process the input based on its input label
     -- Send an acknowledgement to sender
-    in mux if label == DATA
+    in mux if label == 0
       then
         let success, data = process_data data values
-        do publish io_name label success
+        do publish true io_name label success
         in data
 
       -- process a query with keys and send the report to the sender
-      else mux if label == KEYED_QUERY
+      else mux if label == 1
       then
         let result = process_query data values
-        -- do publish io_name label result
+        do publish true io_name label result
         in data
       else
-        let result = (false, 0, 0)
-        do publish io_name label result
+        let result = (false, 0, 1)
+        do publish false io_name label result
         in data)
   in ()
 
@@ -217,6 +306,15 @@ def database_stats_main inputs =
 
 def main : unit -> list float
 def main () =
+--  par {A,B}
+--  median_ (share-as-vec
+--      {A}
+--      (fun flag -> share{bgv:A -> this} flag)
+--      (fun content -> share{bgv:A -> this} content)
+--      0
+--      10
+--      (par {A} [0;1;2;3;4;5;6;7;8]))
+
   par {A,B}
     let db = init 20
     let k1 = par {A} 2
@@ -225,15 +323,10 @@ def main () =
     let inputs =
       [ A, share {bgv:A -> this} DATA, share {bgv:A -> this} (par {A} L (10, 999, k1, k2))
       ; A, share {bgv:A -> this} DATA, share {bgv:A -> this} (par {A} L (15, 25, k1, k2))
-      ; A, KEYED_QUERY, share {bgv:A -> this} (par {A} R (17, k1, k2))
+      ; A, share {bgv:A -> this} DATA, share {bgv:A -> this} (par {A} L (15, 25, k1, k2))
+      ; A, share {bgv:A -> this} DATA, share {bgv:A -> this} (par {A} L (15, 25, k1, k2))
+      ; A, share {bgv:A -> this} DATA, share {bgv:A -> this} (par {A} L (15, 25, k1, k2))
+      ; A, share {bgv:A -> this} DATA, share {bgv:A -> this} (par {A} L (15, 25, k1, k2))
+      ; A, share {bgv:A -> this} KEYED_QUERY, share {bgv:A -> this} (par {A} R (17, k1, k2))
       ]
     in database_stats_main inputs
-
---    let db, _ = handler (share {bgv:A -> this} ()) db
---    let db, _ = handler (share {bgv:A -> this} (par {A} L (15, 25, k1, k2))) db
---    let db, _ = handler (share {bgv:A -> this} (par {A} L (44, 35, k1, k2))) db
---    let db, _ = handler (share {bgv:A -> this} (par {A} L (13, 404, k1, k2))) db
---    let db, _ = handler (share {bgv:A -> this} (par {A} L (29, 5, k1, k2))) db
---    let db, _ = handler (share {bgv:A -> this} (par {A} L (13, 19, k1, k2))) db
---    let _, r = handler (share {bgv:A -> this} (par {A} R (17, k1, k2))) db
---    in reveal {A} r

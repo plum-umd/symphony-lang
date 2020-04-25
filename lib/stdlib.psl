@@ -715,7 +715,7 @@ def vec-cond-push cond x vec =
   let default, xs = vec
   in default, (content-push true cond x xs)
 
-def vec-push = vec-cond-push true
+def vec-push x xs = vec-cond-push true x xs
 
 
 def resize-content n xs =
@@ -732,6 +732,10 @@ def resize-content n xs =
 def vec-resize n vec =
   let default, xs = vec
   in default, (resize-content n xs)
+
+def vec-default vec =
+  let default, _ = vec
+  in default
 
 
 def content-size xs =
