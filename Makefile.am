@@ -141,7 +141,7 @@ resource-estimation.tar.gz:
 	cp $@$(TMPEXT).tmp.repo/resource-estimates/resource-estimation.tar.gz $@
 
 resource-estimation.tar.gz/clean: FORCE
-	-rm -f $(@D) $(@D)$(TMPEXT).tmp*
+	-rm -f -r $(@D) $(@D)$(TMPEXT).tmp*
 
 ## end_rules
 
