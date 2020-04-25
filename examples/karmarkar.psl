@@ -167,7 +167,7 @@ def karmarkar_iteration initial_point a c =
 
 
 -- Listing 7: Loop for Karmarkar's Algorithm
-def karmarkar_loop a c =
+def karmarkar_loop a c = proc
   let (m, n) = dimensions_of a in
   -- Epsilon is the stopping condition. This value should be close to
   -- 0, so we choose 10^(-8)
@@ -185,22 +185,19 @@ def karmarkar_loop a c =
     12n * n * l in
 
   let max_iterations = num-iters c a in
-  let ub = num-iters (max-vec-flt n) (max-mat-flt m n) in
+  let upper-bound = num-iters (max-vec-flt n) (max-mat-flt m n) in
 
   -- If this initial point is an optimal solution, return
   mux if (dot-prod-flt c !x) < epsilon then !x
-  else do
-  (sec-iter [ x ] 0n max_iterations ub (fun i -> 
-    let x_new = karmarkar_iteration !x a c in cont-seq
+  else do (sec-iter [ x ] 0n max_iterations upper-bound (fun i -> 
+    let x_new = karmarkar_iteration !x a c in 
 
     -- if we are within the stopping condition in the current
     -- iteration, return
-    (if-then-ret
-      ((((dot-prod-flt c !x) - (dot-prod-flt c x_new)) /
+    mux if ((((dot-prod-flt c !x) - (dot-prod-flt c x_new)) /
          (max-muxable (shr-w-comp { Node_c } 1.0) (dot-prod-flt c !x)) ) <
-         epsilon )
-      x_new)
-    (x := x_new) ) ) in
+         epsilon ) then return x_new
+    else x := x_new) ) in
   !x
 
 
