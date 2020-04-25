@@ -9,6 +9,7 @@ EXTRA_DIST =
 EXTRA_DIST += $(psl_files)
 EXTRA_DIST += COMMIT
 EXTRA_DIST += DATE
+EXTRA_DIST += README.md
 EXTRA_DIST += VERSION
 EXTRA_DIST += resource-estimation.tar.gz
 
