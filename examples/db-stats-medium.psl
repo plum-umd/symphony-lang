@@ -302,13 +302,10 @@ def database_stats_main inputs =
 def interpretInput player input =
   let flag = par {player} let flag, _, _, _, _ = input in flag
   let query = (par {player}
-    let flag, arg0, arg1, arg2, arg3 =
-      read int * int * int * int * int from "db-stats-input.txt"
-    let query = if flag == 0
+    let flag, arg0, arg1, arg2, arg3 = input
+    in if flag == 0
       then L (arg0, arg1, arg2, arg3)
-      else R (arg0, arg1, arg2)
-      in
-      flag, player, query)
+      else R (arg0, arg1, arg2))
   in player, share {bgv:player -> this} flag, share {bgv:player -> this} query
 
 
