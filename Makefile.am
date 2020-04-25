@@ -76,6 +76,7 @@ share_psldir = $(datadir)/psl
 
 .PHONY: FORCE
 .PHONY: docker
+.PHONY: resource-estimation.tar.gz/clean
 
 COMMIT:
 	bash build-aux/COMMIT.bash >COMMIT$(TMPEXT)
@@ -129,6 +130,15 @@ psl/clean: FORCE
 	  esac \
 	}
 	-rm -f psl.cabal stack.yaml.lock
+
+resource-estimation.tar.gz: build-aux/gitbundles/hector-mockups.gitbundle
+	rm -f -r $@$(TMPEXT).tmp*
+	$(GIT) clone build-aux/gitbundles/hector-mockups.gitbundle $@$(TMPEXT).tmp.repo
+	cd $@$(TMPEXT).tmp.repo/resource-estimates && bash package.bash
+	cp $@$(TMPEXT).tmp.repo/resource-estimates/resource-estimation.tar.gz $@
+
+resource-estimation.tar.gz/clean: FORCE
+	-rm -f $(@D) $(@D)$(TMPEXT).tmp*
 
 ## end_rules
 
