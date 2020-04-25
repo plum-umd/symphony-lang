@@ -22,6 +22,7 @@ def id : t -> t
 def id x = x
 
 def thunk x = fun () -> x
+def force t = t ()
 
 def uncurry : (a -> b -> c) -> (a * b -> c)
 def uncurry f (a, b) = f a b
@@ -55,6 +56,10 @@ def square a = a * a
 -- max:
 def max muxer a b = muxer (a <= b) b a
 
+def min muxer a b = muxer (a <= b) a b
+
+def ite-wrap guard tc fc = if guard then tc else fc
+
 
 -- mux-wrap: wrapper around mux syntax
 def mux-wrap guard tc fc = mux if guard then tc else fc
@@ -63,13 +68,17 @@ def mux-wrap guard tc fc = mux if guard then tc else fc
 -- max-muxable: max operator over muxable types
 def max-muxable = max mux-wrap
 
+def min-muxable = min mux-wrap
 
 --- 
 --- bool library
 --- 
 
--- and: wrapper for conjunction
+-- and: wrapper for conjunction:
 def and b0 b1 = b0 && b1
+
+-- or: wrapper for disjunction:
+def or b0 b1 = b0 || b1
 
 -- neg: wrapper for negation
 def neg b = not b
@@ -85,6 +94,8 @@ def inc = plus 1n
 -- dec n: decrement of nat n
 def dec : nat -> nat
 def dec n = n - 1n
+
+def sec-dec n = mux if n == 0n then 0n else n - 1n
 
 -- elim_nat: elimination form for nats
 def elim_nat m z s = 
@@ -151,12 +162,34 @@ def fold-f i f xs = case xs
   ; <<p | x>> ++ xs' -> f p x (fold-f i f xs')
   }
 
+
 def fold-p f i P = case P
   { {} -> i
   ; {p} \/ P' -> f (fold-p f i P') p
   }
 
 
+def elim-prins P i f = fold-f
+  i
+  (fun p -> const (f p))
+  (solo { P } ())
+
+
+def prin-bundle f P = fold-p
+  <<>>
+  (fun acc Q ->
+     let v = f Q in
+     << Q | v >> ++ acc)
+
+
+-- bundle-map f: functorial map over bundles. This is more flexible
+-- than solo mode because f can be computed by parties other than the
+-- party in solo mode.
+def bundle-map f = fold-f
+  <<>>
+  (fun Q x acc ->
+     let v = f Q x in     -- WARNING: can't do let substitution here
+     << Q | v >> ++ acc)
 
 ---
 --- list library
@@ -205,12 +238,12 @@ def foldr f acc xs = case xs
   }
 
 
-def elim_list l acc0 f = foldr f acc0 l
+def elim-list l acc0 f = foldr f acc0 l
 
 
 -- foldl: left fold
 def foldl : list t -> acc -> (t -> acc -> acc) -> acc
-def foldl l acc0 f = (elim_list l id (fun x acc -> compose acc (f x))) acc0
+def foldl l acc0 f = (elim-list l id (fun x acc -> compose (f x) acc)) acc0
 
 
 -- iter: left fold that accumulates the unit
@@ -240,7 +273,7 @@ def length = foldr (fun _ n -> n+1) 0
 
 -- len l: length of list l, as a nat
 def len : list t -> nat
-def len l = elim_list l 0n (const inc)
+def len l = elim-list l 0n (const inc)
 
 
 -- const_ls a n: a list of a's of size n
@@ -276,7 +309,7 @@ def median lt default xs =
 
 -- sum: the sum over a list of numerics
 -- TODO: rename these to [sum] and [sum-flt] ?
-def sum-gen v z = elim_list v z plus
+def sum-gen v z = elim-list v z plus
 
 def sum : list float -> float
 def sum = foldr (fun x y -> x + y) 0.0
@@ -366,7 +399,7 @@ def zip-map : (t -> u -> v) -> list t -> list u -> list v
 def zip-map f l0 l1 = map (uncurry f) (zip l0 l1)
 
 -- all_true l: tests if all elements in l are (an encoding of) true
-def all_true l = elim_list l true and
+def all_true l = elim-list l true and
 
 
 -- eq_lists l0 l1: test equaltity of l0 and l1, which contain lists of
@@ -376,35 +409,6 @@ def eq_lists l0 l1 = all_true (zip-map eq l0 l1)
 
 -- mux_ls: multiplex over a pair of lists:
 def mux_ls guard l0 l1 = zip-map (mux-wrap guard) l0 l1
-
-
--- get i l: the ith element of l
-def get l i =
-  (elim_nat i
-    (fun l' -> case l'
-      { [] -> err "get: 0th of empty list"
-      ; x :: l'' -> x
-      })
-    (fun g l' -> case l'
-      { [] -> err "get: ith of non-empty list"
-      ; x :: l'' -> g l''
-      }) )
-    l
-
-def arr_get l i = get l (dec i)
-
--- upd l i v: list l with the ith element updated to be v
-def upd l i v =
-  (elim_nat i
-    (fun l' -> case l'
-      { [] -> err "set: setting 0th of empty list"
-      ; x :: l' -> v :: l'
-      })
-    (fun s l' -> case l'
-     { [] -> err "set : setting ith of non-empty list"
-     ; x :: l'' -> x :: (s l'')
-     }) )
-    l
 
 
 -- minus-lists l0 l1: vector subtraction over lists of numerics l0 and
@@ -436,6 +440,13 @@ def rangen-help n goal =
 def rangen : nat -> list nat
 def rangen n = rangen-help 0 n
 
+-- range m n: the list of elements from m to n
+def range m n =
+  if n < m then []
+  else map (plus m)
+    (elim_nat (n - m)
+       [ 0n ]
+       (fun rng -> snoc (len rng) rng) )
 
 def reverse-help : list a -> list a -> list a
 def reverse-help xs acc =
@@ -456,6 +467,29 @@ def zipper-n l n = eliml_nat n
    ; x :: end' -> (x :: begin, end')
    })
 
+def get-gen muxer l i = snd
+  (foldl l
+    (0n, _|_)
+    (fun x (idx, elt) -> (inc idx, muxer (idx == i) x elt)) )
+
+def get = get-gen ite-wrap 
+
+def sec-get = get-gen mux-wrap
+
+def arr_get l i = get l (dec i)
+
+def upd-gen muxer l i v = reverse (snd
+  (foldl l
+    (0n, [ ])
+    (fun x (idx, l') -> (inc idx, (muxer (idx == i) v x) :: l')) ) )
+
+def sec-upd = upd-gen mux-wrap
+
+def upd = upd-gen ite-wrap
+    
+def swap-ls l i j =
+  sec-upd (sec-upd l i (sec-get l j)) j (sec-get l i)
+
 def head-n l n = reverse (fst (zipper-n l n))
 
 def tail-n l n = snd (zipper-n l n)
@@ -465,6 +499,23 @@ def sub-list l start end = tail-n (head-n l end) (dec start)
 -- reveal-wrap: wrapper around reveal syntax
 def reveal-wrap P x = reveal { P } x
 
+
+-- wrap-deref: wrapper around dereference syntax
+def wrap-deref r = !r
+
+def swap a i j =
+  a := swap-ls !a i j 
+
+def upd-if fp guard act =
+  let vals = map wrap-deref fp in
+  do force act in
+    zip-map (fun x v -> x := (mux if guard then !x else v))
+      fp vals
+
+def sec-iter fp lb ub n body =
+  iter (range 0n (dec n)) (fun i ->
+    upd-if fp ((lb <= i) && (i < ub))
+      (fun () -> body i) )
 
 -- send_ls P0 P1 l: send the strucuture of list l (but not its
 -- contents) from p0 to P1.
@@ -664,7 +715,7 @@ def vec-cond-push cond x vec =
   let default, xs = vec
   in default, (content-push true cond x xs)
 
-def vec-push = vec-cond-push true
+def vec-push x xs = vec-cond-push true x xs
 
 
 def resize-content n xs =
@@ -681,6 +732,10 @@ def resize-content n xs =
 def vec-resize n vec =
   let default, xs = vec
   in default, (resize-content n xs)
+
+def vec-default vec =
+  let default, _ = vec
+  in default
 
 
 def content-size xs =
@@ -787,6 +842,12 @@ def content-fold f acc xs =
 def vec-fold f acc vec =
   let _, xs = vec
   in content-fold f acc xs
+
+-- for loop over vector
+def vec-for xs f =
+  vec-fold (fun x _ ->
+    let _ = f x
+    in ()) () xs
 
 def vec-int-sum =
   vec-fold (fun x y -> x + y) 0
@@ -978,7 +1039,7 @@ def upd-matrix m (i, j) v = upd m i (upd (get m i) j v)
 
 -- transpose m: transposition of m
 def transpose : list (list t) -> list (list t)
-def transpose m = elim_list m
+def transpose m = elim-list m
   (const-ls []
     (case m
      { [] -> 0n
@@ -1012,7 +1073,7 @@ def dimensions_of m = case m
 
 -- diagonal-matrix z v: the diagonal matrix of vector v, a vector of
 -- numerics with zero element z.
-def diagonal-matrix z v = elim_list v
+def diagonal-matrix z v = elim-list v
   []
   (fun x diag -> (x :: (const-ls z (len diag))) :: (map (cons z) diag))
 
@@ -1029,3 +1090,10 @@ def const-sq-mat c n = elim_nat n
 def zero-mat = const-sq-mat 0.0
 
 def to_flt x = flt x
+
+-- PKI library:
+-- def wrap-sign P = id
+def wrap-sign P x = sign { P } x
+
+def wrap-unsign = id
+

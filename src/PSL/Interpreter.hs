@@ -151,6 +151,18 @@ bindPatMPC si ψ vmpc = case ψ of
   BulP → do
     view bulMVL vmpc
     return id
+  NilP → do
+    view nilMVL vmpc
+    return id
+  ConsP ψ₁ ψ₂ → do
+    vmpc₁ :* vmpc₂ ← view consMVL vmpc
+    f₁ ← bindPatMPC si ψ₁ vmpc₁
+    f₂ ← bindPatMPC si ψ₂ vmpc₂
+    return $ \ xM → do
+      si' :* vmpc' ← compose [f₁,f₂] xM
+      si'' ← joinShareInfo si si'
+      return $ si'' :* vmpc'
+  WildP → return id
   _ → error "TODO: not implemented"
 
 interpCase ∷ (STACK) ⇒ ValP → 𝐿 (Pat ∧ Exp) → IM ValP
@@ -465,8 +477,7 @@ interpExp = wrapInterp $ \case
         ]
     ṽ ← interpExp e
     sv ← restrictMode (SecM ρvs₁) $ do
-      v ← elimValP ṽ
-      mpcFrValF v $ \ bv → do
+      mpcFrValPBaseVals ṽ $ \ bv → do
         tellL iOutResEvsL $ ResEv False φ pø ρvs₁ ρvs₂ (getTypeBaseMPC bv) null null "SHARE" 0 ↦ 1
     reShareValPShared False φ ρvs₂ sv 
   AccessE e ρ → do
@@ -575,18 +586,22 @@ interpExp = wrapInterp $ \case
         introValP $ BulV
       _ → throwIErrorCxt TypeIError "interpExp: WriteE: m ≠ SecM {ρ}" null
   RandE τ → do
-    wrap :* τ' ← case τ of
+    si :* τ' ← case τ of
       ShareT φ ρes τ' → do
         ρvs ← prinExpValss *$ mapM interpPrinExp ρes
-        return $ (ShareVP False φ ρvs ^∘ mpcFrVal) :* τ'
-      _ → return $ introValP :* τ
-    v ← case τ' of
-      ℕT ip → io $ NatV ip ∘ trPrNat ip ∘ nat ^$ R.randomIO @ℕ64
-      ℤT ip → io $ IntV ip ∘ trPrInt ip ∘ int ^$ R.randomIO @ℤ64
-      𝔽T fp → io $ FltV fp ^$ R.randomIO @𝔻
-      𝔹T → io $ BoolV ^$ R.randomIO @𝔹
+        return $ Shared False φ ρvs :* τ'
+      _ → return $ NotShared :* τ
+    bvmpc ← case τ' of
+      ℕT ip → io $ NatMV ip ∘ trPrNat ip ∘ nat ^$ R.randomIO @ℕ64
+      ℤT ip → io $ IntMV ip ∘ trPrInt ip ∘ int ^$ R.randomIO @ℤ64
+      𝔽T fp → io $ FltMV fp ^$ R.randomIO @𝔻
+      𝔹T → io $ BoolMV ^$ R.randomIO @𝔹
       _ → error "TODO: not implemented"
-    wrap v
+    case si of
+      NotShared → skip
+      Shared zk φ ρs → do
+        tellL iOutResEvsL $ ResEv zk φ ρs pø pø (getTypeBaseMPC bvmpc) null null "RAND" 0 ↦ 1
+    reShareValP (BaseMV 0 bvmpc) si
   RandRangeE τ e → do
     si₀ :* τ' ← case τ of
       ShareT φ ρes τ' → do
@@ -764,20 +779,48 @@ interpExp = wrapInterp $ \case
     modifyL iStateMPCContL $ \ κ → (pc :* si :* vmpc) :& κ
     introValP DefaultV
   NizkWitnessE φ ρes e → do
-    -- TODO: implement share -> nizk-witness
-    -- see commented out mpcFrValPFWith and notes
     ρvs ← prinExpValss *$ mapM interpPrinExp ρes
     ṽ ← interpExp e
-    v ← elimValP ṽ
-    sv ← mpcFrValF v $ \ bv → do
-        tellL iOutResEvsL $ ResEv True φ ρvs pø pø (getTypeBaseMPC bv) null null "SHARE" 0 ↦ 1
+    sv ← mpcFrValPFWith 
+      (\ bv → tellL iOutResEvsL $ ResEv True φ ρvs pø pø (getTypeBaseMPC bv) null null "SHARE" 0 ↦ 1)
+      (\ zk φ' ρs' vmpc → do
+        guardErr (zk ≡ False) $
+          throwIErrorCxt TypeIError "interpExp: NizkWitnessE: cannot convert from nizk to nizk" $ frhs
+            [ ("vmpc", pretty vmpc) ]
+        eachBaseVal vmpc $ \ md bvmpc → tellL iOutResEvsL $ ResEv True φ' pø ρs' ρvs (getTypeBaseMPC bvmpc) null null "NIZK-SHARE" md ↦ 1)
+      ṽ
     reShareValPShared True φ ρvs sv 
   NizkCommitE _φ ρes e → do
     ρvs ← prinExpValss *$ mapM interpPrinExp ρes
     ṽ ← interpExp e
     ṽ' ← revealValP True ρvs ṽ
     introValP $ NizkVerifyV ρvs ṽ'
-
+  SignE ρs e → do
+    ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρs
+    ρv ← error𝑂 (view singleL $ list ρvs₁) $
+      throwIErrorCxt TypeIError "interpExp: SignE: ρvs₁ not a singleton principal" $ frhs
+        [ ("ρvs₁",pretty ρvs₁) ]
+    m ← askL iCxtModeL
+    guardErr (SecM (single ρv) ⊑ m) $ 
+      throwIErrorCxt TypeIError "interpExp: SignE: ρv ⋢ m" $ frhs
+        [ ("ρv",pretty ρv) 
+        , ("m",pretty m)
+        ]
+    ṽ ← interpExp e
+    void $ mpcFrValP ṽ
+    return ṽ
+  UnsignE _ρs e → interpExp e
+  IsSignedE ρs e → do
+    ρvs ← prinExpValss *$ mapM interpPrinExp ρs
+    ṽ ← interpExp e
+    void $ mpcFrValPFWith
+      (\ bv → 
+        tellL iOutResEvsL $ ResEv False AutoP ρvs pø pø (getTypeBaseMPC bv) null null "IS-SIGNED" 0 ↦ 1)
+      (\ zk φ' ρs' vmpc →
+        eachBaseVal vmpc $ \ md bvmpc → 
+          tellL iOutResEvsL $ ResEv zk φ' pø ρvs ρs' (getTypeBaseMPC bvmpc) null null "IS-SIGNED" md ↦ 1)
+      ṽ
+    introValP $ BoolV True
   _ → throwIErrorCxt NotImplementedIError "interpExp: not implemented" null
 
 ---------------
@@ -799,12 +842,19 @@ interpTL tl = case extract tl of
           SinglePD ρ → ρ ↦ SinglePK
           ArrayPD ρ n → ρ ↦ SetPK n
     modifyL itlStateDeclPrinsL (kinds ⩌)
-  ImportTL path → do
+  ImportTL path xρss → do
+    xρvs ← assoc ^$ mapMOn xρss $ \ (x :* ρs) → do
+      ρv ← asTLM $ prinExpValss *$ mapM interpPrinExp ρs
+      return $ x :* ρv
     s ← io $ fread path
     let ts = tokens s
     ls ← io $ tokenizeIO lexer path ts
     tls ← io $ parseIO cpTLs path ls
-    interpTLs tls
+    mapEnvL iParamsVirtualPartyArgsL ((⩌) xρvs) $
+      interpTLs tls
+  VirtualPartyTL ρs → do
+    modifyL itlStateDeclPrinsL $ (⩌) $ 
+      dict $ mapOn ρs $ \ ρ → ρ ↦ VirtualPK
   _ → pptrace (annotatedTag tl) $ error "interpTL: not implemented"
 
 interpTLs ∷ 𝐿 TL → ITLM ()

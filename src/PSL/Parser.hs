@@ -52,8 +52,11 @@ lexer = lexerBasic puns kws prim ops
       , "proc","return"
       , "loop"
       , "when"
-      , "import"
+      , "import","with"
       , "nizk-witness","nizk-commit"
+      , "virtual","party"
+      , "sign","unsign"
+      , "is-signed"
       ]
     prim = list
       [ "yao","gmw","bgw","bgv","spdz","auto"
@@ -646,6 +649,27 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntax "rand-range"
       τ ← pType
       return $ RandRangeE τ
+  -- sign {P} e
+  , fmixPrefix levelAPP $ do 
+      cpSyntax "sign"
+      cpSyntax "{"
+      ρs ← pPrinExps
+      cpSyntax "}"
+      return $ SignE ρs
+  -- unsign {P} e
+  , fmixPrefix levelAPP $ do 
+      cpSyntax "unsign"
+      cpSyntax "{"
+      ρs ← pPrinExps
+      cpSyntax "}"
+      return $ UnsignE ρs
+  -- is-signed {P} e
+  , fmixPrefix levelAPP $ do 
+      cpSyntax "is-signed" 
+      cpSyntax "{"
+      ρs ← pPrinExps
+      cpSyntax "}"
+      return $ IsSignedE ρs
   -- _
   , fmixTerminal $ do cpSyntax "_" ; return InferE
   -- ⁇
@@ -867,7 +891,20 @@ pTL = cpNewWithContextRendered "tl" $ concat
        return $ PrimTL x τ
   , do cpSyntax "import"
        s ← cpString
-       return $ ImportTL s
+       xρs ← ifNone Nil ^$ cpOptional $ do
+         cpSyntax "with"
+         cpOneOrMore $ do
+           x ← 𝕩name ^$ pVar
+           cpSyntax "="
+           cpSyntax "{"
+           ρs ← pPrinExps
+           cpSyntax "}"
+           return $ x :* ρs
+       return $ ImportTL s xρs
+  , do cpSyntax "virtual"
+       cpSyntax "party"
+       xs ← 𝕩name ^^$ cpOneOrMore pVar
+       return $ VirtualPartyTL xs
   ]
 
 cpTLs ∷ CParser TokenBasic (𝐿 TL)

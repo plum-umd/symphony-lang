@@ -1,5 +1,5 @@
-principal A[96] -- Parties who supply just integers
-principal B[32] -- Parties who supply both integers and queries
+principal A[3] -- Parties who supply just integers
+principal B[3] -- Parties who supply both integers and queries
 
 -- Query functions
 
@@ -116,6 +116,41 @@ def post-process xs α = foldl xs [] (λ (q,r) l →
     in (s ⧻ (to_str r')) ∷ l
   )
 
+-- Verification
+
+def verify inputs medianResult uniqueResult minResult maxResult =
+  let mk-wit = fun x -> nizk-witness{ bgw : A,B } x in
+  let test-true = mk-wit true in
+  let test-false = mk-wit false in
+  let wrap-is-signed = fun N x -> is-signed { N } x in
+  let input-wits = map mk-wit inputs in
+  let median-result-wit = mk-wit medianResult in
+  let unique-result-wit = mk-wit uniqueResult in
+  let min-result-wit = mk-wit minResult in
+  let max-result-wit = mk-wit maxResult in
+
+  let all-inputs-signed = elim-list input-wits
+    test-true
+    (fun w -> and 
+      (elim-prins {A,B}
+         test-false
+         (fun N -> or (wrap-is-signed N w)) ) ) in
+  
+  let correct-median =
+    let l = length input-wits
+    let idx = l / 2 in
+    let idx' = ((l % 2) ≡ 0) ? (idx - 1) ◇ idx in
+    median-result-wit ≡ (elem-at idx' input-wits)
+  in
+
+  let correct-unique = unique-result-wit ≡ snd (foldr (λ x (last, c) → (x, x ≡ last ? c ◇ c + 1)) (head ⊥ input-wits, 0) (tail input-wits)) in
+
+  let correct-min = (foldr (λ x b → (min-result-wit ≤ x) && b) test-true input-wits) && (foldr (λ x b → min-result-wit ≡ x ? test-true ◇ b) test-false input-wits) in
+
+  let correct-max = (foldr (λ x b → (x ≤ max-result-wit) && b) test-true input-wits) && (foldr (λ x b → max-result-wit ≡ x ? test-true ◇ b) test-false input-wits) in
+
+  nizk-commit {bgw:A,B} (all-inputs-signed && correct-median && correct-unique && correct-min && correct-max)
+
 -- ATQ
 
 def main : 𝟙 →{inp:A,B;rev:A,B} list ℤ{any}
@@ -123,7 +158,7 @@ def main • = par {A,B}
 
   -- All parties read in data input
   let inputLists : (list ℤ){bundle:A,B}
-  let inputLists = solo {A,B} as α in read (list ℤ) from "atq-data.txt"
+  let inputLists = solo {A,B} as α in map (wrap-sign α) (read (list ℤ) from "atq-data.txt")
 
   -- Parties in group B read in queries
   let inputQueries : ℤ{bundle:B}
@@ -143,7 +178,7 @@ def main • = par {A,B}
 
   -- Produce a single sorted list of all input integers
   let dataListSorted : list ℤ{bgw:A,B}
-  let dataListSorted = sort (λ a b → mux if a ≤ b then true else false) dataList
+  let dataListSorted = sort (λ a b → a ≤ b) dataList
 
   -- Find the median of the integer list
   let medianResult : ℤ{bgw:A,B}
@@ -160,6 +195,9 @@ def main • = par {A,B}
   -- Find the maximum value in the integer list
   let maxResult : ℤ{bgw:A,B}
   let maxResult = max dataListSorted
+
+  -- Verify that all inputs are signed and results are correct
+  let verification = verify dataListSorted medianResult uniqueResult minResult maxResult
 
   -- Group results into an indexable data structure
   let results : list ℤ{bgw:A,B}
@@ -185,5 +223,7 @@ def main • = par {A,B}
   let published-results = publish-results results finalQueries
 
   -- Have each party post-process the output to make things look nice
-  in solo {A,B} as α in post-process published-results α
+  let pretty-output = solo {A,B} as α in post-process published-results α
+
+  in (verification, pretty-output)
 

@@ -18,11 +18,6 @@ principal Node_o
 -- comps: the parties that do computation, Node_in and Node_c
 def comps = { Node_in, Node_c }
 
--- TODO: define these properly
-def log_2_real = id
-
-def magn x = 1n
-
 -- aliases of definitions in the standard lib:
 
 -- order: alias for list length
@@ -47,17 +42,9 @@ def iter_sec_nat_spdz muxer = iter_sec_nat muxer
 
 def iter_sec_nat_ls = iter_sec_nat_spdz mux_ls
 
--- range m n: the list of elements from m to n
-def range m n =
-  if n < m then []
-  else map (plus m)
-    (elim_nat (n - m)
-       [ 0n ]
-       (fun rng -> snoc (len rng) rng) )
-
 -- nz_prod z u l: the product of non-z entries in l, with
 -- multiplicative unit u
-def nz-prod z u l = elim_list l
+def nz-prod z u l = elim-list l
   u
   (fun x p -> mux if (x == z) then p else x * p)
 
@@ -183,6 +170,7 @@ def karmarkar_iteration initial_point a c =
     (dot-prod-flt (row-of-ones n) (mult-matrix-vec-flt d bprime)) in
   b
 
+
 -- Listing 7: Loop for Karmarkar's Algorithm
 def karmarkar_loop a c =
   let (m, n) = dimensions_of a in
@@ -196,17 +184,14 @@ def karmarkar_loop a c =
   -- product of non-zero entries in c and A
   let p = (nz-prod-flt c) * (nz-prod-mat-flt a) in
   let l = (m + 1n) * n +
-    (magn (ceil (log_2_real (abs-val-flt-shr p)))) +
-    n * (magn (ceil (log_2_real (to_flt n)))) in
+    (abs_val (ceil (log_base_2 (abs-val-flt-shr p)))) +
+    n * (abs_val (ceil (log_base_2 (to_flt n)))) in
   let max_iterations = 12n * n * l in
 
   -- If this initial point is an optimal solution, return
   mux if (dot-prod-flt c !x) < epsilon then !x
   -- hand-computed bound
   else
-    sec-iter-nat max_iterations 1n (fun i ->
-    )
-
   (iter_sec_nat_ls max_iterations 1n (fun i -> 
     let x_new = karmarkar_iteration !x a c in cont_seq'
 
@@ -220,11 +205,25 @@ def karmarkar_loop a c =
     (x := x_new) )
   x)
 
+
+-- verify-dot-prod P0 P1 v0 v1: commit to vectors and whether their
+-- dot product is less than epsilon:
+def verify-dot-prod P0 P1 v0 v1 = par{ P0, P1 }
+  let shr2p = fun Q x ->
+    nizk-witness{ spdz : P0, P1 } (share { spdz : Q -> P0, P1 } x) in
+  let shr-by-p0 = shr2p P0 in
+  let share-wits = fun Q v -> map (shr2p Q) (send-ls { Q } { P0, P1 } v) in
+  nizk-commit { spdz : P0, P1 }
+    ((dot-prod (shr-by-p0 0.0) (share-wits P0 v0) (share-wits P1 v1) ) <
+     (shr-by-p0 (10.0 ^ -8.0)) )
+
+
 -- main: entry point; Node_in, Node_c read inputs and run the algorithm,
 -- distributes results to Node_o
-def main : unit ->{ inp : Node_in, Node_c; rev : Node_o } (list out_sec)
 def main () =
-  let soln = par { Node_in, Node_c, Node_o } (map
+  let ctrs = solo { Node_in } as c in read (list flt) from "in.txt" in
+  let cost = par { Node_c } read (list flt) from "in.txt" in
+  let shrd-soln = par { Node_in, Node_c, Node_o } (map
     (reveal-wrap { Node_o })
     -- Node_c reveals the structure of the list to out:
     (send-ls { Node_c } { Node_in, Node_c, Node_o }
@@ -234,10 +233,21 @@ def main () =
         (fold-f
           []
           (fun Q ctr -> cons (map (shr-w-comp { Q }) (send-ls { Q } comps ctr)))
-          (solo { Node_in } as c in read (list flt) from "in.txt") )
+          ctrs)
         -- read in the vector of costs and share them
         (map (shr-w-comp { Node_c })
-          (send-ls { Node_c } comps
-            (par { Node_c } read (list flt) from "in.txt") ) ) ) ) ) in
+          (send-ls { Node_c } comps cost) ) ) ) ) in
   -- Node_in and Node_c forget the structure of the solution
-  par { Node_o } send-ls { Node_o } { Node_o } soln
+  let soln = par { Node_o } send-ls { Node_o } { Node_o } shrd-soln in
+
+  -- verification: proofs of correctness of soln:
+  let verification =
+    (bundle-map  -- proof that each node's constraints are satisfied:
+       (fun Node_i ctr -> (send{ Node_i -> Node_i }
+         (verify-dot-prod Node_i Node_o ctr soln) ) )
+       ctrs,
+     send{ Node_c -> Node_c}  -- proof that the cost constraint is satisfied:
+       (verify-dot-prod Node_c Node_o cost soln) ) in
+
+  (soln, verification)
+   

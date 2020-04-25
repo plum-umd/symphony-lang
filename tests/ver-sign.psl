@@ -20,8 +20,7 @@
 principal A B C
 principal Ext
 
-def main () = ()
-{-
+def main () =
   -- A/B/C each get their private inputs. Given that we'll be proving
   -- knowledge of values that have been signed by parties, we need a
   -- way of introducing signed values, and this seems like a fine
@@ -70,9 +69,9 @@ def main () = ()
       -- 
       -- which acts as an inverse to sign; i.e., it removes P from the
       -- set of signing parties.
-      let shr_a = share{ gmw : A, B, C } (unsign { A } priv_a) in
-      let shr_b = share{ gmw : A, B, C } (unsign { B } priv_b) in
-      let shr_c = share{ gmw : A, B, C } (unsign { C } priv_c) in
+      let shr_a = share{ gmw : A -> A, B, C } (unsign { A } priv_a) in
+      let shr_b = share{ gmw : B -> A, B, C } (unsign { B } priv_b) in
+      let shr_c = share{ gmw : C -> A, B, C } (unsign { C } priv_c) in
 
       -- shr_max: shares of the max (computed using known forms):
       let shr_max = (max-muxable (max-muxable shr_a shr_b) shr_c) in
@@ -135,7 +134,7 @@ def main () = ()
       -- compute the max revealed to each party and a proof that they
       -- know the max over inputs signed by each of them:
       (reveal{ A, B, C } shr_max,
-       nizk-commit
+       nizk-commit {gmw:A,B,C}
          (test-inputs-are-signed &&
           test-is-some-input &&
           test-is-max) ) in
@@ -146,4 +145,8 @@ def main () = ()
   --
   -- 2. the NIZK proof, sent to Ext
   (max, send{ A -> Ext } pf)
--}
+
+def expected = 
+  (par {A,B,C} 5)
+  , 
+  send {A -> Ext} (par {A,B,C} (nizk-commit{gmw:A,B,C} (nizk-witness{gmw:A,B,C} true)))

@@ -16,10 +16,12 @@ primRead s = case HS.reads $ chars s of
   [(x,s')] → Some $ string s' :* x
   _ → None
 
-prinDataPath ∷ PrinVal → 𝕊
+prinDataPath ∷ PrinVal → IM 𝕊
 prinDataPath = \case
-  SinglePV s → s
-  AccessPV s i → s ⧺ "_" ⧺ show𝕊 i
+  SinglePV s → return s
+  AccessPV s i → return $ s ⧺ "_" ⧺ show𝕊 i
+  VirtualPV s → throwIErrorCxt TypeIError "prinDataPath: i/o not allowed for virtual party s" $ frhs
+    [("s",pretty s)]
 
 parseInputType ∷ (STACK) ⇒ PrinVal → Type → 𝕊 → IM (𝕊 ∧ Val)
 parseInputType ρ τ s = case τ of
@@ -52,10 +54,11 @@ parseInputType ρ τ s = case τ of
       throwIErrorCxt TypeIError "parseInputType: ℙT: could not parse" null
     (s' :*) ∘ PrinV ^$ case tohs $ list $ splitOn𝕊 "_" l of
       [ρ'] → case kinds ⋕? ρ' of
-        Some ρκ → return $ case ρκ of
+        Some ρv → return $ case ρv of
           SinglePK → ValPEV $ SinglePV ρ'
           SetPK n → SetPEV n ρ'
-        None → throwIErrorCxt TypeIError "parseInputType: ℙT: [ρ']: kinds ⋕? ρ' ≢ Some _" $ frhs
+          VirtualPK → ValPEV $ VirtualPV ρ'
+        _ → throwIErrorCxt TypeIError "parseInputType: ℙT: [ρ']: kinds ⋕? ρ' ≢ Some _" $ frhs
           [ ("kinds",pretty kinds)
           , ("ρ'",pretty ρ')
           ]
@@ -79,24 +82,26 @@ parseInputType ρ τ s = case τ of
 readType ∷ (STACK) ⇒ PrinVal → Type → 𝕊 → IM Val
 readType ρ τA fn = do
   b ← askL iCxtIsExampleL
+  ppath ← prinDataPath ρ
   path ← 
     if b
     then io $ do
-      let relativePath = concat ["examples-input/",prinDataPath ρ,"/",fn]
+      let relativePath = concat ["examples-input/",ppath,"/",fn]
       dataFilePath ← datapath relativePath
       relativePathExists ← pexists relativePath
       dataFilePathExists ← pexists dataFilePath
       when (not relativePathExists ⩓ dataFilePathExists) $ \ _ → do
-        dtouch $ concat ["examples-input/",prinDataPath ρ]
+        dtouch $ concat ["examples-input/",ppath]
         fcopy dataFilePath relativePath
       return relativePath
-    else return $ concat ["data-input/",prinDataPath ρ,"/",fn]
+    else return $ concat ["data-input/",ppath]
   snd ^$ parseInputType ρ τA *$ io $ fread path
 
 serializeVal ∷ Val → IM (𝐼 𝕊)
 serializeVal = \case
   IntV _ i → return $ single $ show𝕊 i
   NatV _ n → return $ single $ show𝕊 n
+  FltV _ d → return $ single $ show𝕊 d
   BoolV b → return $ single $ show𝕊 b
   PairV ṽ₁ ṽ₂ → do
     v₁ ← elimValP ṽ₁
@@ -114,16 +119,18 @@ serializeVal = \case
   PrinV (ValPEV ρv) → case ρv of
     SinglePV ρ → return $ single ρ
     AccessPV ρ n → return $ single $ concat [ρ,".",show𝕊 n]
+    VirtualPV ρ → return $ single ρ
   v → throwIErrorCxt NotImplementedIError "serializeVal" $ frhs
     [ ("v",pretty v) ]
 
 writeVal ∷ (STACK) ⇒ PrinVal → Val → 𝕊 → IM ()
 writeVal ρ v fn = do
   b ← askL iCxtIsExampleL
+  ppath ← prinDataPath ρ
   let path =
         if b
-        then concat ["examples-output/",prinDataPath ρ,"/",fn]
-        else concat ["data-output/",prinDataPath ρ,"/",fn]
+        then concat ["examples-output/",ppath,"/",fn]
+        else concat ["data-output/",ppath,"/",fn]
   io $ dtouch $ pdirectory path
   o ← concat ^$ serializeVal v
   io $ fwrite path o
