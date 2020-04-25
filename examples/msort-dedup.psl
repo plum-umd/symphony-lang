@@ -35,6 +35,6 @@ def main () =
       [ ]
       (fun Q input -> cons (share{bgv : Q -> A, Central } input)) inputs in
   let out = par { A, Central }
-    (map (reveal-wrap { A }) (merge_sort_dedup input_ls)) in
+    (map (wrap-reveal { A }) (merge_sort_dedup input_ls)) in
   out
   -- par { A } send-ls A[0n] { A } out
