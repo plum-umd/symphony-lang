@@ -1,4 +1,6 @@
-principal A[128]
+def instance_size = 8
+principal A[8]
+
 principal B
 
 def key-eql a b =
@@ -6,10 +8,10 @@ def key-eql a b =
   let (sb, tb) = b
   in (sa == sb) && (ta == tb)
 
-def empty-row = vec-init (0, 0) 128
+def empty-row = vec-init (0, 0) instance_size
 def singleton-row v = vec-push v empty-row
 
-def init n = map-init (0, 0) (vec-init (0, 0) 128) n
+def init n = map-init (0, 0) (vec-init (0, 0) instance_size) n
 def has k db = map-has (key-eql k) db
 def insert k v db = map-insert key-eql k v db
 def append k v data = map-insert-with key-eql vec-append k (singleton-row v) data
@@ -53,7 +55,7 @@ def sort_index values i =
 
 def split values =
   let lst = empty-row
-  let blocks = vec-init empty-row 128
+  let blocks = vec-init empty-row instance_size
 
   let (lst, blocks) = vec-fold (fun element acc ->
     let (lst, blocks) = acc
@@ -236,6 +238,13 @@ def process_query data values =
     false, q_id, _|_
 
 
+def handler input data =
+  let _, db' = process_data data input
+  let _, q = process_query data input
+  in db', q
+
+
+def num-keys = 20
 
 def DATA = 0
 def KEYED_QUERY = 1
@@ -301,7 +310,7 @@ def interpretInput player input =
 
 
 
-def main : unit -> {inp:A ; rev:A} unit
+def main : unit -> list float
 def main () =
 
   par {A,B}

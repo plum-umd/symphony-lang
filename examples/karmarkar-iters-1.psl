@@ -1,0 +1,249 @@
+-- m : user parameter: number of constraint parties
+def m : nat
+def m = 8n
+
+-- n : user parameter: dimension of the constraint system
+def n : nat
+def n = 8n
+
+-- Node_in[m]: parties that bring the constraints
+principal Node_in[8]
+
+-- party that provides the cost vector:
+principal Node_c
+
+-- party that gets the output:
+principal Node_o
+
+-- comps: the parties that do computation, Node_in and Node_c
+def comps = { Node_in, Node_c }
+
+-- aliases of definitions in the standard lib:
+
+-- order: alias for list length
+def order = len
+
+-- eq-vecs: alias for vectors
+def eq-vecs = eq_lists
+
+-- minux-vecs: alias for subtracting lists
+def minus-vecs = minus-lists
+
+def zero-vec = zero-ls-flt
+def row-of-ones = one-ls-flt
+
+-- shr-w-comp x: x, SPDZ-shared with the computation parties
+def shr-w-comp sender x = share{ spdz : sender -> comps } x
+
+def zero-vec-shrs n = map (shr-w-comp { Node_c }) (zero-vec n)
+
+-- nz_prod z u l: the product of non-z entries in l, with
+-- multiplicative unit u
+def nz-prod z u l = elim-list l
+  u
+  (fun x p -> mux if (x == z) then p else x * p)
+
+def nz-prod-flt = nz-prod 0.0 1.0
+
+-- nz-prod-mat z u m: product of non-z entries in matrix m with
+-- multiplicative unit u.
+def nz-prod-mat z u m =
+  let nz-prod-ls = nz-prod z u in
+  nz-prod-ls (map nz-prod-ls m)
+
+def nz-prod-mat-flt = nz-prod-mat 0.0 1.0
+
+-- Listing 9: Inverse of a lower triangular matrix
+def matrix_inverse_lt l =
+  let n = order l in -- order of L
+  let l_inv = ref (zero-mat n) in -- n x n zero matrix
+  do (iter (range 0n (n - 1n))
+    (fun k ->
+      -- For diagonal entries, take the reciprocal
+      do l_inv := upd-matrix !l_inv (k, k) (1.0 / (get-matrix !l_inv (k, k))) in
+
+      -- For non-diagonal entries, solve L * L_inv = I
+      iter (range (k + 1n) (n - 1n))
+        (fun j ->
+          let sum = ref 0.0 in
+          iter (range k (j - 1n))
+            (fun i ->
+              sum := !sum - (get-matrix l (j, i)) * (get-matrix !l_inv (i, k))
+              ) ) ) ) in
+  !l_inv
+
+
+-- Listing 10: Cholesky decomposition of a positive definite Hermitian
+-- matrix
+def cholesky_decomposition m =
+  -- Initialize variables
+  let n = order m in -- order of m
+  let l = ref (zero-mat n) in -- n x n zero matrix
+
+  -- Calculate the top diagonal element of L
+  do l := upd-matrix !l (0n, 0n) (sqrt (get-matrix m (0n, 0n))) 
+
+  -- Calculate the rest of the first column of L
+  do iter (range 1n (n - 1n))
+    (fun j ->
+      l := upd-matrix !l (j, 0n) ((get-matrix m (j, 0n)) / (get-matrix !l (0n, 0n)) ) )
+
+  -- Iterate through the remaining columns
+  do iter (range 1n (n - 1n))
+    (fun i ->
+      -- First calculate the diagonal element for this column
+      let sum = ref 0.0 in
+      do iter (range 0n (i - 1n))
+        (fun j ->
+          sum := !sum + (get-matrix !l (i, j)) * (get-matrix !l (i, j)) ) 
+      do l := upd-matrix !l (i, i) (sqrt ((get-matrix m (i, i)) - !sum)) in
+      -- Now fill in the remaining entries in this column
+      when (i < n - 1n) then
+        (iter (range (i + 1n) (n - 1n))
+          (fun j ->
+            do sum := 0.0 in
+            iter (range 0n (i - 1n))
+              (fun k ->
+                sum := !sum + (get-matrix !l (i, k)) * (get-matrix !l (j, k)) ) ) ) ) in
+    !l
+
+-- Listing 8: Inverse of a positive definite Hermitian matrix
+def matrix_inverse_pdh : num -> matrix -> matrix
+def matrix_inverse_pdh m =
+  let l = cholesky_decomposition m in
+  let l_inv = matrix_inverse_lt l in -- Invert the lower-triangular matrix
+  let m_inv = mult-matrices-flt (transpose l_inv) l_inv in
+  m_inv
+
+-- Listing 6: Iteration for Karmarkar's Algorithm
+def karmarkar_iteration initial_point a c =
+  let (m, n) = dimensions_of a in
+  -- D is a matrix of zeros with the values of initial_point on the
+  -- diagonal
+  -- Dimensions of D: n x n
+  let d = diagonal-matrix-flt initial_point in
+  -- Dimensions of cprime: n x 1
+  let cprime = mult-matrix-vec-flt d c in
+  -- Dimensions of AD: m x n
+  let ad = mult-matrices-flt a d in
+
+  -- Construct B
+  -- Dimensions of B: (m + 1) x n
+  let b = append ad [ row-of-ones n ] in -- append a row of ones onto AD
+
+  -- Dimensions of BBT: (m + 1) x (m + 1)
+  let bbt = mult-matrices-flt b (transpose b) in
+
+  -- Dimensions of BBTInv: (m + 1) x (m + 1)
+  let bbtinv = matrix_inverse_pdh bbt in
+
+  -- Project C onto B's nullspace
+  -- Dimensions of cp: n x 1
+  let cp = minus-vecs cprime
+    (mult-matrix-vec-flt (transpose b)
+      (mult-matrix-vec-flt bbtinv
+        (mult-matrix-vec-flt b cprime) ) ) in
+
+  -- Calculate a unit vector of cp
+  -- Dimensions of unitcp: n x 1
+  let unit_cp =
+    mux if eq-vecs cp (zero-vec n) then -- If cp is the zero vector
+      -- If cp is the zero vector, assign it to be 0
+      (zero-vec-shrs n)
+    else div-scalar-vec (zero-vec n) (l2norm cp) in
+
+  -- Take a step of 1/3n in the direction of -cp, row-of-ones(n)/n is
+  -- the "transformed" initial point
+  -- Dimensions of bprime: n x 1
+  let bprime = minus-vecs
+    (div-scalar-vec (row-of-ones n) (to_flt n))
+    (mult-scalar-vec (1.0 / (3.0 * (to_flt n))) unit_cp) in
+
+  -- Transform the point back
+  -- Dimensions of b: n x 1
+  let b = div-scalar-vec (mult-matrix-vec-flt d bprime)
+    (dot-prod-flt (row-of-ones n) (mult-matrix-vec-flt d bprime)) in
+  b
+
+
+-- Listing 7: Loop for Karmarkar's Algorithm
+def karmarkar_loop a c = proc
+  let (m, n) = dimensions_of a in
+  -- Epsilon is the stopping condition. This value should be close to
+  -- 0, so we choose 10^(-8)
+  let epsilon = 10.0 ^ -8.0 in
+
+  -- x is our initial point
+  let x = ref (div-scalar-vec (row-of-ones n) (to_flt n)) in
+
+  let num-iters = fun costs ctrs ->
+    -- product of non-zero entries in c and A
+    let p = (nz-prod-flt costs) * (nz-prod-mat-flt ctrs) in
+    let l = (m + 1n) * n +
+      (abs_val (ceil (log_base_2 (abs-val-flt-shr p)))) +
+      n * (abs_val (ceil (log_base_2 (to_flt n)))) in
+    12n * n * l in
+
+  let max_iterations = num-iters c a in
+  let upper-bound = num-iters (max-vec-flt n) (max-mat-flt m n) in
+  let upper-bound = 1n in -- HACK
+
+  -- If this initial point is an optimal solution, return
+  mux if (dot-prod-flt c !x) < epsilon then !x
+  else do (sec-iter [ x ] 0n max_iterations upper-bound (fun i -> 
+    let x_new = karmarkar_iteration !x a c in 
+
+    -- if we are within the stopping condition in the current
+    -- iteration, return
+    mux if ((((dot-prod-flt c !x) - (dot-prod-flt c x_new)) /
+         (max-muxable (shr-w-comp { Node_c } 1.0) (dot-prod-flt c !x)) ) <
+         epsilon ) then return x_new
+    else x := x_new) ) in
+  !x
+
+
+-- verify-dot-prod P0 P1 v0 v1: commit to vectors and whether their
+-- dot product is less than epsilon:
+def verify-dot-prod P0 P1 v0 v1 = par{ P0, P1 }
+  let shr2p = fun Q x ->
+    nizk-witness{ spdz : P0, P1 } (share { spdz : Q -> P0, P1 } x) in
+  let shr-by-p0 = shr2p P0 in
+  let share-wits = fun Q v -> map (shr2p Q) (send-ls { Q } { P0, P1 } v) in
+  nizk-commit { spdz : P0, P1 }
+    ((dot-prod (shr-by-p0 0.0) (share-wits P0 v0) (share-wits P1 v1) ) <
+     (shr-by-p0 (10.0 ^ -8.0)) )
+
+
+-- main: entry point; Node_in, Node_c read inputs and run the algorithm,
+-- distributes results to Node_o
+def main () =
+  let ctrs = solo { Node_in } as c in read (list flt) from "in.txt" in
+  let cost = par { Node_c } read (list flt) from "in.txt" in
+  let shrd-soln = par { Node_in, Node_c, Node_o } (map
+    (wrap-reveal { Node_o })
+    -- Node_c reveals the structure of the list to out:
+    (send-ls { Node_c } { Node_in, Node_c, Node_o }
+      -- Node_in and Node_c compute the solution point:
+      (par { Node_in, Node_c } karmarkar_loop
+        -- read in the matrix of constraints and share them
+        (fold-f
+          []
+          (fun Q ctr -> cons (map (shr-w-comp { Q }) (send-ls { Q } comps ctr)))
+          ctrs)
+        -- read in the vector of costs and share them
+        (map (shr-w-comp { Node_c })
+          (send-ls { Node_c } comps cost) ) ) ) ) in
+  -- Node_in and Node_c forget the structure of the solution
+  let soln = par { Node_o } send-ls { Node_o } { Node_o } shrd-soln in
+
+  -- verification: proofs of correctness of soln:
+  let verification =
+    (bundle-map  -- proof that each node's constraints are satisfied:
+       (fun Node_i ctr -> (send{ Node_i -> Node_i }
+         (verify-dot-prod Node_i Node_o ctr soln) ) )
+       ctrs,
+     send{ Node_c -> Node_c}  -- proof that the cost constraint is satisfied:
+       (verify-dot-prod Node_c Node_o cost soln) ) in
+
+  (soln, verification)
+   
