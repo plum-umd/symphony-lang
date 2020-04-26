@@ -99,7 +99,7 @@ docker: dist-gzip
 docker: resource-estimation.tar.gz
 	@case '$(DOCKER)' in \
 	  '') \
-	    printf 'DOCKER is unset\n' >&2; \
+	    printf 'Docker is not available. Please install it and re-run ./configure.\n' >&2; \
 	    exit 1; \
 	  ;; \
 	esac
