@@ -14,6 +14,7 @@ run() {
   if [[ -x ./psl ]]; then
     psl=./psl
   fi
+  printf 'starting: %s\n' $1
   >$1.log
   printf 'Start time: '; date >>$1.log
   (
@@ -21,6 +22,7 @@ run() {
     $psl example -r $1 &>>$1.log || s=$?
     printf 'Stop time: '; date >>$1.log
     printf 'Exit status: %s\n' $s >>$1.log
+    printf 'done: %s\n' $1
   ) &
   pid=$!
   pids+=($pid)
@@ -47,5 +49,5 @@ run gcd-bgv
 run gcd-gc
 
 for pid in ${pids[@]}; do
-  wait $pid || :
+  wait $pid || printf 'FAILED: %s\n' ${names[$pid]}
 done
