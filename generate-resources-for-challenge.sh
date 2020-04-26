@@ -16,11 +16,11 @@ run() {
   fi
   printf 'starting: %s\n' $1
   >$1.log
-  printf 'Start time: '; date >>$1.log
+  { printf 'Start time: ' && date; } >>$1.log
   (
     s=0
     $psl example -r $1 &>>$1.log || s=$?
-    printf 'Stop time: '; date >>$1.log
+    { printf 'Stop time: ' && date; } >>$1.log
     printf 'Exit status: %s\n' $s >>$1.log
     printf 'done: %s\n' $1
   ) &
