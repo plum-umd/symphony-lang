@@ -80,6 +80,11 @@ def matrix_inverse_lt l =
 
 -- Listing 10: Cholesky decomposition of a positive definite Hermitian
 -- matrix
+def cholesky_decomposition :
+  list ((list float{ spdz : Node_in, Node_c })
+          { Node_in, Node_c }){ Node_in, Node_c } ->
+  list ((list float{ spdz : Node_in, Node_c })
+          { Node_in, Node_c }){ Node_in, Node_c } 
 def cholesky_decomposition m =
   -- Initialize variables
   let n = order m in -- order of m
