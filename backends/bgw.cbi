@@ -36,7 +36,7 @@ attack-models {
         gates: BGW_SHR_FLOAT_GATES
         comm : BGW_SHR_FLOAT_COMMS
         rounds: BGW_SHR_FLOAT_ROUNDS
-        memory : BGW_SHR_FLOAT_ROUNDS
+        memory : BGW_SHR_FLOAT_MEM
       }
       REVEAL float 53 11 {
         impl : bgw_semi_mal_reveal_flt
@@ -44,8 +44,7 @@ attack-models {
         gates: BGW_REVEAL_FLOAT_GATES
         comm : BGW_REVEAL_FLOAT_COMMS
         rounds: BGW_REVEAL_FLOAT_ROUNDS
-        memory : BGW_REVEAL_FLOAT_ROUNDS
-
+        memory : BGW_REVEAL_FLOAT_MEM
       }
       PLUS float 53 11 {
         impl : bgw_semi_mal_plus_flt
@@ -53,7 +52,7 @@ attack-models {
         gates: BGW_PLUS_FLOAT_GATES
         comm : BGW_PLUS_FLOAT_COMMS
         rounds: BGW_PLUS_FLOAT_ROUNDS
-        memory : BGW_PLUS_FLOAT_ROUNDS
+        memory : BGW_PLUS_FLOAT_MEM
       }
       MULT float 53 11 {
         impl : bgw_semi_mal_mult_flt
@@ -61,7 +60,7 @@ attack-models {
         gates: BGW_MULT_FLOAT_GATES
         comm : BGW_MULT_FLOAT_COMMS
         rounds: BGW_MULT_FLOAT_ROUNDS
-        memory : BGW_MULT_FLOAT_ROUNDS
+        memory : BGW_MULT_FLOAT_MEM
       }
       LEQ float 53 11 {
         impl : bgw_semi_mal_leq_flt
@@ -69,7 +68,7 @@ attack-models {
         gates: BGW_LEQ_FLOAT_GATES
         comm : BGW_LEQ_FLOAT_COMMS
         rounds: BGW_LEQ_FLOAT_ROUNDS
-        memory : BGW_LEQ_FLOAT_ROUNDS
+        memory : BGW_LEQ_FLOAT_MEM
       }
     }
   }
@@ -98,7 +97,7 @@ attack-models {
         gates: BGW_SHR_INT_GATES
         comm : BGW_SHR_INT_COMMS
         rounds: BGW_SHR_INT_ROUNDS
-        memory : BGW_SHR_INT_ROUNDS
+        memory : BGW_SHR_INT_MEM
       }
       REVEAL int 32 {
         impl : bgw_mal_reveal_flt
@@ -106,8 +105,7 @@ attack-models {
         gates: BGW_REVEAL_INT_GATES
         comm : BGW_REVEAL_INT_COMMS
         rounds: BGW_REVEAL_INT_ROUNDS
-        memory : BGW_REVEAL_INT_ROUNDS
-
+        memory : BGW_REVEAL_INT_MEM
       }
       PLUS int 32 {
         impl : bgw_mal_plus_flt
@@ -115,7 +113,7 @@ attack-models {
         gates: BGW_PLUS_INT_GATES
         comm : BGW_PLUS_INT_COMMS
         rounds: BGW_PLUS_INT_ROUNDS
-        memory : BGW_PLUS_INT_ROUNDS
+        memory : BGW_PLUS_INT_MEM
       }
       MULT int 32 {
         impl : bgw_mal_mult_flt
@@ -123,7 +121,7 @@ attack-models {
         gates: BGW_MULT_INT_GATES
         comm : BGW_MULT_INT_COMMS
         rounds: BGW_MULT_INT_ROUNDS
-        memory : BGW_MULT_INT_ROUNDS
+        memory : BGW_MULT_INT_MEM
       }
       LEQ int 32 {
         impl : bgw_mal_leq_flt
@@ -131,7 +129,7 @@ attack-models {
         gates: BGW_LEQ_INT_GATES
         comm : BGW_LEQ_INT_COMMS
         rounds: BGW_LEQ_INT_ROUNDS
-        memory : BGW_LEQ_INT_ROUNDS
+        memory : BGW_LEQ_INT_MEM
       }
     }
   }
