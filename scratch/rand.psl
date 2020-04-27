@@ -1,6 +1,6 @@
 principal A B
 
-def main : 𝟙 → int{ssec:A,B}
+def main : 𝟙 → int{A,B}
 def main • =
   let x = rand int{yao:A,B}
   let y = rand int{yao:A,B}

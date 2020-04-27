@@ -1,8 +1,0 @@
-principal A
-principal B
-principal C
-
-def main () =
-  let x = share{ yao : A, B } 0 in
-  let y = share{ yao : B, C } x in
-  y

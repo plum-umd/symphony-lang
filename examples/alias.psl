@@ -1,8 +1,0 @@
-principal A B
-
-def main () =
-  par{A,B}
-    let x = ref 0
-    do  par{A} x := 2
-    in
-    par{B} !x

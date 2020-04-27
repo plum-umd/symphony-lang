@@ -4,16 +4,13 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 464c12f6d1cba15373dfc95c5a92609961ca32c287cbd0ff70fbcf5ffee6d6e5
+-- hash: f650d1d9fa66cca6a4e849e0ad87a997e69f5fb8a82d48275c8a1a3a2f0dfd56
 
 name:           psl
 version:        0.1.0.0
 build-type:     Simple
 data-files:
     lib/stdlib.psl
-    examples/alias.psl
-    examples/arg-par-contains.psl
-    examples/assoc-map.psl
     examples/atq-bgw-12.psl
     examples/atq-bgw-16.psl
     examples/atq-bgw-20.psl
@@ -34,87 +31,46 @@ data-files:
     examples/atq-spdz-40.psl
     examples/atq-spdz-8.psl
     examples/atq-spdz.psl
-    examples/atq.psl
-    examples/bind-fp-const.psl
-    examples/bind-shares.psl
-    examples/cmp-fn-flt.psl
-    examples/cmp-tutorial.psl
-    examples/cmp-tutorial.psl.html
-    examples/cmp-tutorial.psl.pdf
     examples/cmp.psl
-    examples/cmp.psl.html
-    examples/cmp.psl.pdf
-    examples/concat.psl
-    examples/cont-monad.psl
+    examples/db-stats-10.psl
+    examples/db-stats-11.psl
+    examples/db-stats-12.psl
+    examples/db-stats-6.psl
+    examples/db-stats-7.psl
+    examples/db-stats-8.psl
+    examples/db-stats-9.psl
+    examples/db-stats-input.txt
     examples/db-stats.psl
-    examples/dheath.psl
-    examples/elim-sec-ls.psl
-    examples/empty-par-diverge.psl
-    examples/euclid-dh.psl
     examples/gcd-bgv.psl
     examples/gcd-gc.psl
-    examples/indy-pars.psl
-    examples/karmarkar-decl.psl
-    examples/karmarkar-sane.psl
-    examples/karmarkar-setup.psl
-    examples/karmarkar-silly.psl
-    examples/karmarkar-simple.psl
+    examples/karmarkar-iters-1.psl
+    examples/karmarkar-iters-2.psl
     examples/karmarkar.psl
-    examples/mill.psl.sec
-    examples/mod-a.psl
-    examples/mod-b.psl
-    examples/msort-dedup-12.psl
-    examples/msort-dedup-16.psl
-    examples/msort-dedup-20.psl
-    examples/msort-dedup-24.psl
-    examples/msort-dedup-28.psl
-    examples/msort-dedup-32.psl
-    examples/msort-dedup-36.psl
-    examples/msort-dedup-40.psl
+    examples/msort-dedup-1.psl
+    examples/msort-dedup-2.psl
+    examples/msort-dedup-4.psl
     examples/msort-dedup-8.psl
     examples/msort-dedup.psl
-    examples/msort.psl
-    examples/mult-depth-test.psl
-    examples/partial-diverge.psl
-    examples/pfold.psl
-    examples/play.psl
-    examples/qsort.psl
-    examples/quick-sort-bgw-12.psl
-    examples/quick-sort-bgw-16.psl
-    examples/quick-sort-bgw-20.psl
-    examples/quick-sort-bgw-24.psl
-    examples/quick-sort-bgw-28.psl
-    examples/quick-sort-bgw-32.psl
-    examples/quick-sort-bgw-36.psl
+    examples/quick-sort-bgw-10.psl
+    examples/quick-sort-bgw-2.psl
+    examples/quick-sort-bgw-3.psl
     examples/quick-sort-bgw-4.psl
-    examples/quick-sort-bgw-40.psl
+    examples/quick-sort-bgw-5.psl
+    examples/quick-sort-bgw-6.psl
+    examples/quick-sort-bgw-7.psl
     examples/quick-sort-bgw-8.psl
+    examples/quick-sort-bgw-9.psl
     examples/quick-sort-bgw.psl
-    examples/quick-sort-spdz-12.psl
-    examples/quick-sort-spdz-16.psl
-    examples/quick-sort-spdz-20.psl
-    examples/quick-sort-spdz-24.psl
-    examples/quick-sort-spdz-28.psl
-    examples/quick-sort-spdz-32.psl
-    examples/quick-sort-spdz-36.psl
+    examples/quick-sort-spdz-10.psl
+    examples/quick-sort-spdz-2.psl
+    examples/quick-sort-spdz-3.psl
     examples/quick-sort-spdz-4.psl
-    examples/quick-sort-spdz-40.psl
+    examples/quick-sort-spdz-5.psl
+    examples/quick-sort-spdz-6.psl
+    examples/quick-sort-spdz-7.psl
     examples/quick-sort-spdz-8.psl
-    examples/rand-range-encrypted-inputs-failing.psl
-    examples/rand-range-shared.psl
-    examples/rand.psl
-    examples/reshare.psl
-    examples/share-ls.psl
-    examples/simple-read.psl
-    examples/simple-write.psl
-    examples/ssec-other-ssec.psl
-    examples/ssec-shr.psl
-    examples/sumprod.psl
-    examples/uninspecting-par.psl
-    examples/vector.psl
-    examples/virtual-cmp-instantiate.psl
-    examples/virtual-cmp.psl
-    examples/yao.psl.bmi
+    examples/quick-sort-spdz-9.psl
+    tests/#when.psl#
     tests/andor.psl
     tests/arrays.psl
     tests/bgv.psl
@@ -162,6 +118,7 @@ data-files:
     tests/when.psl
     examples-input/A/atq-data.txt
     examples-input/A/cmp-input.txt
+    examples-input/A/db-stats-input.txt
     examples-input/A/euclid.txt
     examples-input/A/msort-input.txt
     examples-input/A/partial-diverge-in.txt
@@ -170,46 +127,80 @@ data-files:
     examples-input/A/qsort-input.txt
     examples-input/A/simple-read.txt
     examples-input/A_0/atq-data.txt
+    examples-input/A_0/db-stats-input.txt
     examples-input/A_0/msort-dedup-in.txt
     examples-input/A_1/atq-data.txt
+    examples-input/A_1/db-stats-input.txt
     examples-input/A_1/msort-dedup-in.txt
     examples-input/A_10/atq-data.txt
+    examples-input/A_10/db-stats-input.txt
     examples-input/A_10/msort-dedup-in.txt
+    examples-input/A_100/db-stats-input.txt
     examples-input/A_100/msort-dedup-in.txt
+    examples-input/A_101/db-stats-input.txt
     examples-input/A_101/msort-dedup-in.txt
+    examples-input/A_102/db-stats-input.txt
     examples-input/A_102/msort-dedup-in.txt
+    examples-input/A_103/db-stats-input.txt
     examples-input/A_103/msort-dedup-in.txt
+    examples-input/A_104/db-stats-input.txt
     examples-input/A_104/msort-dedup-in.txt
+    examples-input/A_105/db-stats-input.txt
     examples-input/A_105/msort-dedup-in.txt
+    examples-input/A_106/db-stats-input.txt
     examples-input/A_106/msort-dedup-in.txt
+    examples-input/A_107/db-stats-input.txt
     examples-input/A_107/msort-dedup-in.txt
+    examples-input/A_108/db-stats-input.txt
     examples-input/A_108/msort-dedup-in.txt
+    examples-input/A_109/db-stats-input.txt
     examples-input/A_109/msort-dedup-in.txt
     examples-input/A_11/atq-data.txt
+    examples-input/A_11/db-stats-input.txt
     examples-input/A_11/msort-dedup-in.txt
+    examples-input/A_110/db-stats-input.txt
     examples-input/A_110/msort-dedup-in.txt
+    examples-input/A_111/db-stats-input.txt
     examples-input/A_111/msort-dedup-in.txt
+    examples-input/A_112/db-stats-input.txt
     examples-input/A_112/msort-dedup-in.txt
+    examples-input/A_113/db-stats-input.txt
     examples-input/A_113/msort-dedup-in.txt
+    examples-input/A_114/db-stats-input.txt
     examples-input/A_114/msort-dedup-in.txt
+    examples-input/A_115/db-stats-input.txt
     examples-input/A_115/msort-dedup-in.txt
+    examples-input/A_116/db-stats-input.txt
     examples-input/A_116/msort-dedup-in.txt
+    examples-input/A_117/db-stats-input.txt
     examples-input/A_117/msort-dedup-in.txt
+    examples-input/A_118/db-stats-input.txt
     examples-input/A_118/msort-dedup-in.txt
+    examples-input/A_119/db-stats-input.txt
     examples-input/A_119/msort-dedup-in.txt
     examples-input/A_12/atq-data.txt
+    examples-input/A_12/db-stats-input.txt
     examples-input/A_12/msort-dedup-in.txt
+    examples-input/A_120/db-stats-input.txt
     examples-input/A_120/msort-dedup-in.txt
+    examples-input/A_121/db-stats-input.txt
     examples-input/A_121/msort-dedup-in.txt
+    examples-input/A_122/db-stats-input.txt
     examples-input/A_122/msort-dedup-in.txt
+    examples-input/A_123/db-stats-input.txt
     examples-input/A_123/msort-dedup-in.txt
+    examples-input/A_124/db-stats-input.txt
     examples-input/A_124/msort-dedup-in.txt
+    examples-input/A_125/db-stats-input.txt
     examples-input/A_125/msort-dedup-in.txt
+    examples-input/A_126/db-stats-input.txt
     examples-input/A_126/msort-dedup-in.txt
+    examples-input/A_127/db-stats-input.txt
     examples-input/A_127/msort-dedup-in.txt
     examples-input/A_128/msort-dedup-in.txt
     examples-input/A_129/msort-dedup-in.txt
     examples-input/A_13/atq-data.txt
+    examples-input/A_13/db-stats-input.txt
     examples-input/A_13/msort-dedup-in.txt
     examples-input/A_130/msort-dedup-in.txt
     examples-input/A_131/msort-dedup-in.txt
@@ -222,6 +213,7 @@ data-files:
     examples-input/A_138/msort-dedup-in.txt
     examples-input/A_139/msort-dedup-in.txt
     examples-input/A_14/atq-data.txt
+    examples-input/A_14/db-stats-input.txt
     examples-input/A_14/msort-dedup-in.txt
     examples-input/A_140/msort-dedup-in.txt
     examples-input/A_141/msort-dedup-in.txt
@@ -234,6 +226,7 @@ data-files:
     examples-input/A_148/msort-dedup-in.txt
     examples-input/A_149/msort-dedup-in.txt
     examples-input/A_15/atq-data.txt
+    examples-input/A_15/db-stats-input.txt
     examples-input/A_15/msort-dedup-in.txt
     examples-input/A_150/msort-dedup-in.txt
     examples-input/A_151/msort-dedup-in.txt
@@ -246,6 +239,7 @@ data-files:
     examples-input/A_158/msort-dedup-in.txt
     examples-input/A_159/msort-dedup-in.txt
     examples-input/A_16/atq-data.txt
+    examples-input/A_16/db-stats-input.txt
     examples-input/A_16/msort-dedup-in.txt
     examples-input/A_160/msort-dedup-in.txt
     examples-input/A_161/msort-dedup-in.txt
@@ -258,6 +252,7 @@ data-files:
     examples-input/A_168/msort-dedup-in.txt
     examples-input/A_169/msort-dedup-in.txt
     examples-input/A_17/atq-data.txt
+    examples-input/A_17/db-stats-input.txt
     examples-input/A_17/msort-dedup-in.txt
     examples-input/A_170/msort-dedup-in.txt
     examples-input/A_171/msort-dedup-in.txt
@@ -270,6 +265,7 @@ data-files:
     examples-input/A_178/msort-dedup-in.txt
     examples-input/A_179/msort-dedup-in.txt
     examples-input/A_18/atq-data.txt
+    examples-input/A_18/db-stats-input.txt
     examples-input/A_18/msort-dedup-in.txt
     examples-input/A_180/msort-dedup-in.txt
     examples-input/A_181/msort-dedup-in.txt
@@ -282,6 +278,7 @@ data-files:
     examples-input/A_188/msort-dedup-in.txt
     examples-input/A_189/msort-dedup-in.txt
     examples-input/A_19/atq-data.txt
+    examples-input/A_19/db-stats-input.txt
     examples-input/A_19/msort-dedup-in.txt
     examples-input/A_190/msort-dedup-in.txt
     examples-input/A_191/msort-dedup-in.txt
@@ -294,8 +291,10 @@ data-files:
     examples-input/A_198/msort-dedup-in.txt
     examples-input/A_199/msort-dedup-in.txt
     examples-input/A_2/atq-data.txt
+    examples-input/A_2/db-stats-input.txt
     examples-input/A_2/msort-dedup-in.txt
     examples-input/A_20/atq-data.txt
+    examples-input/A_20/db-stats-input.txt
     examples-input/A_20/msort-dedup-in.txt
     examples-input/A_200/msort-dedup-in.txt
     examples-input/A_201/msort-dedup-in.txt
@@ -308,6 +307,7 @@ data-files:
     examples-input/A_208/msort-dedup-in.txt
     examples-input/A_209/msort-dedup-in.txt
     examples-input/A_21/atq-data.txt
+    examples-input/A_21/db-stats-input.txt
     examples-input/A_21/msort-dedup-in.txt
     examples-input/A_210/msort-dedup-in.txt
     examples-input/A_211/msort-dedup-in.txt
@@ -320,6 +320,7 @@ data-files:
     examples-input/A_218/msort-dedup-in.txt
     examples-input/A_219/msort-dedup-in.txt
     examples-input/A_22/atq-data.txt
+    examples-input/A_22/db-stats-input.txt
     examples-input/A_22/msort-dedup-in.txt
     examples-input/A_220/msort-dedup-in.txt
     examples-input/A_221/msort-dedup-in.txt
@@ -332,6 +333,7 @@ data-files:
     examples-input/A_228/msort-dedup-in.txt
     examples-input/A_229/msort-dedup-in.txt
     examples-input/A_23/atq-data.txt
+    examples-input/A_23/db-stats-input.txt
     examples-input/A_23/msort-dedup-in.txt
     examples-input/A_230/msort-dedup-in.txt
     examples-input/A_231/msort-dedup-in.txt
@@ -344,6 +346,7 @@ data-files:
     examples-input/A_238/msort-dedup-in.txt
     examples-input/A_239/msort-dedup-in.txt
     examples-input/A_24/atq-data.txt
+    examples-input/A_24/db-stats-input.txt
     examples-input/A_24/msort-dedup-in.txt
     examples-input/A_240/msort-dedup-in.txt
     examples-input/A_241/msort-dedup-in.txt
@@ -356,6 +359,7 @@ data-files:
     examples-input/A_248/msort-dedup-in.txt
     examples-input/A_249/msort-dedup-in.txt
     examples-input/A_25/atq-data.txt
+    examples-input/A_25/db-stats-input.txt
     examples-input/A_25/msort-dedup-in.txt
     examples-input/A_250/msort-dedup-in.txt
     examples-input/A_251/msort-dedup-in.txt
@@ -368,6 +372,7 @@ data-files:
     examples-input/A_258/msort-dedup-in.txt
     examples-input/A_259/msort-dedup-in.txt
     examples-input/A_26/atq-data.txt
+    examples-input/A_26/db-stats-input.txt
     examples-input/A_26/msort-dedup-in.txt
     examples-input/A_260/msort-dedup-in.txt
     examples-input/A_261/msort-dedup-in.txt
@@ -380,6 +385,7 @@ data-files:
     examples-input/A_268/msort-dedup-in.txt
     examples-input/A_269/msort-dedup-in.txt
     examples-input/A_27/atq-data.txt
+    examples-input/A_27/db-stats-input.txt
     examples-input/A_27/msort-dedup-in.txt
     examples-input/A_270/msort-dedup-in.txt
     examples-input/A_271/msort-dedup-in.txt
@@ -392,6 +398,7 @@ data-files:
     examples-input/A_278/msort-dedup-in.txt
     examples-input/A_279/msort-dedup-in.txt
     examples-input/A_28/atq-data.txt
+    examples-input/A_28/db-stats-input.txt
     examples-input/A_28/msort-dedup-in.txt
     examples-input/A_280/msort-dedup-in.txt
     examples-input/A_281/msort-dedup-in.txt
@@ -404,6 +411,7 @@ data-files:
     examples-input/A_288/msort-dedup-in.txt
     examples-input/A_289/msort-dedup-in.txt
     examples-input/A_29/atq-data.txt
+    examples-input/A_29/db-stats-input.txt
     examples-input/A_29/msort-dedup-in.txt
     examples-input/A_290/msort-dedup-in.txt
     examples-input/A_291/msort-dedup-in.txt
@@ -416,8 +424,10 @@ data-files:
     examples-input/A_298/msort-dedup-in.txt
     examples-input/A_299/msort-dedup-in.txt
     examples-input/A_3/atq-data.txt
+    examples-input/A_3/db-stats-input.txt
     examples-input/A_3/msort-dedup-in.txt
     examples-input/A_30/atq-data.txt
+    examples-input/A_30/db-stats-input.txt
     examples-input/A_30/msort-dedup-in.txt
     examples-input/A_300/msort-dedup-in.txt
     examples-input/A_301/msort-dedup-in.txt
@@ -430,6 +440,7 @@ data-files:
     examples-input/A_308/msort-dedup-in.txt
     examples-input/A_309/msort-dedup-in.txt
     examples-input/A_31/atq-data.txt
+    examples-input/A_31/db-stats-input.txt
     examples-input/A_31/msort-dedup-in.txt
     examples-input/A_310/msort-dedup-in.txt
     examples-input/A_311/msort-dedup-in.txt
@@ -442,6 +453,7 @@ data-files:
     examples-input/A_318/msort-dedup-in.txt
     examples-input/A_319/msort-dedup-in.txt
     examples-input/A_32/atq-data.txt
+    examples-input/A_32/db-stats-input.txt
     examples-input/A_32/msort-dedup-in.txt
     examples-input/A_320/msort-dedup-in.txt
     examples-input/A_321/msort-dedup-in.txt
@@ -454,6 +466,7 @@ data-files:
     examples-input/A_328/msort-dedup-in.txt
     examples-input/A_329/msort-dedup-in.txt
     examples-input/A_33/atq-data.txt
+    examples-input/A_33/db-stats-input.txt
     examples-input/A_33/msort-dedup-in.txt
     examples-input/A_330/msort-dedup-in.txt
     examples-input/A_331/msort-dedup-in.txt
@@ -466,6 +479,7 @@ data-files:
     examples-input/A_338/msort-dedup-in.txt
     examples-input/A_339/msort-dedup-in.txt
     examples-input/A_34/atq-data.txt
+    examples-input/A_34/db-stats-input.txt
     examples-input/A_34/msort-dedup-in.txt
     examples-input/A_340/msort-dedup-in.txt
     examples-input/A_341/msort-dedup-in.txt
@@ -478,6 +492,7 @@ data-files:
     examples-input/A_348/msort-dedup-in.txt
     examples-input/A_349/msort-dedup-in.txt
     examples-input/A_35/atq-data.txt
+    examples-input/A_35/db-stats-input.txt
     examples-input/A_35/msort-dedup-in.txt
     examples-input/A_350/msort-dedup-in.txt
     examples-input/A_351/msort-dedup-in.txt
@@ -490,6 +505,7 @@ data-files:
     examples-input/A_358/msort-dedup-in.txt
     examples-input/A_359/msort-dedup-in.txt
     examples-input/A_36/atq-data.txt
+    examples-input/A_36/db-stats-input.txt
     examples-input/A_36/msort-dedup-in.txt
     examples-input/A_360/msort-dedup-in.txt
     examples-input/A_361/msort-dedup-in.txt
@@ -502,6 +518,7 @@ data-files:
     examples-input/A_368/msort-dedup-in.txt
     examples-input/A_369/msort-dedup-in.txt
     examples-input/A_37/atq-data.txt
+    examples-input/A_37/db-stats-input.txt
     examples-input/A_37/msort-dedup-in.txt
     examples-input/A_370/msort-dedup-in.txt
     examples-input/A_371/msort-dedup-in.txt
@@ -514,6 +531,7 @@ data-files:
     examples-input/A_378/msort-dedup-in.txt
     examples-input/A_379/msort-dedup-in.txt
     examples-input/A_38/atq-data.txt
+    examples-input/A_38/db-stats-input.txt
     examples-input/A_38/msort-dedup-in.txt
     examples-input/A_380/msort-dedup-in.txt
     examples-input/A_381/msort-dedup-in.txt
@@ -526,6 +544,7 @@ data-files:
     examples-input/A_388/msort-dedup-in.txt
     examples-input/A_389/msort-dedup-in.txt
     examples-input/A_39/atq-data.txt
+    examples-input/A_39/db-stats-input.txt
     examples-input/A_39/msort-dedup-in.txt
     examples-input/A_390/msort-dedup-in.txt
     examples-input/A_391/msort-dedup-in.txt
@@ -538,8 +557,10 @@ data-files:
     examples-input/A_398/msort-dedup-in.txt
     examples-input/A_399/msort-dedup-in.txt
     examples-input/A_4/atq-data.txt
+    examples-input/A_4/db-stats-input.txt
     examples-input/A_4/msort-dedup-in.txt
     examples-input/A_40/atq-data.txt
+    examples-input/A_40/db-stats-input.txt
     examples-input/A_40/msort-dedup-in.txt
     examples-input/A_400/msort-dedup-in.txt
     examples-input/A_401/msort-dedup-in.txt
@@ -552,6 +573,7 @@ data-files:
     examples-input/A_408/msort-dedup-in.txt
     examples-input/A_409/msort-dedup-in.txt
     examples-input/A_41/atq-data.txt
+    examples-input/A_41/db-stats-input.txt
     examples-input/A_41/msort-dedup-in.txt
     examples-input/A_410/msort-dedup-in.txt
     examples-input/A_411/msort-dedup-in.txt
@@ -564,6 +586,7 @@ data-files:
     examples-input/A_418/msort-dedup-in.txt
     examples-input/A_419/msort-dedup-in.txt
     examples-input/A_42/atq-data.txt
+    examples-input/A_42/db-stats-input.txt
     examples-input/A_42/msort-dedup-in.txt
     examples-input/A_420/msort-dedup-in.txt
     examples-input/A_421/msort-dedup-in.txt
@@ -576,6 +599,7 @@ data-files:
     examples-input/A_428/msort-dedup-in.txt
     examples-input/A_429/msort-dedup-in.txt
     examples-input/A_43/atq-data.txt
+    examples-input/A_43/db-stats-input.txt
     examples-input/A_43/msort-dedup-in.txt
     examples-input/A_430/msort-dedup-in.txt
     examples-input/A_431/msort-dedup-in.txt
@@ -588,6 +612,7 @@ data-files:
     examples-input/A_438/msort-dedup-in.txt
     examples-input/A_439/msort-dedup-in.txt
     examples-input/A_44/atq-data.txt
+    examples-input/A_44/db-stats-input.txt
     examples-input/A_44/msort-dedup-in.txt
     examples-input/A_440/msort-dedup-in.txt
     examples-input/A_441/msort-dedup-in.txt
@@ -600,6 +625,7 @@ data-files:
     examples-input/A_448/msort-dedup-in.txt
     examples-input/A_449/msort-dedup-in.txt
     examples-input/A_45/atq-data.txt
+    examples-input/A_45/db-stats-input.txt
     examples-input/A_45/msort-dedup-in.txt
     examples-input/A_450/msort-dedup-in.txt
     examples-input/A_451/msort-dedup-in.txt
@@ -612,6 +638,7 @@ data-files:
     examples-input/A_458/msort-dedup-in.txt
     examples-input/A_459/msort-dedup-in.txt
     examples-input/A_46/atq-data.txt
+    examples-input/A_46/db-stats-input.txt
     examples-input/A_46/msort-dedup-in.txt
     examples-input/A_460/msort-dedup-in.txt
     examples-input/A_461/msort-dedup-in.txt
@@ -624,6 +651,7 @@ data-files:
     examples-input/A_468/msort-dedup-in.txt
     examples-input/A_469/msort-dedup-in.txt
     examples-input/A_47/atq-data.txt
+    examples-input/A_47/db-stats-input.txt
     examples-input/A_47/msort-dedup-in.txt
     examples-input/A_470/msort-dedup-in.txt
     examples-input/A_471/msort-dedup-in.txt
@@ -636,6 +664,7 @@ data-files:
     examples-input/A_478/msort-dedup-in.txt
     examples-input/A_479/msort-dedup-in.txt
     examples-input/A_48/atq-data.txt
+    examples-input/A_48/db-stats-input.txt
     examples-input/A_48/msort-dedup-in.txt
     examples-input/A_480/msort-dedup-in.txt
     examples-input/A_481/msort-dedup-in.txt
@@ -648,6 +677,7 @@ data-files:
     examples-input/A_488/msort-dedup-in.txt
     examples-input/A_489/msort-dedup-in.txt
     examples-input/A_49/atq-data.txt
+    examples-input/A_49/db-stats-input.txt
     examples-input/A_49/msort-dedup-in.txt
     examples-input/A_490/msort-dedup-in.txt
     examples-input/A_491/msort-dedup-in.txt
@@ -660,8 +690,10 @@ data-files:
     examples-input/A_498/msort-dedup-in.txt
     examples-input/A_499/msort-dedup-in.txt
     examples-input/A_5/atq-data.txt
+    examples-input/A_5/db-stats-input.txt
     examples-input/A_5/msort-dedup-in.txt
     examples-input/A_50/atq-data.txt
+    examples-input/A_50/db-stats-input.txt
     examples-input/A_50/msort-dedup-in.txt
     examples-input/A_500/msort-dedup-in.txt
     examples-input/A_501/msort-dedup-in.txt
@@ -674,108 +706,161 @@ data-files:
     examples-input/A_508/msort-dedup-in.txt
     examples-input/A_509/msort-dedup-in.txt
     examples-input/A_51/atq-data.txt
+    examples-input/A_51/db-stats-input.txt
     examples-input/A_51/msort-dedup-in.txt
     examples-input/A_510/msort-dedup-in.txt
     examples-input/A_511/msort-dedup-in.txt
     examples-input/A_52/atq-data.txt
+    examples-input/A_52/db-stats-input.txt
     examples-input/A_52/msort-dedup-in.txt
     examples-input/A_53/atq-data.txt
+    examples-input/A_53/db-stats-input.txt
     examples-input/A_53/msort-dedup-in.txt
     examples-input/A_54/atq-data.txt
+    examples-input/A_54/db-stats-input.txt
     examples-input/A_54/msort-dedup-in.txt
     examples-input/A_55/atq-data.txt
+    examples-input/A_55/db-stats-input.txt
     examples-input/A_55/msort-dedup-in.txt
     examples-input/A_56/atq-data.txt
+    examples-input/A_56/db-stats-input.txt
     examples-input/A_56/msort-dedup-in.txt
     examples-input/A_57/atq-data.txt
+    examples-input/A_57/db-stats-input.txt
     examples-input/A_57/msort-dedup-in.txt
     examples-input/A_58/atq-data.txt
+    examples-input/A_58/db-stats-input.txt
     examples-input/A_58/msort-dedup-in.txt
     examples-input/A_59/atq-data.txt
+    examples-input/A_59/db-stats-input.txt
     examples-input/A_59/msort-dedup-in.txt
     examples-input/A_6/atq-data.txt
+    examples-input/A_6/db-stats-input.txt
     examples-input/A_6/msort-dedup-in.txt
     examples-input/A_60/atq-data.txt
+    examples-input/A_60/db-stats-input.txt
     examples-input/A_60/msort-dedup-in.txt
     examples-input/A_61/atq-data.txt
+    examples-input/A_61/db-stats-input.txt
     examples-input/A_61/msort-dedup-in.txt
     examples-input/A_62/atq-data.txt
+    examples-input/A_62/db-stats-input.txt
     examples-input/A_62/msort-dedup-in.txt
     examples-input/A_63/atq-data.txt
+    examples-input/A_63/db-stats-input.txt
     examples-input/A_63/msort-dedup-in.txt
     examples-input/A_64/atq-data.txt
+    examples-input/A_64/db-stats-input.txt
     examples-input/A_64/msort-dedup-in.txt
     examples-input/A_65/atq-data.txt
+    examples-input/A_65/db-stats-input.txt
     examples-input/A_65/msort-dedup-in.txt
     examples-input/A_66/atq-data.txt
+    examples-input/A_66/db-stats-input.txt
     examples-input/A_66/msort-dedup-in.txt
     examples-input/A_67/atq-data.txt
+    examples-input/A_67/db-stats-input.txt
     examples-input/A_67/msort-dedup-in.txt
     examples-input/A_68/atq-data.txt
+    examples-input/A_68/db-stats-input.txt
     examples-input/A_68/msort-dedup-in.txt
     examples-input/A_69/atq-data.txt
+    examples-input/A_69/db-stats-input.txt
     examples-input/A_69/msort-dedup-in.txt
     examples-input/A_7/atq-data.txt
+    examples-input/A_7/db-stats-input.txt
     examples-input/A_7/msort-dedup-in.txt
     examples-input/A_70/atq-data.txt
+    examples-input/A_70/db-stats-input.txt
     examples-input/A_70/msort-dedup-in.txt
     examples-input/A_71/atq-data.txt
+    examples-input/A_71/db-stats-input.txt
     examples-input/A_71/msort-dedup-in.txt
     examples-input/A_72/atq-data.txt
+    examples-input/A_72/db-stats-input.txt
     examples-input/A_72/msort-dedup-in.txt
     examples-input/A_73/atq-data.txt
+    examples-input/A_73/db-stats-input.txt
     examples-input/A_73/msort-dedup-in.txt
     examples-input/A_74/atq-data.txt
+    examples-input/A_74/db-stats-input.txt
     examples-input/A_74/msort-dedup-in.txt
     examples-input/A_75/atq-data.txt
+    examples-input/A_75/db-stats-input.txt
     examples-input/A_75/msort-dedup-in.txt
     examples-input/A_76/atq-data.txt
+    examples-input/A_76/db-stats-input.txt
     examples-input/A_76/msort-dedup-in.txt
     examples-input/A_77/atq-data.txt
+    examples-input/A_77/db-stats-input.txt
     examples-input/A_77/msort-dedup-in.txt
     examples-input/A_78/atq-data.txt
+    examples-input/A_78/db-stats-input.txt
     examples-input/A_78/msort-dedup-in.txt
     examples-input/A_79/atq-data.txt
+    examples-input/A_79/db-stats-input.txt
     examples-input/A_79/msort-dedup-in.txt
     examples-input/A_8/atq-data.txt
+    examples-input/A_8/db-stats-input.txt
     examples-input/A_8/msort-dedup-in.txt
     examples-input/A_80/atq-data.txt
+    examples-input/A_80/db-stats-input.txt
     examples-input/A_80/msort-dedup-in.txt
     examples-input/A_81/atq-data.txt
+    examples-input/A_81/db-stats-input.txt
     examples-input/A_81/msort-dedup-in.txt
     examples-input/A_82/atq-data.txt
+    examples-input/A_82/db-stats-input.txt
     examples-input/A_82/msort-dedup-in.txt
     examples-input/A_83/atq-data.txt
+    examples-input/A_83/db-stats-input.txt
     examples-input/A_83/msort-dedup-in.txt
     examples-input/A_84/atq-data.txt
+    examples-input/A_84/db-stats-input.txt
     examples-input/A_84/msort-dedup-in.txt
     examples-input/A_85/atq-data.txt
+    examples-input/A_85/db-stats-input.txt
     examples-input/A_85/msort-dedup-in.txt
     examples-input/A_86/atq-data.txt
+    examples-input/A_86/db-stats-input.txt
     examples-input/A_86/msort-dedup-in.txt
     examples-input/A_87/atq-data.txt
+    examples-input/A_87/db-stats-input.txt
     examples-input/A_87/msort-dedup-in.txt
     examples-input/A_88/atq-data.txt
+    examples-input/A_88/db-stats-input.txt
     examples-input/A_88/msort-dedup-in.txt
     examples-input/A_89/atq-data.txt
+    examples-input/A_89/db-stats-input.txt
     examples-input/A_89/msort-dedup-in.txt
     examples-input/A_9/atq-data.txt
+    examples-input/A_9/db-stats-input.txt
     examples-input/A_9/msort-dedup-in.txt
     examples-input/A_90/atq-data.txt
+    examples-input/A_90/db-stats-input.txt
     examples-input/A_90/msort-dedup-in.txt
     examples-input/A_91/atq-data.txt
+    examples-input/A_91/db-stats-input.txt
     examples-input/A_91/msort-dedup-in.txt
     examples-input/A_92/atq-data.txt
+    examples-input/A_92/db-stats-input.txt
     examples-input/A_92/msort-dedup-in.txt
     examples-input/A_93/atq-data.txt
+    examples-input/A_93/db-stats-input.txt
     examples-input/A_93/msort-dedup-in.txt
     examples-input/A_94/atq-data.txt
+    examples-input/A_94/db-stats-input.txt
     examples-input/A_94/msort-dedup-in.txt
     examples-input/A_95/atq-data.txt
+    examples-input/A_95/db-stats-input.txt
     examples-input/A_95/msort-dedup-in.txt
+    examples-input/A_96/db-stats-input.txt
     examples-input/A_96/msort-dedup-in.txt
+    examples-input/A_97/db-stats-input.txt
     examples-input/A_97/msort-dedup-in.txt
+    examples-input/A_98/db-stats-input.txt
     examples-input/A_98/msort-dedup-in.txt
+    examples-input/A_99/db-stats-input.txt
     examples-input/A_99/msort-dedup-in.txt
     examples-input/B/atq-data.txt
     examples-input/B/atq-queries.txt
@@ -895,7 +980,10 @@ data-files:
     examples-input/Ctr_7/in.txt
     examples-input/node_1/gcd.txt
     examples-input/node_2/gcd.txt
+    examples-input/Node_c/in.txt
+    examples-input/Node_in_0/in.txt
     examples-input/Node_in_0/quick-sort-in.txt
+    examples-input/Node_in_1/in.txt
     examples-input/Node_in_1/quick-sort-in.txt
     examples-input/Node_in_10/quick-sort-in.txt
     examples-input/Node_in_11/quick-sort-in.txt
@@ -907,6 +995,7 @@ data-files:
     examples-input/Node_in_17/quick-sort-in.txt
     examples-input/Node_in_18/quick-sort-in.txt
     examples-input/Node_in_19/quick-sort-in.txt
+    examples-input/Node_in_2/in.txt
     examples-input/Node_in_2/quick-sort-in.txt
     examples-input/Node_in_20/quick-sort-in.txt
     examples-input/Node_in_21/quick-sort-in.txt
@@ -918,6 +1007,7 @@ data-files:
     examples-input/Node_in_27/quick-sort-in.txt
     examples-input/Node_in_28/quick-sort-in.txt
     examples-input/Node_in_29/quick-sort-in.txt
+    examples-input/Node_in_3/in.txt
     examples-input/Node_in_3/quick-sort-in.txt
     examples-input/Node_in_30/quick-sort-in.txt
     examples-input/Node_in_31/quick-sort-in.txt
@@ -929,6 +1019,7 @@ data-files:
     examples-input/Node_in_37/quick-sort-in.txt
     examples-input/Node_in_38/quick-sort-in.txt
     examples-input/Node_in_39/quick-sort-in.txt
+    examples-input/Node_in_4/in.txt
     examples-input/Node_in_4/quick-sort-in.txt
     examples-input/Node_in_40/quick-sort-in.txt
     examples-input/Node_in_41/quick-sort-in.txt
@@ -940,6 +1031,7 @@ data-files:
     examples-input/Node_in_47/quick-sort-in.txt
     examples-input/Node_in_48/quick-sort-in.txt
     examples-input/Node_in_49/quick-sort-in.txt
+    examples-input/Node_in_5/in.txt
     examples-input/Node_in_5/quick-sort-in.txt
     examples-input/Node_in_50/quick-sort-in.txt
     examples-input/Node_in_51/quick-sort-in.txt
@@ -951,11 +1043,13 @@ data-files:
     examples-input/Node_in_57/quick-sort-in.txt
     examples-input/Node_in_58/quick-sort-in.txt
     examples-input/Node_in_59/quick-sort-in.txt
+    examples-input/Node_in_6/in.txt
     examples-input/Node_in_6/quick-sort-in.txt
     examples-input/Node_in_60/quick-sort-in.txt
     examples-input/Node_in_61/quick-sort-in.txt
     examples-input/Node_in_62/quick-sort-in.txt
     examples-input/Node_in_63/quick-sort-in.txt
+    examples-input/Node_in_7/in.txt
     examples-input/Node_in_7/quick-sort-in.txt
     examples-input/Node_in_8/quick-sort-in.txt
     examples-input/Node_in_9/quick-sort-in.txt

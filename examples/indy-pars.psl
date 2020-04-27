@@ -1,8 +1,0 @@
-principal A
-principal B
-principal C
-
-def main () =
-  let _ = (fun x -> { par : A } x) ({ par : B } 0) in
-  let _ = { par : A } ({ par : B } 0) in
-  ()
