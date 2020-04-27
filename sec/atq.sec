@@ -2,6 +2,7 @@ A[96] { encryption : 256 }
 B[32] { encryption : 256 } 
 
 connected {
+  broadcast : A, B
   full : A, B
 }
 
