@@ -1,3 +1,19 @@
+%{
+#include <ctype.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+FILE *yyin;
+void yyerror (char const *s) {
+  char next[30];
+  fread(next, 1, 30, yyin);
+  fprintf (stderr, "%s at: %s\n", s, next);
+  exit(0);
+}
+int yylex();
+%}
+
 %start security_spec
 
 %token ENC REVEAL NAT

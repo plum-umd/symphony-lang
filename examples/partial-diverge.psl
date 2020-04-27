@@ -1,9 +1,0 @@
-principal A
-principal B
-principal C
-
-def diverge () = diverge ()
-
-def main () = 
- let flag = { A, B } read int "partial-diverge-in.txt" in
- { A, B } if flag == 0 then () else diverge ()

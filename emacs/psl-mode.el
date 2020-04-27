@@ -42,8 +42,11 @@
 			   "loop"
 			   "when"
 			   "import"
+			   "with"
 			   "nizk-witness"
 			   "nizk-commit"
+			   "virtual" "party"
+			   "sign" "unsign" "is-signed"
 			   ))
 	     (x-types '("yao" "gmw" "bgw" "bgv" "spdz"
 			"ssec" "isec" "bundle" "auto"

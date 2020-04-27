@@ -1,22 +1,23 @@
-Nodes[64] { encryption : 256 }
-External
+Node_in[64] { encryption : 256 }
+External    { encryption : 256 }
 
 connected {
-  full : Nodes
+  broadcast : Node_in
+  full : Node_in
 }
 
 revealed {
-  full : Nodes
+  full : Node_in
 }
 
 verified {
-  { prover : mpc Nodes
+  { prover : mpc Node_in
     verifier : External
   }
 }
 
 attacks {
-  semi-malicious corruptible: { Nodes : (n / 2) - 1 }
+  semi-malicious corruptible: { Node_in : (n / 2) - 1 }
 }
 
 crand {

@@ -1,0 +1,122 @@
+protocol : gc
+source : gc.cpp
+
+topology {
+  parties : Garbler, Evaluator
+  sizes {
+    Garbler : 1
+    Evaluator : 1
+  }
+  connections {
+    Garbler <-> Evaluator
+  }
+}
+
+attack-models {
+  semi-honest {
+    attackers {
+      Garbler, Evaluator: 1
+    }
+
+    types { 
+      bool {
+        Garbler : semi_honest_bool_garbler_t
+        Evaluator : semi_honest_bool_eval_t
+      }
+
+      int 32 {
+        Garbler : semi_honest_int_garbler_t
+        Evaluator : semi_honest_int_eval_t
+      }
+    }
+
+    ops {
+      REVEAL bool {
+        impl : semi_honest_reveal_bool
+        crand :
+        gates: SEMI_HON_GC_REVEAL_INT_GATES
+        comm : SEMI_HON_GC_REVEAL_INT_COMMS
+        rounds: SEMI_HON_GC_REVEAL_INT_ROUNDS
+        memory : SEMI_HON_GC_REVEAL_INT_MEM
+      }
+
+      SHARE int 32 {
+        impl : semi_honest_share_int
+        crand :
+        gates: SEMI_HON_GC_SHR_INT_GATES
+        comm : SEMI_HON_GC_SHR_INT_COMMS
+        rounds: SEMI_HON_GC_SHR_INT_ROUNDS
+        memory : SEMI_HON_GC_SHR_INT_MEM
+      }
+      LEQ int 32 {
+        impl : semi_honest_leq_int
+        crand :
+        gates: SEMI_HON_GC_LEQ_INT_GATES
+        comm : SEMI_HON_GC_LEQ_INT_COMMS
+        rounds: SEMI_HON_GC_LEQ_INT_ROUNDS
+        memory : SEMI_HON_GC_LEQ_INT_MEM
+      }
+    }
+  }
+  
+  malicious {
+    attackers {
+      Garbler, Evaluator: 1
+    }
+
+    types { 
+      bool {
+        Garbler : mal_bool_garbler_t
+        Evaluator : mal_bool_eval_t
+      }
+
+      int 32 {
+        Garbler : mal_int_garbler_t
+        Evaluator : mal_int_eval_t
+      }
+    }
+
+    ops {
+      SHARE int 32 {
+        impl : mal_share_int
+        crand :
+        gates: MAL_GC_SHR_INT_GATES
+        comm : MAL_GC_SHR_INT_COMMS
+        rounds: MAL_GC_SHR_INT_ROUNDS
+        memory : MAL_GC_SHR_INT_MEM
+      }
+      REVEAL int 32 {
+        impl : mal_reveal_int
+        crand :
+        gates: MAL_GC_REVEAL_INT_GATES
+        comm : MAL_GC_REVEAL_INT_COMMS
+        rounds: MAL_GC_REVEAL_INT_ROUNDS
+        memory : MAL_GC_REVEAL_INT_MEM
+      }
+      EQ int 32 {
+        impl : mal_eq_int
+        crand :
+        gates: MAL_GC_EQ_INT_GATES
+        comm : MAL_GC_EQ_INT_COMMS
+        rounds: MAL_GC_EQ_INT_ROUNDS
+        memory : MAL_GC_EQ_INT_MEM
+      }
+      LEQ int 32 {
+        impl : mal_leq_int
+        crand :
+        gates: MAL_GC_LEQ_INT_GATES
+        comm : MAL_GC_LEQ_INT_COMMS
+        rounds: MAL_GC_LEQ_INT_ROUNDS
+        memory : MAL_GC_LEQ_INT_MEM
+      }
+      MOD int 32 {
+        impl : mal_mod_int
+        crand :
+        gates: MAL_GC_MOD_INT_GATES
+        comm : MAL_GC_MOD_INT_COMMS
+        rounds: MAL_GC_MOD_INT_ROUNDS
+        memory : MAL_GC_MOD_INT_MEM
+      }
+    }
+  }
+}

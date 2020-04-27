@@ -1,5 +1,5 @@
 A[128] { encryption : 256 }
-B { encryption : 256 } 
+B      { encryption : 256 } 
 
 connected {
   A <-> B

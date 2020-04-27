@@ -1,8 +1,0 @@
-def main () =
-  let int-eql = fun a b -> a == b
-  let m = map-init int-eql 0 0 int-swap int-swap 10
-  let m = map-insert 5 10 m
-  let m = map-insert 7 13 m
-  let m = map-insert-with (fun x y -> x + y) 7 3 m
-  let m = map-insert 5 3 m
-  in map-read 7 m, map-read 5 m

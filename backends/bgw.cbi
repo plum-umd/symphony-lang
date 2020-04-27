@@ -1,63 +1,138 @@
 proto : bgw
 impl : bgw.cpp
 
-semi-honest {
-  security {
-    parties: any
-    corruptible: n/2 - 1
+topology {
+  parties : P
+  sizes {
   }
-
-  share bool : bgw_semi_honest_bool_t
-
-  share nat 32: bgw_semi_honest_nat_t
-
-  share int 32: bgw_semi_honest_int_t
-
-  share float 53 11: bgw_semi_honest_float_t
-
-  SHARE-INT {
-    impl: bgw_semi_share_int
-    crand: 
-    gates: ??
-    rounds: ??
+  connections {
+    broadcast : P
+    full : P
   }
-
-  REVEAL-INT {
-    impl: bgw_semi_reveal_int
-    crand: 
-    gates: ??
-    rounds: ?? }
-
-  PLUS {
-    impl: bgw_semi_honest_plus
-    crand:
-    gates: ??
-    rounds: ?? }
-
-  MULT {
-    impl: bgw_semi_honest_mult
-    crand:
-    gates: ??
-    rounds: ?? }
-
-  // Ben/Ryan: fill in data above and all other ops supported, 
-  following pattern given above:
-
 }
 
-malicious {
-  security {
-    parties: any
-    corruptible: n/3 - 1
+attack-models {
+  semi-malicious {
+    security {
+      P : n/2 - 1
+    }
+
+    types {
+      bool {
+        P : bgw_semi_mal_bool_t
+      }
+      float 53 11 {
+        P : bgw_semi_mal_flt_t
+      }
+    }
+
+    ops {
+      SHARE float 53 11 {
+        impl : bgw_semi_mal_share_flt
+        crand :
+        gates: BGW_SHR_FLOAT_GATES
+        comm : BGW_SHR_FLOAT_COMMS
+        rounds: BGW_SHR_FLOAT_ROUNDS
+        memory : BGW_SHR_FLOAT_MEM
+      }
+      REVEAL float 53 11 {
+        impl : bgw_semi_mal_reveal_flt
+        crand :
+        gates: BGW_REVEAL_FLOAT_GATES
+        comm : BGW_REVEAL_FLOAT_COMMS
+        rounds: BGW_REVEAL_FLOAT_ROUNDS
+        memory : BGW_REVEAL_FLOAT_MEM
+      }
+      PLUS float 53 11 {
+        impl : bgw_semi_mal_plus_flt
+        crand :
+        gates: BGW_PLUS_FLOAT_GATES
+        comm : BGW_PLUS_FLOAT_COMMS
+        rounds: BGW_PLUS_FLOAT_ROUNDS
+        memory : BGW_PLUS_FLOAT_MEM
+      }
+      MULT float 53 11 {
+        impl : bgw_semi_mal_mult_flt
+        crand :
+        gates: BGW_MULT_FLOAT_GATES
+        comm : BGW_MULT_FLOAT_COMMS
+        rounds: BGW_MULT_FLOAT_ROUNDS
+        memory : BGW_MULT_FLOAT_MEM
+      }
+      LEQ float 53 11 {
+        impl : bgw_semi_mal_leq_flt
+        crand :
+        gates: BGW_LEQ_FLOAT_GATES
+        comm : BGW_LEQ_FLOAT_COMMS
+        rounds: BGW_LEQ_FLOAT_ROUNDS
+        memory : BGW_LEQ_FLOAT_MEM
+      }
+    }
   }
 
-  share bool : bgw_mal_bool_t
+  malicious {
+    security {
+      P : n/3 - 1
+    }
 
-  share nat 32: bgw_mal_nat_t
+    types {
+      bool {
+        P : bgw_mal_bool_t
+      }
+      int 32 {
+        P : bgw_mal_int_t
+      }
+    }
 
-  share int 32: bgw_mal_int_t
-
-  share float 53 11: bgw_mal_float_t
-
-  // Ben/Ryan: add supported operation with estimates here
+    ops {
+      SHARE int 32 {
+        impl : bgw_mal_share_flt
+        crand :
+        gates: BGW_SHR_INT_GATES
+        comm : BGW_SHR_INT_COMMS
+        rounds: BGW_SHR_INT_ROUNDS
+        memory : BGW_SHR_INT_MEM
+      }
+      REVEAL int 32 {
+        impl : bgw_mal_reveal_flt
+        crand :
+        gates: BGW_REVEAL_INT_GATES
+        comm : BGW_REVEAL_INT_COMMS
+        rounds: BGW_REVEAL_INT_ROUNDS
+        memory : BGW_REVEAL_INT_MEM
+      }
+      PLUS int 32 {
+        impl : bgw_mal_plus_flt
+        crand :
+        gates: BGW_PLUS_INT_GATES
+        comm : BGW_PLUS_INT_COMMS
+        rounds: BGW_PLUS_INT_ROUNDS
+        memory : BGW_PLUS_INT_MEM
+      }
+      MULT int 32 {
+        impl : bgw_mal_mult_flt
+        crand :
+        gates: BGW_MULT_INT_GATES
+        comm : BGW_MULT_INT_COMMS
+        rounds: BGW_MULT_INT_ROUNDS
+        memory : BGW_MULT_INT_MEM
+      }
+      EQ int 32 {
+        impl : bgw_mal_eq_flt
+        crand :
+        gates: BGW_EQ_INT_GATES
+        comm : BGW_EQ_INT_COMMS
+        rounds: BGW_EQ_INT_ROUNDS
+        memory : BGW_EQ_INT_MEM
+      }
+      LEQ int 32 {
+        impl : bgw_mal_leq_flt
+        crand :
+        gates: BGW_LEQ_INT_GATES
+        comm : BGW_LEQ_INT_COMMS
+        rounds: BGW_LEQ_INT_ROUNDS
+        memory : BGW_LEQ_INT_MEM
+      }
+    }
+  }
 }

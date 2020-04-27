@@ -5,6 +5,10 @@ principal Central
 def concat = uncurry cons
 
 -- Listing 2: Pseudocode for merge sort
+def merge_dedup :
+  ((list int{ bgw : A, Central }) * (list int{ bgw : A, Central }))
+  ->{ rev : A }
+  list int{ bgv : A, Central }
 def merge_dedup (a, b) =
   let alen = len a in
   let blen = len b in
@@ -20,6 +24,8 @@ def merge_dedup (a, b) =
               merge_dedup (sub-list a 1n alen, sub-list b 2n blen) )
 
 -- Let A be an array data structure with index values starting with 1
+def merge_sort_dedup :
+  list int{ bgw : A, Central } -> list int{ bgv : A, Central }
 def merge_sort_dedup a =
   let n = len a in
   if n > 1n then
@@ -28,6 +34,7 @@ def merge_sort_dedup a =
                  merge_sort_dedup (sub-list a (m + 1n) n) )
   else [ arr_get a 1n ]
 
+def main : unit ->{ inp: A; rev : A} list int{ A }
 def main () =
   let inputs = solo { A } as a in read (int) from "msort-dedup-in.txt" in
   let input_ls =
@@ -37,4 +44,3 @@ def main () =
   let out = par { A, Central }
     (map (wrap-reveal { A }) (merge_sort_dedup input_ls)) in
   out
-  -- par { A } send-ls A[0n] { A } out

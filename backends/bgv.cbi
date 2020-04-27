@@ -1,46 +1,173 @@
-proto : bgv
-impl : bgv.cpp
+protocol : bgv
+source : bgv.cpp
 
-malicious {
-  security {
-    parties: 2
-    corruptible: 1
+topology {
+  parties : Inputs, Compute
+  sizes {
+    Compute : 1
   }
-
-  share bool : bgv_mal_bool_t
-
-  share nat 32: bgv_mal_nat_t
-
-  share int 32: bgv_mal_int_t
-
-  share float 53 11: bgv_mal_float64_t
-
-  SHARE-INT {
-    crand: 
-    impl: bgv_mal_share_int
-    gates: ??
-    rounds: ?? }
-
-  REVEAL-INT {
-    crand:
-    impl: bgv_mal_reveal_int
-    gates: ??
-    rounds: ?? }
-
-  PLUS {
-    crand:
-    impl: bgv_mal_plus
-    gates: ??
-    rounds: ?? }
-
-  MULT {
-    crand: 
-    impl: bgv_mal_mult
-    gates: ??
-    rounds: ??
+  connections {
+    Inputs <-> Compute
   }
-
-  // Ben, Ryan: fill in other operations here
 }
 
-// Ben, Ryan: fill in other attack models here
+attack-models {
+  semi-honest {
+    attackers {
+      Inputs, Compute: n - 1
+    }
+
+    types { 
+      bool {
+        Inputs : semi_honest_bool_in_t
+        Compute : semi_honest_bool_comp_t
+      }
+
+      nat 32 {
+        Inputs : semi_honest_nat_in_t
+        Compute : semi_honest_nat_comp_t
+      }
+
+      int 32 {
+        Inputs : semi_honest_int_in_t
+        Compute : semi_honest_int_comp_t
+      }
+
+      float 53 11 {
+        Inputs : semi_honest_flt_in_t
+        Compute : semi_honest_flt_comp_t
+      }
+    }
+
+    ops {
+      SHARE int 16 {
+        impl : bgv_semi_honest_share_int
+        crand :
+        gates: BGV_SEMI_HONEST_SHR_INT_GATES
+        comm : BGV_SEMI_HONEST_SHR_INT_COMM
+        rounds: BGV_SEMI_HONEST_SHR_INT_ROUNDS
+        memory : BGV_SEMI_HONEST_SHR_INT_MEM
+      }
+      REVEAL int 16 {
+        impl : bgv_semi_honest_reveal_int
+        crand :
+        gates: BGV_SEMI_HONEST_REVEAL_INT_GATES
+        comm : BGV_SEMI_HONEST_REVEAL_INT_COMM
+        rounds: BGV_SEMI_HONEST_REVEAL_INT_ROUNDS
+        memory : BGV_SEMI_HONEST_REVEAL_INT_MEM
+      }
+      LEQ int 16 {
+        impl : bgv_semi_honest_leq_int
+        crand :
+        gates: BGV_SEMI_HONEST_LEQ_INT_GATES
+        comm : BGV_SEMI_HONEST_LEQ_INT_COMM
+        rounds: BGV_SEMI_HONEST_LEQ_INT_ROUNDS
+        memory : BGV_SEMI_HONEST_LEQ_INT_MEM
+      }
+
+      PLUS float 53 11 {
+        impl : bgv_semi_honest_plus_flt
+        crand :
+        gates: BGV_FLT_PLUS_GATES
+        comm : BGV_FLT_PLUS_COMM
+        rounds: BGV_FLT_PLUS_ROUNDS
+        memory : BGV_FLT_PLUS_MEM
+      }
+      MULT float 53 11 {
+        impl : bgv_semi_honest_mult_flt
+        crand : 
+        gates: BGV_FLT_MULT_GATES
+        comm : BGV_FLT_MULT_COMM
+        rounds: BGV_FLT_MULT_ROUNDS
+        memory : BGV_FLT_MULT_MEM
+      }
+      DIV float 53 11 {
+        impl : bgv_semi_honest_div_flt
+        crand : 
+        gates: BGV_FLT_DIV_GATES
+        comm : BGV_FLT_DIV_COMM
+        rounds: BGV_FLT_DIV_ROUNDS
+        memory : BGV_FLT_DIV_MEM
+      }
+      EQ float 53 11 {
+        impl : bgv_semi_honest_eq_flt
+        crand : 
+        gates: BGV_FLT_EQ_GATES
+        comm : BGV_FLT_EQ_COMM
+        rounds: BGV_FLT_EQ_ROUNDS
+        memory : BGV_FLT_EQ_MEM
+      }
+      LEQ float 53 11 {
+        impl : bgv_semi_honest_leq_flt
+        crand : 
+        gates: BGV_FLT_LEQ_GATES
+        comm : BGV_FLT_LEQ_COMM
+        rounds: BGV_FLT_LEQ_ROUNDS
+        memory : BGV_FLT_LEQ_MEM
+      }
+      SQRT float 53 11 {
+        impl : bgv_semi_honest_sqrt_flt
+        crand : 
+        gates: BGV_FLT_SQRT_GATES
+        comm : BGV_FLT_SQRT_COMM
+        rounds: BGV_FLT_SQRT_ROUNDS
+        memory : BGV_FLT_SQRT_MEM
+      }
+    }
+  }
+
+  malicious {
+    attackers {
+      Inputs, Compute: n - 1
+    }
+
+    types { 
+      bool {
+        Inputs : mal_bool_in_t
+        Compute : mal_bool_comp_t
+      }
+
+      nat 32 {
+        Inputs : mal_nat_in_t
+        Compute : mal_nat_comp_t
+      }
+
+      int 32 {
+        Inputs : mal_int_in_t
+        Compute : mal_int_comp_t
+      }
+
+      float 53 11 {
+        Inputs : mal_flt_in_t
+        Compute : mal_flt_comp_t
+      }
+    }
+
+    ops {
+      LEQ int 4096 {
+        impl : bgv_mal_leq_int_4096
+        crand :
+        gates: BGV_SEMI_HONEST_LEQ_INT_4096_GATES
+        comm : BGV_SEMI_HONEST_LEQ_INT_4096_COMM
+        rounds: BGV_SEMI_HONEST_LEQ_INT_4096_ROUNDS
+        memory : BGV_SEMI_HONEST_LEQ_INT_4096_MEM
+      }
+      EQ int 4096 {
+        impl : bgv_mal_eq_int_4096
+        crand :
+        gates: BGV_SEMI_HONEST_EQ_INT_4096_GATES
+        comm : BGV_SEMI_HONEST_EQ_INT_4096_COMM
+        rounds: BGV_SEMI_HONEST_EQ_INT_4096_ROUNDS
+        memory : BGV_SEMI_HONEST_EQ_INT_4096_MEM
+      }
+      MOD int 4096 {
+        impl : bgv_mal_mod_int_4096
+        crand :
+        gates: BGV_SEMI_HONEST_MOD_INT_4096_GATES
+        comm : BGV_SEMI_HONEST_MOD_INT_4096_COMM
+        rounds: BGV_SEMI_HONEST_MOD_INT_4096_ROUNDS
+        memory : BGV_SEMI_HONEST_MOD_INT_4096_MEM
+      }
+    }
+  }
+}
