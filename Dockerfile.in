@@ -23,6 +23,7 @@ RUN : \
   && make \
   && make DESTDIR=/x/destdir install \
   && mkdir /x/destdir/root \
+  && cp run-re-gfi.bash /x/destdir/root \
   && cd /x/destdir/root \
   && tar xzf /x/psl-@PACKAGE_VERSION@/resource-estimation.tar.gz \
 ;
