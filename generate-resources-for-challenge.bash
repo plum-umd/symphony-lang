@@ -1,13 +1,10 @@
-#!/bin/bash
-
 set -e -u -o pipefail
 
 # Kill everything on exit, in particular on Ctrl-C.
 trap 'kill $(jobs -p) &>/dev/null || :' EXIT
 
-# Do a run, keeping track of the names and process IDs of all runs.
+# Do a run and keep track of the process IDs of all runs.
 pids=()
-names=()
 run() {
   local psl=psl
   # Prefer ./psl to psl if it exists.
@@ -22,11 +19,14 @@ run() {
     $psl example -r $1 &>>$1.log || s=$?
     { printf 'Stop time: ' && date; } >>$1.log
     printf 'Exit status: %s\n' $s >>$1.log
-    printf 'done: %s\n' $1
+    if ((s == 0)); then
+      printf 'done: %s\n' $1
+    else
+      printf 'done: %s (FAILED)\n' $1
+    fi
   ) &
   pid=$!
   pids+=($pid)
-  names[$pid]=$1
 }
 
 for x in quick-sort-bgw quick-sort-spdz
@@ -41,7 +41,7 @@ for x in atq-bgw atq-spdz
 do
     for y in 8 12 16 20 24 28 32
     do
-      	run $x-$y
+        run $x-$y
     done
 done
 
@@ -55,7 +55,6 @@ do
     run db-stats-$y
 done
 
-	 
 run karmarkar-iters-1
 run karmarkar-iters-2
 
@@ -63,5 +62,5 @@ run gcd-bgv
 run gcd-gc
 
 for pid in ${pids[@]}; do
-  wait $pid || printf 'FAILED: %s\n' ${names[$pid]}
+  wait $pid
 done
