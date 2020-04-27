@@ -54,6 +54,11 @@ def nz-prod-mat z u m =
 def nz-prod-mat-flt = nz-prod-mat 0.0 1.0
 
 -- Listing 9: Inverse of a lower triangular matrix
+def matrix_inverse_lt :
+  list ((list float{ spdz : Node_in, Node_c })
+          { Node_in, Node_c }){ Node_in, Node_c } ->
+  list ((list float{ spdz : Node_in, Node_c })
+          { Node_in, Node_c }){ Node_in, Node_c } 
 def matrix_inverse_lt l =
   let n = order l in -- order of L
   let l_inv = ref (zero-mat n) in -- n x n zero matrix
@@ -108,7 +113,11 @@ def cholesky_decomposition m =
     !l
 
 -- Listing 8: Inverse of a positive definite Hermitian matrix
-def matrix_inverse_pdh : num -> matrix -> matrix
+def matrix_inverse_pdh : 
+  list ((list float{ spdz : Node_in, Node_c })
+          { Node_in, Node_c }){ Node_in, Node_c } ->
+  list ((list float{ spdz : Node_in, Node_c })
+          { Node_in, Node_c }){ Node_in, Node_c } 
 def matrix_inverse_pdh m =
   let l = cholesky_decomposition m in
   let l_inv = matrix_inverse_lt l in -- Invert the lower-triangular matrix
@@ -116,6 +125,12 @@ def matrix_inverse_pdh m =
   m_inv
 
 -- Listing 6: Iteration for Karmarkar's Algorithm
+def karmarkar_iteration :
+  (list float{ spdz : Node_in, Node_c }){ Node_in, Node_c } ->
+  list ((list float{ spdz : Node_in, Node_c })
+          { Node_in, Node_c }){ Node_in, Node_c } ->
+  (list float{ spdz : Node_in, Node_c }){ Node_in, Node_c } ->
+  (list float{ spdz : Node_in, Node_c }){ Node_in, Node_c } 
 def karmarkar_iteration initial_point a c =
   let (m, n) = dimensions_of a in
   -- D is a matrix of zeros with the values of initial_point on the
@@ -167,6 +182,11 @@ def karmarkar_iteration initial_point a c =
 
 
 -- Listing 7: Loop for Karmarkar's Algorithm
+def karmarkar_loop :
+  list ((list float{ spdz : Node_in, Node_c })
+          { Node_in, Node_c }){ Node_in, Node_c } ->
+  (list float{ spdz : Node_in, Node_c }){ Node_in, Node_c } ->
+  (list float{ spdz : Node_in, Node_c }){ Node_in, Node_c } 
 def karmarkar_loop a c = proc
   let (m, n) = dimensions_of a in
   -- Epsilon is the stopping condition. This value should be close to
@@ -215,6 +235,12 @@ def verify-dot-prod P0 P1 v0 v1 = par{ P0, P1 }
 
 -- main: entry point; Node_in, Node_c read inputs and run the algorithm,
 -- distributes results to Node_o
+def main :
+  unit
+  ->{ inp : Node_in, Node_c; rev : Node_o }
+  ((list float{ Node_o }){ Node_o } *
+   ((nizk-verify { Node_o, Node_in } bool){ bundle : Node_in }) *
+   (nizk-verify { Node_o, Node_c } bool){ Node_c })
 def main () =
   let ctrs = solo { Node_in } as c in read (list flt) from "in.txt" in
   let cost = par { Node_c } read (list flt) from "in.txt" in
