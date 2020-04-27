@@ -1,6 +1,6 @@
 Node_in[8] { encryption : 256 }
-Node_c { encryption : 256 }
-Node_o { encryption : 256 }
+Node_c     { encryption : 256 }
+Node_o     { encryption : 256 }
 
 connected {
   full : Node_in, Node_c, Node_o

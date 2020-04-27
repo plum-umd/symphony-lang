@@ -4,7 +4,7 @@ source : bgv.cpp
 topology {
   parties : Inputs, Compute
   sizes {
-    Compute : n = 1
+    Compute : 1
   }
   connections {
     Inputs <-> Compute
@@ -40,7 +40,7 @@ attack-models {
     }
 
     ops {
-      SHARE-INT {
+      SHARE int 32 {
         impl : bgv_semi_honest_share_int
         crand :
         gates: ??
@@ -48,7 +48,7 @@ attack-models {
         rounds: ??
         memory : ??
       }
-      REVEAL-INT {
+      REVEAL int 32 {
         impl : bgv_semi_honest_reveal_int
         crand :
         gates: ??
@@ -56,7 +56,7 @@ attack-models {
         rounds: ??
         memory : ??
       }
-      PLUS-INT {
+      PLUS int 32 {
         impl : bgv_semi_honest_plus_int
         crand :
         gates: ??
@@ -64,7 +64,7 @@ attack-models {
         rounds: ??
         memory : ??
       }
-      MULT-INT {
+      MULT int 32 {
         impl : bgv_semi_honest_mult_int
         crand :
         gates: ??
@@ -72,7 +72,7 @@ attack-models {
         rounds: ??
         memory : ??
       }
-      LEQ-INT {
+      LEQ int 32 {
         impl : bgv_semi_honest_leq_int
         crand :
         gates: ??

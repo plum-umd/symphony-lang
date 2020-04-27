@@ -32,11 +32,11 @@
   * 
   * 3. a sequence of declarations of threat models: */
 crypto_backend_spec :
-nm_decl
-file_decl
-topology_decl
-threat_decls
-;
+  nm_decl
+  file_decl
+  topology_decl
+  threat_decls
+  ;
 
 // A protocol name declaration is the constnat
 nm_decl : PROTO ':' PROTO_NM
@@ -110,7 +110,7 @@ threat_model :
 | MAL
 ;
 
-// sec_decl: declares security parameters:
+// attackers_decl: declares a threshold on attackers
 attackers_decl :
 ATTACKERS '{'
   threshold_clauses
@@ -146,7 +146,8 @@ share_ty_decls :
 ;
 
 // share_ty_decl: declares a type of shares:
-share_ty_decl : TYPES '{'
+share_ty_decl :
+TYPES '{'
   type_decls
 '}' ;
 
@@ -192,7 +193,12 @@ crand_seq :
 | crand  crand_seq
 ;
 
-crand : BEAVER
+crand :
+BEAVER_TRIPLES
+| SQ_TRIPLES
+| OBLIV_TRANSFER
+| OBLIV_LIN_EX
+| ZERO_SHRS
 ;
 
 // op_nm: a name of an operation
