@@ -115,7 +115,8 @@ def verify inputs result =
      res-is-perm &&
      res-is-sorted)
 
-
+def main : unit ->{ inp : Node_in ; rev : Node_in }
+  (list flt{ Node_in } * (nizk-verify { Node_in } bool){ External })
 def main () =
   let (sorted, corr-pf) = par{ Node_in }
     -- inputs: shares of the inputs
