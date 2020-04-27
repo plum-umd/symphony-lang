@@ -11,8 +11,8 @@ EXTRA_DIST += COMMIT
 EXTRA_DIST += DATE
 EXTRA_DIST += README.md
 EXTRA_DIST += VERSION
-EXTRA_DIST += generate-resources-for-challenge.bash
 EXTRA_DIST += resource-estimation.tar.gz
+EXTRA_DIST += run-re-gfi.bash
 
 MOSTLYCLEANFILES =
 MOSTLYCLEANFILES += psl
