@@ -32,48 +32,137 @@ attack-models {
     }
 
     ops {
+      SHARE nat 32 {
+        impl : spdz_mal_share_flt
+        crand : beaver
+        gates: SPDZ_NAT_SHARE_NAT_GATES
+        comm : SPDZ_NAT_SHARE_NAT_COMM
+        rounds: SPDZ_NAT_SHARE_NAT_ROUNDS
+        memory : SPDZ_NAT_SHARE_NAT_MEM
+      }
+      PLUS nat 32 {
+        impl : spdz_mal_plus_flt
+        crand :
+        gates: SPDZ_NAT_PLUS_GATES
+        comm : SPDZ_NAT_PLUS_COMM
+        rounds: SPDZ_NAT_PLUS_ROUNDS
+        memory : SPDZ_NAT_PLUS_MEM
+      }
+      MULT nat 32 {
+        impl : spdz_mal_mult_flt
+        crand : beaver
+        gates: SPDZ_NAT_MULT_GATES
+        comm : SPDZ_NAT_MULT_COMM
+        rounds: SPDZ_NAT_MULT_ROUNDS
+        memory : SPDZ_NAT_MULT_MEM
+      }
+      DIV nat 32 {
+        impl : spdz_mal_div_flt
+        crand : beaver
+        gates: SPDZ_NAT_DIV_GATES
+        comm : SPDZ_NAT_DIV_COMM
+        rounds: SPDZ_NAT_DIV_ROUNDS
+        memory : SPDZ_NAT_DIV_MEM
+      }
+      LEQ nat 32 {
+        impl : spdz_mal_leq_flt
+        crand : beaver
+        gates: SPDZ_NAT_LEQ_GATES
+        comm : SPDZ_NAT_LEQ_COMM
+        rounds: SPDZ_NAT_LEQ_ROUNDS
+        memory : SPDZ_NAT_LEQ_MEM
+      }
+      EQ nat 32 {
+        impl : spdz_mal_eq_flt
+        crand : beaver
+        gates: SPDZ_NAT_EQ_GATES
+        comm : SPDZ_NAT_EQ_COMM
+        rounds: SPDZ_NAT_EQ_ROUNDS
+        memory : SPDZ_NAT_EQ_MEM
+      }
+
       SHARE float 53 11 {
         impl : spdz_mal_share_flt
         crand : beaver
-        gates: ??
-        comm : ??
-        rounds: ??
-        memory : ??
+        gates: SPDZ_FLT_SHARE_GATES
+        comm : SPDZ_FLT_SHARE_COMM
+        rounds: SPDZ_FLT_SHARE_ROUNDS
+        memory : SPDZ_FLT_SHARE_MEM
       }
       REVEAL float 53 11 {
         impl : spdz_mal_reveal_flt
         crand :
-        gates: ??
-        comm : ??
-        rounds: ??
-        memory : ??
+        gates: SPDZ_FLT_REVEAL_GATES
+        comm : SPDZ_FLT_REVEAL_COMM
+        rounds: SPDZ_FLT_REVEAL_ROUNDS
+        memory : SPDZ_FLT_REVEAL_MEM
       }
+
+      LEQ float 53 11 {
+        impl : spdz_mal_leq_flt
+        crand : beaver
+        gates: SPDZ_FLT_LEQ_GATES
+        comm : SPDZ_FLT_LEQ_COMM
+        rounds: SPDZ_FLT_LEQ_ROUNDS
+        memory : SPDZ_FLT_LEQ_MEM
+      }
+
       PLUS float 53 11 {
         impl : spdz_mal_plus_flt
         crand :
-        gates: ??
-        comm : ??
-        rounds: ??
-        memory : ??
+        gates: SPDZ_FLT_PLUS_GATES
+        comm : SPDZ_FLT_PLUS_COMM
+        rounds: SPDZ_FLT_PLUS_ROUNDS
+        memory : SPDZ_FLT_PLUS_MEM
       }
       MULT float 53 11 {
         impl : spdz_mal_mult_flt
         crand : beaver
-        gates: ??
-        comm : ??
-        rounds: ??
-        memory : ??
+        gates: SPDZ_FLT_MULT_GATES
+        comm : SPDZ_FLT_MULT_COMM
+        rounds: SPDZ_FLT_MULT_ROUNDS
+        memory : SPDZ_FLT_MULT_MEM
       }
-      LEQ float 53 11 {
+      DIV float 53 11 {
+        impl : spdz_mal_div_flt
+        crand : beaver
+        gates: SPDZ_FLT_DIV_GATES
+        comm : SPDZ_FLT_DIV_COMM
+        rounds: SPDZ_FLT_DIV_ROUNDS
+        memory : SPDZ_FLT_DIV_MEM
+      }
+      EXP float 53 11 {
+        impl : spdz_mal_exp_flt
+        crand : beaver
+        gates: SPDZ_FLT_EXP_GATES
+        comm : SPDZ_FLT_EXP_COMM
+        rounds: SPDZ_FLT_EXP_ROUNDS
+        memory : SPDZ_FLT_EXP_MEM
+      }
+      BIN-LOG float 53 11 {
+        impl : spdz_mal_bin_log_flt
+        crand : beaver
+        gates: SPDZ_FLT_BIN_LOG_GATES
+        comm : SPDZ_FLT_BIN_LOG_COMM
+        rounds: SPDZ_FLT_BIN_LOG_ROUNDS
+        memory : SPDZ_FLT_BIN_LOG_MEM
+      }
+      EQ float 53 11 {
+        impl : spdz_mal_eq_flt
+        crand : beaver
+        gates: SPDZ_FLT_EQ_GATES
+        comm : SPDZ_FLT_EQ_COMM
+        rounds: SPDZ_FLT_EQ_ROUNDS
+        memory : SPDZ_FLT_EQ_MEM
+      }
+      SQRT float 53 11 {
         impl : spdz_mal_leq_flt
         crand : beaver
-        gates: ??
-        comm : ??
-        rounds: ??
-        memory : ??
+        gates: SPDZ_FLT_SQRT_GATES
+        comm : SPDZ_FLT_SQRT_COMM
+        rounds: SPDZ_FLT_SQRT_ROUNDS
+        memory : SPDZ_FLT_SQRT_MEM
       }
-      ...
-      // TODO: add other ops
     }
   }
 }
