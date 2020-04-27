@@ -22,10 +22,7 @@ attack-models {
         P : bgw_semi_mal_bool_t
       }
       nat 32 {
-        P : bgw_semi_mal_bool_t
-      }
-      int 32 {
-        P : bgw_semi_mal_int_t
+        P : bgw_semi_mal_nat_t
       }
       float 53 11 {
         P : bgw_semi_mal_flt_t
@@ -36,45 +33,106 @@ attack-models {
       SHARE float 53 11 {
         impl : bgw_semi_mal_share_flt
         crand :
-        gates: ??
-        comm : ??
-        rounds: ??
-        memory : ??
+        gates: BGW_SHR_FLOAT_GATES
+        comm : BGW_SHR_FLOAT_COMMS
+        rounds: BGW_SHR_FLOAT_ROUNDS
+        memory : BGW_SHR_FLOAT_ROUNDS
       }
       REVEAL float 53 11 {
         impl : bgw_semi_mal_reveal_flt
         crand :
-        gates: ??
-        comm : ??
-        rounds: ??
-        memory : ??
+        gates: BGW_REVEAL_FLOAT_GATES
+        comm : BGW_REVEAL_FLOAT_COMMS
+        rounds: BGW_REVEAL_FLOAT_ROUNDS
+        memory : BGW_REVEAL_FLOAT_ROUNDS
+
       }
       PLUS float 53 11 {
         impl : bgw_semi_mal_plus_flt
         crand :
-        gates: ??
-        comm : ??
-        rounds: ??
-        memory : ??
+        gates: BGW_PLUS_FLOAT_GATES
+        comm : BGW_PLUS_FLOAT_COMMS
+        rounds: BGW_PLUS_FLOAT_ROUNDS
+        memory : BGW_PLUS_FLOAT_ROUNDS
       }
       MULT float 53 11 {
         impl : bgw_semi_mal_mult_flt
         crand :
-        gates: ??
-        comm : ??
-        rounds: ??
-        memory : ??
+        gates: BGW_MULT_FLOAT_GATES
+        comm : BGW_MULT_FLOAT_COMMS
+        rounds: BGW_MULT_FLOAT_ROUNDS
+        memory : BGW_MULT_FLOAT_ROUNDS
       }
       LEQ float 53 11 {
         impl : bgw_semi_mal_leq_flt
         crand :
-        gates: ??
-        comm : ??
-        rounds: ??
-        memory : ??
+        gates: BGW_LEQ_FLOAT_GATES
+        comm : BGW_LEQ_FLOAT_COMMS
+        rounds: BGW_LEQ_FLOAT_ROUNDS
+        memory : BGW_LEQ_FLOAT_ROUNDS
       }
-      ...
-      // TODO: add other ops
+    }
+  }
+
+  malicious {
+    security {
+      P : n/3 - 1
+    }
+
+    types {
+      bool {
+        P : bgw_mal_bool_t
+      }
+      nat 32 {
+        P : bgw_mal_nat_t
+      }
+      int 32 {
+        P : bgw_mal_int_t
+      }
+    }
+
+    ops {
+      SHARE int 32 {
+        impl : bgw_mal_share_flt
+        crand :
+        gates: BGW_SHR_INT_GATES
+        comm : BGW_SHR_INT_COMMS
+        rounds: BGW_SHR_INT_ROUNDS
+        memory : BGW_SHR_INT_ROUNDS
+      }
+      REVEAL int 32 {
+        impl : bgw_mal_reveal_flt
+        crand :
+        gates: BGW_REVEAL_INT_GATES
+        comm : BGW_REVEAL_INT_COMMS
+        rounds: BGW_REVEAL_INT_ROUNDS
+        memory : BGW_REVEAL_INT_ROUNDS
+
+      }
+      PLUS int 32 {
+        impl : bgw_mal_plus_flt
+        crand :
+        gates: BGW_PLUS_INT_GATES
+        comm : BGW_PLUS_INT_COMMS
+        rounds: BGW_PLUS_INT_ROUNDS
+        memory : BGW_PLUS_INT_ROUNDS
+      }
+      MULT int 32 {
+        impl : bgw_mal_mult_flt
+        crand :
+        gates: BGW_MULT_INT_GATES
+        comm : BGW_MULT_INT_COMMS
+        rounds: BGW_MULT_INT_ROUNDS
+        memory : BGW_MULT_INT_ROUNDS
+      }
+      LEQ int 32 {
+        impl : bgw_mal_leq_flt
+        crand :
+        gates: BGW_LEQ_INT_GATES
+        comm : BGW_LEQ_INT_COMMS
+        rounds: BGW_LEQ_INT_ROUNDS
+        memory : BGW_LEQ_INT_ROUNDS
+      }
     }
   }
 }
