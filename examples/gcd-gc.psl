@@ -2,6 +2,9 @@
 principal node_1 node_2
 
 -- Listing 5: Greatest Common Divisor.
+def gcd :
+  int{ yao : node_1, node_2 } * int{ yao : node_1, node_2 } ->
+  int{ yao : node_1, node_2 }
 def sec gcd (a, b) =
   -- 0 is divisible by any number, so when we reach it we can stop
   mux if (a == 0) then
@@ -12,6 +15,7 @@ def sec gcd (a, b) =
     -- gcd (A, B) = gcd ( A, R +kA) = gcd( R, A ), so use recursion
     gcd (r, a)
 
+def main : unit ->{ inp : node_1, node_2 ; rev : node_1 } int{ node_1 }
 def main () =
   let a = par {node_1} (read int from "gcd.txt") in
   let b = par {node_2} (read int from "gcd.txt") in 
