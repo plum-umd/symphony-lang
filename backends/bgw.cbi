@@ -6,6 +6,7 @@ topology {
   sizes {
   }
   connections {
+    broadcast : P
     full : P
   }
 }
@@ -32,7 +33,7 @@ attack-models {
     }
 
     ops {
-      SHARE-FLT {
+      SHARE float 53 11 {
         impl : bgw_semi_mal_share_flt
         crand :
         gates: ??
@@ -40,7 +41,7 @@ attack-models {
         rounds: ??
         memory : ??
       }
-      REVEAL-FLT {
+      REVEAL float 53 11 {
         impl : bgw_semi_mal_reveal_flt
         crand :
         gates: ??
@@ -48,7 +49,7 @@ attack-models {
         rounds: ??
         memory : ??
       }
-      PLUS-FLT {
+      PLUS float 53 11 {
         impl : bgw_semi_mal_plus_flt
         crand :
         gates: ??
@@ -56,7 +57,7 @@ attack-models {
         rounds: ??
         memory : ??
       }
-      MULT-FLT {
+      MULT float 53 11 {
         impl : bgw_semi_mal_mult_flt
         crand :
         gates: ??
@@ -64,7 +65,7 @@ attack-models {
         rounds: ??
         memory : ??
       }
-      LEQ-FLT {
+      LEQ float 53 11 {
         impl : bgw_semi_mal_leq_flt
         crand :
         gates: ??
