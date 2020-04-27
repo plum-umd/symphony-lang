@@ -30,7 +30,9 @@ autogen_am_var_append_files \
 autogen_am_var_append_files \
   EXTRA_DIST \
     backends/**/* \
+    emacs/**/* \
     sec/**/* \
+    vim/**/* \
 ;
 
 autogen_downloads build-aux/downloads
