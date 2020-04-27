@@ -1,46 +1,89 @@
-proto : bgv
-impl : bgv.cpp
+protocol : bgv
+source : bgv.cpp
 
-malicious {
-  security {
-    parties: 2
-    corruptible: 1
+topology {
+  parties : Inputs, Compute
+  sizes {
+    Compute : n = 1
   }
-
-  share bool : bgv_mal_bool_t
-
-  share nat 32: bgv_mal_nat_t
-
-  share int 32: bgv_mal_int_t
-
-  share float 53 11: bgv_mal_float64_t
-
-  SHARE-INT {
-    crand: 
-    impl: bgv_mal_share_int
-    gates: ??
-    rounds: ?? }
-
-  REVEAL-INT {
-    crand:
-    impl: bgv_mal_reveal_int
-    gates: ??
-    rounds: ?? }
-
-  PLUS {
-    crand:
-    impl: bgv_mal_plus
-    gates: ??
-    rounds: ?? }
-
-  MULT {
-    crand: 
-    impl: bgv_mal_mult
-    gates: ??
-    rounds: ??
+  connections {
+    Inputs <-> Compute
   }
-
-  // Ben, Ryan: fill in other operations here
 }
 
-// Ben, Ryan: fill in other attack models here
+attack-models {
+  semi-honest {
+    attackers {
+      Inputs, Compute: n - 1
+    }
+
+    types { 
+      bool {
+        Inputs : semi_honest_bool_in_t
+        Compute : semi_honest_bool_comp_t
+      }
+
+      nat 32 {
+        Inputs : semi_honest_nat_in_t
+        Compute : semi_honest_nat_comp_t
+      }
+
+      int 32 {
+        Inputs : semi_honest_int_in_t
+        Compute : semi_honest_int_comp_t
+      }
+
+      float 53 11 {
+        Inputs : semi_honest_flt_in_t
+        Compute : semi_honest_flt_comp_t
+      }
+    }
+
+    ops {
+      SHARE-INT {
+        impl : bgv_semi_honest_share_int
+        crand :
+        gates: ??
+        comm : ??
+        rounds: ??
+        memory : ??
+      }
+      REVEAL-INT {
+        impl : bgv_semi_honest_reveal_int
+        crand :
+        gates: ??
+        comm : ??
+        rounds: ??
+        memory : ??
+      }
+      PLUS-INT {
+        impl : bgv_semi_honest_plus_int
+        crand :
+        gates: ??
+        comm : ??
+        rounds: ??
+        memory : ??
+      }
+      MULT-INT {
+        impl : bgv_semi_honest_mult_int
+        crand :
+        gates: ??
+        comm : ??
+        rounds: ??
+        memory : ??
+      }
+      LEQ-INT {
+        impl : bgv_semi_honest_leq_int
+        crand :
+        gates: ??
+        comm : ??
+        rounds: ??
+        memory : ??
+      }
+
+      // TODO: add other ops
+    }
+  }
+
+  // TODO: add other attack models
+}

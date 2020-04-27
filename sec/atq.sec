@@ -1,22 +1,23 @@
-nodes[128] { encryption : 256 } 
+A[96] { encryption : 256 } 
+B[32] { encryption : 256 } 
 
 connected {
-  full : nodes
+  full : A, B
 }
 
 revealed {
-  nodes -> nodes // Ryan: confirm
+  A, B -> A, B
 }
 
 attacks {
-  malicious corruptible : { nodes : (n / 3) - 1 }
-  crand : nodes
+  malicious corruptible : { A, B : (n / 3) - 1 }
+  crand : A, B
 }
 
 crand {
-  beaver : nodes
+  beaver : A, B
 }
 
 setup {
-  pki : nodes
+  pki : A, B
 }

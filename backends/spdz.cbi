@@ -1,44 +1,79 @@
 proto : spdz
 impl : spdz.cpp
 
-malicious {
-  security {
-    parties: any
-    corruptible: n - 1
+topology {
+  parties : P
+  sizes {
   }
-
-  share bool : spdz_mal_bool_t
-
-  share nat 32: spdz_mal_nat_t
-
-  share int 32: spdz_mal_int_t
-
-  share float 53 11: spdz_mal_float64_t
-
-  SHARE-INT {
-    crand: 
-    impl: spdz_mal_share_int
-    gates: ??
-    rounds: ?? }
-
-  REVEAL-INT {
-    crand:
-    impl: spdz_mal_reveal_int
-    gates: ??
-    rounds: ?? }
-
-  PLUS {
-    crand:
-    impl: spdz_mal_plus
-    gates: ??
-    rounds: ?? }
-
-  MULT {
-    crand: beaver
-    impl: spdz_mal_mult
-    gates: ??
-    rounds: ??
+  connections {
+    full : P
   }
+}
 
-  // Ben, Ryan: fill in other operations here
+attack-models {
+  malicious {
+    security {
+      P : n - 1
+    }
+
+    types {
+      bool {
+        P : spdz_mal_bool_t
+      }
+      nat 32 {
+        P : spdz_mal_bool_t
+      }
+      int 32 {
+        P : spdz_mal_int_t
+      }
+      float 53 11 {
+        P : spdz_mal_flt_t
+      }
+    }
+
+    ops {
+      SHARE-FLT {
+        impl : spdz_mal_share_flt
+        crand : beaver
+        gates: ??
+        comm : ??
+        rounds: ??
+        memory : ??
+      }
+      REVEAL-FLT {
+        impl : spdz_mal_reveal_flt
+        crand :
+        gates: ??
+        comm : ??
+        rounds: ??
+        memory : ??
+      }
+      PLUS-FLT {
+        impl : spdz_mal_plus_flt
+        crand :
+        gates: ??
+        comm : ??
+        rounds: ??
+        memory : ??
+      }
+      MULT-FLT {
+        impl : spdz_mal_mult_flt
+        crand : beaver
+        gates: ??
+        comm : ??
+        rounds: ??
+        memory : ??
+      }
+      LEQ-FLT {
+        impl : spdz_mal_leq_flt
+        crand : beaver
+        gates: ??
+        comm : ??
+        rounds: ??
+        memory : ??
+      }
+      ...
+      // TODO: add other ops
+    }
+  }
 }

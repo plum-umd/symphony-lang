@@ -186,6 +186,7 @@ def karmarkar_loop a c = proc
 
   let max_iterations = num-iters c a in
   let upper-bound = num-iters (max-vec-flt n) (max-mat-flt m n) in
+  do force upper-bound in
 
   -- If this initial point is an optimal solution, return
   mux if (dot-prod-flt c !x) < epsilon then !x
