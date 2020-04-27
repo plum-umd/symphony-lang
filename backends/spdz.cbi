@@ -130,15 +130,6 @@ attack-models {
         memory : SPDZ_INT_EQ_MEM
       }
 
-      ABS-VAL {
-        impl : spdz_mal_abs_val
-        crand : 
-        gates: SPDZ_INT_ABS_VAL_GATES
-        comm : SPDZ_INT_ABS_VAL_COMM
-        rounds: SPDZ_INT_ABS_VAL_ROUNDS
-        memory : SPDZ_INT_ABS_VAL_MEM
-      }
-
       SHARE float 53 11 {
         impl : spdz_mal_share_flt
         crand : 
@@ -220,6 +211,22 @@ attack-models {
         comm : SPDZ_FLT_SQRT_COMM
         rounds: SPDZ_FLT_SQRT_ROUNDS
         memory : SPDZ_FLT_SQRT_MEM
+      }
+      CEIL float 53 11 {
+        impl : spdz_mal_ceil
+        crand : beaver
+        gates: SPDZ_FLT_CEIL_GATES
+        comm : SPDZ_FLT_CEIL_COMM
+        rounds: SPDZ_FLT_CEIL_ROUNDS
+        memory : SPDZ_FLT_CEIL_MEM
+      }
+      ABS-VAL int 32 {
+        impl : spdz_mal_abs_val
+        crand : 
+        gates: SPDZ_INT_ABS_VAL_GATES
+        comm : SPDZ_INT_ABS_VAL_COMM
+        rounds: SPDZ_INT_ABS_VAL_ROUNDS
+        memory : SPDZ_INT_ABS_VAL_MEM
       }
     }
   }

@@ -106,7 +106,7 @@ attack-models {
         memory : BGV_FLT_LEQ_MEM
       }
       SQRT float 53 11 {
-        impl : bgv_semi_honest_leq_flt
+        impl : bgv_semi_honest_sqrt_flt
         crand : 
         gates: BGV_FLT_SQRT_GATES
         comm : BGV_FLT_SQRT_COMM
@@ -153,7 +153,7 @@ attack-models {
         memory : BGV_SEMI_HONEST_LEQ_INT_4096_MEM
       }
       EQ int 4096 {
-        impl : bgv_mal_leq_int_4096
+        impl : bgv_mal_eq_int_4096
         crand :
         gates: BGV_SEMI_HONEST_EQ_INT_4096_GATES
         comm : BGV_SEMI_HONEST_EQ_INT_4096_COMM

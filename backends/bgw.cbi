@@ -21,9 +21,6 @@ attack-models {
       bool {
         P : bgw_semi_mal_bool_t
       }
-      nat 32 {
-        P : bgw_semi_mal_nat_t
-      }
       float 53 11 {
         P : bgw_semi_mal_flt_t
       }
@@ -82,9 +79,6 @@ attack-models {
       bool {
         P : bgw_mal_bool_t
       }
-      nat 32 {
-        P : bgw_mal_nat_t
-      }
       int 32 {
         P : bgw_mal_int_t
       }
@@ -122,6 +116,14 @@ attack-models {
         comm : BGW_MULT_INT_COMMS
         rounds: BGW_MULT_INT_ROUNDS
         memory : BGW_MULT_INT_MEM
+      }
+      EQ int 32 {
+        impl : bgw_mal_eq_flt
+        crand :
+        gates: BGW_EQ_INT_GATES
+        comm : BGW_EQ_INT_COMMS
+        rounds: BGW_EQ_INT_ROUNDS
+        memory : BGW_EQ_INT_MEM
       }
       LEQ int 32 {
         impl : bgw_mal_leq_flt
