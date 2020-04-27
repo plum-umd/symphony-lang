@@ -1,14 +1,20 @@
 // grammar for the metadata rich backend description langauge
 
-%token BOOL_NM FLT_NM IMPL INT_NM NAT_NM NAT PROTO PROTO_NM SRC_FILENM SYM_NM 
+%token TOPOLOGY
 
-%token MAL SEMI_HON 
+%token BROADCAST CONNECT FULL UNI BI
 
-%token CORRUPT PARTIES SECURITY 
+%token SIZES
 
-%token ANY
+%token BOOL_NM FLT_NM IMPL INT_NM NAT_NM NAT PROTO PROTO_NM SRC_FILENM SYM_NM TYPES
 
-%token CRAND GATES ROUNDS
+%token MAL SEMI_HON SEMI_MAL
+
+%token CORRUPT PARTIES ATTACKERS
+
+%token OPS
+
+%token CRAND GATES COMM ROUNDS MEM
 
 %token BEAVER
 
@@ -25,7 +31,11 @@
   * 2. a declaration of a source filename;
   * 
   * 3. a sequence of declarations of threat models: */
-crypto_backend_spec : nm_decl file_decl threat_decls
+crypto_backend_spec :
+nm_decl
+file_decl
+topology_decl
+threat_decls
 ;
 
 // A protocol name declaration is the constnat
@@ -36,6 +46,51 @@ nm_decl : PROTO ':' PROTO_NM
 file_decl : IMPL ':' SRC_FILENM
 ;
 
+// Declaration of the party topology:
+topology_decl :
+TOPOLOGY '{'
+  parties_decl
+  sizes_decl
+  connect_decl
+'}' ;
+
+parties_decl : PARTIES ':' party_seq
+;
+
+party_seq : PARTY_NM
+| PARTY_NM ',' party_seq
+;
+
+sizes_decl :
+SIZES '{'
+  size_decls
+'}' ;
+
+size_decls :
+| PARTY_NM : NAT size_decls
+;
+
+// connect_decl: declare required connections
+connect_decl :
+CONNECT '{'
+  broadcast_opt
+  link_clauses
+'}' ;
+
+broadcast_opt :
+| BROADCAST ':' party_seq
+;
+
+link_clauses :
+| link_clause link_clauses
+;
+
+link_clause :
+FULL ':' party_seq
+| party_seq UNI party_seq
+| party_seq BI party_seq
+;
+
 // thread_models: a sequence of threat models
 threat_decls :
 | threat_decl threat_decls
@@ -43,9 +98,9 @@ threat_decls :
 
 threat_decl :
 threat_model '{'
-sec_decl
-share_ty_decls
-op_decls
+  attackers_decl
+  share_ty_decls
+  op_decls
 '}'
 ;
 
@@ -56,22 +111,19 @@ threat_model :
 ;
 
 // sec_decl: declares security parameters:
-sec_decl :
-SECURITY '{'
-PARTIES ':' party_num
-CORRUPT ':' threshold
-'}'
-;
+attackers_decl :
+ATTACKERS '{'
+  threshold_clauses
+'}' ;
 
-party_num :
-NAT
-| ANY
+threshold_clauses :
+| party_seq ':' threshold threshold_clauses
 ;
 
 threshold : threshold_expr
 ;
 
-threshold_exp :
+threshold_expr :
   threshold_term
 | threshold_term '+' threshold_expr
 | threshold_term '-' threshold_expr
@@ -94,8 +146,20 @@ share_ty_decls :
 ;
 
 // share_ty_decl: declares a type of shares:
-share_ty_decl :
-SHARE base_ty ':' SYM_NM
+share_ty_decl : TYPES '{'
+  type_decls
+'}' ;
+
+type_decls :
+| type_decl type_decls ;
+
+type_decl :
+base_ty '{'
+  type_clauses
+'}' ;
+
+type_clauses :
+| PARTY_NM ':' SYM_NM
 ;
 
 base_ty :
@@ -106,17 +170,23 @@ BOOL_NM
 ;
 
 op_decls :
-| op_decl op_decls
+OPS '{'
+  op_seq
+'}';
+
+op_seq : 
+| op op_seq
 ;
 
 // op_decl: declares operations over shares:
-op_decl : op_nm '{'
-IMPL ':' SYM_NM
-CRAND ':' crand_seq
-GATES ':' NAT
-ROUNDS ':' NAT
-'}'
-;
+op : op_nm '{'
+  IMPL ':' SYM_NM
+  CRAND ':' crand_seq
+  GATES ':' NAT
+  COMM ':' NAT
+  ROUNDS ':' NAT
+  MEM ':' NAT
+'}' ;
 
 crand_seq :
 | crand  crand_seq
@@ -135,3 +205,4 @@ op_nm :
 | MINUS base_ty
 | MULT base_ty
 | DIV base_ty
+  ;
