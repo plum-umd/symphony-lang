@@ -33,15 +33,15 @@ attack-models {
 
     ops {
       SHARE nat 32 {
-        impl : spdz_mal_share_flt
-        crand : beaver
+        impl : spdz_mal_share_nat
+        crand : 
         gates: SPDZ_NAT_SHARE_NAT_GATES
         comm : SPDZ_NAT_SHARE_NAT_COMM
         rounds: SPDZ_NAT_SHARE_NAT_ROUNDS
         memory : SPDZ_NAT_SHARE_NAT_MEM
       }
       PLUS nat 32 {
-        impl : spdz_mal_plus_flt
+        impl : spdz_mal_plus_nat
         crand :
         gates: SPDZ_NAT_PLUS_GATES
         comm : SPDZ_NAT_PLUS_COMM
@@ -49,7 +49,7 @@ attack-models {
         memory : SPDZ_NAT_PLUS_MEM
       }
       MULT nat 32 {
-        impl : spdz_mal_mult_flt
+        impl : spdz_mal_mult_nat
         crand : beaver
         gates: SPDZ_NAT_MULT_GATES
         comm : SPDZ_NAT_MULT_COMM
@@ -57,7 +57,7 @@ attack-models {
         memory : SPDZ_NAT_MULT_MEM
       }
       DIV nat 32 {
-        impl : spdz_mal_div_flt
+        impl : spdz_mal_div_nat
         crand : beaver
         gates: SPDZ_NAT_DIV_GATES
         comm : SPDZ_NAT_DIV_COMM
@@ -65,7 +65,7 @@ attack-models {
         memory : SPDZ_NAT_DIV_MEM
       }
       LEQ nat 32 {
-        impl : spdz_mal_leq_flt
+        impl : spdz_mal_leq_nat
         crand : beaver
         gates: SPDZ_NAT_LEQ_GATES
         comm : SPDZ_NAT_LEQ_COMM
@@ -73,7 +73,7 @@ attack-models {
         memory : SPDZ_NAT_LEQ_MEM
       }
       EQ nat 32 {
-        impl : spdz_mal_eq_flt
+        impl : spdz_mal_eq_nat
         crand : beaver
         gates: SPDZ_NAT_EQ_GATES
         comm : SPDZ_NAT_EQ_COMM
@@ -81,9 +81,67 @@ attack-models {
         memory : SPDZ_NAT_EQ_MEM
       }
 
+      SHARE int 32 {
+        impl : spdz_mal_share_int
+        crand : 
+        gates: SPDZ_INT_SHARE_INT_GATES
+        comm : SPDZ_INT_SHARE_INT_COMM
+        rounds: SPDZ_INT_SHARE_INT_ROUNDS
+        memory : SPDZ_INT_SHARE_INT_MEM
+      }
+      PLUS int 32 {
+        impl : spdz_mal_plus_int
+        crand :
+        gates: SPDZ_INT_PLUS_GATES
+        comm : SPDZ_INT_PLUS_COMM
+        rounds: SPDZ_INT_PLUS_ROUNDS
+        memory : SPDZ_INT_PLUS_MEM
+      }
+      MULT int 32 {
+        impl : spdz_mal_mult_int
+        crand : beaver
+        gates: SPDZ_INT_MULT_GATES
+        comm : SPDZ_INT_MULT_COMM
+        rounds: SPDZ_INT_MULT_ROUNDS
+        memory : SPDZ_INT_MULT_MEM
+      }
+      DIV int 32 {
+        impl : spdz_mal_div_int
+        crand : beaver
+        gates: SPDZ_INT_DIV_GATES
+        comm : SPDZ_INT_DIV_COMM
+        rounds: SPDZ_INT_DIV_ROUNDS
+        memory : SPDZ_INT_DIV_MEM
+      }
+      LEQ int 32 {
+        impl : spdz_mal_leq_int
+        crand : beaver
+        gates: SPDZ_INT_LEQ_GATES
+        comm : SPDZ_INT_LEQ_COMM
+        rounds: SPDZ_INT_LEQ_ROUNDS
+        memory : SPDZ_INT_LEQ_MEM
+      }
+      EQ int 32 {
+        impl : spdz_mal_eq_int
+        crand : beaver
+        gates: SPDZ_INT_EQ_GATES
+        comm : SPDZ_INT_EQ_COMM
+        rounds: SPDZ_INT_EQ_ROUNDS
+        memory : SPDZ_INT_EQ_MEM
+      }
+
+      ABS-VAL {
+        impl : spdz_mal_abs_val
+        crand : 
+        gates: SPDZ_INT_ABS_VAL_GATES
+        comm : SPDZ_INT_ABS_VAL_COMM
+        rounds: SPDZ_INT_ABS_VAL_ROUNDS
+        memory : SPDZ_INT_ABS_VAL_MEM
+      }
+
       SHARE float 53 11 {
         impl : spdz_mal_share_flt
-        crand : beaver
+        crand : 
         gates: SPDZ_FLT_SHARE_GATES
         comm : SPDZ_FLT_SHARE_COMM
         rounds: SPDZ_FLT_SHARE_ROUNDS
@@ -141,7 +199,7 @@ attack-models {
       }
       BIN-LOG float 53 11 {
         impl : spdz_mal_bin_log_flt
-        crand : beaver
+        crand : 
         gates: SPDZ_FLT_BIN_LOG_GATES
         comm : SPDZ_FLT_BIN_LOG_COMM
         rounds: SPDZ_FLT_BIN_LOG_ROUNDS
