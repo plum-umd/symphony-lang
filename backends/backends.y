@@ -16,7 +16,7 @@
 
 %token CRAND GATES COMM ROUNDS MEM
 
-%token BEAVER
+%token BEAVER_TRIPLES SQ_TRIPLES OBLIV_TRANSFER OBLIV_LIN_EX ZERO_SHRS
 
 %token SHARE REVEAL AND XOR PLUS MINUS MULT DIV
 
@@ -183,10 +183,10 @@ op_seq :
 op : op_nm '{'
   IMPL ':' SYM_NM
   CRAND ':' crand_seq
-  GATES ':' NAT
-  COMM ':' NAT
-  ROUNDS ':' NAT
-  MEM ':' NAT
+  GATES ':' threshold
+  COMM ':' threshold
+  ROUNDS ':' threshold
+  MEM ':' threshold
 '}' ;
 
 crand_seq :
