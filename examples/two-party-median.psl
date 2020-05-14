@@ -1,0 +1,76 @@
+principal A[2]
+
+{-
+≤ right side of top | take top
+> left side of top | take bottom
+-}
+-- Copied from standard library
+
+-- Get the tail of the list or a default value.
+def tail : list a -> list a
+def tail xs = case xs
+  { [] -> _|_
+  ; _::xs' -> xs'
+  }
+
+-- Get the head of a list or a default value.
+def head : list a -> a
+def head ys = case ys
+    { [] -> _|_
+    ; y::_ -> y
+    }
+
+-- Return the first n elements of xs.
+def take : int -> list a -> list a
+def take n xs =
+  if n > 0
+  then (head xs)::(take (n - 1) (tail xs))
+  else []
+
+-- Return the list of elements xs with the first n elements removed.
+def drop : int -> list a -> list a
+def drop n xs =
+  if n > 0
+  then drop (n - 1) (tail xs)
+  else xs
+
+
+-------------------------------------------------------------------------
+
+-- Find the median of two secret, sorted lists, each of length l
+def median : (list a){bundle:A} -> int -> a
+def median xs l =
+  -- Find the mid point of a list of length l
+  let l' = if l > 1 then l / 2 - 1 else 0
+  -- Each party finds the median, m, of their own lists.
+  let m = solo {A} as alpha in (elem-at l' xs@alpha)
+  -- Parties securely compare their medians
+  let b = reveal{A} (share{yao:A.0 -> A} m@A.0) < (share{yao:A.1 -> A} m@A.1)
+  -- If lists are of length 1, we go into the base case. Otherwise we call the median procedure recursively.
+  if l <= 1
+  then
+    -- In the base case, we return the smaller item, and reveal the value of that item.
+    if b
+    then send{A.0 -> A} m@A.0
+    else send{A.1 -> A} m@A.1
+  else
+    -- In the recursive case, cut each list in half depending on whose median is smaller.
+    let l'' = l / 2
+    let xs' = if b
+              then <<A.0 | par{A.0} drop l'' xs@A.0; A.1 | par {A.1} take l'' xs@A.1>>
+              else <<A.0 | par{A.0} take l'' xs@A.0; A.1 | par {A.1} drop l'' xs@A.1>>
+    in median xs' l''
+
+
+
+def main : unit ->{inp:A;rev:A} int{A}
+def main () = par {A}
+
+  -- Each party reads in and sorts their lists.
+  let inputLists : (list int){bundle:A}
+  let inputLists = solo {A} as alpha in (sort (fun a b -> a <= b) (read (list ℤ) from "atq-data.txt"))
+
+  in median inputLists 16
+
+
+
