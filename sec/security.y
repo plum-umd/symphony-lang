@@ -98,7 +98,7 @@ FULL ':' node_set
 ;
 
 opt_link_resources :
-| "BANDWIDTH" ':' NAT "bps"
+| "bandwidth" ':' NAT "bps"
 ;
 
 node_set :
