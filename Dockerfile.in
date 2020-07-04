@@ -23,6 +23,7 @@ RUN : \
   && make \
   && make DESTDIR=/x/destdir install \
   && mkdir /x/destdir/root \
+  && cp run-re-gfi.bash /x/destdir/root \
   && cd /x/destdir/root \
   && tar xzf /x/psl-@PACKAGE_VERSION@/resource-estimation.tar.gz \
 ;
@@ -34,7 +35,7 @@ ENV LC_ALL=C.UTF-8
 RUN : \
   && export DEBIAN_FRONTEND=noninteractive \
   && apt-get -q -y update \
-  && apt-get -q -y install python python3 python3-pip \
+  && apt-get -q -y install less python python3 python3-pip \
   && python3 -m pip install --user --upgrade pip \
   && python3 -m pip install --user sympy \
 ;

@@ -1,0 +1,81 @@
+principal A [3]
+
+
+-- Copied from standard library
+
+-- Get the tail of the list or a default value.
+def tail : list a -> list a
+def tail xs = case xs
+  { [] -> _|_
+  ; _::xs' -> xs'
+  }
+
+-- Get the head of a list or a default value.
+def head : list a -> a
+def head ys = case ys
+    { [] -> _|_
+    ; y::_ -> y
+    }
+
+-- Turn a secret list of elements known to p, xs, to a list known to t of secret shared elements up to length n.
+def preprocessListsN : (P:prin) -> (PS:prins) -> int -> (list int){yao:P} -> list (int{yao:PS})
+def preprocessListsN p t n xs =
+  if n == 0
+  then []
+  else
+    let h = share{yao:p -> t} (par {p} head xs)
+    let t = preprocessListsN p t (n - 1) (par {p} tail xs)
+    in h :: t
+
+-- Turn a secret list of elements known to p to a list known to t of secret shared elements by revealing the length of the original list to t.
+def preprocessLists : prin -> prins -> list a -> list a
+def preprocessLists p t xs =
+  let l = par {p} length xs
+  let l' = send {p -> t} l
+  in preprocessListsN p t l' xs
+
+-- Insert an element, x, into a sorted list, xs, using a "less than" function, lt, so that the output list is also sorted.
+def insert : (a -> a -> bool) -> a -> list a -> list a
+def insert lt x xs = case xs
+  { [] -> [x]
+  ; (x'::xs') ->
+      let lo, hi =
+        mux if (lt x x')
+             then x, x'
+             else x', x
+      in
+        lo :: insert lt hi xs'
+  }
+
+-- Use insertion sort to and a "less than" function, lt, to sort a list of elements.
+def sort : (a -> a -> bool) -> list a -> list a
+def sort lt = foldr (insert lt) []
+
+
+
+-----------------------------------------------------------------------------------
+
+def main : unit ->{inp:A;rev:A} list int{A}
+def main () = par {A}
+
+  -- Read in inputs as individually secret lists of secret data
+  let inputLists : (list int){bundle:A}
+  let inputLists = solo {A} as alpha in read (list ℤ) from "atq-data.txt"
+
+  -- Share the elements of each list and reveal the list structures of each party's list
+  let sharedLists : list list (int{yao:A})
+  let sharedLists = fold-f [] (fun P x i -> (preprocessLists P {A} x) :: i) inputLists
+
+  -- Combine all lists into one list of all data
+  let sharedCombinedList : list int{yao:A}
+  let sharedCombinedList = concat sharedLists
+
+  -- Sort the list
+  let sharedCombinedSortedList : list int{yao:A}
+  let sharedCombinedSortedList = sort (fun a b -> a ≤ b) sharedCombinedList
+
+  -- Reveal each element in the list
+  let revealedCombinedSortedList : (list int{A}){A}
+  let revealedCombinedSortedList = map (fun x -> reveal{A} x) sharedCombinedSortedList
+
+  in revealedCombinedSortedList

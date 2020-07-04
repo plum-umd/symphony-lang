@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 7011f70486ad3343196eec2b544e59d6101559ae0fde22b0d7a49246bfd96a55
+-- hash: 1aef21fc76595ee1ccdadc368d9f627d87bef83ca5c039863ced66e56a69caca
 
 name:           psl
 version:        0.1.0.0
@@ -55,6 +55,7 @@ data-files:
     examples/gcd.sec
     examples/gcd.sec~
     examples/indy-pars.psl~
+    examples/insertion-sort.psl
     examples/karmarkar-decl.psl~
     examples/karmarkar-iters-0.psl~
     examples/karmarkar-iters-1.psl
@@ -111,6 +112,7 @@ data-files:
     examples/test.psl~
     examples/todo.txt
     examples/todo.txt~
+    examples/two-party-median.psl
     tests/#ver-sign.psl#
     tests/andor.psl
     tests/arrays.psl

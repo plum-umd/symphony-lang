@@ -27,6 +27,14 @@ autogen_am_var_append_files \
     tests/**/* \
 ;
 
+autogen_am_var_append_files \
+  EXTRA_DIST \
+    backends/**/* \
+    emacs/**/* \
+    sec/**/* \
+    vim/**/* \
+;
+
 autogen_downloads build-aux/downloads
 autogen_gitbundles build-aux/gitbundles
 

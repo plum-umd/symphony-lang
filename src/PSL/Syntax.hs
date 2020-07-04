@@ -230,28 +230,28 @@ makePrisms ''Pat
 --------------------------
 
 data Op = 
-    OrO
-  | AndO
-  | NotO
-  | PlusO
-  | MinusO
-  | TimesO
-  | ExpO
-  | DivO
-  | ModO 
-  | EqO
-  | LTO
-  | GTO
-  | LTEO
-  | GTEO
-  | CondO
-  | AbsO
-  | SqrtO
-  | LogO
-  | NatO IPrecision
-  | IntO IPrecision
-  | FltO FPrecision
-  | CeilO IPrecision
+    OrO               -- e || e
+  | AndO              -- e && e
+  | NotO              -- not e
+  | PlusO             -- e + e
+  | MinusO            -- e - e
+  | TimesO            -- e * e
+  | ExpO              -- exp e
+  | DivO              -- e / e
+  | ModO              -- e % d
+  | EqO               -- e == e
+  | LTO               -- e < e
+  | GTO               -- e > e
+  | LTEO              -- e <= e
+  | GTEO              -- e >= e
+  | CondO             -- e ? e >< e
+  | AbsO              -- abs_val e
+  | SqrtO             -- sqrt e
+  | LogO              -- log_base_2 e
+  | NatO IPrecision   -- nat#n.n
+  | IntO IPrecision   -- int#n.n
+  | FltO FPrecision   -- flt#n.n
+  | CeilO IPrecision  -- ceil#n.n
   deriving (Eq,Ord,Show)
 makePrettySum ''Op
 makePrisms ''Op
