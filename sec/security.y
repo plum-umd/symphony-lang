@@ -34,6 +34,8 @@ int yylex();
 
 %token SETUP PKI CRS_NIZK CRS_UC
 
+%token BGV BGW GC SPDZ
+
 %%
 
 security_spec :
@@ -183,6 +185,7 @@ setup_decl :
 SETUP '{'
   setup_clauses
 '}'
+opt_default_proto
 ;
 
 setup_clauses :
@@ -196,4 +199,15 @@ setup_class :
 PKI
 | CRS_NIZK
 | CRS_UC
+;
+
+opt_default_proto :
+| "default protocol: " proto
+;
+
+proto :
+BGV
+| BGW
+| GC
+| SPDZ
 ;
