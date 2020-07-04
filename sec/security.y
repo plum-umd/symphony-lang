@@ -54,7 +54,17 @@ nodes_decl :
 
 node_decl : NODE_NM opt_dim '{'
   ENC ':' NAT
+  opt_proc
+  opt_mem
 '}'
+;
+
+opt_proc :
+| "CPU" ':' NAT '.' NAT "GHZ"
+;
+
+opt_mem :
+| "MEM" ':' NAT "GB"
 ;
 
 opt_dim :
@@ -76,10 +86,19 @@ link_clauses :
 | link_clause link_clauses
 ;
 
-link_clause :
+link_clause:
+link_topo
+opt_link_resources
+;
+
+link_topo :
 FULL ':' node_set
 | node_set UNI node_set
 | node_set BI node_set
+;
+
+opt_link_resources :
+| "BANDWIDTH" ':' NAT "bps"
 ;
 
 node_set :
