@@ -4,15 +4,13 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1aef21fc76595ee1ccdadc368d9f627d87bef83ca5c039863ced66e56a69caca
+-- hash: 90327f8537636cdfbeaabe8c745411c5e535eac6c9210ba577bc43134276dc4a
 
 name:           psl
 version:        0.1.0.0
 build-type:     Simple
 data-files:
     lib/stdlib.psl
-    examples/#karmarkar-decl.psl#
-    examples/arg-par-contains.psl~
     examples/atq-bgw-12.psl
     examples/atq-bgw-16.psl
     examples/atq-bgw-20.psl
@@ -33,12 +31,7 @@ data-files:
     examples/atq-spdz-40.psl
     examples/atq-spdz-8.psl
     examples/atq-spdz.psl
-    examples/bak.txt
-    examples/bind-fp-const.psl~
-    examples/bind-shares.psl~
-    examples/cmp-fn-flt.psl~
     examples/cmp.psl
-    examples/cont_monad.psl~
     examples/db-stats-10.psl
     examples/db-stats-11.psl
     examples/db-stats-12.psl
@@ -47,36 +40,17 @@ data-files:
     examples/db-stats-8.psl
     examples/db-stats-9.psl
     examples/db-stats.psl
-    examples/elim-sec-ls.psl~
-    examples/empty-par-diverge.psl~
     examples/gcd-bgv.psl
-    examples/gcd-bgv.psl~
     examples/gcd-gc.psl
-    examples/gcd.sec
-    examples/gcd.sec~
-    examples/indy-pars.psl~
     examples/insertion-sort.psl
-    examples/karmarkar-decl.psl~
-    examples/karmarkar-iters-0.psl~
     examples/karmarkar-iters-1.psl
-    examples/karmarkar-iters-1.psl~
     examples/karmarkar-iters-2.psl
-    examples/karmarkar-iters-2.psl~
-    examples/karmarkar-setup.psl~
-    examples/karmarkar-silly.psl~
-    examples/karmarkar-simple.psl~
     examples/karmarkar.psl
-    examples/karmarkar.psl~
     examples/msort-dedup-1.psl
     examples/msort-dedup-2.psl
     examples/msort-dedup-4.psl
     examples/msort-dedup-8.psl
     examples/msort-dedup.psl
-    examples/msort-dedup.psl~
-    examples/msort.psl.bak
-    examples/notes.md
-    examples/notes.md~
-    examples/partial-diverge.psl~
     examples/quick-sort-bgw-10.psl
     examples/quick-sort-bgw-2.psl
     examples/quick-sort-bgw-3.psl
@@ -87,7 +61,6 @@ data-files:
     examples/quick-sort-bgw-8.psl
     examples/quick-sort-bgw-9.psl
     examples/quick-sort-bgw.psl
-    examples/quick-sort-bgw.psl~
     examples/quick-sort-spdz-10.psl
     examples/quick-sort-spdz-2.psl
     examples/quick-sort-spdz-3.psl
@@ -97,23 +70,8 @@ data-files:
     examples/quick-sort-spdz-7.psl
     examples/quick-sort-spdz-8.psl
     examples/quick-sort-spdz-9.psl
-    examples/quick-sort-spdz-small.psl~
     examples/quick-sort-spdz.psl
-    examples/quick-sort-spdz.psl~
-    examples/quick-sort.psl~
-    examples/reshare.psl~
-    examples/share-ls.psl~
-    examples/single-share.psl
-    examples/single-share.psl~
-    examples/ssec-ineq-ssec.psl~
-    examples/ssec-shr.psl~
-    examples/test-inst.psl
-    examples/test.psl
-    examples/test.psl~
-    examples/todo.txt
-    examples/todo.txt~
     examples/two-party-median.psl
-    tests/#ver-sign.psl#
     tests/andor.psl
     tests/arrays.psl
     tests/bgv.psl
@@ -129,8 +87,6 @@ data-files:
     tests/log.psl
     tests/loop.psl
     tests/micro-let.psl
-    tests/mult-spdz.psl
-    tests/mult-spdz.psl~
     tests/mux-case-list.psl
     tests/mux-deep.psl
     tests/mux-pair.psl
@@ -151,20 +107,14 @@ data-files:
     tests/solo.psl
     tests/string-concat.psl
     tests/sums.psl
-    tests/test-inst.psl~
-    tests/test.psl
-    tests/test.psl~
     tests/this.psl
     tests/to-string.psl
     tests/underflow-int.psl
     tests/underflow-nat.psl
     tests/uninspecting-par.psl
     tests/ver-0.psl
-    tests/ver-0.psl~
     tests/ver-mpc.psl
-    tests/ver-mpc.psl~
     tests/ver-sign.psl
-    tests/ver-sign.psl~
     tests/weird-mux-prin.psl
     tests/when.psl
     examples-input/A/atq-data.txt
@@ -180,11 +130,9 @@ data-files:
     examples-input/A_0/atq-data.txt
     examples-input/A_0/db-stats-input.txt
     examples-input/A_0/msort-dedup-in.txt
-    examples-input/A_0/msort-dedup-in.txt~
     examples-input/A_1/atq-data.txt
     examples-input/A_1/db-stats-input.txt
     examples-input/A_1/msort-dedup-in.txt
-    examples-input/A_1/msort-dedup-in.txt~
     examples-input/A_10/atq-data.txt
     examples-input/A_10/db-stats-input.txt
     examples-input/A_10/msort-dedup-in.txt
@@ -1106,8 +1054,6 @@ data-files:
     examples-input/Node_in_7/quick-sort-in.txt
     examples-input/Node_in_8/quick-sort-in.txt
     examples-input/Node_in_9/quick-sort-in.txt
-    examples-input/setup.sh
-    examples-input/setup.sh~
 
 library
   exposed-modules:
