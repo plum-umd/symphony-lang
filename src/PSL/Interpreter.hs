@@ -679,7 +679,7 @@ interpExp = wrapInterp $ \case
         ṽ ← introValP $ ArrayV $ vec $ list $ repeat n ṽ₂
         modifyL iStateStoreL $ \ σ → (ℓ ↦♮ ṽ) ⩌♮ σ
         locValP ℓ
-      _ → throwIErrorCxt TypeIError "interpExp: ArrayE: v₁ ≠ IntV _ i" $ frhs
+      _ → throwIErrorCxt TypeIError "interpExp: ArrayE: v₁ ≠ NatV _ n" $ frhs
         [ ("v₁",pretty v₁) 
         ]
   ArrayReadE e₁ e₂ → do

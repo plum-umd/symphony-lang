@@ -46,7 +46,6 @@ lexer = lexerBasic puns kws prim ops
       , "solo","as"
       , "fold","on"
       , "par"
-      , "ref","array"
       , "do"
       , "read","write","from","to"
       , "proc","return"
@@ -72,6 +71,7 @@ lexer = lexerBasic puns kws prim ops
       , "ℤ","int"
       , "𝔽","flt"
       , "list"
+      , "ref","array"
       , "rand","rand-range"
       , "inp","rev"
       , "∞","inf"
@@ -290,6 +290,10 @@ pType = cpNewContext "type" $ mixfix $ concat
   , mixInfixL levelTIMES $ do concat [cpSyntax "×",cpSyntax "*"] ; return (:×:)
   -- list τ
   , mixPrefix levelAPP $ do cpSyntax "list" ; return ListT
+  -- ref τ
+  , mixPrefix levelAPP $ do cpSyntax "ref" ; return RefT
+  -- arr τ
+  , mixPrefix levelAPP $ do cpSyntax "array" ; return ArrT
   -- τ →{η} τ
   , mixInfixR levelARROW $ do 
       concat [cpSyntax "→",cpSyntax "->"] 

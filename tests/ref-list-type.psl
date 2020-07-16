@@ -1,0 +1,12 @@
+principal A
+def main () =
+  let x : list ℤ
+  let x = [1]
+  let y : ref ℤ
+  let y = ref 1
+  let z : array ℤ
+  let z = array[10n] 10
+  in
+  !y + z.0n
+
+def expected = 11

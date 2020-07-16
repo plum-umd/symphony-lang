@@ -182,6 +182,8 @@ data Type =
   | Type :+: Type                               --  τ + τ                      /  τ + τ
   | Type :×: Type                               --  τ × τ                      /  τ * τ
   | ListT Type                                  --  list τ                     /  list τ
+  | RefT Type                                   --  ref τ                      /  ref τ
+  | ArrT Type                                   --  arr τ                      /  arr τ
   | Type :→: (Effect ∧ Type)                    --  τ →{η} τ                   /  τ ->{η} τ
   | (𝕏 ∧ Type ∧ 𝐿 Constr) :→†: (Effect ∧ Type)  --  (x : τ | c,…,c) →{η} τ     /  (x : τ | c,…,c) ->{η} τ
   | ForallT (𝐿 (TVar ∧ Kind)) (𝐿 Constr) Type   --  ∀ α:κ,…,α:κ | c,…,c. τ     /  forall α:κ,…,α:κ | c,…,c. τ

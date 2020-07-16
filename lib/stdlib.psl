@@ -150,7 +150,7 @@ def snd x = case x { (_, b) -> b }
 ---
 --- bundle library
 --- 
-def solo-f : forall A:type. (P:prins) -> ((p:prin | {p} <= P) -> {p} A) -> {P} A{bundle:P}
+def solo-f : forall A:type. (P:prins) -> ((p:prin | {p} <= P) -> A{p}) -> A{bundle:P}
 def solo-f P f = case P
   { {} -> <<>>
   ; {p} \/ P' -> << p | par {p} f p >> ++ solo-f P' f
