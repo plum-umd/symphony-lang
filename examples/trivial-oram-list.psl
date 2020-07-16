@@ -1,0 +1,57 @@
+principal A B
+
+-- ORAM is a list of pairs, where π₁ is index and π₂ is data
+
+def dummy : ∀ α : ☆ . α{yao:A,B} -> int{yao:A,B} × α{yao:A,B}
+def dummy a = (-1, a)
+
+def rr' : ∀ α : ☆ . list (int{yao:A,B} × α{yao:A,B}) -> int{yao:A,B} -> int{yao:A,B} × α{yao:A,B} -> (int{yao:A,B} × α{yao:A,B}) × list (int{yao:A,B} × α{yao:A,B})
+def rr' oram idx acc =
+  case oram
+  { []             -> (acc, [])
+  ; (idx', d) :: t ->
+    let h = (idx', d)
+    let h', acc' = mux if idx == idx' then (acc, h) else (h, acc)
+    let r, t' = rr t idx acc' in
+    (r, h' :: t')
+  }
+
+def rr : ∀ α : ☆ . list (int{yao:A,B} × α{yao:A,B}) -> int{yao:A,B} -> α{yao:A,B} -> (int{yao:A,B} × α{yao:A,B}) × list (int{yao:A,B} × α{yao:A,B})
+def rr oram idx a = rr' oram idx (dummy a)
+
+def add' : ∀ α : ☆ . list (int{yao:A,B} × α{yao:A,B}) -> int{yao:A,B} × α{yao:A,B} -> list (int{yao:A,B} × α{yao:A,B})
+def add' oram acc =
+  case oram
+  { []             -> []
+  ; (idx', d) :: t ->
+    let h = (idx', d)
+    let h', acc' = mux if idx' == -1 then (acc, h) else (h, acc)
+    let t' = add' t acc' in
+    h' :: t'
+  }
+
+def add : ∀ α : ☆ . list (int{yao:A,B} × α{yao:A,B}) -> int{yao:A,B} -> α{yao:A,B} -> list (int{yao:A,B} × α{yao:A,B})
+def add oram idx v = add' oram (idx, v)
+
+def initialize : ∀ α : ☆ . nat -> α{yao:A,B} -> list (int{yao:A,B} × α{yao:A,B})
+def initialize n a =
+  if n == 0 then
+    []
+  else
+    (-1, a) :: (initialize (n - 1) a)
+
+def main () =
+  -- Create a new ORAM
+  let oram = initialize 2 0n in
+
+  -- A obliviously adds 10 at index 0, B cannot see the index or the value
+  let si1  = share{yao:A -> A,B} (par {A} 0)
+  let sa   = share{yao:A -> A,B} (par {A} 10n)
+  let oram = add oram si1 sa
+
+  -- B obliviously adds 20 at index 1, A cannot see the index or the value
+  let si2  = share{yao:B -> A,B} (par {B} 1)
+  let sb   = share{yao:B -> A,B} (par {B} 20n)
+  let oram = add oram si2 sb in
+
+  oram
