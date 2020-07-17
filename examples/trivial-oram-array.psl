@@ -15,7 +15,7 @@ def rr' oram idx acc i =
     let idx', _  = c
     let c', acc' = mux if idx == idx' then (acc, c) else (c, acc)
     let _        = oram.i ← c' in
-    add' oram acc' (i + 1)
+    rr' oram idx acc' (i + 1n)
 
 def rr : ∀ α : ☆ . array (int{yao:A,B} × α{yao:A,B}) -> int{yao:A,B} -> α{yao:A,B} -> int{yao:A,B} × α{yao:A,B}
 def rr oram idx a = rr' oram idx (dummy a) 0n
@@ -52,4 +52,4 @@ def main () =
   let sb   = share{yao:B -> A,B} (par {B} 20n)
   let _    = add oram si2 sb in
 
-  oram
+  rr oram si1 22n

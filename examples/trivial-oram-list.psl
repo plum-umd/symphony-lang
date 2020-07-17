@@ -12,7 +12,7 @@ def rr' oram idx acc =
   ; (idx', d) :: t ->
     let h = (idx', d)
     let h', acc' = mux if idx == idx' then (acc, h) else (h, acc)
-    let r, t' = rr t idx acc' in
+    let r, t' = rr' t idx acc' in
     (r, h' :: t')
   }
 
@@ -54,4 +54,4 @@ def main () =
   let sb   = share{yao:B -> A,B} (par {B} 20n)
   let oram = add oram si2 sb in
 
-  oram
+  rr oram si1 22n
