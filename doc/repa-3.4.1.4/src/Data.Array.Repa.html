@@ -1,0 +1,201 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# OPTIONS -fno-warn-unused-imports #-}</span><span>
+</span><a name="line-2"></a><span class="hs-comment">-- | Repa arrays are wrappers around a linear structure that holds the element</span><span>
+</span><a name="line-3"></a><span class="hs-comment">--   data. </span><span>
+</span><a name="line-4"></a><span class="hs-comment">-- </span><span>
+</span><a name="line-5"></a><span class="hs-comment">--  The representation tag determines what structure holds the data.</span><span>
+</span><a name="line-6"></a><span class="hs-comment">--</span><span>
+</span><a name="line-7"></a><span class="hs-comment">--   Delayed Representations (functions that compute elements)</span><span>
+</span><a name="line-8"></a><span class="hs-comment">--</span><span>
+</span><a name="line-9"></a><span class="hs-comment">--   * `D`  -- Functions from indices to elements.</span><span>
+</span><a name="line-10"></a><span class="hs-comment">--</span><span>
+</span><a name="line-11"></a><span class="hs-comment">--   * `C`  -- Cursor functions.</span><span>
+</span><a name="line-12"></a><span class="hs-comment">--</span><span>
+</span><a name="line-13"></a><span class="hs-comment">--   Manifest Representations (real data)</span><span>
+</span><a name="line-14"></a><span class="hs-comment">--</span><span>
+</span><a name="line-15"></a><span class="hs-comment">--   * `U`  -- Adaptive unboxed vectors.</span><span>
+</span><a name="line-16"></a><span class="hs-comment">--</span><span>
+</span><a name="line-17"></a><span class="hs-comment">--   * `V`  -- Boxed vectors.</span><span>
+</span><a name="line-18"></a><span class="hs-comment">--</span><span>
+</span><a name="line-19"></a><span class="hs-comment">--   * `B`  -- Strict ByteStrings.</span><span>
+</span><a name="line-20"></a><span class="hs-comment">--</span><span>
+</span><a name="line-21"></a><span class="hs-comment">--   * `F`  -- Foreign memory buffers.</span><span>
+</span><a name="line-22"></a><span class="hs-comment">--</span><span>
+</span><a name="line-23"></a><span class="hs-comment">--   Meta Representations</span><span>
+</span><a name="line-24"></a><span class="hs-comment">--</span><span>
+</span><a name="line-25"></a><span class="hs-comment">--   * `P`  -- Arrays that are partitioned into several representations.</span><span>
+</span><a name="line-26"></a><span class="hs-comment">--</span><span>
+</span><a name="line-27"></a><span class="hs-comment">--   * `S`  -- Hints that computing this array is a small amount of work,</span><span>
+</span><a name="line-28"></a><span class="hs-comment">--             so computation should be sequential rather than parallel to avoid</span><span>
+</span><a name="line-29"></a><span class="hs-comment">--             scheduling overheads.</span><span>
+</span><a name="line-30"></a><span class="hs-comment">-- </span><span>
+</span><a name="line-31"></a><span class="hs-comment">--   * `I`  -- Hints that computing this array will be an unbalanced workload,</span><span>
+</span><a name="line-32"></a><span class="hs-comment">--             so computation of successive elements should be interleaved between</span><span>
+</span><a name="line-33"></a><span class="hs-comment">--             the processors</span><span>
+</span><a name="line-34"></a><span class="hs-comment">--</span><span>
+</span><a name="line-35"></a><span class="hs-comment">--   * `X`  -- Arrays whose elements are all undefined.</span><span>
+</span><a name="line-36"></a><span class="hs-comment">--</span><span>
+</span><a name="line-37"></a><span class="hs-comment">--  Array fusion is achieved via the delayed (`D`) and cursored (`C`)</span><span>
+</span><a name="line-38"></a><span class="hs-comment">--  representations. At compile time, the GHC simplifier combines the functions</span><span>
+</span><a name="line-39"></a><span class="hs-comment">--  contained within `D` and `C` arrays without needing to create manifest</span><span>
+</span><a name="line-40"></a><span class="hs-comment">--  intermediate arrays. </span><span>
+</span><a name="line-41"></a><span class="hs-comment">--</span><span>
+</span><a name="line-42"></a><span class="hs-comment">--</span><span>
+</span><a name="line-43"></a><span class="hs-comment">--  /Advice for writing fast code:/</span><span>
+</span><a name="line-44"></a><span class="hs-comment">--</span><span>
+</span><a name="line-45"></a><span class="hs-comment">--  1. Repa does not support nested parallellism. </span><span>
+</span><a name="line-46"></a><span class="hs-comment">--     This means that you cannot `map` a parallel worker function across</span><span>
+</span><a name="line-47"></a><span class="hs-comment">--     an array and then call `computeP` to evaluate it, or pass a parallel</span><span>
+</span><a name="line-48"></a><span class="hs-comment">--     worker to parallel reductions such as `foldP`. If you do then you will</span><span>
+</span><a name="line-49"></a><span class="hs-comment">--     get a run-time warning and the code will run very slowly.</span><span>
+</span><a name="line-50"></a><span class="hs-comment">--</span><span>
+</span><a name="line-51"></a><span class="hs-comment">--  2. Arrays of type @(Array D sh a)@ or @(Array C sh a)@ are /not real arrays/.</span><span>
+</span><a name="line-52"></a><span class="hs-comment">--     They are represented as functions that compute each element on demand.</span><span>
+</span><a name="line-53"></a><span class="hs-comment">--     You need to use `computeS`, `computeP`, `computeUnboxedP`</span><span>
+</span><a name="line-54"></a><span class="hs-comment">--     and so on to actually evaluate the elements.</span><span>
+</span><a name="line-55"></a><span class="hs-comment">--     </span><span>
+</span><a name="line-56"></a><span class="hs-comment">--  3. Add @INLINE@ pragmas to all leaf-functions in your code, expecially ones</span><span>
+</span><a name="line-57"></a><span class="hs-comment">--     that compute numeric results. Non-inlined lazy function calls can cost</span><span>
+</span><a name="line-58"></a><span class="hs-comment">--     upwards of 50 cycles each, while each numeric operator only costs one (or less).</span><span>
+</span><a name="line-59"></a><span class="hs-comment">--     Inlining leaf functions also ensures they are specialised at the appropriate</span><span>
+</span><a name="line-60"></a><span class="hs-comment">--     numeric types.</span><span>
+</span><a name="line-61"></a><span class="hs-comment">--     </span><span>
+</span><a name="line-62"></a><span class="hs-comment">--  4. Add bang patterns to all function arguments, and all fields of your data</span><span>
+</span><a name="line-63"></a><span class="hs-comment">--     types. In a high-performance Haskell program, the cost of lazy evaluation</span><span>
+</span><a name="line-64"></a><span class="hs-comment">--     can easily dominate the run time if not handled correctly. You don't want</span><span>
+</span><a name="line-65"></a><span class="hs-comment">--     to rely on the strictness analyser in numeric code because if it does not</span><span>
+</span><a name="line-66"></a><span class="hs-comment">--     return a perfect result then the performance of your program will be awful.</span><span>
+</span><a name="line-67"></a><span class="hs-comment">--     This is less of a problem for general Haskell code, and in a different</span><span>
+</span><a name="line-68"></a><span class="hs-comment">--     context relying on strictness analysis is fine.</span><span>
+</span><a name="line-69"></a><span class="hs-comment">--</span><span>
+</span><a name="line-70"></a><span class="hs-comment">--  5. Scheduling an 8-thread parallel computation can take 50us on a Linux machine. </span><span>
+</span><a name="line-71"></a><span class="hs-comment">--     You should switch to sequential evaluation functions like `computeS` and</span><span>
+</span><a name="line-72"></a><span class="hs-comment">--     `foldS` for small arrays in inner loops, and at the bottom of a </span><span>
+</span><a name="line-73"></a><span class="hs-comment">--     divide-and-conquer algorithm. Consider using a `computeP` that evaluates</span><span>
+</span><a name="line-74"></a><span class="hs-comment">--     an array defined using `computeS` or `foldS` for each element.</span><span>
+</span><a name="line-75"></a><span class="hs-comment">--</span><span>
+</span><a name="line-76"></a><span class="hs-comment">--  6. Compile the modules that use Repa with the following flags:</span><span>
+</span><a name="line-77"></a><span class="hs-comment">--     @-Odph -rtsopts -threaded@</span><span>
+</span><a name="line-78"></a><span class="hs-comment">--     @-fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000@</span><span>
+</span><a name="line-79"></a><span class="hs-comment">--     @-fllvm -optlo-O3@</span><span>
+</span><a name="line-80"></a><span class="hs-comment">--     You don't want the liberate-case transform because it tends to duplicate</span><span>
+</span><a name="line-81"></a><span class="hs-comment">--     too much intermediate code, and is not needed if you use bang patterns</span><span>
+</span><a name="line-82"></a><span class="hs-comment">--     as per point 4. The unfolding flags tell the inliner to not to fool around with </span><span>
+</span><a name="line-83"></a><span class="hs-comment">--     heuristics, and just inline everything. If the binaries become too big then </span><span>
+</span><a name="line-84"></a><span class="hs-comment">--     split the array part of your program into separate modules and only compile</span><span>
+</span><a name="line-85"></a><span class="hs-comment">--     those with the unfolding flags.</span><span>
+</span><a name="line-86"></a><span class="hs-comment">--</span><span>
+</span><a name="line-87"></a><span class="hs-comment">--  7. Repa writes to the GHC eventlog at the start and end of  each parallel computation.</span><span>
+</span><a name="line-88"></a><span class="hs-comment">--     Use threadscope to see what your program is doing.</span><span>
+</span><a name="line-89"></a><span class="hs-comment">--</span><span>
+</span><a name="line-90"></a><span class="hs-comment">--  8. When you're sure your program works, switch to the unsafe versions</span><span>
+</span><a name="line-91"></a><span class="hs-comment">--     of functions like `traverse`. These don't do bounds checks.</span><span>
+</span><a name="line-92"></a><span class="hs-comment">--</span><span>
+</span><a name="line-93"></a><span class="hs-comment">-- /Changes for Repa 3.2:/</span><span>
+</span><a name="line-94"></a><span class="hs-comment">--</span><span>
+</span><a name="line-95"></a><span class="hs-comment">--  1. Renamed some Repa 3.1 type classes to have more intuitive names: </span><span>
+</span><a name="line-96"></a><span class="hs-comment">--     `Repr` -&gt; `Source`, `Fill` -&gt; `Load`, `Fillable` -&gt; `Target`, `Combine` -&gt; `Structured`.</span><span>
+</span><a name="line-97"></a><span class="hs-comment">--</span><span>
+</span><a name="line-98"></a><span class="hs-comment">--  2. Also renamed `MArray` -&gt; `MVec` to emphasise its linear structure.</span><span>
+</span><a name="line-99"></a><span class="hs-comment">--</span><span>
+</span><a name="line-100"></a><span class="hs-comment">--  3. Made `Array` and `MVec` associated types of `Source` and `Target` respectively.</span><span>
+</span><a name="line-101"></a><span class="hs-comment">--</span><span>
+</span><a name="line-102"></a><span class="hs-comment">--  4. Added the `S` (Smallness) and `I` (Interleave) hints.</span><span>
+</span><a name="line-103"></a><span class="hs-comment">--</span><span>
+</span><a name="line-104"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.Array.Repa</span><span>
+</span><a name="line-105"></a><span>        </span><span class="hs-special">(</span><span> </span><span class="hs-comment">-- * Abstract array representation</span><span>
+</span><a name="line-106"></a><span>          </span><span class="hs-keyword">module</span><span> </span><a href="Data.Array.Repa.Shape.html"><span class="hs-identifier">Data.Array.Repa.Shape</span></a><span>
+</span><a name="line-107"></a><span>        </span><span class="hs-special">,</span><span> </span><span class="hs-keyword">module</span><span> </span><a href="Data.Array.Repa.Index.html"><span class="hs-identifier">Data.Array.Repa.Index</span></a><span>
+</span><a name="line-108"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Base.html#Array"><span class="hs-identifier hs-type">Array</span></a><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><a name="line-109"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Base.html#Source"><span class="hs-identifier hs-type">Source</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="hs-glyph">!</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Base.html#toList"><span class="hs-identifier hs-var">toList</span></a><span>
+</span><a name="line-110"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Base.html#deepSeqArrays"><span class="hs-identifier hs-var">deepSeqArrays</span></a><span>
+</span><a name="line-111"></a><span>
+</span><a name="line-112"></a><span>        </span><span class="hs-comment">-- * Computation</span><span>
+</span><a name="line-113"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Eval.html#computeP"><span class="hs-identifier hs-var">computeP</span></a><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Eval.html#computeS"><span class="hs-identifier hs-var">computeS</span></a><span>
+</span><a name="line-114"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Eval.html#copyP"><span class="hs-identifier hs-var">copyP</span></a><span class="hs-special">,</span><span>    </span><a href="Data.Array.Repa.Eval.html#copyS"><span class="hs-identifier hs-var">copyS</span></a><span>
+</span><a name="line-115"></a><span>
+</span><a name="line-116"></a><span>        </span><span class="hs-comment">-- * Concrete array representations</span><span>
+</span><a name="line-117"></a><span>        </span><span class="hs-comment">-- ** Delayed representation</span><span>
+</span><a name="line-118"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Repr.Delayed.html#D"><span class="hs-identifier hs-type">D</span></a><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Repr.Delayed.html#fromFunction"><span class="hs-identifier hs-var">fromFunction</span></a><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Repr.Delayed.html#toFunction"><span class="hs-identifier hs-var">toFunction</span></a><span>
+</span><a name="line-119"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Repr.Delayed.html#delay"><span class="hs-identifier hs-var">delay</span></a><span>
+</span><a name="line-120"></a><span>
+</span><a name="line-121"></a><span>        </span><span class="hs-comment">-- ** Unboxed vector representation</span><span>
+</span><a name="line-122"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Repr.Unboxed.html#U"><span class="hs-identifier hs-type">U</span></a><span>
+</span><a name="line-123"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Repr.Unboxed.html#computeUnboxedP"><span class="hs-identifier hs-var">computeUnboxedP</span></a><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Repr.Unboxed.html#computeUnboxedS"><span class="hs-identifier hs-var">computeUnboxedS</span></a><span>
+</span><a name="line-124"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Repr.Unboxed.html#fromListUnboxed"><span class="hs-identifier hs-var">fromListUnboxed</span></a><span>
+</span><a name="line-125"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Repr.Unboxed.html#fromUnboxed"><span class="hs-identifier hs-var">fromUnboxed</span></a><span>
+</span><a name="line-126"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Repr.Unboxed.html#toUnboxed"><span class="hs-identifier hs-var">toUnboxed</span></a><span>
+</span><a name="line-127"></a><span>
+</span><a name="line-128"></a><span>        </span><span class="hs-comment">-- from Data.Array.Repa.Operators.IndexSpace ----------------</span><span>
+</span><a name="line-129"></a><span>        </span><span class="hs-comment">-- * Operators</span><span>
+</span><a name="line-130"></a><span>        </span><span class="hs-comment">-- ** Index space transformations</span><span>
+</span><a name="line-131"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Operators.IndexSpace.html#reshape"><span class="hs-identifier hs-var">reshape</span></a><span>
+</span><a name="line-132"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Operators.IndexSpace.html#append"><span class="hs-identifier hs-var">append</span></a><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><a href="Data.Array.Repa.Operators.IndexSpace.html#%2B%2B"><span class="hs-operator hs-var">++</span></a><span class="hs-special">)</span><span>
+</span><a name="line-133"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Operators.IndexSpace.html#extract"><span class="hs-identifier hs-var">extract</span></a><span>
+</span><a name="line-134"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Operators.IndexSpace.html#transpose"><span class="hs-identifier hs-var">transpose</span></a><span>
+</span><a name="line-135"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Operators.IndexSpace.html#backpermute"><span class="hs-identifier hs-var">backpermute</span></a><span>
+</span><a name="line-136"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Operators.IndexSpace.html#backpermuteDft"><span class="hs-identifier hs-var">backpermuteDft</span></a><span>
+</span><a name="line-137"></a><span>
+</span><a name="line-138"></a><span>        </span><span class="hs-comment">-- ** Slice transformations</span><span>
+</span><a name="line-139"></a><span>        </span><span class="hs-special">,</span><span> </span><span class="hs-keyword">module</span><span> </span><a href="Data.Array.Repa.Slice.html"><span class="hs-identifier">Data.Array.Repa.Slice</span></a><span>
+</span><a name="line-140"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Operators.IndexSpace.html#slice"><span class="hs-identifier hs-var">slice</span></a><span>
+</span><a name="line-141"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Operators.IndexSpace.html#extend"><span class="hs-identifier hs-var">extend</span></a><span>
+</span><a name="line-142"></a><span>
+</span><a name="line-143"></a><span>        </span><span class="hs-comment">-- from Data.Array.Repa.Operators.Mapping -------------------</span><span>
+</span><a name="line-144"></a><span>        </span><span class="hs-comment">-- ** Structure preserving operations</span><span>
+</span><a name="line-145"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Operators.Mapping.html#map"><span class="hs-identifier hs-var">map</span></a><span>
+</span><a name="line-146"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Operators.Mapping.html#zipWith"><span class="hs-identifier hs-var">zipWith</span></a><span>
+</span><a name="line-147"></a><span>        </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><a href="Data.Array.Repa.Operators.Mapping.html#%2B%5E"><span class="hs-operator hs-var">+^</span></a><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><a href="Data.Array.Repa.Operators.Mapping.html#-%5E"><span class="hs-operator hs-var">-^</span></a><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><a href="Data.Array.Repa.Operators.Mapping.html#%2A%5E"><span class="hs-operator hs-var">*^</span></a><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><a href="Data.Array.Repa.Operators.Mapping.html#%2F%5E"><span class="hs-operator hs-var">/^</span></a><span class="hs-special">)</span><span>
+</span><a name="line-148"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Operators.Mapping.html#Structured"><span class="hs-identifier hs-type">Structured</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><a name="line-149"></a><span>
+</span><a name="line-150"></a><span>        </span><span class="hs-comment">-- from Data.Array.Repa.Operators.Traversal ------------------</span><span>
+</span><a name="line-151"></a><span>        </span><span class="hs-comment">-- ** Generic traversal</span><span>
+</span><a name="line-152"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Operators.Traversal.html#traverse"><span class="hs-identifier hs-var">traverse</span></a><span>
+</span><a name="line-153"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Operators.Traversal.html#traverse2"><span class="hs-identifier hs-var">traverse2</span></a><span>
+</span><a name="line-154"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Operators.Traversal.html#traverse3"><span class="hs-identifier hs-var">traverse3</span></a><span>
+</span><a name="line-155"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Operators.Traversal.html#traverse4"><span class="hs-identifier hs-var">traverse4</span></a><span>
+</span><a name="line-156"></a><span>
+</span><a name="line-157"></a><span>        </span><span class="hs-comment">-- from Data.Array.Repa.Operators.Interleave -----------------</span><span>
+</span><a name="line-158"></a><span>        </span><span class="hs-comment">-- ** Interleaving</span><span>
+</span><a name="line-159"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Operators.Interleave.html#interleave2"><span class="hs-identifier hs-var">interleave2</span></a><span>
+</span><a name="line-160"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Operators.Interleave.html#interleave3"><span class="hs-identifier hs-var">interleave3</span></a><span>
+</span><a name="line-161"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Operators.Interleave.html#interleave4"><span class="hs-identifier hs-var">interleave4</span></a><span>
+</span><a name="line-162"></a><span>
+</span><a name="line-163"></a><span>        </span><span class="hs-comment">-- from Data.Array.Repa.Operators.Reduction ------------------</span><span>
+</span><a name="line-164"></a><span>        </span><span class="hs-comment">-- ** Reduction</span><span>
+</span><a name="line-165"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Operators.Reduction.html#foldP"><span class="hs-identifier hs-var">foldP</span></a><span class="hs-special">,</span><span>    </span><a href="Data.Array.Repa.Operators.Reduction.html#foldS"><span class="hs-identifier hs-var">foldS</span></a><span>
+</span><a name="line-166"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Operators.Reduction.html#foldAllP"><span class="hs-identifier hs-var">foldAllP</span></a><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Operators.Reduction.html#foldAllS"><span class="hs-identifier hs-var">foldAllS</span></a><span>
+</span><a name="line-167"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Operators.Reduction.html#sumP"><span class="hs-identifier hs-var">sumP</span></a><span class="hs-special">,</span><span>     </span><a href="Data.Array.Repa.Operators.Reduction.html#sumS"><span class="hs-identifier hs-var">sumS</span></a><span>
+</span><a name="line-168"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Operators.Reduction.html#sumAllP"><span class="hs-identifier hs-var">sumAllP</span></a><span class="hs-special">,</span><span>  </span><a href="Data.Array.Repa.Operators.Reduction.html#sumAllS"><span class="hs-identifier hs-var">sumAllS</span></a><span>
+</span><a name="line-169"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Operators.Reduction.html#equalsP"><span class="hs-identifier hs-var">equalsP</span></a><span class="hs-special">,</span><span>  </span><a href="Data.Array.Repa.Operators.Reduction.html#equalsS"><span class="hs-identifier hs-var">equalsS</span></a><span>
+</span><a name="line-170"></a><span>
+</span><a name="line-171"></a><span>        </span><span class="hs-comment">-- from Data.Array.Repa.Operators.Selection ------------------</span><span>
+</span><a name="line-172"></a><span>        </span><span class="hs-comment">-- ** Selection</span><span>
+</span><a name="line-173"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Operators.Selection.html#selectP"><span class="hs-identifier hs-var">selectP</span></a><span class="hs-special">)</span><span>
+</span><a name="line-174"></a><span class="hs-keyword">where</span><span>
+</span><a name="line-175"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Base.html"><span class="hs-identifier">Data.Array.Repa.Base</span></a><span>
+</span><a name="line-176"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Shape.html"><span class="hs-identifier">Data.Array.Repa.Shape</span></a><span>
+</span><a name="line-177"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Index.html"><span class="hs-identifier">Data.Array.Repa.Index</span></a><span>
+</span><a name="line-178"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Slice.html"><span class="hs-identifier">Data.Array.Repa.Slice</span></a><span>
+</span><a name="line-179"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Eval.html"><span class="hs-identifier">Data.Array.Repa.Eval</span></a><span>
+</span><a name="line-180"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Repr.Delayed.html"><span class="hs-identifier">Data.Array.Repa.Repr.Delayed</span></a><span>
+</span><a name="line-181"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Repr.Vector.html"><span class="hs-identifier">Data.Array.Repa.Repr.Vector</span></a><span>
+</span><a name="line-182"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Repr.Unboxed.html"><span class="hs-identifier">Data.Array.Repa.Repr.Unboxed</span></a><span>
+</span><a name="line-183"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Repr.ByteString.html"><span class="hs-identifier">Data.Array.Repa.Repr.ByteString</span></a><span>
+</span><a name="line-184"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Repr.ForeignPtr.html"><span class="hs-identifier">Data.Array.Repa.Repr.ForeignPtr</span></a><span>
+</span><a name="line-185"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Repr.HintSmall.html"><span class="hs-identifier">Data.Array.Repa.Repr.HintSmall</span></a><span>
+</span><a name="line-186"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Repr.HintInterleave.html"><span class="hs-identifier">Data.Array.Repa.Repr.HintInterleave</span></a><span>
+</span><a name="line-187"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Repr.Cursored.html"><span class="hs-identifier">Data.Array.Repa.Repr.Cursored</span></a><span>
+</span><a name="line-188"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Repr.Partitioned.html"><span class="hs-identifier">Data.Array.Repa.Repr.Partitioned</span></a><span>
+</span><a name="line-189"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Repr.Undefined.html"><span class="hs-identifier">Data.Array.Repa.Repr.Undefined</span></a><span>           </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><a name="line-190"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Operators.Mapping.html"><span class="hs-identifier">Data.Array.Repa.Operators.Mapping</span></a><span>
+</span><a name="line-191"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Operators.Traversal.html"><span class="hs-identifier">Data.Array.Repa.Operators.Traversal</span></a><span>
+</span><a name="line-192"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Operators.IndexSpace.html"><span class="hs-identifier">Data.Array.Repa.Operators.IndexSpace</span></a><span>
+</span><a name="line-193"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Operators.Interleave.html"><span class="hs-identifier">Data.Array.Repa.Operators.Interleave</span></a><span>
+</span><a name="line-194"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Operators.Reduction.html"><span class="hs-identifier">Data.Array.Repa.Operators.Reduction</span></a><span>
+</span><a name="line-195"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Operators.Selection.html"><span class="hs-identifier">Data.Array.Repa.Operators.Selection</span></a><span>
+</span><a name="line-196"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Arbitrary.html"><span class="hs-identifier">Data.Array.Repa.Arbitrary</span></a><span>                </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><a name="line-197"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Prelude</span><span>          </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><a name="line-198"></a><span>
+</span><a name="line-199"></a><span>
+</span><a name="line-200"></a><span>
+</span><a name="line-201"></a></pre></body></html>

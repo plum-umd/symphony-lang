@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">PSL</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-2"></a><span>
+</span><a name="line-3"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">UVMHS</span><span>
+</span><a name="line-4"></a><span>
+</span><a name="line-5"></a><span class="hs-keyword">import</span><span> </span><a href="PSL.Interpreter.html"><span class="hs-identifier">PSL.Interpreter</span></a><span>
+</span><a name="line-6"></a><span>
+</span><a name="line-7"></a><span class="hs-identifier">mainDefaultArgs</span><span> </span><span class="hs-glyph">&#8759;</span><span> </span><span class="hs-identifier hs-type">&#119871;</span><span> </span><span class="hs-identifier hs-type">&#120138;</span><span>
+</span><a name="line-8"></a><a name="mainDefaultArgs"><a href="PSL.html#mainDefaultArgs"><span class="hs-identifier">mainDefaultArgs</span></a></a><span> </span><span class="hs-glyph">=</span><span>
+</span><a name="line-9"></a><span>  </span><span class="hs-identifier hs-var">list</span><span> </span><span class="hs-special">[</span><span class="hs-string">&quot;test&quot;</span><span class="hs-special">,</span><span class="hs-string">&quot;--version&quot;</span><span class="hs-special">,</span><span class="hs-string">&quot;--help&quot;</span><span class="hs-special">]</span><span>
+</span><a name="line-10"></a><span>  </span><span class="hs-comment">-- list [&quot;example&quot;,&quot;atq&quot;]</span><span>
+</span><a name="line-11"></a><span>
+</span><a name="line-12"></a><span class="hs-identifier">main</span><span> </span><span class="hs-glyph">&#8759;</span><span> </span><span class="hs-identifier hs-type">IO</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><a name="line-13"></a><a name="main"><a href="PSL.html#main"><span class="hs-identifier">main</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><a name="line-14"></a><span>  </span><span class="hs-identifier hs-var">initUVMHS</span><span>
+</span><a name="line-15"></a><span>  </span><a href="PSL.Interpreter.html#interpreterMain"><span class="hs-identifier hs-var">interpreterMain</span></a><span>
+</span><a name="line-16"></a><span>
+</span><a name="line-17"></a><span class="hs-identifier">mainDefault</span><span> </span><span class="hs-glyph">&#8759;</span><span> </span><span class="hs-identifier hs-type">IO</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><a name="line-18"></a><a name="mainDefault"><a href="PSL.html#mainDefault"><span class="hs-identifier">mainDefault</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><a name="line-19"></a><span>  </span><span class="hs-identifier hs-var">initUVMHS</span><span>
+</span><a name="line-20"></a><span>  </span><span class="hs-identifier hs-var">ilocalArgs</span><span> </span><a href="PSL.html#mainDefaultArgs"><span class="hs-identifier hs-var">mainDefaultArgs</span></a><span>  </span><a href="PSL.Interpreter.html#interpreterMain"><span class="hs-identifier hs-var">interpreterMain</span></a><span>
+</span><a name="line-21"></a></pre></body></html>

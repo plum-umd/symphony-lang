@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE    MagicHash, PatternGuards, BangPatterns, TemplateHaskell, QuasiQuotes,
+                ParallelListComp, TypeOperators, ExplicitForAll, ScopedTypeVariables #-}</span><span>
+</span><a name="line-3"></a><span class="hs-pragma">{-# OPTIONS -Wnot #-}</span><span>
+</span><a name="line-4"></a><span>
+</span><a name="line-5"></a><span class="hs-comment">-- | Efficient computation of stencil based convolutions.</span><span>
+</span><a name="line-6"></a><span class="hs-comment">--</span><span>
+</span><a name="line-7"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.Array.Repa.Stencil</span><span>
+</span><a name="line-8"></a><span>        </span><span class="hs-special">(</span><span> </span><a href="Data.Array.Repa.Stencil.Base.html#Stencil"><span class="hs-identifier hs-type">Stencil</span></a><span>       </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><a name="line-9"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Stencil.Base.html#Boundary"><span class="hs-identifier hs-type">Boundary</span></a><span>      </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><a name="line-10"></a><span>
+</span><a name="line-11"></a><span>        </span><span class="hs-comment">-- * Stencil creation.</span><span>
+</span><a name="line-12"></a><span>        </span><span class="hs-special">,</span><span> </span><a href="Data.Array.Repa.Stencil.Base.html#makeStencil"><span class="hs-identifier hs-var">makeStencil</span></a><span class="hs-special">)</span><span>
+</span><a name="line-13"></a><span class="hs-keyword">where</span><span>
+</span><a name="line-14"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.html"><span class="hs-identifier">Data.Array.Repa</span></a><span>
+</span><a name="line-15"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Base.html"><span class="hs-identifier">Data.Array.Repa.Base</span></a><span>
+</span><a name="line-16"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Stencil.Base.html"><span class="hs-identifier">Data.Array.Repa.Stencil.Base</span></a><span>
+</span><a name="line-17"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Stencil.Template.html"><span class="hs-identifier">Data.Array.Repa.Stencil.Template</span></a><span>
+</span><a name="line-18"></a><span class="hs-keyword">import</span><span> </span><a href="Data.Array.Repa.Specialised.Dim2.html"><span class="hs-identifier">Data.Array.Repa.Specialised.Dim2</span></a><span>
+</span><a name="line-19"></a><span>
+</span><a name="line-20"></a></pre></body></html>

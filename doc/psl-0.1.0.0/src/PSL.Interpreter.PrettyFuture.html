@@ -1,0 +1,232 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">PSL.Interpreter.PrettyFuture</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-2"></a><span>
+</span><a name="line-3"></a><span class="hs-comment">{-
+import UVMHS
+
+import PSL.Syntax
+import PSL.Interpreter.Types
+
+levelIF,levelLAM,levelLET,levelPAR,levelUPDATE &#8759; &#8469;64
+levelIF     = &#120159;64 10
+levelLAM    = &#120159;64 10
+levelLET    = &#120159;64 10
+levelPAR    = &#120159;64 10
+levelUPDATE = &#120159;64 15
+
+levelCOMMA,levelASCR,levelCONS,levelREVEAL &#8759; &#8469;64
+
+levelCOMMA   = &#120159;64 20
+levelASCR    = &#120159;64 21
+levelCONS    = &#120159;64 22
+levelREVEAL  = &#120159;64 25
+
+levelCOND,levelCOMPARE,levelARROW,levelPLUS,levelTIMES,levelEXP &#8759; &#8469;64
+levelCOND    = &#120159;64 30
+levelCOMPARE = &#120159;64 35
+levelARROW   = &#120159;64 40
+levelPLUS    = &#120159;64 50
+levelTIMES   = &#120159;64 60
+levelEXP     = &#120159;64 70
+
+levelAPP &#8759; &#8469;64
+levelAPP = &#120159;64 100
+
+levelDEREF &#8759; &#8469;64
+levelDEREF = &#120159;64 120
+
+levelACCESS &#8759; &#8469;64 
+levelACCESS = &#120159;64 130
+
+levelMODE &#8759; &#8469;64
+levelMODE  = &#120159;64 200
+
+instance Pretty Prot where
+  pretty = \case
+    YaoP &#8594; ppBdr &quot;yao&quot;
+    BGWP &#8594; ppBdr &quot;bgw&quot;
+    GMWP &#8594; ppBdr &quot;gmw&quot;
+    BGVP &#8594; ppBdr &quot;bgv&quot;
+    SPDZP &#8594; ppBdr &quot;spdz&quot;
+    AutoP &#8594; ppBdr &quot;auto&quot;
+
+instance Pretty IPrecision where
+  pretty = \case
+    InfIPr &#8594; concat
+      [ ppPun &quot;#&quot;
+      , ppBdr &quot;&#8734;&quot;
+      ]
+    FixedIPr n&#8321; n&#8322; 
+      | (n&#8321; &#8801; 64) &#10835; (n&#8322; &#8801; 0) &#8594; null
+      | otherwise &#8594; concat
+        [ ppPun &quot;#&quot;
+        , pretty n&#8321;
+        , if n&#8322; &#8801; 0 
+             then null 
+             else concat
+               [ ppPun &quot;.&quot;
+               , pretty n&#8322;
+               ]
+        ]
+
+instance Pretty FPrecision where
+  pretty = \case
+    FixedFPr n&#8321; n&#8322;
+      | (n&#8321; &#8801; 11) &#10835; (n&#8322; &#8801; 53) &#8594; null
+      | otherwise &#8594; concat
+        [ ppPun &quot;#&quot;
+        , pretty n&#8321;
+        , if n&#8322; &#8801; 0 
+             then null 
+             else concat
+               [ ppPun &quot;.&quot;
+               , pretty n&#8322;
+               ]
+        ]
+
+instance Pretty Mode where
+  pretty = \case
+    TopM &#8594; ppBdr &quot;&#8868;&quot;
+    SecM &#961;s &#8594; pretty &#961;s
+
+ppListPSL &#8759; &#119871; ValP &#8594; Doc
+ppListPSL = ppCollection (ppPun &quot;[&quot;) (ppPun &quot;]&quot;) (ppPun &quot;;&quot;) &#8728; map pretty &#8728; iter
+
+ppISecPSL &#8759; PrinVal &#8688; Val &#8594; Doc
+ppISecPSL &#961;vs =
+  ppCollection (ppPun &quot;&#10218;&quot;) (ppPun &quot;&#10219;&quot;) (ppPun &quot;;&quot;) $ mapOn (iter &#961;vs) $ \ (&#961; :* v) &#8594; 
+    let ppv = case asListV v of
+          Some (v&#771;s :* m) | m &#8801; Some (SecM (single &#961;)) &#8594; ppListPSL v&#771;s
+          _ &#8594; pretty v
+    in concat
+      [ ppAlign $ pretty &#961;
+      , ppSpaceIfBreak
+      , ppPun &quot;|&quot;
+      , ppSpaceIfBreak
+      , ppAlign ppv
+      ]
+
+instance Pretty Val where
+  pretty = \case
+    BoolV b &#8594; pretty b
+    StrV s &#8594; pretty s
+    NatV p n &#8594; concat 
+      [ pretty n
+      , ppLit &quot;n&quot;
+      , pretty p
+      ]
+    IntV p i &#8594; concat [pretty i,pretty p]
+    FltV _ d &#8594; ppApp (ppCon &quot;flt&quot;) [pretty d]
+    BulV &#8594; ppCon &quot;&#8226;&quot;
+    LV v &#8594; ppApp (ppCon &quot;L&quot;) [pretty v]
+    RV v &#8594; ppApp (ppCon &quot;R&quot;) [pretty v]
+    -- PairV v&#8321; v&#8322; &#8594; ppInfl levelCOMMA (ppPun &quot;,&quot;) (pretty v&#8321;) $ pretty v&#8322;
+    NilV &#8594; ppCon &quot;[]&quot;
+    ConsV v&#8321; v&#8322; &#8594; ppInfr levelCONS (ppPun &quot;&#8759;&quot;) (pretty v&#8321;) $ pretty v&#8322;
+    CloV _sxO _&#968; _e _&#958; &#8594; 
+      ppKey &quot;&#955;&lt;clo&gt;&quot;
+      -- ppPre levelLAM 
+      --       (ppHorizontal $ concat 
+      --          [ single&#119868; $ ppKey &quot;&#955;&lt;clo&gt;&quot;
+      --          , elim&#119874; null (single &#8728; ppString &#8728; &#120169;name) sxO
+      --          , single $ pretty &#968;
+      --          , single $ pretty &#958;
+      --          ]) $
+      --       pretty e
+    TCloV &#945; e &#958; &#8594;
+      ppPre levelLAM
+            (ppHorizontal 
+               [ ppKey &quot;&#923;&lt;clo&gt;&quot;
+               , ppString $ &#120169;name &#945;
+               , pretty &#958;
+               ]) $
+            pretty e
+    PrinV &#961;e &#8594; pretty &#961;e
+    PrinSetV &#961;s &#8594; pretty &#961;s
+    LocV m &#8467; &#8594; ppApp (ppCon &quot;loc&quot;) [pretty m,pretty &#8467;]
+    ArrayV v&#771;s &#8594; pretty v&#771;s
+    PairV v&#771;&#8321; v&#771;&#8322; &#8594; ppInfl levelCOMMA (ppPun &quot;,&quot;) (pretty v&#771;&#8321;) $ pretty v&#771;&#8322;
+    DefaultV &#8594; ppPun &quot;&#8869;&quot;
+    NizkVerifyV &#961;s v &#8594; ppApp (ppCon &quot;nizk-verify&quot;) [pretty &#961;s,pretty v]
+
+asListVP &#8759; ValP &#8594; &#119874; (&#119871; ValP &#8743; Mode)
+asListVP = \case
+  SSecVP &#961;s v &#8594; do
+    v&#771;s :* mO &#8592; asListV v
+    case mO of
+      None &#8594; return $ v&#771;s :* SecM &#961;s
+      Some m &#8594; do
+        guard $ m &#8801; SecM &#961;s
+        return $ v&#771;s :* m
+  AllVP v &#8594; do
+    v&#771;s :* mO &#8592; asListV v
+    case mO of
+      None &#8594; return $ v&#771;s :* TopM
+      Some m &#8594; do
+        guard $ m &#8801; TopM
+        return $ v&#771;s :* m
+  _ &#8594; abort
+
+asListV &#8759; Val &#8594; &#119874; (&#119871; ValP &#8743; &#119874; Mode)
+asListV = \case
+  ConsV v&#771;&#8321; v&#771;&#8322; &#8594; do
+    v&#771;s :* m &#8592; asListVP v&#771;&#8322;
+    return $ (v&#771;&#8321; :&amp; v&#771;s) :* Some m
+  NilV &#8594; return $ Nil :* None
+  _ &#8594; abort
+
+instance Pretty PrinVal where
+  pretty = \case
+    SinglePV &#961; &#8594; ppCon &#961;
+    AccessPV &#961; n &#8594; concat
+      [ ppLit &#961;
+      , ppPun &quot;.&quot;
+      , pretty n
+      ]
+
+instance Pretty ValP where
+  pretty v&#8320; = case asListVP v&#8320; of
+    Some (v&#771;s :* m) &#8594; case m of
+      TopM &#8594; ppListPSL v&#771;s
+      SecM &#961;s &#8594; ppPostF concat levelMODE (pretty &#961;s) $ ppListPSL v&#771;s
+    None &#8594; case v&#8320; of
+     SSecVP &#961;s v &#8594; ppPostF concat levelMODE (pretty &#961;s) (pretty v)
+     ISecVP &#961;vs &#8594; ppISecPSL &#961;vs
+     ShareVP zk &#966; &#961;s vmpc &#8594; 
+       ppApp (ppOp $ if zk then &quot;nizk-witness&quot; else &quot;share&quot;) 
+         [ concat
+             [ ppPun &quot;{&quot;
+             , pretty &#966;
+             , ppPun &quot;:&quot;
+             , concat $ inbetween (ppPun &quot;,&quot;) $ map pretty $ iter &#961;s
+             , ppPun &quot;}&quot;
+             ]
+          , pretty vmpc
+          ]
+     AllVP (v &#8759; Val) &#8594; pretty v
+     UnknownVP &#8594; ppCon &quot;unknown&quot; 
+     PairVP (v&#771;&#8321; &#8759; ValP) (v&#771;&#8322; &#8759; ValP) &#8594; ppInflF ppTight levelCOMMA (ppPun &quot;,&quot;) (pretty v&#771;&#8321;) $ pretty v&#771;&#8322;
+
+instance Pretty ValMPC where
+  pretty = \case
+    BaseMV &#8469; BaseValMPC
+    PairMV ValMPC ValMPC
+    SumMV &#8469; &#120121; ValMPC ValMPC
+    NilMV
+    ConsMV ValMPC ValMPC
+    DefaultMV
+
+instance Pretty BaseValMPC where
+
+ppPreF &#8759; (&#119868; Doc &#8594; Doc) &#8594; &#8469;64 &#8594; Doc &#8594; Doc &#8594; Doc
+ppPreF f i oM xM = ppGA $ ppLevel i $ f $ map ppAlign $ iter [oM,xM]
+
+ppPostF &#8759; (&#119868; Doc &#8594; Doc) &#8594; &#8469;64 &#8594; Doc &#8594; Doc &#8594; Doc
+ppPostF f i oM xM = ppGA $ ppLevel i $ f $ map ppAlign $ iter [xM,oM]
+
+ppInflF &#8759; (&#119868; Doc &#8594; Doc) &#8594; &#8469;64 &#8594; Doc &#8594; Doc &#8594; Doc &#8594; Doc
+ppInflF f i oM x&#8321;M x&#8322;M = ppGA $ ppLevel i $ f $ map ppAlign $ iter [x&#8321;M,oM,ppBump x&#8322;M]
+
+ppTight &#8759; (ToIter Doc t) &#8658; t &#8594; Doc
+ppTight = ppGroup &#8728; concat &#8728; inbetween ppNewlineIfBreak &#8728; iter
+-}</span><span>
+</span><a name="line-232"></a></pre></body></html>

@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 90327f8537636cdfbeaabe8c745411c5e535eac6c9210ba577bc43134276dc4a
+-- hash: 2d0d06b5ab7e7b2d91415f3ffe0de70274f5035fa50f8936a376ccf7985638f0
 
 name:           psl
 version:        0.1.0.0
@@ -71,6 +71,8 @@ data-files:
     examples/quick-sort-spdz-8.psl
     examples/quick-sort-spdz-9.psl
     examples/quick-sort-spdz.psl
+    examples/trivial-oram-array.psl
+    examples/trivial-oram-list.psl
     examples/two-party-median.psl
     tests/andor.psl
     tests/arrays.psl
@@ -98,6 +100,7 @@ data-files:
     tests/pairs-noloc.psl
     tests/proc1.psl
     tests/proc2.psl
+    tests/ref-list-type.psl
     tests/refs.psl
     tests/return-mux.psl
     tests/return-twice.psl
