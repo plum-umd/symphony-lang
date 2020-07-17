@@ -50,16 +50,17 @@ profile: .stack-work
 ghci: .stack-work
 	stack ghci
 
-.PHONY: doc
-doc: .stack-work
+.PHONY: docs
+docs: .stack-work
 	stack haddock
-	cp -r `stack path --local-doc-root` ./
+	rm -rf ./docs
+	cp -r `stack path --local-doc-root` ./docs
 
 .PHONY: clean
 clean:
 	stack clean --full
 	rm -f $(NAME).cabal
-	rm -rf doc
+	rm -rf docs
 
 .PHONY:
 re:
