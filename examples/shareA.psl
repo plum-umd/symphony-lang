@@ -1,0 +1,7 @@
+principal A B
+
+def main • =
+  let x = par {A} 10 in
+  let s = par {A} share{yao:A → } x
+  in
+  s
