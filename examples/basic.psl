@@ -1,0 +1,6 @@
+principal A B
+
+def main • =
+  let x = share{yao:A → A,B} (par {A} 10) in
+  let y = share{yao:B → A,B} (par {B} 20) in
+  x + y
