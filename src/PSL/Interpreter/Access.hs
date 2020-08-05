@@ -109,6 +109,7 @@ restrictValP ṽ = do
       v' ← restrictValPRecVal v
       return $ SSecVP ρs v'
     (TopM,_) → return ṽ
+    (_,UnknownVP) → return UnknownVP
     _ → throwIErrorCxt TypeIError "restrictValP: Pattern match fail on (m,ṽ)" $ frhs
         [ ("m",pretty m)
         , ("ṽ",pretty ṽ)

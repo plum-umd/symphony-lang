@@ -460,9 +460,11 @@ interpExp = wrapInterp $ \case
     interpApp ṽ₁ ṽ₂
   ParE ρes e → do
     ρvs ← prinExpValss *$ mapM interpPrinExp ρes
-    if ρvs ≡ pø 
+    m ← askL iCxtModeL
+    let m' = SecM ρvs ⊓ m
+    if m' ≡ SecM pø 
        then return UnknownVP
-       else restrictMode (SecM ρvs) $ interpExp e
+       else restrictMode m' $ interpExp e
   ShareE φ ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂

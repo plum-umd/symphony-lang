@@ -1,10 +1,10 @@
 cabal-version: 2.2
 
--- This file has been generated from package.yaml by hpack version 0.31.2.
+-- This file has been generated from package.yaml by hpack version 0.33.0.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2d0d06b5ab7e7b2d91415f3ffe0de70274f5035fa50f8936a376ccf7985638f0
+-- hash: 2f1ee870765482172979f77e33e4907e03266260d90350225e2203cc1fc3fc11
 
 name:           psl
 version:        0.1.0.0
@@ -95,6 +95,7 @@ data-files:
     tests/mux-prin.psl
     tests/mux-sum.psl
     tests/natfold.psl
+    tests/not-my-var.psl
     tests/overflow-int.psl
     tests/overflow-nat.psl
     tests/pairs-noloc.psl

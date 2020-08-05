@@ -83,6 +83,16 @@ instance POrd Mode where
   SecM ρs₁ ⊑ SecM ρs₂ = ρs₁ ⊆ ρs₂
   _ ⊑ _ = False
 
+instance Top Mode where
+  top = TopM
+
+instance Meet Mode where
+  TopM ⊓ m = m
+  m ⊓ TopM = m
+  SecM ρs₁ ⊓ SecM ρs₂ = SecM $ ρs₁ ∩ ρs₂
+
+instance MeetLattice Mode
+
 -----------------
 -- Effect Mode --
 -----------------
