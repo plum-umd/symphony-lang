@@ -76,7 +76,7 @@ makePrisms ''ValP
 makePrisms ''ValMPC
 makePrisms ''BaseValMPC
 
-data ShareInfo = 
+data ShareInfo =
     NotShared
   | Shared 𝔹 Prot (𝑃 PrinVal)
   deriving (Eq,Ord,Show)
@@ -121,7 +121,7 @@ data ICxt = ICxt
   , iCxtMode ∷ Mode
   , iCxtMPCPathCondition ∷ 𝐿 (ℕ ∧ 𝔹 ∧ ShareInfo)
   } deriving (Show)
-makeLenses ''ICxt 
+makeLenses ''ICxt
 makePrettySum ''ICxt
 
 iCxtDoResourcesL ∷ ICxt ⟢ 𝔹
@@ -130,8 +130,8 @@ iCxtDoResourcesL = iParamsDoResourcesL ⊚ iCxtParamsL
 iCxtIsExampleL ∷ ICxt ⟢ 𝔹
 iCxtIsExampleL = iParamsIsExampleL ⊚ iCxtParamsL
 
-ξ₀ ∷ ICxt
-ξ₀ = ICxt θ₀ None dø dø TopM null
+ξ₀ ∷ Mode → ICxt
+ξ₀ m = ICxt θ₀ None dø dø m null
 
 -----------
 -- STATE --
@@ -183,10 +183,10 @@ instance Monoid IOut
 -- ERROR --
 -----------
 
-data IErrorClass = 
-    SyntaxIError 
-  | TypeIError 
-  | NotImplementedIError 
+data IErrorClass =
+    SyntaxIError
+  | TypeIError
+  | NotImplementedIError
   | InternalIError
   deriving (Eq,Ord,Show)
 makePrettySum ''IErrorClass
@@ -203,7 +203,7 @@ throwIErrorCxt ∷ (Monad m,MonadReader ICxt m,MonadError IError m,STACK) ⇒ IE
 throwIErrorCxt ec em vals = withFrozenCallStack $ do
   es ← askL iCxtSourceL
   throwIError es ec em vals
-  
+
 throwIError ∷ (Monad m,MonadError IError m,STACK) ⇒ 𝑂 FullContext → IErrorClass → 𝕊 → 𝐿 (𝕊 ∧ Doc) → m a
 throwIError es ec em vals =
   throw $ IError es callStack ec $ ppVertical
@@ -290,9 +290,9 @@ runITLM θ ωtl xM = unErrorT $ runRWST θ ωtl $ unITLM xM
 runITLMIO ∷ IParams → ITLState → 𝕊 → ITLM a → IO (ITLState ∧ IOut ∧ a)
 runITLMIO θ ωtl name xM = runITLM θ ωtl xM ≫= \case
   Inr x → return x
-  Inl e → do 
+  Inl e → do
     pprint $ ppHorizontal [ppErr ">",ppBD $ ppString name]
-    printError e 
+    printError e
     abortIO
 
 evalITLM ∷ IParams → ITLState → ITLM a → IO (IError ∨ a)
@@ -301,8 +301,8 @@ evalITLM θ ωtl = mapp snd ∘ runITLM θ ωtl
 evalITLMIO ∷ IParams → ITLState → 𝕊 → ITLM a → IO a
 evalITLMIO θ ωtl name = map snd ∘ runITLMIO θ ωtl name
 
-asTLM ∷ IM a → ITLM a
-asTLM xM = do
+asTLM ∷ Mode → IM a → ITLM a
+asTLM m xM = do
   vps ← askL iParamsVirtualPartyArgsL
   mkITLM $ \ θ ωtl → do
     let ds = itlStateDeclPrins ωtl
@@ -315,12 +315,12 @@ asTLM xM = do
             None → ValPEV $ VirtualPV ρ
         -- top-level defs
         γ = itlStateEnv ωtl
-        ξ = compose 
+        ξ = compose
               [ update iCxtEnvL (γ' ⩌ γ)
               , update iCxtDeclPrinsL ds
               , update iCxtParamsL θ
               ]
-              ξ₀
+              (ξ₀ m)
         ω = itlStateExp ωtl
     rox ← runIM ξ ω xM
     return $ case rox of
