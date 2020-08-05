@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: caa40030100af0f4a1430729a7933d5ee2163bece6de285f10efc08b93dd9998
+-- hash: 2f1ee870765482172979f77e33e4907e03266260d90350225e2203cc1fc3fc11
 
 name:           psl
 version:        0.1.0.0
@@ -96,6 +96,7 @@ data-files:
     tests/mux-prin.psl
     tests/mux-sum.psl
     tests/natfold.psl
+    tests/not-my-var.psl
     tests/overflow-int.psl
     tests/overflow-nat.psl
     tests/pairs-noloc.psl
