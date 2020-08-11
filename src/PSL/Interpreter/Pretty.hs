@@ -33,7 +33,7 @@ levelAPP = 𝕟64 100
 levelDEREF ∷ ℕ64
 levelDEREF = 𝕟64 120
 
-levelACCESS ∷ ℕ64 
+levelACCESS ∷ ℕ64
 levelACCESS = 𝕟64 130
 
 levelMODE ∷ ℕ64
@@ -46,6 +46,9 @@ ppBoolPSL = \case
 
 ppNatPSL ∷ IPrecision → ℕ → Doc
 ppNatPSL p n = concat [pretty n,ppLit "n",pretty p]
+
+ppIntShPSL ∷ IPrecision → IntShare → Doc
+ppIntShPSL p i = concat [pretty i,pretty p]
 
 ppIntPSL ∷ IPrecision → ℤ → Doc
 ppIntPSL p i = concat [pretty i,pretty p]
@@ -61,7 +64,7 @@ ppArrayPSL = ppCollection (ppPun "[|") (ppPun "|]") (ppPun ";") ∘ map pretty �
 
 ppISecPSL ∷ PrinVal ⇰ Val → Doc
 ppISecPSL ρvs =
-  ppCollection (ppPun "⟪") (ppPun "⟫") (ppPun ";") $ mapOn (iter ρvs) $ \ (ρ :* v) → 
+  ppCollection (ppPun "⟪") (ppPun "⟫") (ppPun ";") $ mapOn (iter ρvs) $ \ (ρ :* v) →
     let ppv = case asListV v of
           Some (ṽs :* m) | m ≡ Some (SecM (single ρ)) → ppListPSL ṽs
           _ → pretty v
@@ -88,13 +91,13 @@ instance Pretty IPrecision where
       [ ppPun "#"
       , ppBdr "∞"
       ]
-    FixedIPr n₁ n₂ 
+    FixedIPr n₁ n₂
       | (n₁ ≡ 64) ⩓ (n₂ ≡ 0) → null
       | otherwise → concat
         [ ppPun "#"
         , pretty n₁
-        , if n₂ ≡ 0 
-             then null 
+        , if n₂ ≡ 0
+             then null
              else concat
                [ ppPun "."
                , pretty n₂
@@ -108,8 +111,8 @@ instance Pretty FPrecision where
       | otherwise → concat
         [ ppPun "#"
         , pretty n₁
-        , if n₂ ≡ 0 
-             then null 
+        , if n₂ ≡ 0
+             then null
              else concat
                [ ppPun "."
                , pretty n₂
@@ -134,8 +137,8 @@ instance Pretty Val where
     NilV → ppCon "[]"
     ConsV v₁ v₂ → ppInfr levelCONS (ppPun "∷") (pretty v₁) $ pretty v₂
     CloV _sxO _ψ _e _ξ → ppCon "λ<clo>"
-      -- ppPre levelLAM 
-      --       (ppHorizontal $ concat 
+      -- ppPre levelLAM
+      --       (ppHorizontal $ concat
       --          [ single𝐼 $ ppKey "λ<clo>"
       --          , elim𝑂 null (single ∘ ppString ∘ 𝕩name) sxO
       --          , single $ pretty ψ
@@ -144,7 +147,7 @@ instance Pretty Val where
       --       pretty e
     TCloV _α _e _ξ → ppCon "Λ<clo>"
       -- ppPre levelLAM
-      --       (ppHorizontal 
+      --       (ppHorizontal
       --          [ ppKey "Λ<clo>"
       --          , ppString $ 𝕩name α
       --          , pretty ξ
@@ -209,7 +212,7 @@ instance Pretty ValP where
     None → case v₀ of
      SSecVP ρs v → ppPostF concat levelMODE (pretty ρs) (pretty v)
      ISecVP ρvs → ppISecPSL ρvs
-     ShareVP zk φ ρs vmpc → 
+     ShareVP zk φ ρs vmpc →
        ppPostF concat levelMODE
          (ppSetBotLevel $ concat
              [ ppPun "{"
@@ -221,8 +224,8 @@ instance Pretty ValP where
              ]) $
          pretty vmpc
      AllVP (v ∷ Val) → pretty v
-     UnknownVP → ppCon "unknown" 
-     PairVP ṽ₁ ṽ₂ → 
+     UnknownVP → ppCon "unknown"
+     PairVP ṽ₁ ṽ₂ →
        let ṽs = asNtupVP ṽ₁ ⧺ single ṽ₂
        in ppLevel levelCOMMA $ ppCollection ppSpaceIfBreak null (ppPun ",") $ map pretty $ iter ṽs
 
@@ -247,9 +250,14 @@ instance Pretty BaseValMPC where
   pretty = \case
     BoolMV b → ppBoolPSL b
     NatMV p n → ppNatPSL p n
-    IntMV p i → ppIntPSL p i
+    IntMV p i → ppIntShPSL p i
     FltMV p d → ppFltPSL p d
     PrinMV ρ → pretty ρ
+
+instance Pretty IntShare where
+  pretty = \case
+    IntClearSh n → pretty n
+    IntEMPSh _   → ppPun "?"
 
 ppPreF ∷ (𝐼 Doc → Doc) → ℕ64 → Doc → Doc → Doc
 ppPreF f i oM xM = ppGA $ ppLevel i $ f $ map ppAlign $ iter [oM,xM]

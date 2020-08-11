@@ -15,6 +15,7 @@ import PSL.Interpreter.PrinExp
 import PSL.Interpreter.ReadType
 import PSL.Interpreter.Truncating
 import PSL.Interpreter.Types
+import PSL.Interpreter.EMP
 
 import qualified Data.Aeson as JSON
 import qualified Data.ByteString.Lazy as BS
@@ -228,7 +229,7 @@ defaultBaseVal ∷ (STACK) ⇒ BaseValMPC → BaseValMPC
 defaultBaseVal = \case
   BoolMV _ → BoolMV False
   NatMV p _ → NatMV p zero
-  IntMV p _ → IntMV p zero
+  IntMV p _ → IntMV p (IntClearSh zero)
   FltMV p _ → FltMV p zero
   PrinMV _ → PrinMV BotBTD
 
@@ -376,9 +377,54 @@ muxMPCVal md₁ si b₁ vmpc₂ vmpc₃ = case (vmpc₂, vmpc₃) of
     , ("vmpc₃",pretty vmpc₃)
     ]
 
+modeCheckShare ∷ 𝑃 PrinVal → 𝑃 PrinVal → IM ()
+modeCheckShare ρvs₁ ρvs₂ = do
+  m ← askL iCxtModeL
+  distributed ← askL iCxtIsDistributedL
+  guardErr (count ρvs₁ ≡ 1) $
+    throwIErrorCxt TypeIError "interpExp: ShareE: size ρvs₁ ≠ 1" $ frhs
+        [ ("ρvs₁",pretty ρvs₁) ]
+  when (not distributed) $ \ () → do
+    guardErr (SecM (ρvs₁ ∪ ρvs₂) ⊑ m) $
+      throwIErrorCxt TypeIError "interpExp: ShareE: ρvs₁ ∪ ρvs₂ ⊑ m" $ frhs
+        [ ("ρvs₁",pretty ρvs₁)
+        , ("ρvs₂",pretty ρvs₂)
+        , ("m",pretty m)
+        ]
+
+interpShare ∷ Prot → 𝑃 PrinVal → ValMPC → IM ValMPC
+interpShare YaoP ρvs (BaseMV md (IntMV p (IntClearSh z))) = do
+  m ← askL iCxtModeL
+  case m of
+    TopM →
+      throwIErrorCxt TypeIError "interpShare: interpExp: ShareE: m = ⊤" $ frhs
+        [ ("m",pretty m) ]
+    SecM _ → do
+      guardErr (count ρvs ≡ 1) $
+        throwIErrorCxt TypeIError "interpShare: interpExp: ShareE: size m ≠ 1" $ frhs
+          [ ("m",pretty ρvs) ]
+      let Some (SinglePV party :* _) = pmin ρvs
+      sh ← integerCreate p z party
+      return $ BaseMV md $ IntMV p $ IntEMPSh sh
+
+modeCheckReveal ∷ 𝑃 PrinVal → IM ()
+modeCheckReveal ρvs₂ = do
+  m ← askL iCxtModeL
+  distributed ← askL iCxtIsDistributedL
+  let (order, str) = if distributed then ((⊒), "⊒") else ((⊑), "⊑")
+  guardErr (order (SecM ρvs₂) m) $
+    throwIErrorCxt TypeIError "interpExp: RevealE: ρvs₂ ord m" $ frhs
+    [ ("ρvs₂",pretty ρvs₂)
+    , ("ord",ppPun str)
+    , ("m",pretty m)
+    ]
+
 interpExp ∷ (STACK) ⇒ Exp → IM ValP
 interpExp = wrapInterp $ \case
-  VarE x → restrictValP *$ interpVar x
+  VarE x → do
+    distributed ← askL iCxtIsDistributedL
+    let restrict = if distributed then return else restrictValP --TODO(ins): there should really be a version of restriction that does restrictValP for everything but shares and then checks *subset* for shares.
+    restrict *$ interpVar x
   BoolE b → introValP $ BoolV b
   StrE s → introValP $ StrV s
   NatE pr n → introValP $ NatV pr $ trPrNat pr n
@@ -462,25 +508,25 @@ interpExp = wrapInterp $ \case
     ρvs ← prinExpValss *$ mapM interpPrinExp ρes
     m ← askL iCxtModeL
     let m' = SecM ρvs ⊓ m
-    if m' ≡ SecM pø 
+    if m' ≡ SecM pø
        then return UnknownVP
        else restrictMode m' $ interpExp e
   ShareE φ ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
-    m ← askL iCxtModeL
-    guardErr (count ρvs₁ ≡ 1) $
-      throwIErrorCxt TypeIError "interpExp: ShareE: size ρvs₁ ≠ 1" $ frhs
-        [ ("ρvs₁",pretty ρvs₁) ]
-    guardErr (SecM ρvs₂ ⊑ m) $
-      throwIErrorCxt TypeIError "interpExp: ShareE: ρvs₂ ⋢ m" $ frhs
-        [ ("ρvs₂",pretty ρvs₂)
-        , ("m",pretty m)
-        ]
+    modeCheckShare ρvs₁ ρvs₂
+    distributed ← askL iCxtIsDistributedL
     ṽ ← interpExp e
-    sv ← restrictMode (SecM ρvs₁) $ do
-      mpcFrValPBaseVals ṽ $ \ bv → do
-        tellL iOutResEvsL $ ResEv False φ pø ρvs₁ ρvs₂ (getTypeBaseMPC bv) null null "SHARE" 0 ↦ 1
+    sv ← if not distributed then
+           restrictMode (SecM ρvs₁) $ do
+             mpcFrValPBaseVals ṽ $ \ bv → do
+               tellL iOutResEvsL $ ResEv False φ pø ρvs₁ ρvs₂ (getTypeBaseMPC bv) null null "SHARE" 0 ↦ 1
+         else
+           do
+             vmpc ← case ṽ of
+                      UnknownVP → return $ BaseMV 0 $ IntMV iprDefault $ IntClearSh $ HS.fromIntegral 0
+                      _         → mpcFrValP ṽ
+             interpShare φ ρvs₁ vmpc
     reShareValPShared False φ ρvs₂ sv
   AccessE e ρ → do
     ρv ← interpPrinExpSingle ρ
@@ -516,14 +562,7 @@ interpExp = wrapInterp $ \case
         ]
   RevealE ρes₂ e → do
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
-    m ← askL iCxtModeL
-    case m of
-      SecM ρs → guardErr (ρvs₂ ⊆ ρs) $
-        throwIErrorCxt TypeIError "interpExp: RevealE: ρvs ⊈ ρs" $ frhs
-          [ ("ρvs₂",pretty ρvs₂)
-          , ("ρs",pretty ρs)
-          ]
-      TopM → skip
+    modeCheckReveal ρvs₂
     ṽ ← interpExp e
     revealValP False ρvs₂ ṽ
   SendE ρes₁ ρes₂ e → do
@@ -595,7 +634,7 @@ interpExp = wrapInterp $ \case
       _ → return $ NotShared :* τ
     bvmpc ← case τ' of
       ℕT ip → io $ NatMV ip ∘ trPrNat ip ∘ nat ^$ R.randomIO @ℕ64
-      ℤT ip → io $ IntMV ip ∘ trPrInt ip ∘ int ^$ R.randomIO @ℤ64
+      ℤT ip → io $ IntMV ip ∘ IntClearSh ∘ trPrInt ip ∘ int ^$ R.randomIO @ℤ64
       𝔽T fp → io $ FltMV fp ^$ R.randomIO @𝔻
       𝔹T → io $ BoolMV ^$ R.randomIO @𝔹
       _ → error "TODO: not implemented"
@@ -622,7 +661,7 @@ interpExp = wrapInterp $ \case
     md₂ :* bv₂ ← error𝑂 (frhs ^$ view baseMVL v₂) $ throwIErrorCxt TypeIError "not base val" null
     bv' ← case (τ',bv₁,bv₂) of
       (ℕT ip,NatMV ip₁ n₁,NatMV ip₂ n₂)                             | (ip₁ ≡ ip) ⩓ (ip₂ ≡ ip) → do io $ NatMV ip ∘ nat ^$ (R.randomRIO @ℕ64) (HS.fromIntegral n₁,HS.fromIntegral n₂)
-      (ℤT ip,IntMV ip₁ i₁,IntMV ip₂ i₂) | (ip₁ ≡ ip) ⩓ (ip₂ ≡ ip) → io $ IntMV ip ∘ int ^$ (R.randomRIO @ℤ64) (HS.fromIntegral i₁,HS.fromIntegral i₂)
+      (ℤT ip,IntMV ip₁ (IntClearSh i₁),IntMV ip₂ (IntClearSh i₂)) | (ip₁ ≡ ip) ⩓ (ip₂ ≡ ip) → io $ IntMV ip ∘ IntClearSh ∘ int ^$ (R.randomRIO @ℤ64) (HS.fromIntegral i₁,HS.fromIntegral i₂)
       (𝔽T fp,FltMV fp₁ d₁,FltMV fp₂ d₂) | (fp₁ ≡ fp) ⩓ (fp₂ ≡ fp) → io $ FltMV fp ^$ (R.randomRIO @𝔻) (d₁,d₂)
       _ → throwIErrorCxt NotImplementedIError "rand-range" $ frhs
         [ ("τ',bv₁,bv₂",pretty (τ' :* bv₁ :* bv₂)) ]
@@ -965,6 +1004,7 @@ initializeIO os = exec
 initializeEnv ∷ Options → IParams
 initializeEnv os = flip compose θ₀
   [ if optDoResources os then update iParamsDoResourcesL True else id
+  , if isSome $ optParty os then update iParamsIsDistributedL True else id
   ]
 
 interpretFile ∷ IParams → ITLState → 𝕊 → 𝕊 → Mode → IO (ITLState ∧ IOut)
@@ -1016,6 +1056,18 @@ parseOptions = do
     out $ string $ O.usageInfo (chars "psl test [arguments]") usageInfoTest
   return $ frhs (os,map string nos)
 
+setupDistributed ∷ Prin → IO NetIO
+setupDistributed party =
+  do
+    net ← netIOCreate addr port
+    setupSemiHonest net party
+    return net
+    where
+      localhost  = "127.0.0.1"
+      addr       = if isAlice party then None  else (Some localhost)
+      port       = HS.fromIntegral 12345
+      isAlice p  = (p ≡ "A") ⩔ (p ≡ "Alice") ⩔ (p ≡ "alice")
+
 pslMainRun ∷ IO ()
 pslMainRun = do
   (os,ts) ← tohs ^$ parseOptions
@@ -1037,11 +1089,8 @@ pslMainRun = do
         ]
       initializeIO os
       let θ = initializeEnv os
-      let m = case optParty os of
-            None → TopM
-            Some p → SecM $ single𝑃 $ SinglePV p
-      ωtl :* _ ← interpretFile θ ωtl₀ "lib:stdlib.psl" (optLibPath os ⧺ "/stdlib.psl") m
-      v ← fst ^$ interpretFileMain θ ωtl fn fn m
+      ωtl :* _ ← interpretFile θ ωtl₀ "lib:stdlib.psl" (optLibPath os ⧺ "/stdlib.psl") TopM
+      v ← fst ^$ interpretFileMain θ ωtl fn fn TopM
       pprint $ ppHeader "RESULT"
       pprint v
 
@@ -1073,11 +1122,14 @@ pslMainExample = do
         ]
       initializeIO os
       let θ = update iParamsIsExampleL True $ initializeEnv os
-      let m = case optParty os of
-            None → TopM
-            Some p → SecM $ single𝑃 $ SinglePV p
+      (m, destroy) ← case optParty os of
+                       None → return (TopM, \ () → return ())
+                       Some p → do
+                         net ← setupDistributed p
+                         return (SecM $ single𝑃 $ SinglePV p, \ () → netIODestroy net)
       ωtl :* _ ← interpretFile θ ωtl₀ "lib:stdlib.psl" (optLibPath os ⧺ "/stdlib.psl") m
       v ← fst ^$ interpretFileMain θ ωtl (concat ["example:",name,".psl"]) exampleRelativePath m
+      destroy ()
       pprint $ ppHeader "RESULT"
       pprint v
 

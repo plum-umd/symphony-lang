@@ -51,8 +51,11 @@ data-files:
   - tests/*
   - examples-input/**/*
 
+extra-libraries:
+  - empc
+
 library:
-  source-dirs: 
+  source-dirs:
     - src
   dependencies:
     - aeson

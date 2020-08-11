@@ -4,6 +4,8 @@ import UVMHS
 import AddToUVMHS
 import PSL.Syntax
 
+import Foreign.ForeignPtr
+
 ------------
 -- VALUES --
 ------------
@@ -58,10 +60,19 @@ data ValMPC =
 data BaseValMPC =
     BoolMV 𝔹
   | NatMV IPrecision ℕ
-  | IntMV IPrecision ℤ
+  | IntMV IPrecision IntShare
   | FltMV FPrecision 𝔻
   | PrinMV (AddBTD PrinVal)
   deriving (Eq,Ord,Show)
+
+data IntShare =
+    IntClearSh ℤ
+  | IntEMPSh IntEMP
+  deriving (Eq,Ord,Show)
+
+{- EMP Integer Shares -}
+data IntEMPS = IntEMPS
+type IntEMP = ForeignPtr IntEMPS
 
 -----------------
 -- ENVIRONMENT --
@@ -98,6 +109,7 @@ type Store = 𝑊 ValP
 -- θ ∈ params
 data IParams = IParams
   { iParamsDoResources ∷ 𝔹
+  , iParamsIsDistributed ∷ 𝔹
   , iParamsIsExample ∷ 𝔹
   , iParamsVirtualPartyArgs ∷ 𝕊 ⇰ 𝑃 PrinVal
   } deriving (Eq,Ord,Show)
@@ -105,7 +117,7 @@ makeLenses ''IParams
 makePrettySum ''IParams
 
 θ₀ ∷ IParams
-θ₀ = IParams False False dø
+θ₀ = IParams False False False dø
 
 -------------
 -- CONTEXT --
@@ -126,6 +138,9 @@ makePrettySum ''ICxt
 
 iCxtDoResourcesL ∷ ICxt ⟢ 𝔹
 iCxtDoResourcesL = iParamsDoResourcesL ⊚ iCxtParamsL
+
+iCxtIsDistributedL ∷ ICxt ⟢ 𝔹
+iCxtIsDistributedL = iParamsIsDistributedL ⊚ iCxtParamsL
 
 iCxtIsExampleL ∷ ICxt ⟢ 𝔹
 iCxtIsExampleL = iParamsIsExampleL ⊚ iCxtParamsL
