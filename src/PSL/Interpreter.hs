@@ -678,7 +678,7 @@ interpExp = wrapInterp $ \case
     case v₁ of
       NatV _ n → do
         ℓ ← nextL iStateNextLocL
-        init ← smush $ list $ map (\ i → (introValP $ NatV InfIPr i) >>= \ ṽi → interpApp ṽ₂ ṽi) [0..(n - 1)]
+        init ← mapM (\ i → (introValP $ NatV InfIPr i) >>= \ ṽi → interpApp ṽ₂ ṽi) $ list [0..(n - 1)]
         ṽ ← introValP $ ArrayV $ vec $ init
         modifyL iStateStoreL $ \ σ → (ℓ ↦♮ ṽ) ⩌♮ σ
         locValP ℓ
