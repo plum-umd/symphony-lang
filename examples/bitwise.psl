@@ -1,0 +1,8 @@
+principal A B
+
+def xor-test • = 1n#1 ⊻ 1n#1
+def mask-test • = 4n#3 ⌲ 2n
+def main • =
+  let t1 = xor-test • ≡ 0n#1 in
+  let t2 = mask-test • ≡ 1n#1 in
+  t1 && t2
