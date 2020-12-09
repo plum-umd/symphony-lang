@@ -4,13 +4,14 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2f1ee870765482172979f77e33e4907e03266260d90350225e2203cc1fc3fc11
+-- hash: 422540a368f80891e0f506478132612d1df79bf3d875e8f27f19f5eaed358d13
 
 name:           psl
 version:        0.1.0.0
 build-type:     Simple
 data-files:
     lib/stdlib.psl
+    examples/aaa.psl
     examples/atq-bgw-12.psl
     examples/atq-bgw-16.psl
     examples/atq-bgw-20.psl
@@ -31,6 +32,7 @@ data-files:
     examples/atq-spdz-40.psl
     examples/atq-spdz-8.psl
     examples/atq-spdz.psl
+    examples/basic-oram-mono.psl
     examples/cmp.psl
     examples/db-stats-10.psl
     examples/db-stats-11.psl
@@ -42,6 +44,7 @@ data-files:
     examples/db-stats.psl
     examples/gcd-bgv.psl
     examples/gcd-gc.psl
+    examples/insertion-sort-2p.psl
     examples/insertion-sort.psl
     examples/karmarkar-iters-1.psl
     examples/karmarkar-iters-2.psl
