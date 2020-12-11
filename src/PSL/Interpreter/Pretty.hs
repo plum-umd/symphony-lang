@@ -256,7 +256,7 @@ instance Pretty BaseValMPC where
 
 instance Pretty IntShare where
   pretty = \case
-    IntClearSh n → pretty n
+    IntSeqSh n → pretty n
     IntEMPSh _   → ppPun "?"
 
 ppPreF ∷ (𝐼 Doc → Doc) → ℕ64 → Doc → Doc → Doc

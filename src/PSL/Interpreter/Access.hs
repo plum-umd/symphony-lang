@@ -193,7 +193,7 @@ unShareValMode ∷ (STACK) ⇒ Mode → Val → IM (ShareInfo ∧ ValMPC)
 unShareValMode m = \case
   BoolV b → return $ NotShared :* BaseMV 0 (BoolMV b)
   NatV pr n → return $ NotShared :* BaseMV 0 (NatMV pr n)
-  IntV pr i → return $ NotShared :* BaseMV 0 (IntMV pr (IntClearSh i))
+  IntV pr i → return $ NotShared :* BaseMV 0 (IntMV pr (IntSeqSh i))
   FltV pr i → return $ NotShared :* BaseMV 0 (FltMV pr i)
   PrinV (ValPEV ρe) → return $ NotShared :* BaseMV 0 (PrinMV $ AddBTD ρe)
   PairV ṽ₁ ṽ₂ → do
@@ -343,7 +343,7 @@ mpcFrValFWith f g = \case
     f bvmpc
     return $ BaseMV zero bvmpc
   IntV pr i → do
-    let bvmpc = IntMV pr (IntClearSh i)
+    let bvmpc = IntMV pr (IntSeqSh i)
     f bvmpc
     return $ BaseMV zero bvmpc
   FltV pr i → do
@@ -433,7 +433,7 @@ valFrBaseMPC ∷ (STACK) ⇒ BaseValMPC → IM ValP
 valFrBaseMPC = \case
   BoolMV b → introValP $ BoolV b
   NatMV pr n → introValP $ NatV pr n
-  IntMV pr (IntClearSh i) → introValP $ IntV pr i
+  IntMV pr (IntSeqSh i) → introValP $ IntV pr i
   FltMV pr d → introValP $ FltV pr d
   PrinMV peO → case peO of
     BotBTD → introValP DefaultV
@@ -450,7 +450,7 @@ revealBaseValMPC ∷ (STACK) ⇒ 𝑃 PrinVal → BaseValMPC → IM ValP
 revealBaseValMPC ρs = \case
   BoolMV b → introValP $ BoolV b
   NatMV pr n → introValP $ NatV pr n
-  IntMV pr (IntClearSh i) → introValP $ IntV pr i
+  IntMV pr (IntSeqSh i) → introValP $ IntV pr i
   IntMV pr (IntEMPSh i) → do
     z ← integerReveal i (pmap prinFrPrinVal ρs)
     introValP $ IntV pr z

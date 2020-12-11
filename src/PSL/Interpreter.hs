@@ -229,7 +229,7 @@ defaultBaseVal ∷ (STACK) ⇒ BaseValMPC → BaseValMPC
 defaultBaseVal = \case
   BoolMV _ → BoolMV False
   NatMV p _ → NatMV p zero
-  IntMV p _ → IntMV p (IntClearSh zero)
+  IntMV p _ → IntMV p (IntSeqSh zero)
   FltMV p _ → FltMV p zero
   PrinMV _ → PrinMV BotBTD
 
@@ -393,7 +393,7 @@ modeCheckShare ρvs₁ ρvs₂ = do
         ]
 
 interpShare ∷ Prot → 𝑃 PrinVal → ValMPC → IM ValMPC
-interpShare YaoP ρvs (BaseMV md (IntMV p (IntClearSh z))) = do
+interpShare YaoP ρvs (BaseMV md (IntMV p (IntSeqSh z))) = do
   m ← askL iCxtModeL
   case m of
     TopM →
@@ -524,7 +524,7 @@ interpExp = wrapInterp $ \case
          else
            do
              vmpc ← case ṽ of
-                      UnknownVP → return $ BaseMV 0 $ IntMV iprDefault $ IntClearSh $ HS.fromIntegral 0
+                      UnknownVP → return $ BaseMV 0 $ IntMV iprDefault $ IntSeqSh $ HS.fromIntegral 0
                       _         → mpcFrValP ṽ
              interpShare φ ρvs₁ vmpc
     reShareValPShared False φ ρvs₂ sv
@@ -634,7 +634,7 @@ interpExp = wrapInterp $ \case
       _ → return $ NotShared :* τ
     bvmpc ← case τ' of
       ℕT ip → io $ NatMV ip ∘ trPrNat ip ∘ nat ^$ R.randomIO @ℕ64
-      ℤT ip → io $ IntMV ip ∘ IntClearSh ∘ trPrInt ip ∘ int ^$ R.randomIO @ℤ64
+      ℤT ip → io $ IntMV ip ∘ IntSeqSh ∘ trPrInt ip ∘ int ^$ R.randomIO @ℤ64
       𝔽T fp → io $ FltMV fp ^$ R.randomIO @𝔻
       𝔹T → io $ BoolMV ^$ R.randomIO @𝔹
       _ → error "TODO: not implemented"
@@ -661,7 +661,7 @@ interpExp = wrapInterp $ \case
     md₂ :* bv₂ ← error𝑂 (frhs ^$ view baseMVL v₂) $ throwIErrorCxt TypeIError "not base val" null
     bv' ← case (τ',bv₁,bv₂) of
       (ℕT ip,NatMV ip₁ n₁,NatMV ip₂ n₂)                             | (ip₁ ≡ ip) ⩓ (ip₂ ≡ ip) → do io $ NatMV ip ∘ nat ^$ (R.randomRIO @ℕ64) (HS.fromIntegral n₁,HS.fromIntegral n₂)
-      (ℤT ip,IntMV ip₁ (IntClearSh i₁),IntMV ip₂ (IntClearSh i₂)) | (ip₁ ≡ ip) ⩓ (ip₂ ≡ ip) → io $ IntMV ip ∘ IntClearSh ∘ int ^$ (R.randomRIO @ℤ64) (HS.fromIntegral i₁,HS.fromIntegral i₂)
+      (ℤT ip,IntMV ip₁ (IntSeqSh i₁),IntMV ip₂ (IntSeqSh i₂)) | (ip₁ ≡ ip) ⩓ (ip₂ ≡ ip) → io $ IntMV ip ∘ IntSeqSh ∘ int ^$ (R.randomRIO @ℤ64) (HS.fromIntegral i₁,HS.fromIntegral i₂)
       (𝔽T fp,FltMV fp₁ d₁,FltMV fp₂ d₂) | (fp₁ ≡ fp) ⩓ (fp₂ ≡ fp) → io $ FltMV fp ^$ (R.randomRIO @𝔻) (d₁,d₂)
       _ → throwIErrorCxt NotImplementedIError "rand-range" $ frhs
         [ ("τ',bv₁,bv₂",pretty (τ' :* bv₁ :* bv₂)) ]

@@ -37,12 +37,12 @@ data Val =
 -- Distributed Values
 -- ṽ ∈ dist-val
 data ValP =
-    SSecVP (𝑃 PrinVal) Val
-  | ISecVP (PrinVal ⇰ Val)
-  | ShareVP 𝔹 Prot (𝑃 PrinVal) ValMPC
-  | AllVP Val
-  | UnknownVP
-  | PairVP ValP ValP
+    SSecVP (𝑃 PrinVal) Val            -- values which are the same on parties (not necessarily shares)
+  | ISecVP (PrinVal ⇰ Val)            -- values which are different on parties (bundles, not necessarily shares)
+  | ShareVP 𝔹 Prot (𝑃 PrinVal) ValMPC -- shares
+  | AllVP Val                         -- special case, equivalent to SSecVP ⊤ Val
+  | UnknownVP                         -- ★
+  | PairVP ValP ValP                  -- gross!
   deriving (Eq,Ord,Show)
 
 -- Values used in circuits
@@ -66,7 +66,7 @@ data BaseValMPC =
   deriving (Eq,Ord,Show)
 
 data IntShare =
-    IntClearSh ℤ
+    IntSeqSh ℤ
   | IntEMPSh IntEMP
   deriving (Eq,Ord,Show)
 

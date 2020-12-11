@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2f1ee870765482172979f77e33e4907e03266260d90350225e2203cc1fc3fc11
+-- hash: c5b9245b9e6577564669474a37c2abca9b42ca2802aa1018b140aa43b395302c
 
 name:           psl
 version:        0.1.0.0
@@ -31,6 +31,7 @@ data-files:
     examples/atq-spdz-40.psl
     examples/atq-spdz-8.psl
     examples/atq-spdz.psl
+    examples/basic.psl
     examples/cmp.psl
     examples/db-stats-10.psl
     examples/db-stats-11.psl
@@ -1067,6 +1068,7 @@ library
       PSL.Config
       PSL.Interpreter
       PSL.Interpreter.Access
+      PSL.Interpreter.EMP
       PSL.Interpreter.Json
       PSL.Interpreter.Pretty
       PSL.Interpreter.PrettyFuture
@@ -1084,6 +1086,8 @@ library
       src
   default-extensions: ConstraintKinds DataKinds ExplicitNamespaces FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase MonadComprehensions MultiParamTypeClasses NoImplicitPrelude OverloadedStrings PatternSynonyms PolyKinds QuantifiedConstraints RankNTypes RebindableSyntax ScopedTypeVariables StandaloneDeriving Strict StrictData TemplateHaskell TypeApplications TypeFamilies TypeOperators UndecidableInstances UndecidableSuperClasses UnicodeSyntax ViewPatterns
   ghc-options: -Wall -Wno-orphans -Wno-partial-type-signatures -j -optP-Wno-nonportable-include-path
+  extra-libraries:
+      empc
   build-depends:
       aeson
     , base
@@ -1103,6 +1107,8 @@ executable psl
       main
   default-extensions: ConstraintKinds DataKinds ExplicitNamespaces FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase MonadComprehensions MultiParamTypeClasses NoImplicitPrelude OverloadedStrings PatternSynonyms PolyKinds QuantifiedConstraints RankNTypes RebindableSyntax ScopedTypeVariables StandaloneDeriving Strict StrictData TemplateHaskell TypeApplications TypeFamilies TypeOperators UndecidableInstances UndecidableSuperClasses UnicodeSyntax ViewPatterns
   ghc-options: -Wall -Wno-orphans -Wno-partial-type-signatures -j -optP-Wno-nonportable-include-path
+  extra-libraries:
+      empc
   build-depends:
       base
     , psl
