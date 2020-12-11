@@ -31,7 +31,6 @@ data Val =
   | LocV Mode ℤ64
   | ArrayV (𝕍 ValP)
   | DefaultV
-  | NizkVerifyV (𝑃 PrinVal) ValP
   deriving (Eq,Ord,Show)
 
 -- Distributed Values
@@ -41,8 +40,6 @@ data ValP =
   | ISecVP (PrinVal ⇰ Val)            -- values which are different on parties (bundles, not necessarily shares)
   | ShareVP 𝔹 Prot (𝑃 PrinVal) ValMPC -- shares
   | AllVP Val                         -- special case, equivalent to SSecVP ⊤ Val
-  | UnknownVP                         -- ★
-  | PairVP ValP ValP                  -- gross!
   deriving (Eq,Ord,Show)
 
 -- Values used in circuits
@@ -74,7 +71,7 @@ data IntShare =
 data IntEMPS = IntEMPS
 type IntEMP = ForeignPtr IntEMPS
 
------------------
+ -----------------
 -- ENVIRONMENT --
 -----------------
 

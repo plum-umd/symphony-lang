@@ -66,7 +66,6 @@ elimValP ṽ = do
           ]
       return v'
     AllVP v' → return v'
-    PairVP ṽ₁ ṽ₂ → return $ PairV ṽ₁ ṽ₂
     -- LocVP m' ℓ → do
     --   guardErr (m ≡ m') $
     --     throwIErrorCxt TypeIError "elimValP: m ≠ m'" $ frhs
@@ -74,7 +73,7 @@ elimValP ṽ = do
     --       , ("m'",pretty m')
     --       ]
     --   return $ LocV ℓ
-    _ → throwIErrorCxt TypeIError "elimValP: ṽ ∉ {AllVP _,SSecVP _ _,PairVP _ _,LocVP _ _}" $ frhs
+    _ → throwIErrorCxt TypeIError "elimValP: ṽ ∉ {AllVP _,SSecVP _ _,LocVP _ _}" $ frhs
         [ ("ṽ",pretty ṽ)
         ]
 
@@ -88,10 +87,6 @@ restrictValP ∷ (STACK) ⇒ ValP → IM ValP
 restrictValP ṽ = do
   m ← askL iCxtModeL
   case (m,ṽ) of
-    (_,PairVP ṽ₁ ṽ₂) → do
-      ṽ₁' ← restrictValP ṽ₁
-      ṽ₂' ← restrictValP ṽ₂
-      return $ PairVP ṽ₁' ṽ₂'
     -- (_,LocVP m' _) | m ≡ m' → return ṽ
     (SecM ρs₁, SSecVP ρs₂ v) → do
       v' ← restrictValPRecVal v
@@ -110,7 +105,6 @@ restrictValP ṽ = do
       v' ← restrictValPRecVal v
       return $ SSecVP ρs v'
     (TopM,_) → return ṽ
-    (_,UnknownVP) → return UnknownVP
     _ → throwIErrorCxt TypeIError "restrictValP: Pattern match fail on (m,ṽ)" $ frhs
         [ ("m",pretty m)
         , ("ṽ",pretty ṽ)
@@ -146,9 +140,6 @@ restrictValPRecVal v = case v of
     v₂ ← restrictValP ṽ₂
     return $ PairV v₁ v₂
   DefaultV → return DefaultV
-  NizkVerifyV ρvs ṽ → do
-    ṽ' ← restrictValP ṽ
-    return $ NizkVerifyV ρvs ṽ'
 
 joinShareInfo ∷ (STACK) ⇒ ShareInfo → ShareInfo → IM ShareInfo
 joinShareInfo si₁ si₂ = case (si₁,si₂) of
@@ -180,13 +171,8 @@ unShareValPMode m = \case
     return $ (Shared zk φ ρs) :* vmpc
   AllVP v → do
     unShareValMode m v
-  PairVP ṽ₁ ṽ₂ → do
-    si₁ :* vmpc₁ ← unShareValPMode m ṽ₁
-    si₂ :* vmpc₂ ← unShareValPMode m ṽ₂
-    si ← joinShareInfo si₁ si₂
-    return $ si :* PairMV vmpc₁ vmpc₂
   ṽ → throwIErrorCxt TypeIError
-    "unShareValPMode: ṽ ∉ {SSecVP _ _,ShareVP _ _ _ _,AllVP _,PairVP _ _}" $ frhs
+    "unShareValPMode: ṽ ∉ {SSecVP _ _,ShareVP _ _ _ _,AllVP _}" $ frhs
       [ ("ṽ",pretty ṽ) ]
 
 unShareValMode ∷ (STACK) ⇒ Mode → Val → IM (ShareInfo ∧ ValMPC)
@@ -232,10 +218,7 @@ reShareValP ṽ = \case
 reShareValPShared ∷ (STACK) ⇒ 𝔹 → Prot → 𝑃 PrinVal → ValMPC → IM ValP
 reShareValPShared zk φ ρs = \case
   BaseMV md bvmpc → return $ ShareVP zk φ ρs $ BaseMV md bvmpc
-  PairMV vmpc₁ vmpc₂ → do
-    ṽ₁ ← reShareValPShared zk φ ρs vmpc₁
-    ṽ₂ ← reShareValPShared zk φ ρs vmpc₂
-    return $ PairVP ṽ₁ ṽ₂
+  PairMV vmpc₁ vmpc₂ → return $ ShareVP zk φ ρs $ PairMV vmpc₁ vmpc₂
   SumMV md b vmpc₁ vmpc₂ → return $ ShareVP zk φ ρs $ SumMV md b vmpc₁ vmpc₂
   NilMV → introValP NilV
   ConsMV vmpc₁ vmpc₂ → do
@@ -325,10 +308,6 @@ mpcFrValPFWith f g = \case
     g b φ ρs vmpc
     return vmpc
   AllVP v → mpcFrValFWith f g v
-  PairVP ṽ₁ ṽ₂ → do
-    vmpc₁ ← mpcFrValPFWith f g ṽ₁
-    vmpc₂ ← mpcFrValPFWith f g ṽ₂
-    return $ PairMV vmpc₁ vmpc₂
   ṽ → throwIErrorCxt TypeIError "mpcFrValFWith: cannot convert ṽ to mpc value" $ frhs
     [ ("ṽ", pretty ṽ) ]
 
@@ -409,7 +388,7 @@ valFrMPCFWith f = \case
   PairMV vmpc₁ vmpc₂ → do
     ṽ₁ ← valFrMPCF vmpc₁ f
     ṽ₂ ← valFrMPCF vmpc₂ f
-    return $ PairVP ṽ₁ ṽ₂
+    introValP $ PairV ṽ₁ ṽ₂
   SumMV md b vmpc₁ vmpc₂ → do
     f md (BoolMV b)
     if b
@@ -466,7 +445,7 @@ revealValMPC ρs = \case
   PairMV vmpc₁ vmpc₂ → do
     ṽ₁ ← revealValMPC ρs vmpc₁
     ṽ₂ ← revealValMPC ρs vmpc₂
-    return $ PairVP ṽ₁ ṽ₂
+    introValP $ PairV ṽ₁ ṽ₂
   SumMV _ b vmpc₁ vmpc₂ → do
     if b
     then do
@@ -493,10 +472,6 @@ revealValP zkʳ ρsʳ = \case
     when (zk ≢ zkʳ) $ \ _ →
       throwIErrorCxt TypeIError "wrong zk mode for reveal" null
     revealValMPC ρsʳ vmpc
-  PairVP ṽ₁ ṽ₂ → do
-    ṽ₁' ← revealValP zkʳ ρsʳ ṽ₁
-    ṽ₂' ← revealValP zkʳ ρsʳ ṽ₂
-    return $ PairVP ṽ₁' ṽ₂'
   -- LocVP m ℓ | SecM ρsʳ ⊑ m → return $ LocVP m ℓ
   ṽ → throwIErrorCxt TypeIError "can't reveal" $ frhs
     [ ("ṽ",pretty ṽ) ]
@@ -512,7 +487,7 @@ revealVal zkʳ ρsʳ = \case
   PairV ṽ₁ ṽ₂ → do
     ṽ₁' ← revealValP zkʳ ρsʳ ṽ₁
     ṽ₂' ← revealValP zkʳ ρsʳ ṽ₂
-    return $ PairVP ṽ₁' ṽ₂'
+    introValP $ PairV ṽ₁' ṽ₂'
   LV ṽ → do
     ṽ' ← revealValP zkʳ ρsʳ ṽ
     introValP $ LV ṽ'

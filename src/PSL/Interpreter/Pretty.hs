@@ -159,7 +159,6 @@ instance Pretty Val where
     ArrayV ṽs → ppArrayPSL ṽs
     PairV ṽ₁ ṽ₂ → ppInflF ppTight levelCOMMA (ppPun ",") (pretty ṽ₁) $ pretty ṽ₂
     DefaultV → ppPun "⊥"
-    NizkVerifyV ρs v → ppApp (ppCon "nizk-verify") [pretty ρs,pretty v]
 
 asListVP ∷ ValP → 𝑂 (𝐿 ValP ∧ Mode)
 asListVP = \case
@@ -186,11 +185,6 @@ asListV = \case
     return $ (ṽ₁ :& ṽs) :* Some m
   NilV → return $ Nil :* None
   _ → abort
-
-asNtupVP ∷ ValP → 𝐼 ValP
-asNtupVP = \case
-  PairVP ṽ₁ ṽ₂ → asNtupVP ṽ₁ ⧺ single ṽ₂
-  ṽ → single ṽ
 
 instance Pretty PrinVal where
   pretty = \case
@@ -224,10 +218,6 @@ instance Pretty ValP where
              ]) $
          pretty vmpc
      AllVP (v ∷ Val) → pretty v
-     UnknownVP → ppCon "unknown"
-     PairVP ṽ₁ ṽ₂ →
-       let ṽs = asNtupVP ṽ₁ ⧺ single ṽ₂
-       in ppLevel levelCOMMA $ ppCollection ppSpaceIfBreak null (ppPun ",") $ map pretty $ iter ṽs
 
 instance Pretty ValMPC where
   pretty = \case

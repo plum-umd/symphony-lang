@@ -465,7 +465,7 @@ interpExp = wrapInterp $ \case
   TupE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
-    return $ PairVP ṽ₁ ṽ₂
+    introValP $ PairV ṽ₁ ṽ₂
   NilE → introValP NilV
   ConsE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
@@ -509,7 +509,10 @@ interpExp = wrapInterp $ \case
     m ← askL iCxtModeL
     let m' = SecM ρvs ⊓ m
     if m' ≡ SecM pø
-       then return UnknownVP
+       then throwIErrorCxt TypeIError "interpExp: ParE: ρvs ⊓ m is empty" $ frhs
+        [ ("ρvs",pretty ρvs)
+        , ("m",pretty m)
+        ]
        else restrictMode m' $ interpExp e
   ShareE φ ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
@@ -523,9 +526,7 @@ interpExp = wrapInterp $ \case
                tellL iOutResEvsL $ ResEv False φ pø ρvs₁ ρvs₂ (getTypeBaseMPC bv) null null "SHARE" 0 ↦ 1
          else
            do
-             vmpc ← case ṽ of
-                      UnknownVP → return $ BaseMV 0 $ IntMV iprDefault $ IntSeqSh $ HS.fromIntegral 0
-                      _         → mpcFrValP ṽ
+             vmpc ← mpcFrValP ṽ
              interpShare φ ρvs₁ vmpc
     reShareValPShared False φ ρvs₂ sv
   AccessE e ρ → do
@@ -650,13 +651,12 @@ interpExp = wrapInterp $ \case
         return $ Shared False φ ρvs :* τ'
       _ → return $ NotShared :* τ
     ṽ ← interpExp e
-    ṽ₁ :* ṽ₂ ←
+    si :* v ← unShareValP ṽ
+    v₁ :* v₂ ←
       elim𝑂
         (throwIErrorCxt TypeIError "interpExp: ReadRangeE: Expected a pair argument" $
-           frhs [ ("ṽ",pretty ṽ) ])
-           return $ view pairVPL ṽ
-    si₁ :* v₁ ← unShareValP ṽ₁
-    si₂ :* v₂ ← unShareValP ṽ₂
+           frhs [ ("v",pretty v) ])
+           return $ view pairMVL v
     md₁ :* bv₁ ← error𝑂 (frhs ^$ view baseMVL v₁) $ throwIErrorCxt TypeIError "not base val" null
     md₂ :* bv₂ ← error𝑂 (frhs ^$ view baseMVL v₂) $ throwIErrorCxt TypeIError "not base val" null
     bv' ← case (τ',bv₁,bv₂) of
@@ -665,13 +665,12 @@ interpExp = wrapInterp $ \case
       (𝔽T fp,FltMV fp₁ d₁,FltMV fp₂ d₂) | (fp₁ ≡ fp) ⩓ (fp₂ ≡ fp) → io $ FltMV fp ^$ (R.randomRIO @𝔻) (d₁,d₂)
       _ → throwIErrorCxt NotImplementedIError "rand-range" $ frhs
         [ ("τ',bv₁,bv₂",pretty (τ' :* bv₁ :* bv₂)) ]
-    si' ← joinShareInfos [si₀,si₁,si₂]
     let md = 1 + (md₁ ⊔ md₂)
-    case si' of
+    case si of
       NotShared → skip
       Shared zk φ ρs → do
         tellL iOutResEvsL $ ResEv zk φ ρs pø pø (getTypeBaseMPC bv₁) null null "RANDR" md ↦ 1
-    reShareValP (BaseMV (md₁ ⊔ md₂) bv') si'
+    reShareValP (BaseMV (md₁ ⊔ md₂) bv') si
   -- InferE
   -- HoleE
   PrimE o es → do
@@ -819,49 +818,6 @@ interpExp = wrapInterp $ \case
     pc ← askL iCxtMPCPathConditionL
     modifyL iStateMPCContL $ \ κ → (pc :* si :* vmpc) :& κ
     introValP DefaultV
-  NizkWitnessE φ ρes e → do
-    ρvs ← prinExpValss *$ mapM interpPrinExp ρes
-    ṽ ← interpExp e
-    sv ← mpcFrValPFWith
-      (\ bv → tellL iOutResEvsL $ ResEv True φ ρvs pø pø (getTypeBaseMPC bv) null null "SHARE" 0 ↦ 1)
-      (\ zk φ' ρs' vmpc → do
-        guardErr (zk ≡ False) $
-          throwIErrorCxt TypeIError "interpExp: NizkWitnessE: cannot convert from nizk to nizk" $ frhs
-            [ ("vmpc", pretty vmpc) ]
-        eachBaseVal vmpc $ \ md bvmpc → tellL iOutResEvsL $ ResEv True φ' pø ρs' ρvs (getTypeBaseMPC bvmpc) null null "NIZK-SHARE" md ↦ 1)
-      ṽ
-    reShareValPShared True φ ρvs sv
-  NizkCommitE _φ ρes e → do
-    ρvs ← prinExpValss *$ mapM interpPrinExp ρes
-    ṽ ← interpExp e
-    ṽ' ← revealValP True ρvs ṽ
-    introValP $ NizkVerifyV ρvs ṽ'
-  SignE ρs e → do
-    ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρs
-    ρv ← error𝑂 (view singleL $ list ρvs₁) $
-      throwIErrorCxt TypeIError "interpExp: SignE: ρvs₁ not a singleton principal" $ frhs
-        [ ("ρvs₁",pretty ρvs₁) ]
-    m ← askL iCxtModeL
-    guardErr (SecM (single ρv) ⊑ m) $
-      throwIErrorCxt TypeIError "interpExp: SignE: ρv ⋢ m" $ frhs
-        [ ("ρv",pretty ρv)
-        , ("m",pretty m)
-        ]
-    ṽ ← interpExp e
-    void $ mpcFrValP ṽ
-    return ṽ
-  UnsignE _ρs e → interpExp e
-  IsSignedE ρs e → do
-    ρvs ← prinExpValss *$ mapM interpPrinExp ρs
-    ṽ ← interpExp e
-    void $ mpcFrValPFWith
-      (\ bv →
-        tellL iOutResEvsL $ ResEv False AutoP ρvs pø pø (getTypeBaseMPC bv) null null "IS-SIGNED" 0 ↦ 1)
-      (\ zk φ' ρs' vmpc →
-        eachBaseVal vmpc $ \ md bvmpc →
-          tellL iOutResEvsL $ ResEv zk φ' pø ρvs ρs' (getTypeBaseMPC bvmpc) null null "IS-SIGNED" md ↦ 1)
-      ṽ
-    introValP $ BoolV True
   _ → throwIErrorCxt NotImplementedIError "interpExp: not implemented" null
 
 ---------------
