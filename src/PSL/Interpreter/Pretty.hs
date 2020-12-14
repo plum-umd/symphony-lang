@@ -206,11 +206,10 @@ instance Pretty ValP where
     None → case v₀ of
      SSecVP ρs v → ppPostF concat levelMODE (pretty ρs) (pretty v)
      ISecVP ρvs → ppISecPSL ρvs
-     ShareVP zk φ ρs vmpc →
+     ShareVP φ ρs vmpc →
        ppPostF concat levelMODE
          (ppSetBotLevel $ concat
              [ ppPun "{"
-             , if zk then concat [ppBdr "zk",ppPun ":"] else null
              , pretty φ
              , ppPun ":"
              , concat $ inbetween (ppPun ",") $ map pretty $ iter ρs
@@ -221,15 +220,15 @@ instance Pretty ValP where
 
 instance Pretty ValMPC where
   pretty = \case
-    BaseMV md bvmpc → ppPostF concat levelMODE (concat [ppPun "†",pretty md]) $ pretty bvmpc
+    BaseMV bvmpc → ppPostF concat levelMODE (concat [ppPun "†"]) $ pretty bvmpc
     PairMV vmpc₁ vmpc₂ → ppInflF ppTight levelCOMMA (ppPun ",") (pretty vmpc₁) $ pretty vmpc₂
-    SumMV md b vmpc₁ vmpc₂ → ppInfr levelCOND
+    SumMV b vmpc₁ vmpc₂ → ppInfr levelCOND
       (ppSeparated
          [ ppCon "?"
          , pretty vmpc₁
          , ppCon "◇"
          ])
-      (ppPostF concat levelMODE (concat [ppPun "†",pretty md]) $ ppBoolPSL b) $
+      (ppPostF concat levelMODE (concat [ppPun "†"]) $ ppBoolPSL b) $
       pretty vmpc₂
     NilMV → ppCon "[]"
     ConsMV v₁ v₂ → ppInfr levelCONS (ppPun "∷") (pretty v₁) $ pretty v₂

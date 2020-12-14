@@ -45,9 +45,9 @@ getType = \case
 
 getTypeMPC ∷ ValMPC → 𝕊
 getTypeMPC = \case
-  BaseMV _ bv → getTypeBaseMPC bv
+  BaseMV bv → getTypeBaseMPC bv
   PairMV mv₁ mv₂ → (getTypeMPC mv₁) ⧺ " × " ⧺ (getTypeMPC mv₂)
-  SumMV _ _ _ _ → "sum"
+  SumMV _ _ _ → "sum"
   NilMV → "list"
   ConsMV _ _ → "list"
   DefaultMV → "default"
@@ -81,9 +81,8 @@ jsonPrins ∷ 𝑃 PrinVal → JSON.Value
 jsonPrins = JSON.toJSON ∘ lazyList ∘ map jsonPrinVal ∘ iter
 
 jsonEvent ∷ ResEv → ℕ → JSON.Value
-jsonEvent (ResEv zk φ ρs ρf ρt τ τf τt o md) n =
-  JSON.object [ "nizk" JSON..= JSON.toJSON zk
-              , "protocol" JSON..= stringProtocol φ
+jsonEvent (ResEv φ ρs ρf ρt τ τf τt o) n =
+  JSON.object [ "protocol" JSON..= stringProtocol φ
               , "principals" JSON..= jsonPrins ρs
               , "prins_from" JSON..= jsonPrins ρf
               , "prins_to" JSON..= jsonPrins ρt
@@ -91,7 +90,6 @@ jsonEvent (ResEv zk φ ρs ρf ρt τ τf τt o md) n =
               , "type_from" JSON..= τf
               , "type_to" JSON..= τt
               , "op" JSON..= o
-              , "md" JSON..= md
               , "count" JSON..= n
               ]
 

@@ -36,18 +36,18 @@ data Val =
 -- Distributed Values
 -- ṽ ∈ dist-val
 data ValP =
-    SSecVP (𝑃 PrinVal) Val            -- values which are the same on parties (not necessarily shares)
-  | ISecVP (PrinVal ⇰ Val)            -- values which are different on parties (bundles, not necessarily shares)
-  | ShareVP 𝔹 Prot (𝑃 PrinVal) ValMPC -- shares
+    SSecVP (𝑃 PrinVal) Val            -- values which are the same on parties (not shares)
+  | ISecVP (PrinVal ⇰ Val)            -- values which are different on parties (bundles, not shares)
+  | ShareVP Prot (𝑃 PrinVal) ValMPC   -- shares
   | AllVP Val                         -- special case, equivalent to SSecVP ⊤ Val
   deriving (Eq,Ord,Show)
 
 -- Values used in circuits
 -- sv ∈ mpc-val
 data ValMPC =
-    BaseMV ℕ BaseValMPC
+    BaseMV BaseValMPC
   | PairMV ValMPC ValMPC
-  | SumMV ℕ 𝔹 ValMPC ValMPC
+  | SumMV 𝔹 ValMPC ValMPC
   | NilMV
   | ConsMV ValMPC ValMPC
   | BulMV
@@ -86,7 +86,7 @@ makePrisms ''BaseValMPC
 
 data ShareInfo =
     NotShared
-  | Shared 𝔹 Prot (𝑃 PrinVal)
+  | Shared Prot (𝑃 PrinVal)
   deriving (Eq,Ord,Show)
 makePrettySum ''ShareInfo
 
@@ -128,7 +128,7 @@ data ICxt = ICxt
   , iCxtDeclPrins ∷ Prin ⇰ PrinKind
   , iCxtEnv ∷ Env
   , iCxtMode ∷ Mode
-  , iCxtMPCPathCondition ∷ 𝐿 (ℕ ∧ 𝔹 ∧ ShareInfo)
+  , iCxtMPCPathCondition ∷ 𝐿 (𝔹 ∧ ShareInfo)
   } deriving (Show)
 makeLenses ''ICxt
 makePrettySum ''ICxt
@@ -154,7 +154,7 @@ iCxtIsExampleL = iParamsIsExampleL ⊚ iCxtParamsL
 data IState = IState
   { iStateStore ∷ Store
   , iStateNextLoc ∷ ℤ64
-  , iStateMPCCont ∷ 𝐿 (𝐿 (ℕ ∧ 𝔹 ∧ ShareInfo) ∧ ShareInfo ∧ ValMPC)
+  , iStateMPCCont ∷ 𝐿 (𝐿 (𝔹 ∧ ShareInfo) ∧ ShareInfo ∧ ValMPC)
   } deriving (Eq,Ord,Show)
 makeLenses ''IState
 makePrettySum ''IState
@@ -167,8 +167,7 @@ makePrettySum ''IState
 ------------
 
 data ResEv = ResEv
-  { resEvZK ∷ 𝔹
-  , resEvProt ∷ Prot
+  { resEvProt ∷ Prot
   , resEvPrins ∷ 𝑃 PrinVal
   , resEvPrinsFrom ∷ 𝑃 PrinVal
   , resEvPrinsTo ∷ 𝑃 PrinVal
@@ -176,7 +175,6 @@ data ResEv = ResEv
   , resEvTypeFrom ∷ 𝕊
   , resEvTypeTo ∷ 𝕊
   , resEvOp ∷ 𝕊
-  , resEvMd ∷ ℕ
   } deriving (Eq,Ord,Show)
 makePrettySum ''ResEv
 makeLenses ''ResEv
