@@ -6,7 +6,7 @@ import PSL.Interpreter.Types
 import PSL.Interpreter.Truncating
 import PSL.Interpreter.Pretty ()
 import PSL.Syntax
-import PSL.Interpreter.Json
+import PSL.Interpreter.Json ()
 import PSL.Interpreter.EMP as EMP
 
 import AddToUVMHS
@@ -61,14 +61,14 @@ interpPrim o vs = case (o,tohs vs) of
   (AbsO    ,[IntMV p (IntSeqSh i)])                             → return $ NatMV p  $ zabs i
   (LogO    ,[FltMV p f])                             → return $ FltMV p  $ logBase 2.0 f
   (SqrtO   ,[FltMV p f])                             → return $ FltMV p  $ root f
-  (NatO p₁ ,[NatMV p₂ n])                            → return $ NatMV p₁ $ trPrNat p₁ n
-  (NatO p₁ ,[IntMV p₂ (IntSeqSh i)])                            → return $ NatMV p₁ $ trPrNat p₁ $ natΩ i
-  (IntO p₁ ,[IntMV p₂ (IntSeqSh i)])                            → return $ IntMV p₁ $ IntSeqSh $ trPrInt p₁ i
-  (IntO p₁ ,[NatMV p₂ n])                            → return $ IntMV p₁ $ IntSeqSh $ trPrInt p₁ $ int n
-  (FltO p₁ ,[NatMV p₂ n])                            → return $ FltMV p₁ $ dbl n
-  (FltO p₁ ,[IntMV p₂ (IntSeqSh i)])                            → return $ FltMV p₁ $ dbl i
-  (FltO p₁ ,[FltMV p₂ d])                            → return $ FltMV p₁ $ d
-  (CeilO p₁,[FltMV p₂ f])                            → return $ IntMV p₁ $ IntSeqSh $ ceiling f
+  (NatO p₁ ,[NatMV _ n])                            → return $ NatMV p₁ $ trPrNat p₁ n
+  (NatO p₁ ,[IntMV _ (IntSeqSh i)])                            → return $ NatMV p₁ $ trPrNat p₁ $ natΩ i
+  (IntO p₁ ,[IntMV _ (IntSeqSh i)])                            → return $ IntMV p₁ $ IntSeqSh $ trPrInt p₁ i
+  (IntO p₁ ,[NatMV _ n])                            → return $ IntMV p₁ $ IntSeqSh $ trPrInt p₁ $ int n
+  (FltO p₁ ,[NatMV _ n])                            → return $ FltMV p₁ $ dbl n
+  (FltO p₁ ,[IntMV _ (IntSeqSh i)])                            → return $ FltMV p₁ $ dbl i
+  (FltO p₁ ,[FltMV _ d])                            → return $ FltMV p₁ $ d
+  (CeilO p₁,[FltMV _ f])                            → return $ IntMV p₁ $ IntSeqSh $ ceiling f
   _ → throwIErrorCxt NotImplementedIError "interpPrim" $ frhs
     [ ("o",pretty o)
     , ("vs",pretty vs)

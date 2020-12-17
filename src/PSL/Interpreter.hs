@@ -8,7 +8,7 @@ import PSL.Parser
 import PSL.Syntax
 
 import PSL.Interpreter.Access
-import PSL.Interpreter.Json
+import PSL.Interpreter.Json ()
 import PSL.Interpreter.Pretty ()
 import PSL.Interpreter.Primitives
 import PSL.Interpreter.PrinExp
@@ -17,11 +17,8 @@ import PSL.Interpreter.Truncating
 import PSL.Interpreter.Types
 import PSL.Interpreter.EMP
 
-import qualified Data.Aeson as JSON
-import qualified Data.ByteString.Lazy as BS
 import qualified Prelude as HS
 import qualified System.Console.GetOpt as O
-import qualified System.FilePath as HS
 import qualified System.Random as R
 
 -------------
@@ -397,8 +394,8 @@ interpExp ∷ (STACK) ⇒ Exp → IM ValP
 interpExp = wrapInterp $ \case
   VarE x → do
     distributed ← askL iCxtIsDistributedL
-    let restrict = if distributed then return else restrictValP --TODO(ins): there should really be a version of restriction that does restrictValP for everything but shares and then checks *subset* for shares.
-    restrict *$ interpVar x
+    let localRestrict = if distributed then return else restrictValP --TODO(ins): there should really be a version of restriction that does restrictValP for everything but shares and then checks *subset* for shares.
+    localRestrict *$ interpVar x
   BoolE b → introValP $ BoolV b
   StrE s → introValP $ StrV s
   NatE pr n → introValP $ NatV pr $ trPrNat pr n
@@ -496,8 +493,7 @@ interpExp = wrapInterp $ \case
     ṽ ← interpExp e
     sv ← if not distributed then
            restrictMode (SecM ρvs₁) $ do
-             mpcFrValPBaseVals ṽ $ \ bv → do
-               tellL iOutResEvsL $ ResEv φ pø ρvs₁ ρvs₂ (getTypeBaseMPC bv) null null "SHARE" ↦ 1
+           mpcFrValP ṽ
          else
            do
              vmpc ← mpcFrValP ṽ
@@ -613,17 +609,12 @@ interpExp = wrapInterp $ \case
       𝔽T fp → io $ FltMV fp ^$ R.randomIO @𝔻
       𝔹T → io $ BoolMV ^$ R.randomIO @𝔹
       _ → error "TODO: not implemented"
-    case si of
-      NotShared → skip
-      Shared φ ρs → do
-        tellL iOutResEvsL $ ResEv φ ρs pø pø (getTypeBaseMPC bvmpc) null null "RAND" ↦ 1
     reShareValP (BaseMV bvmpc) si
   RandRangeE τ e → do
-    si₀ :* τ' ← case τ of
-      ShareT φ ρes τ' → do
-        ρvs ← prinExpValss *$ mapM interpPrinExp ρes
-        return $ Shared φ ρvs :* τ'
-      _ → return $ NotShared :* τ
+    τ' ← case τ of
+      ShareT _ _ τ' → do
+        return $ τ'
+      _ → return $ τ
     ṽ ← interpExp e
     si :* v ← unShareValP ṽ
     v₁ :* v₂ ←
@@ -639,10 +630,6 @@ interpExp = wrapInterp $ \case
       (𝔽T fp,FltMV fp₁ d₁,FltMV fp₂ d₂) | (fp₁ ≡ fp) ⩓ (fp₂ ≡ fp) → io $ FltMV fp ^$ (R.randomRIO @𝔻) (d₁,d₂)
       _ → throwIErrorCxt NotImplementedIError "rand-range" $ frhs
         [ ("τ',bv₁,bv₂",pretty (τ' :* bv₁ :* bv₂)) ]
-    case si of
-      NotShared → skip
-      Shared φ ρs → do
-        tellL iOutResEvsL $ ResEv φ ρs pø pø (getTypeBaseMPC bv₁) null null "RANDR" ↦ 1
     reShareValP (BaseMV bv') si
   PrimE o es → do
     ṽs ← mapM interpExp es
@@ -775,7 +762,7 @@ interpExp = wrapInterp $ \case
       localL iCxtMPCPathConditionL null $
       interpExp e
     si₀ :* vmpc₀ ← unShareValP ṽ
-    si :* vmpc ← mfoldrOnFrom (reverse κ) (si₀ :* vmpc₀) $ \ (si₁ :* vmpcᴿ₀) (si₂ :*  vmpc) →  do
+    si :* vmpc ← mfoldrOnFrom (reverse κ) (si₀ :* vmpc₀) $ \ (pcᴿ :* si₁ :* vmpcᴿ₀) (si₂ :*  vmpc) →  do
       si₃ ← joinShareInfo si₁ si₂
       mfoldrOnFrom pcᴿ (si₃ :* vmpcᴿ₀) $ \ (bᵖᶜ :* siᵖᶜ) (si :* vmpcᴿ) → do
         si' ← joinShareInfo si siᵖᶜ
@@ -838,7 +825,6 @@ interpTLs m = eachWith (interpTL m)
 data Options = Options
   { optVersion ∷ 𝔹
   , optHelp ∷ 𝔹
-  , optDoResources ∷ 𝔹
   , optJustPrint ∷ 𝔹
   , optRandomSeed ∷ 𝑂 ℕ
   , optParty ∷ 𝑂 Prin
@@ -863,7 +849,6 @@ options₀ = do
   return $ Options
     { optVersion = False
     , optHelp = False
-    , optDoResources = False
     , optJustPrint = False
     , optRandomSeed = None
     , optParty = None
@@ -883,10 +868,7 @@ usageInfoTop =
 
 usageInfoRun ∷ [O.OptDescr (Options → Options)]
 usageInfoRun =
-  [ O.Option ['r'] [chars "resources"]
-             (O.NoArg $ update optDoResourcesL True) $
-               chars "enable resource estimation"
-  , O.Option ['p'] [chars "print"]
+  [ O.Option ['p'] [chars "print"]
              (O.NoArg$ update optJustPrintL True) $
                chars "just print the program"
   , O.Option ['P'] [chars "party"]
@@ -899,10 +881,7 @@ usageInfoRun =
 
 usageInfoExample ∷ [O.OptDescr (Options → Options)]
 usageInfoExample =
-  [ O.Option ['r'] [chars "resources"]
-             (O.NoArg $ update optDoResourcesL True) $
-               chars "enable resource estimation"
-  , O.Option ['p'] [chars "print"]
+  [ O.Option ['p'] [chars "print"]
              (O.NoArg$ update optJustPrintL True) $
                chars "just print the program"
   , O.Option ['s'] [chars "seed"]
@@ -912,10 +891,7 @@ usageInfoExample =
 
 usageInfoTest ∷ [O.OptDescr (Options → Options)]
 usageInfoTest =
-  [ O.Option ['r'] [chars "resources"]
-             (O.NoArg $ update optDoResourcesL True) $
-               chars "enable resource estimation"
-  , O.Option ['s'] [chars "seed"]
+  [ O.Option ['s'] [chars "seed"]
              (O.ReqArg (\ s → update optRandomSeedL $ Some $ HS.read s) $ chars "NAT")
            $ chars "set random seed"
   ]
@@ -929,8 +905,7 @@ initializeIO os = exec
 
 initializeEnv ∷ Options → IParams
 initializeEnv os = flip compose θ₀
-  [ if optDoResources os then update iParamsDoResourcesL True else id
-  , if isSome $ optParty os then update iParamsIsDistributedL True else id
+  [ if isSome $ optParty os then update iParamsIsDistributedL True else id
   ]
 
 interpretFile ∷ IParams → ITLState → 𝕊 → 𝕊 → Mode → IO (ITLState ∧ IOut)
@@ -946,14 +921,8 @@ interpretFileMain ∷ IParams → ITLState → 𝕊 → 𝕊 → Mode → IO (Va
 interpretFileMain θ ωtl name path m = do
   ωtl' :* _ ← interpretFile θ ωtl name path m
   let main = itlStateEnv ωtl' ⋕! var "main"
-  o :* v ← evalITLMIO θ ωtl' name $ hijack $ asTLM m $ interpApp main $ AllVP BulV
+  v ← evalITLMIO θ ωtl' name $ asTLM m $ interpApp main $ AllVP BulV
   let expectedO = itlStateEnv ωtl' ⋕? var "expected"
-  let fn = string $ HS.takeBaseName $ chars path
-  if iParamsDoResources θ
-    then do
-      dtouch "resources"
-      BS.writeFile (chars $ "resources/" ⧺ fn ⧺ ".res") $ JSON.encode $ jsonEvents $ iOutResEvs o
-    else skip
   return $ v :* expectedO
 
 printFileMain ∷ 𝕊 → IO ()

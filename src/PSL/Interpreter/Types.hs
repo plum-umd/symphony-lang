@@ -105,8 +105,7 @@ type Store = 𝑊 ValP
 -- Interpreter Params
 -- θ ∈ params
 data IParams = IParams
-  { iParamsDoResources ∷ 𝔹
-  , iParamsIsDistributed ∷ 𝔹
+  { iParamsIsDistributed ∷ 𝔹
   , iParamsIsExample ∷ 𝔹
   , iParamsVirtualPartyArgs ∷ 𝕊 ⇰ 𝑃 PrinVal
   } deriving (Eq,Ord,Show)
@@ -114,7 +113,7 @@ makeLenses ''IParams
 makePrettySum ''IParams
 
 θ₀ ∷ IParams
-θ₀ = IParams False False False dø
+θ₀ = IParams False False dø
 
 -------------
 -- CONTEXT --
@@ -132,9 +131,6 @@ data ICxt = ICxt
   } deriving (Show)
 makeLenses ''ICxt
 makePrettySum ''ICxt
-
-iCxtDoResourcesL ∷ ICxt ⟢ 𝔹
-iCxtDoResourcesL = iParamsDoResourcesL ⊚ iCxtParamsL
 
 iCxtIsDistributedL ∷ ICxt ⟢ 𝔹
 iCxtIsDistributedL = iParamsIsDistributedL ⊚ iCxtParamsL
@@ -180,13 +176,14 @@ makePrettySum ''ResEv
 makeLenses ''ResEv
 
 data IOut = IOut
-  { iOutResEvs ∷ ResEv ⇰ ℕ
+  {
   } deriving (Show)
 makePrettySum ''IOut
-makeLenses ''IOut
+-- TODO(ins): Ask DD why this wasn't ok w/ empty record
+--makeLenses ''IOut
 
-instance Null IOut where null = IOut dø
-instance Append IOut where IOut res₁ ⧺ IOut res₂ = IOut $ res₁ + res₂
+instance Null IOut where null = IOut
+instance Append IOut where IOut ⧺ IOut = IOut
 instance Monoid IOut
 
 -----------

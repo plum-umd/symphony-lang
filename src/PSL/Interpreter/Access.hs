@@ -7,7 +7,7 @@ import PSL.Syntax
 
 import PSL.Interpreter.Types
 import PSL.Interpreter.Pretty ()
-import PSL.Interpreter.Json
+import PSL.Interpreter.Json ()
 import PSL.Interpreter.EMP
 
 -- enter a strictly smaller mode than the current one
@@ -418,7 +418,7 @@ valFrBaseMPC = \case
 --TODO(ins): Ask David about these
 prinFrPrinVal ∷ PrinVal → Prin
 prinFrPrinVal (SinglePV p) = p
-prinFrPrinVal (AccessPV p n) = p
+prinFrPrinVal (AccessPV p _) = p
 prinFrPrinVal (VirtualPV p) = p
 
 revealBaseValMPC ∷ (STACK) ⇒ 𝑃 PrinVal → BaseValMPC → IM ValP
@@ -464,7 +464,7 @@ revealValP ∷ (STACK) ⇒ 𝑃 PrinVal → ValP → IM ValP
 revealValP ρsʳ = \case
   AllVP v → revealVal ρsʳ v
   SSecVP ρs' v | ρsʳ ⊆ ρs' → revealVal ρsʳ v --TODO(ins): verify that these checks are correct
-  ShareVP φ ρsˢ vmpc → revealValMPC ρsʳ vmpc
+  ShareVP _ _ vmpc → revealValMPC ρsʳ vmpc
   ṽ → throwIErrorCxt TypeIError "can't reveal" $ frhs
     [ ("ṽ",pretty ṽ) ]
 
