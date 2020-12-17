@@ -22,23 +22,26 @@ makePrettySum ''Kind
 -- ρ ∈ prin ≈ 𝕊
 type Prin = 𝕊
 
+-- base values for prins
 data PrinVal =
-    SinglePV Prin
-  | AccessPV Prin ℕ
-  | VirtualPV Prin
+    SinglePV Prin -- regular prin
+  | AccessPV Prin ℕ -- prin array members, A.0 etc.
+  | VirtualPV Prin -- prin parameters, maybe kill this?
   deriving (Eq,Ord,Show)
-    
+
+-- compound for prins
 data PrinExpVal =
     ValPEV PrinVal
   | PowPEV (𝑃 PrinVal)
   | SetPEV ℕ Prin
   deriving (Eq,Ord,Show)
 
+-- expressions
 data PrinExp =
     VarPE 𝕏
-  | AccessPE 𝕏 ℕ
-  | StarPE 𝕏
-  | ThisPE
+  | AccessPE 𝕏 ℕ -- expression form of AccessPV
+  | StarPE 𝕏 -- get whole set of prins from A ([|A,B,C|].* = { A,B,C })
+  | ThisPE -- all, maybe kill this?
   deriving (Eq,Ord,Show)
 makePrettySum ''PrinExp
 
@@ -75,7 +78,7 @@ data Mode =
   deriving (Eq,Ord,Show)
 makePrisms ''Mode
 
-instance POrd Mode where 
+instance POrd Mode where
   _ ⊑ TopM = True
   -- SecM ρ₁ ⊑ SecM ρ₂ | ρ₁ ≡ ρ₂ = True
   -- SecM ρ₁ ⊑ PSecM ρs₂ | ρ₁ ∈ ρs₂ = True
@@ -118,7 +121,7 @@ makePrisms ''EMode
 ------------
 
 -- η ∈ effect ⩴  …
-data Effect = Effect  
+data Effect = Effect
   --  inp:P,rev:P
   { effectInput ∷ 𝑃 PrinExp
   , effectReveal ∷ 𝑃 PrinExp
@@ -146,7 +149,7 @@ type TVar = 𝕏
 ----------
 
 -- φ ∈ protocol ⩴  …
-data Prot = 
+data Prot =
     YaoP  -- yao
   | BGWP  -- bgw
   | GMWP  -- gmw
@@ -167,7 +170,7 @@ data IPrecision =
 iprDefault ∷ IPrecision
 iprDefault = FixedIPr 64 0
 
-data FPrecision = 
+data FPrecision =
     FixedFPr ℕ ℕ
   deriving (Eq,Ord,Show)
 
@@ -241,7 +244,7 @@ makePrisms ''Pat
 -- Primitive Operations --
 --------------------------
 
-data Op = 
+data Op =
     OrO               -- e || e
   | AndO              -- e && e
   | NotO              -- not e
@@ -336,12 +339,12 @@ data ExpR =
 makePrettySum ''ExpR
 
 buildLambda ∷ FullContext → Var → 𝐿 Pat → Exp → Exp
-buildLambda c x ψs e 
+buildLambda c x ψs e
   | ψs ≡ Nil = e
   | otherwise = Annotated c $ LamE (Some x) ψs e
 
 buildUnfixedLambda ∷ FullContext → Var → 𝐿 Pat → Exp → Exp
-buildUnfixedLambda c x ψs e 
+buildUnfixedLambda c x ψs e
   | ψs ≡ Nil = e
   | otherwise = Annotated c $ LamE None (VarP x :& ψs) e
 
