@@ -43,24 +43,8 @@ getType = \case
   PairV _ _ → "pair"
   DefaultV → "default"
 
-getTypeMPC ∷ ValMPC → 𝕊
-getTypeMPC = \case
-  BaseMV bv → getTypeBaseMPC bv
-  PairMV mv₁ mv₂ → (getTypeMPC mv₁) ⧺ " × " ⧺ (getTypeMPC mv₂)
-  SumMV _ _ _ → "sum"
-  NilMV → "list"
-  ConsMV _ _ → "list"
-  DefaultMV → "default"
-  BulMV → "unit"
-
-getTypeBaseMPC ∷ BaseValMPC → 𝕊
-getTypeBaseMPC = \case
-  BoolMV _ → "bool"
-  NatMV p _ → "nat"⧺iprecisionSuffix p
-  IntMV p _ → "int"⧺iprecisionSuffix p
-  FltMV p _ → "flt"⧺fprecisionSuffix p
-  PrinMV _ → "prin"
-
+getTypeMPC ∷ Ckt → 𝕊
+getTypeMPC c = undefined
 
 stringProtocol ∷ Prot → 𝕊
 stringProtocol = \case

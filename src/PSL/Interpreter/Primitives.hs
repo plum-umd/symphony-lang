@@ -3,18 +3,33 @@ module PSL.Interpreter.Primitives where
 import UVMHS
 
 import PSL.Interpreter.Types
-import PSL.Interpreter.Truncating
 import PSL.Interpreter.Pretty ()
+import PSL.Interpreter.Truncating
 import PSL.Syntax
 import PSL.Interpreter.Json ()
-import PSL.Interpreter.EMP as EMP
 
-import AddToUVMHS
+primType ∷ (STACK) ⇒ Op → 𝐿 Type → IM Type
+primType op τs = case (op, tohs τs) of
+  (OrO, [𝔹T, 𝔹T]) → return 𝔹T
+  (PlusO, [ℕT pr₁, ℕT pr₂]) | pr₁ ≡ pr₂ → return $ ℕT pr₁
+  (PlusO, [ℤT pr₁, ℤT pr₂]) | pr₁ ≡ pr₂ → return $ ℕT pr₁
+  (ExpO, [𝔽T pr₁, 𝔽T pr₂]) | pr₁ ≡ pr₂ → return $ 𝔽T pr₁
+  _ → throwIErrorCxt NotImplementedIError "primType" $ frhs
+    [ ("op", pretty op)
+    , ("τs", pretty τs)
+    ]
 
-interpPrim ∷ (STACK) ⇒ Op → 𝐿 BaseValMPC → IM BaseValMPC
+interpPrim ∷ (STACK) ⇒ Op → 𝐿 Val → IM Val
 interpPrim o vs = case (o,tohs vs) of
-  (OrO     ,[BoolMV b₁  ,BoolMV b₂  ])               → return $ BoolMV   $ b₁ ⩔ b₂
-  (AndO    ,[BoolMV b₁  ,BoolMV b₂  ])               → return $ BoolMV   $ b₁ ⩓ b₂
+  (OrO, [BoolV b₁, BoolV b₂]) → return $ BoolV    $ b₁ ⩔ b₂
+  (PlusO, [NatV pr₁ n₁, NatV pr₂ n₂]) | pr₁ ≡ pr₂ → return $ NatV pr₁ $ trPrNat pr₁ $ n₁ + n₂
+  (PlusO, [IntV pr₁ i₁, IntV pr₂ i₂]) | pr₁ ≡ pr₂ → return $ IntV pr₁ $ trPrInt pr₁ $ i₁ + i₂
+  (ExpO, [FltV pr₁ f₁, FltV pr₂ f₂]) | pr₁ ≡ pr₂ → return $ FltV pr₁ $ f₁ ^ f₂
+  _ → throwIErrorCxt NotImplementedIError "interpPrim" $ frhs
+    [ ("o",pretty o)
+    , ("vs",pretty vs)
+    ]
+{-  (AndO    ,[BoolMV b₁  ,BoolMV b₂  ])               → return $ BoolMV   $ b₁ ⩓ b₂
   (NotO    ,[BoolMV b])                              → return $ BoolMV   $ not b
   (PlusO   ,[BoolMV b₁  ,BoolMV b₂  ])               → return $ BoolMV   $ b₁ ⩔ b₂
   (PlusO   ,[NatMV p₁ n₁,NatMV p₂ n₂])         |p₁≡p₂→ return $ NatMV p₁ $ trPrNat p₁ $ n₁ + n₂
@@ -114,3 +129,4 @@ multDepthShareInfo ∷ Op → ShareInfo → ℕ
 multDepthShareInfo op = \case
   NotShared → zero
   Shared φ _ → multDepth φ op
+-}

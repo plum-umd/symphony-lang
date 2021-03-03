@@ -4,8 +4,6 @@ import UVMHS
 import AddToUVMHS
 import PSL.Syntax
 
-import Foreign.ForeignPtr
-
 ------------
 -- VALUES --
 ------------
@@ -38,38 +36,51 @@ data Val =
 data ValP =
     SSecVP (𝑃 PrinVal) Val            -- values which are the same on parties (not shares)
   | ISecVP (PrinVal ⇰ Val)            -- values which are different on parties (bundles, not shares)
-  | ShareVP Prot (𝑃 PrinVal) ValMPC   -- shares
+  | ShareVP Prot (𝑃 PrinVal) CktVal   -- shares
   | AllVP Val                         -- special case, equivalent to SSecVP ⊤ Val
   deriving (Eq,Ord,Show)
 
--- Values used in circuits
--- sv ∈ mpc-val
-data ValMPC =
-    BaseMV BaseValMPC
-  | PairMV ValMPC ValMPC
-  | SumMV 𝔹 ValMPC ValMPC
-  | NilMV
-  | ConsMV ValMPC ValMPC
-  | BulMV
-  | DefaultMV
+data CktVal =
+    DefaultCV
+  | BaseCV Ckt
+  | PairCV CktVal CktVal
+  | SumCV Ckt CktVal CktVal
+  | NilCV
+  | ConsCV CktVal CktVal
+  | BulCV
   deriving (Eq,Ord,Show)
 
-data BaseValMPC =
-    BoolMV 𝔹
-  | NatMV IPrecision ℕ
-  | IntMV IPrecision IntShare
-  | FltMV FPrecision 𝔻
-  | PrinMV (AddBTD PrinVal)
+-- Circuits
+data Ckt = Ckt
+  { inputs ∷ 𝐿 Wire         -- Input wires. Note: May need to add `∧ Prin ∧ 𝑂 BaseCkt`.
+                            --   `Prin` tells us whose wire it is, and if it is ours, `𝑂 BaseCkt` is our input.
+  , gates ∷ Wire ⇰ Gate     -- The computation. Note: The `Wire` component is the output wire of the associated gate. We assume all gates have a single output.
+  , output ∷ Wire           -- Output wire. Note: May need to add: `∧ Prin`.
+  , typ ∷ Type              -- Output type.
+  } deriving (Eq,Ord,Show)
+
+-- Gates. Note: Wires are inputs to the gate
+data Gate =
+    BaseG BaseCkt
+  | PrimG Op (𝐿 Wire)
   deriving (Eq,Ord,Show)
 
-data IntShare =
-    IntSeqSh ℤ
-  | IntEMPSh IntEMP
+data BaseCkt =
+    BoolBC 𝔹
+  | NatBC IPrecision ℕ
+  | IntBC IPrecision ℤ
+  | FltBC FPrecision 𝔻
+  | PrinBC (AddBTD PrinVal)
   deriving (Eq,Ord,Show)
 
-{- EMP Integer Shares -}
-data IntEMPS = IntEMPS
-type IntEMP = ForeignPtr IntEMPS
+type Wire = ℕ
+
+typeOfBaseCkt ∷ BaseCkt → Type
+typeOfBaseCkt (BoolBC _) = 𝔹T
+typeOfBaseCkt (NatBC pr _) = ℕT pr
+typeOfBaseCkt (IntBC pr _) = ℤT pr
+typeOfBaseCkt (FltBC pr _) = 𝔽T pr
+typeOfBaseCkt (PrinBC _) = ℙT
 
  -----------------
 -- ENVIRONMENT --
@@ -81,8 +92,9 @@ type Env = 𝕏 ⇰ ValP
 
 makePrisms ''Val
 makePrisms ''ValP
-makePrisms ''ValMPC
-makePrisms ''BaseValMPC
+makePrisms ''CktVal
+makePrisms ''Ckt
+makePrisms ''BaseCkt
 
 data ShareInfo =
     NotShared
@@ -127,7 +139,7 @@ data ICxt = ICxt
   , iCxtDeclPrins ∷ Prin ⇰ PrinKind
   , iCxtEnv ∷ Env
   , iCxtMode ∷ Mode
-  , iCxtMPCPathCondition ∷ 𝐿 (𝔹 ∧ ShareInfo)
+  , iCxtMPCPathCondition ∷ 𝐿 (Ckt ∧ ShareInfo)
   } deriving (Show)
 makeLenses ''ICxt
 makePrettySum ''ICxt
@@ -150,13 +162,14 @@ iCxtIsExampleL = iParamsIsExampleL ⊚ iCxtParamsL
 data IState = IState
   { iStateStore ∷ Store
   , iStateNextLoc ∷ ℤ64
-  , iStateMPCCont ∷ 𝐿 (𝐿 (𝔹 ∧ ShareInfo) ∧ ShareInfo ∧ ValMPC)
+  , iStateNextWire ∷ Wire
+  , iStateMPCCont ∷ 𝐿 (𝐿 (Ckt ∧ ShareInfo) ∧ ShareInfo ∧ Ckt)
   } deriving (Eq,Ord,Show)
 makeLenses ''IState
 makePrettySum ''IState
 
 ω₀ ∷ IState
-ω₀ = IState wø (𝕫64 1) null
+ω₀ = IState wø (𝕫64 1) 0 null
 
 ------------
 -- OUTPUT --

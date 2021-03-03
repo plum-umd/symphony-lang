@@ -8,7 +8,8 @@ import PSL.Syntax
 import PSL.Interpreter.Types
 import PSL.Interpreter.Pretty ()
 import PSL.Interpreter.Json ()
-import PSL.Interpreter.EMP
+import PSL.Interpreter.Primitives
+import PSL.Interpreter.Circuits
 
 -- enter a strictly smaller mode than the current one
 restrictMode ∷ (STACK) ⇒ Mode → IM a → IM a
@@ -27,26 +28,6 @@ introValP v = do
   return $ case m of
     SecM ρs → SSecVP ρs v
     TopM → AllVP v
-
--- create a location fixed to the current mode
-locValP ∷ (STACK) ⇒ ℤ64 → IM ValP
-locValP ℓ = do
-  m ← askL iCxtModeL
-  introValP $ LocV m ℓ
-
-elimLocV ∷ (STACK) ⇒ Val → IM ℤ64
-elimLocV v = do
-  m ← askL iCxtModeL
-  case v of
-    LocV m' ℓ → do
-      guardErr (m ≡ m') $
-        throwIErrorCxt TypeIError "elimLocV: m ≠ m'" $ frhs
-          [ ("m",pretty m)
-          , ("m'",pretty m')
-          ]
-      return ℓ
-    _ → throwIErrorCxt TypeIError "elimLocV: v ≠ LocV _ _" $ frhs
-          [ ("v",pretty v) ]
 
 -- look at a value; fails if value has mode smaller than execution mode
 -- e.g.,
@@ -76,6 +57,26 @@ elimValP ṽ = do
     _ → throwIErrorCxt TypeIError "elimValP: ṽ ∉ {AllVP _,SSecVP _ _,LocVP _ _}" $ frhs
         [ ("ṽ",pretty ṽ)
         ]
+
+-- create a location fixed to the current mode
+introLocV ∷ (STACK) ⇒ ℤ64 → IM Val
+introLocV ℓ = do
+  m ← askL iCxtModeL
+  return $ LocV m ℓ
+
+elimLocV ∷ (STACK) ⇒ Val → IM ℤ64
+elimLocV v = do
+  m ← askL iCxtModeL
+  case v of
+    LocV m' ℓ → do
+      guardErr (m ≡ m') $
+        throwIErrorCxt TypeIError "elimLocV: m ≠ m'" $ frhs
+          [ ("m",pretty m)
+          , ("m'",pretty m')
+          ]
+      return ℓ
+    _ → throwIErrorCxt TypeIError "elimLocV: v ≠ LocV _ _" $ frhs
+          [ ("v",pretty v) ]
 
 -- restrict the mode on a value to be no larger than execution mode
 -- e.g.:
@@ -148,12 +149,12 @@ joinShareInfo si₁ si₂ = case (si₁,si₂) of
 joinShareInfos ∷ (STACK,ToIter ShareInfo t) ⇒ t → IM ShareInfo
 joinShareInfos = mfoldFromWith NotShared joinShareInfo
 
-unShareValP ∷ (STACK) ⇒ ValP → IM (ShareInfo ∧ ValMPC)
+unShareValP ∷ (STACK) ⇒ ValP → IM (ShareInfo ∧ CktVal)
 unShareValP ṽ = do
   m ← askL iCxtModeL
   unShareValPMode m ṽ
 
-unShareValPMode ∷ (STACK) ⇒ Mode → ValP → IM (ShareInfo ∧ ValMPC)
+unShareValPMode ∷ (STACK) ⇒ Mode → ValP → IM (ShareInfo ∧ CktVal)
 unShareValPMode m = \case
   SSecVP ρs v → do
     guardErr (m ⊑ SecM ρs) $
@@ -162,255 +163,123 @@ unShareValPMode m = \case
         , ("ρs",pretty ρs)
         ]
     unShareValMode m v
-  ShareVP φ ρs vmpc → do
---    guardErr (SecM ρs ⊑ m) $ throwIErrorCxt TypeIError "bad" null
-    return $ (Shared φ ρs) :* vmpc
+  ShareVP φ ρs cv → return $ (Shared φ ρs) :* cv
   AllVP v → do
     unShareValMode m v
   ṽ → throwIErrorCxt TypeIError
     "unShareValPMode: ṽ ∉ {SSecVP _ _,ShareVP _ _ _,AllVP _}" $ frhs
       [ ("ṽ",pretty ṽ) ]
 
-unShareValMode ∷ (STACK) ⇒ Mode → Val → IM (ShareInfo ∧ ValMPC)
+unShareValMode ∷ (STACK) ⇒ Mode → Val → IM (ShareInfo ∧ CktVal)
 unShareValMode m = \case
-  BoolV b → return $ NotShared :* BaseMV (BoolMV b)
-  NatV pr n → return $ NotShared :* BaseMV (NatMV pr n)
-  IntV pr i → return $ NotShared :* BaseMV (IntMV pr (IntSeqSh i))
-  FltV pr i → return $ NotShared :* BaseMV (FltMV pr i)
-  PrinV (ValPEV ρe) → return $ NotShared :* BaseMV (PrinMV $ AddBTD ρe)
+  BoolV b → do
+    c ← boolCkt b
+    return $ NotShared :* BaseCV c
+  NatV pr n → do
+    c ← natCkt pr n
+    return $ NotShared :* BaseCV c
+  IntV pr i → do
+    c ← intCkt pr i
+    return $ NotShared :* BaseCV c
+  FltV pr i → do
+    c ← fltCkt pr i
+    return $ NotShared :* BaseCV c
+  PrinV (ValPEV ρe) → do
+    c ← prinCkt (AddBTD ρe)
+    return $ NotShared :* BaseCV c
   PairV ṽ₁ ṽ₂ → do
-    si₁ :* vmpc₁ ← unShareValPMode m ṽ₁
-    si₂ :* vmpc₂ ← unShareValPMode m ṽ₂
+    si₁ :* cv₁ ← unShareValPMode m ṽ₁
+    si₂ :* cv₂ ← unShareValPMode m ṽ₂
     si ← joinShareInfo si₁ si₂
-    return $ si :* PairMV vmpc₁ vmpc₂
+    return $ si :* PairCV cv₁ cv₂
   LV ṽ → do
-    si :* vmpc ← unShareValPMode m ṽ
-    return $ si :* SumMV True vmpc DefaultMV
+    si :* cv ← unShareValPMode m ṽ
+    left ← trueCkt
+    return $ si :* SumCV left cv DefaultCV
   RV ṽ → do
-    si :* vmpc ← unShareValPMode m ṽ
-    return $ si :* SumMV False DefaultMV vmpc
-  NilV → return $ NotShared :* NilMV
+    si :* cv ← unShareValPMode m ṽ
+    right ← falseCkt
+    return $ si :* SumCV right DefaultCV cv
+  NilV → return $ NotShared :* NilCV
   ConsV ṽ₁ ṽ₂ → do
-    si₁ :* vmpc₁ ← unShareValPMode m ṽ₁
-    si₂ :* vmpc₂ ← unShareValPMode m ṽ₂
+    si₁ :* cv₁ ← unShareValPMode m ṽ₁
+    si₂ :* cv₂ ← unShareValPMode m ṽ₂
     si ← joinShareInfo si₁ si₂
-    return $ si :* ConsMV vmpc₁ vmpc₂
-  DefaultV → return $ NotShared :* DefaultMV
-  BulV → return $ NotShared :* BulMV
+    return $ si :* ConsCV cv₁ cv₂
+  BulV → return $ NotShared :* BulCV
   v → throwIErrorCxt NotImplementedIError "unShareValMode" $ frhs
     [ ("v",pretty v) ]
 
-unShareValPs ∷ (STACK) ⇒ 𝐿 ValP → IM (ShareInfo ∧ 𝐿 ValMPC)
-unShareValPs = mfoldrFromWith (NotShared :* null) $ \ ṽ (siᵢ :* vmpcs) → do
-  si :* vmpc ← unShareValP ṽ
+unShareValPs ∷ (STACK) ⇒ 𝐿 ValP → IM (ShareInfo ∧ 𝐿 CktVal)
+unShareValPs = mfoldrFromWith (NotShared :* null) $ \ ṽ (siᵢ :* cvs) → do
+  si :* cv ← unShareValP ṽ
   si' ← joinShareInfo siᵢ si
-  return $ si' :* (vmpc :& vmpcs)
+  return $ si' :* (cv :& cvs)
 
-reShareValP ∷ (STACK) ⇒ ValMPC → ShareInfo → IM ValP
-reShareValP ṽ = \case
-  NotShared → valFrMPC ṽ
-  Shared φ ρs → reShareValPShared φ ρs ṽ
+reShareValP ∷ (STACK) ⇒ CktVal → ShareInfo → IM ValP
+reShareValP cv = \case
+  NotShared   → valPFrCktVal cv
+  Shared φ ρs → return $ ShareVP φ ρs cv
 
-reShareValPShared ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → ValMPC → IM ValP
-reShareValPShared φ ρs = \case
-  BaseMV bvmpc → return $ ShareVP φ ρs $ BaseMV bvmpc
-  PairMV vmpc₁ vmpc₂ → return $ ShareVP φ ρs $ PairMV vmpc₁ vmpc₂
-  SumMV b vmpc₁ vmpc₂ → return $ ShareVP φ ρs $ SumMV b vmpc₁ vmpc₂
-  NilMV → introValP NilV
-  ConsMV vmpc₁ vmpc₂ → do
-    ṽ₁ ← reShareValPShared φ ρs vmpc₁
-    ṽ₂ ← reShareValPShared φ ρs vmpc₂
-    introValP $ ConsV ṽ₁ ṽ₂
-  DefaultMV → introValP DefaultV
-  BulMV → introValP BulV
-
-----------------
--- MPC VALUES --
-----------------
-
--- mpcFrValF ∷ (STACK) ⇒ Val → (BaseValMPC → IM ()) → IM ValMPC
--- mpcFrValF = flip mpcFrValFWith
---
--- mpcFrValFWith ∷ (STACK) ⇒ (BaseValMPC → IM ()) → Val → IM ValMPC
--- mpcFrValFWith f = \case
---   BoolV b → do
---     let bvmpc = BoolMV b
---     f bvmpc
---     return $ BaseMV zero bvmpc
---   NatV pr n → do
---     let bvmpc = NatMV pr n
---     f bvmpc
---     return $ BaseMV zero bvmpc
---   IntV pr i → do
---     let bvmpc = IntMV pr i
---     f bvmpc
---     return $ BaseMV zero bvmpc
---   FltV pr i → do
---     let bvmpc = FltMV pr i
---     f bvmpc
---     return $ BaseMV zero bvmpc
---   PrinV (ValPEV ρe) → return $ BaseMV zero $ PrinMV $ AddBTD ρe
---   PairV ṽ₁ ṽ₂ → do
---     vmpc₁ ← mpcFrValFWith f *$ elimValP ṽ₁
---     vmpc₂ ← mpcFrValFWith f *$ elimValP ṽ₂
---     return $ PairMV vmpc₁ vmpc₂
---   LV ṽ → do
---     vmpc ← mpcFrValFWith f *$ elimValP ṽ
---     return $ SumMV zero True vmpc DefaultMV
---   RV ṽ → do
---     v ← elimValP ṽ
---     vmpc ← mpcFrValFWith f v
---     return $ SumMV zero False DefaultMV vmpc
---   NilV → return $ NilMV
---   ConsV ṽ₁ ṽ₂ → do
---     vmpc₁ ← mpcFrValFWith f *$ elimValP ṽ₁
---     vmpc₂ ← mpcFrValFWith f *$ elimValP ṽ₂
---     return $ ConsMV vmpc₁ vmpc₂
---   BulV → return BulMV
---   DefaultV → return DefaultMV
---   v → throwIErrorCxt TypeIError "bad" $ frhs [("v", pretty v)]
---
--- mpcFrVal ∷ (STACK) ⇒ Val → IM ValMPC
--- mpcFrVal = mpcFrValFWith $ const skip
-
--- TODO: to implement share -> nizk-share
--- first function is to emit share events
--- second function is to convert shares to nizk shares, and to emit convert events
--- ideally, mpcFrVal would be an instantiation of this which throws an error in the second function
-
-mpcFrValP ∷ (STACK) ⇒ ValP → IM ValMPC
-mpcFrValP = mpcFrValPFWith (\ _ → skip) (\ _ _ _ → skip)
-
-mpcFrValPBaseVals ∷ (STACK) ⇒ ValP → (BaseValMPC → IM ()) → IM ValMPC
-mpcFrValPBaseVals ṽ f = mpcFrValPFWith f (\ _ _ _ → skip) ṽ
-
-mpcFrValPFWith ∷ (STACK) ⇒ (BaseValMPC → IM ()) → (Prot → 𝑃 PrinVal → ValMPC → IM ()) → ValP → IM ValMPC
-mpcFrValPFWith f g = \case
-  SSecVP ρs v → do
-    m ← askL iCxtModeL
-    guardErr (m ⊑ SecM ρs) $
-      throwIErrorCxt TypeIError "mpcFrValPFWith: m ⋢ PSecM ρs" $ frhs
-        [ ("m",pretty m)
-        , ("ρs",pretty ρs)
-        ]
-    mpcFrValFWith f g v
-  ShareVP φ ρs vmpc → do
-    m ← askL iCxtModeL
-    guardErr (m ≡ SecM ρs) $
-      throwIErrorCxt TypeIError "mpcFrValPFWith: m ≠ PSecM ρs" $ frhs
-        [ ("m",pretty m)
-        , ("ρs",pretty ρs)
-        ]
-    g φ ρs vmpc
-    return vmpc
-  AllVP v → mpcFrValFWith f g v
-  ṽ → throwIErrorCxt TypeIError "mpcFrValFWith: cannot convert ṽ to mpc value" $ frhs
-    [ ("ṽ", pretty ṽ) ]
-
-mpcFrValFWith ∷ (STACK) ⇒ (BaseValMPC → IM ()) → (Prot → 𝑃 PrinVal → ValMPC → IM ()) → Val → IM ValMPC
-mpcFrValFWith f g = \case
-  BoolV b → do
-    let bvmpc = BoolMV b
-    f bvmpc
-    return $ BaseMV bvmpc
-  NatV pr n → do
-    let bvmpc = NatMV pr n
-    f bvmpc
-    return $ BaseMV bvmpc
-  IntV pr i → do
-    let bvmpc = IntMV pr (IntSeqSh i)
-    f bvmpc
-    return $ BaseMV bvmpc
-  FltV pr i → do
-    let bvmpc = FltMV pr i
-    f bvmpc
-    return $ BaseMV bvmpc
-  PrinV (ValPEV ρe) → do
-    let bvmpc = PrinMV $ AddBTD ρe
-    f bvmpc
-    return $ BaseMV bvmpc
-  PairV ṽ₁ ṽ₂ → do
-    vmpc₁ ← mpcFrValPFWith f g ṽ₁
-    vmpc₂ ← mpcFrValPFWith f g ṽ₂
-    return $ PairMV vmpc₁ vmpc₂
-  LV ṽ → do
-    vmpc ← mpcFrValPFWith f g ṽ
-    return $ SumMV True vmpc DefaultMV
-  RV ṽ → do
-    vmpc ← mpcFrValPFWith f g ṽ
-    return $ SumMV False DefaultMV vmpc
-  NilV → return $ NilMV
-  ConsV ṽ₁ ṽ₂ → do
-    vmpc₁ ← mpcFrValPFWith f g ṽ₁
-    vmpc₂ ← mpcFrValPFWith f g ṽ₂
-    return $ ConsMV vmpc₁ vmpc₂
-  BulV → return BulMV
-  DefaultV → return DefaultMV
-  v → throwIErrorCxt TypeIError "mpcFrValFWith: cannot convert v to mpc value" $ frhs
-    [ ("v", pretty v) ]
-
-eachBaseValWith ∷ (BaseValMPC → IM ()) → ValMPC → IM ()
-eachBaseValWith f = \case
-  BaseMV bvmpc → f bvmpc
-  PairMV vmpc₁ vmpc₂ → do
-    eachBaseValWith f vmpc₁
-    eachBaseValWith f vmpc₂
-  SumMV b vmpc₁ vmpc₂ → do
-    f (BoolMV b)
-    eachBaseValWith f vmpc₁
-    eachBaseValWith f vmpc₂
-  NilMV → skip
-  ConsMV vmpc₁ vmpc₂ → do
-    eachBaseValWith f vmpc₁
-    eachBaseValWith f vmpc₂
-  BulMV → skip
-  DefaultMV → skip
-
-eachBaseVal ∷ ValMPC → (BaseValMPC → IM ()) → IM ()
-eachBaseVal = flip eachBaseValWith
-
-valFrMPC ∷ (STACK) ⇒ ValMPC → IM ValP
-valFrMPC = valFrMPCFWith $ const skip
-
-valFrMPCF ∷ (STACK) ⇒ ValMPC → (BaseValMPC → IM ()) → IM ValP
-valFrMPCF = flip valFrMPCFWith
-
-valFrMPCFWith ∷ (STACK) ⇒ (BaseValMPC → IM ()) → ValMPC → IM ValP
-valFrMPCFWith f = \case
-  BaseMV bvmpc → do
-    f bvmpc
-    ṽ ← valFrBaseMPC bvmpc
-    return $ ṽ
-  PairMV vmpc₁ vmpc₂ → do
-    ṽ₁ ← valFrMPCF vmpc₁ f
-    ṽ₂ ← valFrMPCF vmpc₂ f
+valPFrCktVal ∷ (STACK) ⇒ CktVal → IM ValP
+valPFrCktVal = \case
+  BaseCV c → valPFrCkt c
+  PairCV cv₁ cv₂ → do
+    ṽ₁ ← valPFrCktVal cv₁
+    ṽ₂ ← valPFrCktVal cv₂
     introValP $ PairV ṽ₁ ṽ₂
-  SumMV b vmpc₁ vmpc₂ → do
-    f (BoolMV b)
+  SumCV c₁ cv₂ cv₃ → do
+    v₁ ← valPFrCkt c₁ ≫= elimValP
+    b₁ ← error𝑂 (view boolVL v₁) (throwIErrorCxt TypeIError "valPFrCktVal: SumCV: view boolVL v₁ ≡ None" $ frhs
+                                  [ ("v₁",pretty v₁)
+                                  ])
+    if b₁
+    then do
+      ṽ₂ ← valPFrCktVal cv₂
+      introValP $ LV ṽ₂
+    else do
+      ṽ₃ ← valPFrCktVal cv₃
+      introValP $ RV ṽ₃
+
+valPFrCkt ∷ (STACK) ⇒ Ckt → IM ValP
+valPFrCkt ckt =
+  assert (inputs ckt ≡ empty𝐿) $ -- Sanity check, unshared circuits cannot have inputs
+  case impLookup𝐷 (gates ckt) (output ckt) of
+    BaseG bc → valPFrBaseCkt bc
+    PrimG op ws → do
+      vs ← mapMOn ws $ \ w → do
+        vps ← valPFrCkt $ ckt { output = w }
+        elimValP vps
+      v' ← interpPrim op vs
+      introValP v'
+
+{-
+  BaseC bc → do
+    ṽ ← valFrBaseCkt bc
+    return $ ṽ
+  PairC c₁ c₂ → do
+    ṽ₁ ← valFrCkt c₁
+    ṽ₂ ← valFrCkt c₂
+    introValP $ PairV ṽ₁ ṽ₂
+  SumC b c₁ c₂ → do
     if b
     then do
-      ṽ ← valFrMPCF vmpc₁ f
+      ṽ ← valFrCkt c₁
       ṽ' ← introValP $ LV ṽ
       return ṽ'
     else do
-      ṽ ← valFrMPCF vmpc₂ f
+      ṽ ← valFrCkt c₂
       ṽ' ← introValP $ RV ṽ
       return ṽ'
-  NilMV → introValP NilV
-  ConsMV vmpc₁ vmpc₂ → do
-    ṽ₁ ← valFrMPCFWith f vmpc₁
-    ṽ₂ ← valFrMPCFWith f vmpc₂
-    introValP $ ConsV ṽ₁ ṽ₂
-  BulMV → introValP BulV
-  DefaultMV → introValP DefaultV
+  DefaultC → introValP DefaultV -}
 
-valFrBaseMPC ∷ (STACK) ⇒ BaseValMPC → IM ValP
-valFrBaseMPC = \case
-  BoolMV b → introValP $ BoolV b
-  NatMV pr n → introValP $ NatV pr n
-  IntMV pr (IntSeqSh i) → introValP $ IntV pr i
-  FltMV pr d → introValP $ FltV pr d
-  PrinMV peO → case peO of
+valPFrBaseCkt ∷ (STACK) ⇒ BaseCkt → IM ValP
+valPFrBaseCkt = \case
+  BoolBC b → introValP $ BoolV b
+  NatBC pr n → introValP $ NatV pr n
+  IntBC pr i → introValP $ IntV pr i
+  FltBC pr d → introValP $ FltV pr d
+  PrinBC peO → case peO of
     BotBTD → introValP DefaultV
     AddBTD pe → introValP $ PrinV $ ValPEV pe
     TopBTD → introValP BulV
@@ -420,6 +289,18 @@ prinFrPrinVal ∷ PrinVal → Prin
 prinFrPrinVal (SinglePV p) = p
 prinFrPrinVal (AccessPV p _) = p
 prinFrPrinVal (VirtualPV p) = p
+
+revealValP ∷ (STACK) ⇒ 𝑃 PrinVal → ValP → IM ValP
+revealValP ρsʳ ṽ = do
+  _si :* cv ← unShareValP ṽ
+  reShareValP cv NotShared
+
+  {-throwIErrorCxt NotImplementedIError "revealValP" $ frhs
+                 [ ("ρsʳ", pretty ρsʳ)
+                 , ("ṽ", pretty ṽ)
+                 ] -- where the magic happens (compile circuit and send to EMP) -}
+
+{-
 
 revealBaseValMPC ∷ (STACK) ⇒ 𝑃 PrinVal → BaseValMPC → IM ValP
 revealBaseValMPC ρs = \case
@@ -497,3 +378,5 @@ revealVal ρsʳ = \case
   DefaultV → introValP DefaultV
   v → throwIErrorCxt TypeIError "can't reveal" $ frhs
     [ ("v",pretty v) ]
+
+-}

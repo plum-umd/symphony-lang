@@ -10,12 +10,11 @@ import PSL.Syntax
 import PSL.Interpreter.Access
 import PSL.Interpreter.Json ()
 import PSL.Interpreter.Pretty ()
-import PSL.Interpreter.Primitives
 import PSL.Interpreter.PrinExp
 import PSL.Interpreter.ReadType
 import PSL.Interpreter.Truncating
 import PSL.Interpreter.Types
-import PSL.Interpreter.EMP
+import PSL.Interpreter.Circuits
 
 import qualified Prelude as HS
 import qualified System.Console.GetOpt as O
@@ -113,24 +112,22 @@ bindPatO ψ ṽ = case ψ of
   AscrP ψ' _τ → bindPatO ψ' ṽ
   WildP → return id
 
-data MatchState = NoMatch | LeftMatch | RightMatch
-
-bindPatMPC ∷ (STACK) ⇒ ShareInfo → Pat → ValMPC → 𝑂 (IM (ShareInfo ∧ ValMPC) → IM (ShareInfo ∧ ValMPC))
-bindPatMPC si ψ vmpc = case ψ of
+bindPatMPC ∷ (STACK) ⇒ ShareInfo → Pat → CktVal → 𝑂 (IM (ShareInfo ∧ CktVal) → IM (ShareInfo ∧ CktVal))
+bindPatMPC si ψ cv = case ψ of
   VarP x → return $ \ xM → do
-    ṽ ← reShareValP vmpc si
-    si' :* vmpc' ← bindVar x ṽ xM
+    ṽ ← reShareValP cv si
+    si' :* cv' ← bindVar x ṽ xM
     si'' ← joinShareInfo si si'
-    return $ si'' :* vmpc'
+    return $ si'' :* cv'
   TupP ψ₁ ψ₂ → do
-    vmpc₁ :* vmpc₂ ← view pairMVL vmpc
-    f₁ ← bindPatMPC si ψ₁ vmpc₁
-    f₂ ← bindPatMPC si ψ₂ vmpc₂
+    vc₁ :* vc₂ ← view pairCVL cv
+    f₁ ← bindPatMPC si ψ₁ vc₁
+    f₂ ← bindPatMPC si ψ₂ vc₂
     return $ \ xM → do
-      si' :* vmpc' ← compose [f₁,f₂] xM
+      si' :* vc' ← compose [f₁,f₂] xM
       si'' ← joinShareInfo si si'
-      return $ si'' :* vmpc'
-  LP ψ' → do
+      return $ si'' :* vc'
+{-  LP ψ' → do
     b :* vmpc₁ :* _vmpc₂ ← view sumMVL vmpc
     f ← bindPatMPC si ψ' vmpc₁
     return $ \ xM → do
@@ -146,22 +143,8 @@ bindPatMPC si ψ vmpc = case ψ of
       vmpc'' ← muxMPCVal b DefaultMV vmpc'
       si'' ← joinShareInfo si si'
       return $ si'' :* vmpc''
-  BulP → do
-    view bulMVL vmpc
-    return id
-  NilP → do
-    view nilMVL vmpc
-    return id
-  ConsP ψ₁ ψ₂ → do
-    vmpc₁ :* vmpc₂ ← view consMVL vmpc
-    f₁ ← bindPatMPC si ψ₁ vmpc₁
-    f₂ ← bindPatMPC si ψ₂ vmpc₂
-    return $ \ xM → do
-      si' :* vmpc' ← compose [f₁,f₂] xM
-      si'' ← joinShareInfo si si'
-      return $ si'' :* vmpc'
   WildP → return id
-  _ → error "TODO: not implemented"
+  _ → error "TODO: not implemented" -}
 
 interpCase ∷ (STACK) ⇒ ValP → 𝐿 (Pat ∧ Exp) → IM ValP
 interpCase ṽ ψes = do
@@ -206,148 +189,6 @@ interpApp ṽ₁ ṽ₂ = do
 wrapInterp ∷ (STACK) ⇒ (ExpR → IM ValP) → Exp → IM ValP
 wrapInterp f e = localL iCxtSourceL (Some $ annotatedTag e) $ f $ extract e
 
-defaultBaseVal ∷ (STACK) ⇒ BaseValMPC → BaseValMPC
-defaultBaseVal = \case
-  BoolMV _ → BoolMV False
-  NatMV p _ → NatMV p zero
-  IntMV p _ → IntMV p (IntSeqSh zero)
-  FltMV p _ → FltMV p zero
-  PrinMV _ → PrinMV BotBTD
-
-sumMPCVal ∷ (STACK) ⇒ ValMPC → ValMPC → IM ValMPC
-sumMPCVal vmpc₁ vmpc₂ = case (vmpc₁,vmpc₂) of
-  (DefaultMV,DefaultMV) → return DefaultMV
-  (BaseMV bvmpc₁,BaseMV bvmpc₂) → do
-    vmpc ← interpPrim PlusO $ list [bvmpc₁,bvmpc₂]
-    return $ BaseMV vmpc
-  (BaseMV bvmpc₁,DefaultMV) → do
-    let bvmpc₂ = defaultBaseVal bvmpc₁
-    vmpc ← interpPrim PlusO $ list [bvmpc₁,bvmpc₂]
-    return $ BaseMV vmpc
-  (DefaultMV,BaseMV bvmpc₂) → do
-    let bvmpc₁ = defaultBaseVal bvmpc₁
-    vmpc ← interpPrim PlusO $ list [bvmpc₁,bvmpc₂]
-    return $ BaseMV vmpc
-  (PairMV vmpc₁₁ vmpc₁₂,PairMV vmpc₂₁ vmpc₂₂) → do
-    vmpc₁' ← sumMPCVal vmpc₁₁ vmpc₂₁
-    vmpc₂' ← sumMPCVal vmpc₁₂ vmpc₂₂
-    return $ PairMV vmpc₁' vmpc₂'
-  (PairMV vmpc₁₁ vmpc₁₂,DefaultMV) → do
-    vmpc₁' ← sumMPCVal vmpc₁₁ DefaultMV
-    vmpc₂' ← sumMPCVal vmpc₁₂ DefaultMV
-    return $ PairMV vmpc₁' vmpc₂'
-  (DefaultMV,PairMV vmpc₂₁ vmpc₂₂) → do
-    vmpc₁' ← sumMPCVal DefaultMV vmpc₂₁
-    vmpc₂' ← sumMPCVal DefaultMV vmpc₂₂
-    return $ PairMV vmpc₁' vmpc₂'
-  (SumMV b₁ mvpc₁₁ mvpc₁₂,SumMV b₂ mvpc₂₁ mvpc₂₂) → do
-    bvmpc ← interpPrim OrO $ list [BoolMV b₁,BoolMV b₂]
-    b₁' ← error𝑂 (view boolMVL bvmpc) $ throwIErrorCxt InternalIError "bad" null
-    vmpc₁' ← sumMPCVal mvpc₁₁ mvpc₂₁
-    vmpc₂' ← sumMPCVal mvpc₁₂ mvpc₂₂
-    return $ SumMV b₁' vmpc₁' vmpc₂'
-  (SumMV b₁ mvpc₁₁ mvpc₁₂,DefaultMV) → do
-    bvmpc ← interpPrim OrO $ list [BoolMV b₁,BoolMV False]
-    b₁' ← error𝑂 (view boolMVL bvmpc) $ throwIErrorCxt InternalIError "bad" null
-    vmpc₁' ← sumMPCVal mvpc₁₁ DefaultMV
-    vmpc₂' ← sumMPCVal mvpc₁₂ DefaultMV
-    return $ SumMV b₁' vmpc₁' vmpc₂'
-  (DefaultMV,SumMV b₂ mvpc₂₁ mvpc₂₂) → do
-    bvmpc ← interpPrim OrO $ list [BoolMV False,BoolMV b₂]
-    b₁' ← error𝑂 (view boolMVL bvmpc) $ throwIErrorCxt InternalIError "bad" null
-    vmpc₁' ← sumMPCVal DefaultMV mvpc₂₁
-    vmpc₂' ← sumMPCVal DefaultMV mvpc₂₂
-    return $ SumMV b₁' vmpc₁' vmpc₂'
-  (ConsMV vmpc₁₁ vmpc₁₂,ConsMV vmpc₂₁ vmpc₂₂) → do
-    vmpc₁' ← sumMPCVal vmpc₁₁ vmpc₂₁
-    vmpc₂' ← sumMPCVal vmpc₁₂ vmpc₂₂
-    return $ ConsMV vmpc₁' vmpc₂'
-  (ConsMV vmpc₁₁ vmpc₁₂,DefaultMV) → do
-    vmpc₁' ← sumMPCVal vmpc₁₁ DefaultMV
-    vmpc₂' ← sumMPCVal vmpc₁₂ DefaultMV
-    return $ ConsMV vmpc₁' vmpc₂'
-  (DefaultMV,ConsMV vmpc₂₁ vmpc₂₂) → do
-    vmpc₁' ← sumMPCVal DefaultMV vmpc₂₁
-    vmpc₂' ← sumMPCVal DefaultMV vmpc₂₂
-    return $ ConsMV vmpc₁' vmpc₂'
-  (NilMV,NilMV) → return NilMV
-  (NilMV,DefaultMV) → return NilMV
-  (DefaultMV,NilMV) → return NilMV
-  (BulMV,BulMV) → return BulMV
-  (BulMV,DefaultMV) → return BulMV
-  (DefaultMV,BulMV) → return BulMV
-  _ → throwIErrorCxt TypeIError "sumMPCVal: not implemented" $ frhs
-    [ ("vmpc₁",pretty vmpc₁)
-    , ("vmpc₂",pretty vmpc₂)
-    ]
-
-muxMPCVal ∷ (STACK) ⇒ 𝔹 → ValMPC → ValMPC → IM ValMPC
-muxMPCVal b₁ vmpc₂ vmpc₃ = case (vmpc₂, vmpc₃) of
-  (DefaultMV,DefaultMV) → return DefaultMV
-  (BaseMV bvmpc₂,BaseMV bvmpc₃) → do
-    vmpc ← interpPrim CondO $ list [BoolMV b₁,bvmpc₂,bvmpc₃]
-    return $ BaseMV vmpc
-  (BaseMV bvmpc₂,DefaultMV) → do
-    let bvmpc₃ = defaultBaseVal bvmpc₂
-    vmpc ← interpPrim CondO $ list [BoolMV b₁,bvmpc₂,bvmpc₃]
-    return $ BaseMV vmpc
-  (DefaultMV,BaseMV bvmpc₃) → do
-    let bvmpc₂ = defaultBaseVal bvmpc₃
-    vmpc ← interpPrim CondO $ list [BoolMV b₁,bvmpc₂,bvmpc₃]
-    return $ BaseMV vmpc
-  (PairMV vmpc₂₁ vmpc₂₂,PairMV vmpc₃₁ vmpc₃₂) → do
-    vmpc₁' ← muxMPCVal b₁ vmpc₂₁ vmpc₃₁
-    vmpc₂' ← muxMPCVal b₁ vmpc₂₂ vmpc₃₂
-    return $ PairMV vmpc₁' vmpc₂'
-  (PairMV vmpc₂₁ vmpc₂₂,DefaultMV) → do
-    vmpc₁' ← muxMPCVal b₁ vmpc₂₁ DefaultMV
-    vmpc₂' ← muxMPCVal b₁ vmpc₂₂ DefaultMV
-    return $ PairMV vmpc₁' vmpc₂'
-  (DefaultMV,PairMV vmpc₃₁ vmpc₃₂) → do
-    vmpc₁' ← muxMPCVal b₁ DefaultMV vmpc₃₁
-    vmpc₂' ← muxMPCVal b₁ DefaultMV vmpc₃₂
-    return $ PairMV vmpc₁' vmpc₂'
-  (SumMV b₂ vmpc₂₂ vmpc₂₃,SumMV b₃ vmpc₃₂ vmpc₃₃) → do
-    bvmpc₁' ← interpPrim CondO $ list [BoolMV b₁,BoolMV b₂,BoolMV b₃]
-    b₁' ← error𝑂 (view boolMVL bvmpc₁') $ throwIErrorCxt InternalIError "bad" null
-    vmpc₁' ← muxMPCVal b₁ vmpc₂₂ vmpc₃₂
-    vmpc₂' ← muxMPCVal b₁ vmpc₂₃ vmpc₃₃
-    return $ SumMV b₁' vmpc₁' vmpc₂'
-  (SumMV b₂ vmpc₂₂ vmpc₂₃,DefaultMV) → do
-    bvmpc₁' ← interpPrim CondO $ list [BoolMV b₁,BoolMV b₂,BoolMV False]
-    b₁' ← error𝑂 (view boolMVL bvmpc₁') $ throwIErrorCxt InternalIError "bad" null
-    vmpc₁' ← muxMPCVal b₁ vmpc₂₂ DefaultMV
-    vmpc₂' ← muxMPCVal b₁ vmpc₂₃ DefaultMV
-    return $ SumMV b₁' vmpc₁' vmpc₂'
-  (DefaultMV,SumMV b₃ vmpc₃₂ vmpc₃₃) → do
-    bvmpc₁' ← interpPrim CondO $ list [BoolMV b₁,BoolMV False,BoolMV b₃]
-    b₁' ← error𝑂 (view boolMVL bvmpc₁') $ throwIErrorCxt InternalIError "bad" null
-    vmpc₁' ← muxMPCVal b₁ DefaultMV vmpc₃₂
-    vmpc₂' ← muxMPCVal b₁ DefaultMV vmpc₃₃
-    return $ SumMV b₁' vmpc₁' vmpc₂'
-  (NilMV,NilMV) → return NilMV
-  (NilMV,DefaultMV) → return NilMV
-  (DefaultMV,NilMV) → return NilMV
-  (ConsMV vmpc₂₁ vmpc₂₂,ConsMV vmpc₃₁ vmpc₃₂) → do
-    vmpc₁' ← muxMPCVal b₁ vmpc₂₁ vmpc₃₁
-    vmpc₂' ← muxMPCVal b₁ vmpc₂₂ vmpc₃₂
-    return $ ConsMV vmpc₁' vmpc₂'
-  (ConsMV vmpc₂₁ vmpc₂₂,DefaultMV) → do
-    vmpc₁' ← muxMPCVal b₁ vmpc₂₁ DefaultMV
-    vmpc₂' ← muxMPCVal b₁ vmpc₂₂ DefaultMV
-    return $ ConsMV vmpc₁' vmpc₂'
-  (DefaultMV,ConsMV vmpc₃₁ vmpc₃₂) → do
-    vmpc₁' ← muxMPCVal b₁ DefaultMV vmpc₃₁
-    vmpc₂' ← muxMPCVal b₁ DefaultMV vmpc₃₂
-    return $ ConsMV vmpc₁' vmpc₂'
-  (BulMV,BulMV) → return $ BulMV
-  (BulMV,DefaultMV) → return $ BulMV
-  (DefaultMV,BulMV) → return $ BulMV
-  _ → throwIErrorCxt TypeIError "muxMPCVal: not implemented" $ frhs
-    [ ("vmpc₂",pretty vmpc₂)
-    , ("vmpc₃",pretty vmpc₃)
-    ]
-
 modeCheckShare ∷ 𝑃 PrinVal → 𝑃 PrinVal → IM ()
 modeCheckShare ρvs₁ ρvs₂ = do
   m ← askL iCxtModeL
@@ -363,21 +204,6 @@ modeCheckShare ρvs₁ ρvs₂ = do
         , ("m",pretty m)
         ]
 
-interpShare ∷ Prot → 𝑃 PrinVal → ValMPC → IM ValMPC
-interpShare YaoP ρvs (BaseMV (IntMV p (IntSeqSh z))) = do
-  m ← askL iCxtModeL
-  case m of
-    TopM →
-      throwIErrorCxt TypeIError "interpShare: interpExp: ShareE: m = ⊤" $ frhs
-        [ ("m",pretty m) ]
-    SecM _ → do
-      guardErr (count ρvs ≡ 1) $
-        throwIErrorCxt TypeIError "interpShare: interpExp: ShareE: size m ≠ 1" $ frhs
-          [ ("m",pretty ρvs) ]
-      let Some (SinglePV party :* _) = pmin ρvs
-      sh ← integerCreate p z party
-      return $ BaseMV $ IntMV p $ IntEMPSh sh
-
 modeCheckReveal ∷ 𝑃 PrinVal → IM ()
 modeCheckReveal ρvs₂ = do
   m ← askL iCxtModeL
@@ -392,10 +218,7 @@ modeCheckReveal ρvs₂ = do
 
 interpExp ∷ (STACK) ⇒ Exp → IM ValP
 interpExp = wrapInterp $ \case
-  VarE x → do
-    distributed ← askL iCxtIsDistributedL
-    let localRestrict = if distributed then return else restrictValP --TODO(ins): there should really be a version of restriction that does restrictValP for everything but shares and then checks *subset* for shares.
-    localRestrict *$ interpVar x
+  VarE x → interpVar x
   BoolE b → introValP $ BoolV b
   StrE s → introValP $ StrV s
   NatE pr n → introValP $ NatV pr $ trPrNat pr n
@@ -413,20 +236,18 @@ interpExp = wrapInterp $ \case
       else interpExp e₃
   MuxIfE e₁ e₂ e₃ → do
     ṽ₁ ← interpExp e₁
-    si₁ :* vmpc₁ ← unShareValP ṽ₁
-    bvmpc₁ ← error𝑂 (view baseMVL vmpc₁) $
-      throwIErrorCxt TypeIError "interpExp: MuxIfE: vmpc₁ ≠ BaseMV _" $ frhs
-        [ ("vmpc₁",pretty vmpc₁) ]
-    b₁ ← error𝑂 (view boolMVL bvmpc₁) $ throwIErrorCxt TypeIError "bad" null
-    ṽ₂ ← mapEnvL iCxtMPCPathConditionL ((b₁ :* si₁) :&) $ do
-      interpExp e₂
-    ṽ₃ ← mapEnvL iCxtMPCPathConditionL ((not b₁ :* si₁) :&) $ do
-      interpExp e₃
-    si₂ :* vmpc₂ ← unShareValP ṽ₂
-    si₃ :* vmpc₃ ← unShareValP ṽ₃
+    si₁ :* cv₁ ← unShareValP ṽ₁
+    c₁ ← error𝑂 (view baseCVL cv₁) (throwIErrorCxt TypeIError "interpExp: MuxIfE: view baseCVL cv₁ ≡ None" $ frhs
+                                   [ ("cv₁",pretty cv₁)
+                                   ])
+    nc₁ ← notCkt c₁
+    ṽ₂ ← mapEnvL iCxtMPCPathConditionL ((c₁ :* si₁) :&) $ interpExp e₂
+    ṽ₃ ← mapEnvL iCxtMPCPathConditionL ((nc₁ :* si₁) :&) $ interpExp e₃
+    si₂ :* cv₂ ← unShareValP ṽ₂
+    si₃ :* cv₃ ← unShareValP ṽ₃
     si ← joinShareInfos [si₁,si₂,si₃]
-    vmpc' ← muxMPCVal b₁ vmpc₂ vmpc₃
-    reShareValP vmpc' si
+    c' ← muxCktVal c₁ cv₂ cv₃
+    reShareValP c' si
   LE e → do
     ṽ ← interpExp e
     introValP $ LV ṽ
@@ -451,17 +272,18 @@ interpExp = wrapInterp $ \case
     interpCase ṽ ψes
   MuxCaseE e ψes → do
     ṽ ← interpExp e
-    si :* vmpc ← unShareValP ṽ
-    sivmpcs ← concat ^$ mapMOn ψes $ \ (ψ :* e') → do
-      case bindPatMPC si ψ vmpc of
+    si :* cv ← unShareValP ṽ
+    sicvs ← concat ^$ mapMOn ψes $ \ (ψ :* e') → do
+      case bindPatMPC si ψ cv of
         None → return $ list []
         Some f → single ^$ f $ do
           ṽ' ← interpExp e'
           unShareValP ṽ'
-    si' :* vmpc' ← mfoldOnFrom sivmpcs (NotShared :* DefaultMV) $ \ (si₁ :* vmpc₁) (si₂ :* vmpc₂) → do
+    si' :* cv' ← mfoldOnFrom sicvs (NotShared :* DefaultCV) $ \ (si₁ :* cv₁) (si₂ :* cv₂) → do
       si'' ← joinShareInfo si₁ si₂
-      (:*) si'' ^$ sumMPCVal vmpc₁ vmpc₂
-    reShareValP vmpc' si'
+      cv'' ← sumCktVal cv₁ cv₂
+      return $ si'' :* cv''
+    reShareValP cv' si'
   LamE selfO ψs e → do
     γ ← askL iCxtEnvL
     (ψ :* ψs') ← error𝑂 (view unconsL $ ψs) (throwIErrorCxt TypeIError "interpExp: LamE: view unconsL $ ψs ≡ None" $ frhs
@@ -489,16 +311,9 @@ interpExp = wrapInterp $ \case
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
     modeCheckShare ρvs₁ ρvs₂
-    distributed ← askL iCxtIsDistributedL
     ṽ ← interpExp e
-    sv ← if not distributed then
-           restrictMode (SecM ρvs₁) $ do
-           mpcFrValP ṽ
-         else
-           do
-             vmpc ← mpcFrValP ṽ
-             interpShare φ ρvs₁ vmpc
-    reShareValPShared φ ρvs₂ sv
+    _ :* cv ← restrictMode (SecM ρvs₁) $ unShareValP ṽ --TODO(ins): should check that the ValP isn't a ShareVP, i.e. shares cannot be shared.
+    return $ ShareVP φ ρvs₂ cv
   AccessE e ρ → do
     ρv ← interpPrinExpSingle ρ
     ṽ ← interpExp e
@@ -597,46 +412,14 @@ interpExp = wrapInterp $ \case
         writeVal ρ v₁ fn
         introValP $ BulV
       _ → throwIErrorCxt TypeIError "interpExp: WriteE: m ≠ SecM {ρ}" null
-  RandE τ → do
-    si :* τ' ← case τ of
-      ShareT φ ρes τ' → do
-        ρvs ← prinExpValss *$ mapM interpPrinExp ρes
-        return $ Shared φ ρvs :* τ'
-      _ → return $ NotShared :* τ
-    bvmpc ← case τ' of
-      ℕT ip → io $ NatMV ip ∘ trPrNat ip ∘ nat ^$ R.randomIO @ℕ64
-      ℤT ip → io $ IntMV ip ∘ IntSeqSh ∘ trPrInt ip ∘ int ^$ R.randomIO @ℤ64
-      𝔽T fp → io $ FltMV fp ^$ R.randomIO @𝔻
-      𝔹T → io $ BoolMV ^$ R.randomIO @𝔹
-      _ → error "TODO: not implemented"
-    reShareValP (BaseMV bvmpc) si
-  RandRangeE τ e → do
-    τ' ← case τ of
-      ShareT _ _ τ' → do
-        return $ τ'
-      _ → return $ τ
-    ṽ ← interpExp e
-    si :* v ← unShareValP ṽ
-    v₁ :* v₂ ←
-      elim𝑂
-        (throwIErrorCxt TypeIError "interpExp: ReadRangeE: Expected a pair argument" $
-           frhs [ ("v",pretty v) ])
-           return $ view pairMVL v
-    bv₁ ← error𝑂 (frhs ^$ view baseMVL v₁) $ throwIErrorCxt TypeIError "not base val" null
-    bv₂ ← error𝑂 (frhs ^$ view baseMVL v₂) $ throwIErrorCxt TypeIError "not base val" null
-    bv' ← case (τ',bv₁,bv₂) of
-      (ℕT ip,NatMV ip₁ n₁,NatMV ip₂ n₂)                             | (ip₁ ≡ ip) ⩓ (ip₂ ≡ ip) → do io $ NatMV ip ∘ nat ^$ (R.randomRIO @ℕ64) (HS.fromIntegral n₁,HS.fromIntegral n₂)
-      (ℤT ip,IntMV ip₁ (IntSeqSh i₁),IntMV ip₂ (IntSeqSh i₂)) | (ip₁ ≡ ip) ⩓ (ip₂ ≡ ip) → io $ IntMV ip ∘ IntSeqSh ∘ int ^$ (R.randomRIO @ℤ64) (HS.fromIntegral i₁,HS.fromIntegral i₂)
-      (𝔽T fp,FltMV fp₁ d₁,FltMV fp₂ d₂) | (fp₁ ≡ fp) ⩓ (fp₂ ≡ fp) → io $ FltMV fp ^$ (R.randomRIO @𝔻) (d₁,d₂)
-      _ → throwIErrorCxt NotImplementedIError "rand-range" $ frhs
-        [ ("τ',bv₁,bv₂",pretty (τ' :* bv₁ :* bv₂)) ]
-    reShareValP (BaseMV bv') si
-  PrimE o es → do
+  PrimE op es → do
     ṽs ← mapM interpExp es
-    si :* vmpcs ← unShareValPs ṽs
-    bvmpcs ← error𝑂 (mapMOn vmpcs $ view baseMVL) $ throwIErrorCxt TypeIError "bad" $ frhs [("vmpcs", pretty vmpcs)]
-    bvmpc ← interpPrim o $ list bvmpcs
-    reShareValP (BaseMV bvmpc) si
+    si :* cvs ← unShareValPs ṽs
+    cs ← error𝑂 (mapMOn cvs $ view baseCVL) (throwIErrorCxt TypeIError "interpExp: PrimE: mapMOn cvs $ view baseCVL ≡ None" $ frhs
+                                             [ ("cvs",pretty cvs)
+                                             ])
+    c' ← primCkt op cs
+    reShareValP (BaseCV c') si
   TraceE e₁ e₂ → do
     v ← interpExp e₁
     pptrace v $ interpExp e₂
@@ -647,7 +430,7 @@ interpExp = wrapInterp $ \case
     ṽ ← interpExp e
     ℓ ← nextL iStateNextLocL
     modifyL iStateStoreL $ \ σ → (ℓ ↦♮ ṽ) ⩌♮ σ
-    locValP ℓ
+    introLocV ℓ ≫= introValP
   RefReadE e → do
     ṽ ← interpExp e
     v ← elimValP ṽ
@@ -675,7 +458,7 @@ interpExp = wrapInterp $ \case
         ℓ ← nextL iStateNextLocL
         ṽ ← introValP $ ArrayV $ vec $ list $ repeat n ṽ₂
         modifyL iStateStoreL $ \ σ → (ℓ ↦♮ ṽ) ⩌♮ σ
-        locValP ℓ
+        introLocV ℓ ≫= introValP
       _ → throwIErrorCxt TypeIError "interpExp: ArrayE: v₁ ≠ NatV _ n" $ frhs
         [ ("v₁",pretty v₁)
         ]
@@ -761,19 +544,25 @@ interpExp = wrapInterp $ \case
       localizeL iStateMPCContL null $
       localL iCxtMPCPathConditionL null $
       interpExp e
-    si₀ :* vmpc₀ ← unShareValP ṽ
-    si :* vmpc ← mfoldrOnFrom (reverse κ) (si₀ :* vmpc₀) $ \ (pcᴿ :* si₁ :* vmpcᴿ₀) (si₂ :*  vmpc) →  do
+    si₀ :* cv₀ ← unShareValP ṽ
+    c₀ ← error𝑂 (view baseCVL cv₀) $ (throwIErrorCxt InternalIError "interpExp: ReturnE: view baseCVL cv₀ ≡ None" $ frhs
+                                      [ ("cv₀",pretty cv₀)
+                                      ])
+    si :* c ← mfoldrOnFrom (reverse κ) (si₀ :* c₀) $ \ (pcᴿ :* si₁ :* cᴿ₀) (si₂ :* c) →  do
       si₃ ← joinShareInfo si₁ si₂
-      mfoldrOnFrom pcᴿ (si₃ :* vmpcᴿ₀) $ \ (bᵖᶜ :* siᵖᶜ) (si :* vmpcᴿ) → do
+      mfoldrOnFrom pcᴿ (si₃ :* cᴿ₀) $ \ (bᵖᶜ :* siᵖᶜ) (si :* cᴿ) → do
         si' ← joinShareInfo si siᵖᶜ
-        vmpc' ← muxMPCVal bᵖᶜ vmpcᴿ vmpc
-        return $ si' :* vmpc'
-    reShareValP vmpc si
+        c' ← muxCkt bᵖᶜ cᴿ c
+        return $ si' :* c'
+    reShareValP (BaseCV c) si
   ReturnE e → do
     ṽ ← interpExp e
-    si :* vmpc ← unShareValP ṽ
+    si :* cv ← unShareValP ṽ
+    c ← error𝑂 (view baseCVL cv) $ (throwIErrorCxt InternalIError "interpExp: ReturnE: view baseCVL cv ≡ None" $ frhs
+                                    [ ("cv",pretty cv)
+                                    ])
     pc ← askL iCxtMPCPathConditionL
-    modifyL iStateMPCContL $ \ κ → (pc :* si :* vmpc) :& κ
+    modifyL iStateMPCContL $ \ κ → (pc :* si :* c) :& κ
     introValP DefaultV
   _ → throwIErrorCxt NotImplementedIError "interpExp: not implemented" null
 
@@ -950,7 +739,7 @@ parseOptions = do
     out $ string $ O.usageInfo (chars "psl example [arguments] <name>")  usageInfoExample
     out $ string $ O.usageInfo (chars "psl test [arguments]") usageInfoTest
   return $ frhs (os,map string nos)
-
+{-
 setupDistributed ∷ Prin → IO NetIO
 setupDistributed party =
   do
@@ -962,7 +751,7 @@ setupDistributed party =
       addr       = if isAlice party then None  else (Some localhost)
       port       = HS.fromIntegral 12345
       isAlice p  = (p ≡ "A") ⩔ (p ≡ "Alice") ⩔ (p ≡ "alice")
-
+-}
 pslMainRun ∷ IO ()
 pslMainRun = do
   (os,ts) ← tohs ^$ parseOptions
@@ -1019,9 +808,10 @@ pslMainExample = do
       let θ = update iParamsIsExampleL True $ initializeEnv os
       (m, destroy) ← case optParty os of
                        None → return (TopM, \ () → return ())
-                       Some p → do
+                       Some p → return (TopM, \ () → return ())
+                         {-do
                          net ← setupDistributed p
-                         return (SecM $ single𝑃 $ SinglePV p, \ () → netIODestroy net)
+                         return (SecM $ single𝑃 $ SinglePV p, \ () → netIODestroy net) -}
       ωtl :* _ ← interpretFile θ ωtl₀ "lib:stdlib.psl" (optLibPath os ⧺ "/stdlib.psl") m
       v ← fst ^$ interpretFileMain θ ωtl (concat ["example:",name,".psl"]) exampleRelativePath m
       destroy ()

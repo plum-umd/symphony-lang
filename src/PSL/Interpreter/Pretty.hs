@@ -47,9 +47,6 @@ ppBoolPSL = \case
 ppNatPSL ∷ IPrecision → ℕ → Doc
 ppNatPSL p n = concat [pretty n,ppLit "n",pretty p]
 
-ppIntShPSL ∷ IPrecision → IntShare → Doc
-ppIntShPSL p i = concat [pretty i,pretty p]
-
 ppIntPSL ∷ IPrecision → ℤ → Doc
 ppIntPSL p i = concat [pretty i,pretty p]
 
@@ -206,7 +203,7 @@ instance Pretty ValP where
     None → case v₀ of
      SSecVP ρs v → ppPostF concat levelMODE (pretty ρs) (pretty v)
      ISecVP ρvs → ppISecPSL ρvs
-     ShareVP φ ρs vmpc →
+     ShareVP φ ρs cv →
        ppPostF concat levelMODE
          (ppSetBotLevel $ concat
              [ ppPun "{"
@@ -215,38 +212,11 @@ instance Pretty ValP where
              , concat $ inbetween (ppPun ",") $ map pretty $ iter ρs
              , ppPun "}"
              ]) $
-         pretty vmpc
+         pretty cv
      AllVP (v ∷ Val) → pretty v
 
-instance Pretty ValMPC where
-  pretty = \case
-    BaseMV bvmpc → ppPostF concat levelMODE (concat [ppPun "†"]) $ pretty bvmpc
-    PairMV vmpc₁ vmpc₂ → ppInflF ppTight levelCOMMA (ppPun ",") (pretty vmpc₁) $ pretty vmpc₂
-    SumMV b vmpc₁ vmpc₂ → ppInfr levelCOND
-      (ppSeparated
-         [ ppCon "?"
-         , pretty vmpc₁
-         , ppCon "◇"
-         ])
-      (ppPostF concat levelMODE (concat [ppPun "†"]) $ ppBoolPSL b) $
-      pretty vmpc₂
-    NilMV → ppCon "[]"
-    ConsMV v₁ v₂ → ppInfr levelCONS (ppPun "∷") (pretty v₁) $ pretty v₂
-    DefaultMV → ppPun "⊥"
-    BulMV → ppCon "•"
-
-instance Pretty BaseValMPC where
-  pretty = \case
-    BoolMV b → ppBoolPSL b
-    NatMV p n → ppNatPSL p n
-    IntMV p i → ppIntShPSL p i
-    FltMV p d → ppFltPSL p d
-    PrinMV ρ → pretty ρ
-
-instance Pretty IntShare where
-  pretty = \case
-    IntSeqSh n → pretty n
-    IntEMPSh _   → ppPun "?"
+instance Pretty CktVal where
+  pretty c = ppCon "CktVal"  -- TODO(ins)
 
 ppPreF ∷ (𝐼 Doc → Doc) → ℕ64 → Doc → Doc → Doc
 ppPreF f i oM xM = ppGA $ ppLevel i $ f $ map ppAlign $ iter [oM,xM]
