@@ -9,7 +9,7 @@ import PSL.Interpreter.Pretty
 lexer ∷ Lexer CharClass ℂ TokenClassBasic ℕ64 TokenBasic
 lexer = lexerBasic puns kws prim ops
   where
-    puns = list 
+    puns = list
       [ "(",")","{","}","[","]"
       , "⟪","<<"
       , "⟫",">>"
@@ -78,7 +78,7 @@ lexer = lexerBasic puns kws prim ops
       , "⊤","all"
       , "nizk-test","nizk-verify"
       ]
-    ops = list 
+    ops = list
       [ "•","()"
       , "[]"
       , "∷","::"
@@ -197,7 +197,7 @@ pEffect = cpNewContext "effect" $ do
     [ do cpSyntax "inp"
          cpSyntax ":"
          ρs₁ ← pow ^$ pPrins
-         ρs₂O ← cpOptional $ do 
+         ρs₂O ← cpOptional $ do
            cpSyntax ";"
            cpSyntax "rev"
            cpSyntax ":"
@@ -295,8 +295,8 @@ pType = cpNewContext "type" $ mixfix $ concat
   -- arr τ
   , mixPrefix levelAPP $ do cpSyntax "array" ; return ArrT
   -- τ →{η} τ
-  , mixInfixR levelARROW $ do 
-      concat [cpSyntax "→",cpSyntax "->"] 
+  , mixInfixR levelARROW $ do
+      concat [cpSyntax "→",cpSyntax "->"]
       ηO ← cpOptional $ do
         cpSyntax "{"
         η ← pEffect
@@ -336,13 +336,13 @@ pType = cpNewContext "type" $ mixfix $ concat
       cpSyntax "."
       return $ ForallT ακs cs
   -- τ{P}
-  , mixPostfix levelMODE $ do 
+  , mixPostfix levelMODE $ do
       cpSyntax "{"
       ρes ← pPrinExps
       cpSyntax "}"
       return $ SecT ρes
   -- τ{bundle:P}
-  , mixPostfix levelMODE $ do 
+  , mixPostfix levelMODE $ do
       cpSyntax "{"
       cpSyntax "bundle"
       cpSyntax ":"
@@ -350,7 +350,7 @@ pType = cpNewContext "type" $ mixfix $ concat
       cpSyntax "}"
       return $ ISecT ρes
   -- τ{φ:P}
-  , mixPostfix levelMODE $ do 
+  , mixPostfix levelMODE $ do
       cpSyntax "{"
       φ ← pProt
       cpSyntax ":"
@@ -487,18 +487,18 @@ pExp = fmixfixWithContext "exp" $ concat
   -- s
   , fmixTerminal $ do s ← cpString ; return $ StrE s
   -- n#n.n
-  , fmixTerminal $ do 
-      n ← cpNatural 
+  , fmixTerminal $ do
+      n ← cpNatural
       pr ← pIPrecision
       return $ NatE pr n
   -- i#n.n
-  , fmixTerminal $ do 
-      i ← cpInteger 
+  , fmixTerminal $ do
+      i ← cpInteger
       pr ← pIPrecision
       return $ IntE pr i
   -- d#n
-  , fmixTerminal $ do 
-      d ← cpDouble 
+  , fmixTerminal $ do
+      d ← cpDouble
       pr ← pFPrecision
       return $ FltE pr d
   -- •
@@ -511,7 +511,7 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntax "then"
       e₂ ← pExp
       cpSyntax "else"
-      return $ 
+      return $
         if b ≡ Some ()
         then MuxIfE e₁ e₂
         else IfE e₁ e₂
@@ -537,18 +537,18 @@ pExp = fmixfixWithContext "exp" $ concat
         None → LetTyE ψ
         Some e → LetE ψ e
   -- [mux] case e {ψ→e;…;ψ→e}
-  , fmixTerminal $ do 
+  , fmixTerminal $ do
       b ← cpOptional $ cpSyntax "mux"
       cpSyntax "case"
       e ← pExp
       cpSyntax "{"
-      ψes ← cpManySepBy (cpSyntax ";") $ do 
+      ψes ← cpManySepBy (cpSyntax ";") $ do
         ψ ← pPat
         concat [cpSyntax "→",cpSyntax "->"]
         e' ← pExp
         return $ ψ :* e'
       cpSyntax "}"
-      return $ 
+      return $
         if b ≡ Some ()
         then MuxCaseE e ψes
         else CaseE e ψes
@@ -577,15 +577,18 @@ pExp = fmixfixWithContext "exp" $ concat
       τ ← pType
       return $ \ e → TAppE e τ
   -- par {P} e
-  , fmixPrefix levelPAR $ do 
+  , fmixPrefix levelPAR $ do
       cpSyntax "par"
       cpSyntax "{"
       ρes ← pPrinExps
+      τ ← cpOptional $ do
+        cpSyntax ":"
+        pType
       cpSyntax "}"
-      return $ ParE ρes
-  -- share{φ:P→P} e
-  , fmixPrefix levelAPP $ do 
-      cpSyntax "share" 
+      return $ ParE ρes τ
+  -- share{φ,τ:P→P} e
+  , fmixPrefix levelAPP $ do
+      cpSyntax "share"
       cpSyntax "{"
       φ ← pProt
       cpSyntax ":"
@@ -638,8 +641,8 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntax "from"
       return $ ReadE τ
   -- write e to e
-  , fmixPrefix levelAPP $ do 
-      cpSyntax "write" 
+  , fmixPrefix levelAPP $ do
+      cpSyntax "write"
       e ← pExp
       cpSyntax "to"
       return $ WriteE e
@@ -654,22 +657,22 @@ pExp = fmixfixWithContext "exp" $ concat
       τ ← pType
       return $ RandRangeE τ
   -- sign {P} e
-  , fmixPrefix levelAPP $ do 
+  , fmixPrefix levelAPP $ do
       cpSyntax "sign"
       cpSyntax "{"
       ρs ← pPrinExps
       cpSyntax "}"
       return $ SignE ρs
   -- unsign {P} e
-  , fmixPrefix levelAPP $ do 
+  , fmixPrefix levelAPP $ do
       cpSyntax "unsign"
       cpSyntax "{"
       ρs ← pPrinExps
       cpSyntax "}"
       return $ UnsignE ρs
   -- is-signed {P} e
-  , fmixPrefix levelAPP $ do 
-      cpSyntax "is-signed" 
+  , fmixPrefix levelAPP $ do
+      cpSyntax "is-signed"
       cpSyntax "{"
       ρs ← pPrinExps
       cpSyntax "}"
@@ -755,20 +758,20 @@ pExp = fmixfixWithContext "exp" $ concat
   , fmixPrefix levelAPP $ do cpSyntax "abs_val" ; return $ \ e → PrimE AbsO $ list [e]
   , fmixPrefix levelAPP $ do cpSyntax "sqrt" ; return $ \ e → PrimE SqrtO $ list [e]
   , fmixPrefix levelAPP $ do cpSyntax "log_base_2" ; return $ \ e → PrimE LogO $ list [e]
-  , fmixPrefix levelAPP $ do 
-      cpSyntax "nat" 
+  , fmixPrefix levelAPP $ do
+      cpSyntax "nat"
       ip ← pIPrecision
       return $ \ e → PrimE (NatO ip) $ list [e]
-  , fmixPrefix levelAPP $ do 
-      cpSyntax "int" 
+  , fmixPrefix levelAPP $ do
+      cpSyntax "int"
       ip ← pIPrecision
       return $ \ e → PrimE (IntO ip) $ list [e]
-  , fmixPrefix levelAPP $ do 
-      cpSyntax "flt" 
+  , fmixPrefix levelAPP $ do
+      cpSyntax "flt"
       fp ← pFPrecision
       return $ \ e → PrimE (FltO fp) $ list [e]
-  , fmixPrefix levelAPP $ do 
-      cpSyntax "ceil" 
+  , fmixPrefix levelAPP $ do
+      cpSyntax "ceil"
       ip ← pIPrecision
       return $ \ e → PrimE (CeilO ip) $ list [e]
   , fmixPrefix levelAPP $ do
@@ -803,10 +806,10 @@ pExp = fmixfixWithContext "exp" $ concat
         cpSyntax "in"
         return x
       return $ \ e →
-        AppE (siphon e $ 
-              AppE (siphon e $ VarE $ var "solo-f") $ 
-                   siphon e $ SetE ρes) $ 
-             siphon e $ 
+        AppE (siphon e $
+              AppE (siphon e $ VarE $ var "solo-f") $
+                   siphon e $ SetE ρes) $
+             siphon e $
              LamE None (single $ elim𝑂 WildP VarP xO) e
   -- fold e as x . x on e as x in e
   , fmixPrefix levelLET $ do
@@ -821,12 +824,12 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntax "as"
       x₃ ← pVar
       cpSyntax "in"
-      return $ \ e → 
+      return $ \ e →
         AppE (siphon e $
-              AppE (siphon e $ 
-                    AppE (siphon e $ VarE $ var "fold-f") $ 
-                         e₂) $ 
-                   siphon e $ LamE None (list [VarP x₁,VarP x₂,VarP x₃]) e) $ 
+              AppE (siphon e $
+                    AppE (siphon e $ VarE $ var "fold-f") $
+                         e₂) $
+                   siphon e $ LamE None (list [VarP x₁,VarP x₂,VarP x₃]) e) $
              e₁
   -- do e in e
   , fmixPrefix levelLET $ do
@@ -839,7 +842,7 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntax "loop"
       e₁ ← pExp
       cpSyntax "in"
-      return $ \ e₂ → 
+      return $ \ e₂ →
         AppE (siphon e₁ $
               AppE (siphon e₁ $ VarE $ var "loop-f")
                    (siphon e₁ $ LamE None (list [WildP]) e₂))
@@ -855,7 +858,7 @@ pExp = fmixfixWithContext "exp" $ concat
         then MuxIfE e₁ e₂ $ siphon e₁ DefaultE
         else IfE e₁ e₂ $ siphon e₁ DefaultE
   ]
-      
+
 ---------------
 -- Top-level --
 ---------------

@@ -29,6 +29,7 @@ data Val =
   | LocV Mode ℤ64
   | ArrayV (𝕍 ValP)
   | DefaultV
+  | UnknownV (𝑃 PrinVal) Type
   deriving (Eq,Ord,Show)
 
 -- Distributed Values
@@ -52,11 +53,12 @@ data CktVal =
 
 -- Circuits
 data Ckt = Ckt
-  { inputs ∷ 𝐿 Wire         -- Input wires. Note: May need to add `∧ Prin ∧ 𝑂 BaseCkt`.
-                            --   `Prin` tells us whose wire it is, and if it is ours, `𝑂 BaseCkt` is our input.
-  , gates ∷ Wire ⇰ Gate     -- The computation. Note: The `Wire` component is the output wire of the associated gate. We assume all gates have a single output.
-  , output ∷ Wire           -- Output wire. Note: May need to add: `∧ Prin`.
-  , typ ∷ Type              -- Output type.
+  { inputs ∷ 𝐿 (Wire ∧ 𝑃 PrinVal) -- Input wires. Note: May need to add `∧ Prin ∧ 𝑂 BaseCkt`.
+                                  --   `Prin` tells us whose wire it is, and if it is ours, `𝑂 BaseCkt` is our input.
+  , gates ∷ Wire ⇰ Gate           -- The computation. Note: The `Wire` component is the output wire of the associated gate.
+                                  --   We assume all gates have a single output.
+  , output ∷ Wire                 -- Output wire. Note: May need to add: `∧ Prin`.
+  , typ ∷ Type                    -- Output type.
   } deriving (Eq,Ord,Show)
 
 -- Gates. Note: Wires are inputs to the gate

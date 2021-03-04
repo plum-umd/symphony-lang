@@ -207,6 +207,9 @@ unShareValMode m = \case
     si ← joinShareInfo si₁ si₂
     return $ si :* ConsCV cv₁ cv₂
   BulV → return $ NotShared :* BulCV
+  UnknownV ρvs τ → do
+    c ← inputCkt ρvs τ
+    return $ NotShared :* BaseCV c
   v → throwIErrorCxt NotImplementedIError "unShareValMode" $ frhs
     [ ("v",pretty v) ]
 

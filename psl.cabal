@@ -4,7 +4,7 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: c5b9245b9e6577564669474a37c2abca9b42ca2802aa1018b140aa43b395302c
+-- hash: 8ecc99251c57cade250d55de1e26d17e6de38c7779ccdbf032a5bb1e64e7af1c
 
 name:           psl
 version:        0.1.0.0
@@ -1068,7 +1068,7 @@ library
       PSL.Config
       PSL.Interpreter
       PSL.Interpreter.Access
-      PSL.Interpreter.EMP
+      PSL.Interpreter.Circuits
       PSL.Interpreter.Json
       PSL.Interpreter.Pretty
       PSL.Interpreter.PrettyFuture

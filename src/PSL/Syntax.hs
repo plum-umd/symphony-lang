@@ -300,7 +300,7 @@ data ExpR =
   | AppE Exp Exp                             -- e e                     /  e e
   | TLamE TVar Exp                           -- Λ α → e                 /  abs α → e
   | TAppE Exp Type                           -- e@τ                     /  e@τ
-  | ParE (𝐿 PrinExp) Exp                     -- par {P} e               /  par {P} e
+  | ParE (𝐿 PrinExp) (𝑂 Type) Exp            -- par {P} [τ] e           /  par {P} [τ] e
   | ShareE Prot (𝐿 PrinExp) (𝐿 PrinExp) Exp  -- share{φ:P→P} e          /  share{φ:P->P} e
   | AccessE Exp PrinExp                      -- e@ρ                     /  e@ρ
   | BundleE (𝐿 (PrinExp ∧ Exp))              -- ⟪ρ|e;…;ρ|e⟫             /  <<ρ|e;…;ρ|e>>

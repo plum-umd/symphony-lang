@@ -297,16 +297,17 @@ interpExp = wrapInterp $ \case
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
     interpApp ṽ₁ ṽ₂
-  ParE ρes e → do
+  ParE ρes mτ e → do
     ρvs ← prinExpValss *$ mapM interpPrinExp ρes
     m ← askL iCxtModeL
     let m' = SecM ρvs ⊓ m
     if m' ≡ SecM pø
-       then throwIErrorCxt TypeIError "interpExp: ParE: ρvs ⊓ m is empty" $ frhs
-        [ ("ρvs",pretty ρvs)
-        , ("m",pretty m)
-        ]
-       else restrictMode m' $ interpExp e
+      then do
+      τ ← error𝑂 mτ (throwIErrorCxt NotImplementedIError "interpExp: ParE: mτ ≡ None" $ frhs
+                      [ ("mτ",pretty mτ)
+                      ])
+      introValP $ UnknownV ρvs τ
+      else restrictMode m' $ interpExp e
   ShareE φ ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
@@ -739,19 +740,7 @@ parseOptions = do
     out $ string $ O.usageInfo (chars "psl example [arguments] <name>")  usageInfoExample
     out $ string $ O.usageInfo (chars "psl test [arguments]") usageInfoTest
   return $ frhs (os,map string nos)
-{-
-setupDistributed ∷ Prin → IO NetIO
-setupDistributed party =
-  do
-    net ← netIOCreate addr port
-    setupSemiHonest net party
-    return net
-    where
-      localhost  = "127.0.0.1"
-      addr       = if isAlice party then None  else (Some localhost)
-      port       = HS.fromIntegral 12345
-      isAlice p  = (p ≡ "A") ⩔ (p ≡ "Alice") ⩔ (p ≡ "alice")
--}
+
 pslMainRun ∷ IO ()
 pslMainRun = do
   (os,ts) ← tohs ^$ parseOptions
@@ -806,15 +795,11 @@ pslMainExample = do
         ]
       initializeIO os
       let θ = update iParamsIsExampleL True $ initializeEnv os
-      (m, destroy) ← case optParty os of
-                       None → return (TopM, \ () → return ())
-                       Some p → return (TopM, \ () → return ())
-                         {-do
-                         net ← setupDistributed p
-                         return (SecM $ single𝑃 $ SinglePV p, \ () → netIODestroy net) -}
+      let m = case optParty os of
+                None   → TopM
+                Some p → SecM $ single𝑃 $ SinglePV p
       ωtl :* _ ← interpretFile θ ωtl₀ "lib:stdlib.psl" (optLibPath os ⧺ "/stdlib.psl") m
       v ← fst ^$ interpretFileMain θ ωtl (concat ["example:",name,".psl"]) exampleRelativePath m
-      destroy ()
       pprint $ ppHeader "RESULT"
       pprint v
 
