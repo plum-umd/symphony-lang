@@ -6,6 +6,86 @@ import PSL.Syntax
 
 import qualified Prelude as HS
 
+data SProt (p ∷ Prot) where
+  SYaoN_P ∷ SProt 'YaoN_P
+  SYao2_P ∷ SProt 'Yao2_P
+
+deriving instance Eq (SProt p)
+deriving instance Ord (SProt p)
+deriving instance Show (SProt p)
+
+data DEq a b where
+  YesDEq ∷ (a ~ b) ⇒ DEq a b
+  NoDEq ∷ DEq a b
+
+data DCmp a b where
+  LTDCmp ∷ DCmp a b
+  EQDCmp ∷ (a ~ b) ⇒ DCmp a b
+  GTDCmp ∷ DCmp a b
+
+deqSProt ∷ SProt p₁ → SProt p₂ → DEq p₁ p₂
+deqSProt sp₁ sp₂ = case (sp₁,sp₂) of
+  (SYaoN_P,SYaoN_P) → YesDEq
+  (SYao2_P,SYao2_P) → YesDEq
+  _ → NoDEq
+
+dcmpSProt ∷ SProt p₁ → SProt p₂ → DCmp p₁ p₂
+dcmpSProt sp₁ sp₂ = case (sp₁,sp₂) of
+  (SYaoN_P,SYaoN_P) → EQDCmp
+  (SYaoN_P,SYao2_P) → LTDCmp
+  (SYao2_P,SYaoN_P) → GTDCmp
+  (SYao2_P,SYao2_P) → EQDCmp
+
+class 
+  ( Eq (MPCPrimVal p)
+  , Ord (MPCPrimVal p)
+  , Show (MPCPrimVal p)
+  ) ⇒ 
+  MPCPrim p where
+    type MPCPrimVal p ∷ ★
+    mpcPrim ∷ P p → Op → 𝐿 (MPCPrimVal p) → IO (MPCPrimVal p)
+
+data MPCVal where
+  MPCVal ∷ ∀ p. (MPCPrim p) ⇒ SProt p → MPCPrimVal p → MPCVal
+
+instance Eq MPCVal where
+  mpc₁ == mpc₂ = case (mpc₁,mpc₂) of
+    (MPCVal (sp₁ ∷ SProt p₁) (v₁ ∷ MPCPrimVal p₁),MPCVal (sp₂ ∷ SProt p₂) (v₂ ∷ MPCPrimVal p₂)) →
+      case deqSProt sp₁ sp₂ of
+        NoDEq → False
+        YesDEq →
+          let pr₁ ∷ (SProt p₁,MPCPrimVal p₁)
+              pr₁ = (sp₁,v₁) 
+              pr₂ ∷ (SProt p₁,MPCPrimVal p₁)
+              pr₂ = (sp₂,v₂)
+          in pr₁ ≡ pr₂
+
+instance Ord MPCVal where
+  compare mpc₁ mpc₂ = case (mpc₁,mpc₂) of
+    (MPCVal (sp₁ ∷ SProt p₁) (v₁ ∷ MPCPrimVal p₁),MPCVal (sp₂ ∷ SProt p₂) (v₂ ∷ MPCPrimVal p₂)) →
+      case dcmpSProt sp₁ sp₂ of
+        LTDCmp → LT
+        GTDCmp → GT
+        EQDCmp →
+          let pr₁ ∷ (SProt p₁,MPCPrimVal p₁)
+              pr₁ = (sp₁,v₁) 
+              pr₂ ∷ (SProt p₁,MPCPrimVal p₁)
+              pr₂ = (sp₂,v₂)
+          in compare pr₁ pr₂
+
+deriving instance Show MPCVal
+
+instance MPCPrim 'YaoN_P where
+  type MPCPrimVal 'YaoN_P = CktVal
+  mpcPrim ∷ P 'YaoN_P → Op → 𝐿 CktVal → IO CktVal
+  mpcPrim = undefined
+
+instance MPCPrim 'Yao2_P where
+  type MPCPrimVal 'Yao2_P = ()
+  mpcPrim ∷ P 'Yao2_P → Op → 𝐿 () → IO ()
+  mpcPrim = undefined
+
+
 ------------
 -- VALUES --
 ------------
@@ -39,7 +119,7 @@ data Val =
 data ValP =
     SSecVP (𝑃 PrinVal) Val            -- values which are the same on parties (not shares)
   | ISecVP (PrinVal ⇰ Val)            -- values which are different on parties (bundles, not shares)
-  | ShareVP Prot (𝑃 PrinVal) CktVal   -- shares
+  | ShareVP (𝑃 PrinVal) MPCVal        -- shares
   | AllVP Val                         -- special case, equivalent to SSecVP ⊤ Val
   deriving (Eq,Ord,Show)
 
@@ -367,3 +447,27 @@ asTLM xM = do
     return $ case rox of
       Inl r → Inl r
       Inr (ω' :* o :* x) → Inr $ update itlStateExpL ω' ωtl :* o :* x
+
+-- extra stuff --
+
+
+sameProts 
+  ∷ 𝐿 MPCVal 
+  → (∀ a. IM a) 
+  → IM b 
+  → (∀ p. (MPCPrim p) ⇒ P p → SProt p → 𝐿 (MPCPrimVal p) → IM b) 
+  → IM b
+sameProts wvs whenBad whenEmpty whenNotEmpty = case wvs of
+  Nil → whenEmpty
+  MPCVal sp v :& wvs' → do
+    vs ← flip error𝑂 whenBad $ sameProts' sp wvs'
+    whenNotEmpty P sp $ v :& vs
+
+sameProts' ∷ SProt p → 𝐿 MPCVal → 𝑂 (𝐿 (MPCPrimVal p))
+sameProts' sp = mfoldrFromWith null $ \ (MPCVal sp' v) vs →
+  case deqSProt sp sp' of
+    NoDEq → abort
+    YesDEq → return $ v :& vs
+
+
+-- sameProts vs bad nulCase $ \ p sp v → ... mcpPrim p ...

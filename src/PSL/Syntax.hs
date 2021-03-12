@@ -150,13 +150,14 @@ type TVar = 𝕏
 
 -- φ ∈ protocol ⩴  …
 data Prot =
-    YaoP  -- yao
-  | BGWP  -- bgw
-  | GMWP  -- gmw
-  | BGVP  -- bgv
-  | SPDZP -- spdz
-  | AutoP -- auto
+    YaoN_P  -- yao2
+  | Yao2_P  -- yao
   deriving (Eq,Ord,Show)
+  -- -- | BGWP  -- bgw
+  -- -- | GMWP  -- gmw
+  -- -- | BGVP  -- bgv
+  -- -- | SPDZP -- spdz
+  -- -- | AutoP -- auto
 
 ---------------
 -- Precision --
