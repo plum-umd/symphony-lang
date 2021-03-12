@@ -51,9 +51,6 @@ data-files:
   - tests/*
   - examples-input/**/*
 
-extra-libraries:
-  - empc
-
 library:
   source-dirs:
     - src
