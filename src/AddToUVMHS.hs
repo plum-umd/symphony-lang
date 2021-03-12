@@ -65,3 +65,9 @@ impLookup𝐷 d k =
   case lookup𝐷 d k of
     None   → assert False undefined -- Impossible
     Some v → v
+
+find𝐷 ∷ Eq v ⇒ k ⇰ v → v → 𝑂 k
+find𝐷 d v = foldOnFrom d None $ \ (k :* v') ok →
+  case ok of
+    None   → if v ≡ v' then Some k else None
+    Some _ → ok

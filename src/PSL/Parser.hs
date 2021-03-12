@@ -576,17 +576,17 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntax "@"
       τ ← pType
       return $ \ e → TAppE e τ
-  -- par {P} e
+  -- par {P[:τ]} e
   , fmixPrefix levelPAR $ do
       cpSyntax "par"
       cpSyntax "{"
       ρes ← pPrinExps
-      τ ← cpOptional $ do
+      oτ ← cpOptional $ do
         cpSyntax ":"
         pType
       cpSyntax "}"
-      return $ ParE ρes τ
-  -- share{φ,τ:P→P} e
+      return $ ParE ρes oτ
+  -- share{φ:P→P} e
   , fmixPrefix levelAPP $ do
       cpSyntax "share"
       cpSyntax "{"

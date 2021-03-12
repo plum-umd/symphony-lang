@@ -42,9 +42,7 @@ getType = \case
   ArrayV _ → "array"
   PairV _ _ → "pair"
   DefaultV → "default"
-
-getTypeMPC ∷ Ckt → 𝕊
-getTypeMPC c = undefined
+  UnknownV _ → "unknown"
 
 stringProtocol ∷ Prot → 𝕊
 stringProtocol = \case

@@ -18,7 +18,7 @@ interpPrinVar x = do
         _ → do
           throwIErrorCxt TypeIError "interpPrinVar: v ≢ PrinV _" $ frhs
             [ ("v",pretty v)
-            , ("γ #? x",pretty (γ ⋕? x)) 
+            , ("γ #? x",pretty (γ ⋕? x))
             ]
     _ → throwIErrorCxt TypeIError "interpPrinVar: x ∉ dom(γ)" $ frhs
       [ ("x",pretty x)
@@ -43,7 +43,7 @@ interpPrinExp ρe = case ρe of
     --   _ → throwIErrorCxt TypeIError "ρev.* only works when ρ is the name of a principal set" $ frhs
     --     [ ("ρev",pretty ρev) ]
   ThisPE → do
-    m ← askL iCxtModeL
+    m ← askL iCxtGlobalModeL
     case m of
       -- SecM ρv → return $ ValPEV $ ρv
       SecM ρvs → return $ PowPEV $ ρvs

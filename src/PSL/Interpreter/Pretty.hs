@@ -156,6 +156,7 @@ instance Pretty Val where
     ArrayV ṽs → ppArrayPSL ṽs
     PairV ṽ₁ ṽ₂ → ppInflF ppTight levelCOMMA (ppPun ",") (pretty ṽ₁) $ pretty ṽ₂
     DefaultV → ppPun "⊥"
+    UnknownV _τ → ppPun "?"
 
 asListVP ∷ ValP → 𝑂 (𝐿 ValP ∧ Mode)
 asListVP = \case
@@ -214,9 +215,6 @@ instance Pretty ValP where
              ]) $
          pretty cv
      AllVP (v ∷ Val) → pretty v
-
-instance Pretty CktVal where
-  pretty c = ppCon "CktVal"  -- TODO(ins)
 
 ppPreF ∷ (𝐼 Doc → Doc) → ℕ64 → Doc → Doc → Doc
 ppPreF f i oM xM = ppGA $ ppLevel i $ f $ map ppAlign $ iter [oM,xM]

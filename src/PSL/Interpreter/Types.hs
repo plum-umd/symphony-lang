@@ -4,6 +4,8 @@ import UVMHS
 import AddToUVMHS
 import PSL.Syntax
 
+import qualified Prelude as HS
+
 ------------
 -- VALUES --
 ------------
@@ -29,7 +31,7 @@ data Val =
   | LocV Mode ℤ64
   | ArrayV (𝕍 ValP)
   | DefaultV
-  | UnknownV (𝑃 PrinVal) Type
+  | UnknownV Type
   deriving (Eq,Ord,Show)
 
 -- Distributed Values
@@ -51,38 +53,32 @@ data CktVal =
   | BulCV
   deriving (Eq,Ord,Show)
 
--- Circuits
 data Ckt = Ckt
-  { inputs ∷ 𝐿 (Wire ∧ 𝑃 PrinVal) -- Input wires. Note: May need to add `∧ Prin ∧ 𝑂 BaseCkt`.
-                                  --   `Prin` tells us whose wire it is, and if it is ours, `𝑂 BaseCkt` is our input.
-  , gates ∷ Wire ⇰ Gate           -- The computation. Note: The `Wire` component is the output wire of the associated gate.
-                                  --   We assume all gates have a single output.
-  , output ∷ Wire                 -- Output wire. Note: May need to add: `∧ Prin`.
-  , typ ∷ Type                    -- Output type.
+  { gatesC ∷ Wire ⇰ Gate
+  , outC   ∷ Wire
   } deriving (Eq,Ord,Show)
+
+data Input =
+    AvailableI BaseGate
+  | UnavailableI Type
+  deriving (Eq,Ord,Show)
 
 -- Gates. Note: Wires are inputs to the gate
 data Gate =
-    BaseG BaseCkt
+    BaseG BaseGate
+  | InputG (𝑃 PrinVal) Input
   | PrimG Op (𝐿 Wire)
   deriving (Eq,Ord,Show)
 
-data BaseCkt =
-    BoolBC 𝔹
-  | NatBC IPrecision ℕ
-  | IntBC IPrecision ℤ
-  | FltBC FPrecision 𝔻
-  | PrinBC (AddBTD PrinVal)
+data BaseGate =
+    BoolBG 𝔹
+  | NatBG IPrecision ℕ
+  | IntBG IPrecision ℤ
+  | FltBG FPrecision 𝔻
+  | PrinBG (AddBTD PrinVal)
   deriving (Eq,Ord,Show)
 
-type Wire = ℕ
-
-typeOfBaseCkt ∷ BaseCkt → Type
-typeOfBaseCkt (BoolBC _) = 𝔹T
-typeOfBaseCkt (NatBC pr _) = ℕT pr
-typeOfBaseCkt (IntBC pr _) = ℤT pr
-typeOfBaseCkt (FltBC pr _) = 𝔽T pr
-typeOfBaseCkt (PrinBC _) = ℙT
+type Wire = ℕ64
 
  -----------------
 -- ENVIRONMENT --
@@ -95,8 +91,16 @@ type Env = 𝕏 ⇰ ValP
 makePrisms ''Val
 makePrisms ''ValP
 makePrisms ''CktVal
-makePrisms ''Ckt
-makePrisms ''BaseCkt
+makeLenses ''Ckt
+makePrisms ''Input
+makePrisms ''Gate
+makePrisms ''BaseGate
+
+makePrettySum ''CktVal
+makePrettyRecord ''Ckt
+makePrettySum ''Input
+makePrettySum ''Gate
+makePrettySum ''BaseGate
 
 data ShareInfo =
     NotShared
@@ -119,7 +123,7 @@ type Store = 𝑊 ValP
 -- Interpreter Params
 -- θ ∈ params
 data IParams = IParams
-  { iParamsIsDistributed ∷ 𝔹
+  { iParamsLocalMode ∷ Mode
   , iParamsIsExample ∷ 𝔹
   , iParamsVirtualPartyArgs ∷ 𝕊 ⇰ 𝑃 PrinVal
   } deriving (Eq,Ord,Show)
@@ -127,7 +131,7 @@ makeLenses ''IParams
 makePrettySum ''IParams
 
 θ₀ ∷ IParams
-θ₀ = IParams False False dø
+θ₀ = IParams TopM False dø
 
 -------------
 -- CONTEXT --
@@ -140,20 +144,20 @@ data ICxt = ICxt
   , iCxtSource ∷ 𝑂 FullContext
   , iCxtDeclPrins ∷ Prin ⇰ PrinKind
   , iCxtEnv ∷ Env
-  , iCxtMode ∷ Mode
+  , iCxtGlobalMode ∷ Mode
   , iCxtMPCPathCondition ∷ 𝐿 (Ckt ∧ ShareInfo)
   } deriving (Show)
 makeLenses ''ICxt
 makePrettySum ''ICxt
 
-iCxtIsDistributedL ∷ ICxt ⟢ 𝔹
-iCxtIsDistributedL = iParamsIsDistributedL ⊚ iCxtParamsL
-
 iCxtIsExampleL ∷ ICxt ⟢ 𝔹
 iCxtIsExampleL = iParamsIsExampleL ⊚ iCxtParamsL
 
-ξ₀ ∷ Mode → ICxt
-ξ₀ m = ICxt θ₀ None dø dø m null
+iCxtLocalModeL ∷ ICxt ⟢ Mode
+iCxtLocalModeL = iParamsLocalModeL ⊚ iCxtParamsL
+
+ξ₀ ∷ ICxt
+ξ₀ = ICxt θ₀ None dø dø TopM null
 
 -----------
 -- STATE --
@@ -164,14 +168,29 @@ iCxtIsExampleL = iParamsIsExampleL ⊚ iCxtParamsL
 data IState = IState
   { iStateStore ∷ Store
   , iStateNextLoc ∷ ℤ64
-  , iStateNextWire ∷ Wire
+  , iStateNextWires ∷ Mode ⇰ Wire
   , iStateMPCCont ∷ 𝐿 (𝐿 (Ckt ∧ ShareInfo) ∧ ShareInfo ∧ Ckt)
   } deriving (Eq,Ord,Show)
 makeLenses ''IState
 makePrettySum ''IState
 
+iStateShareInfoNextWireL ∷ ((Mode ⇰ Wire) ∧ Mode) ⟢ Wire
+iStateShareInfoNextWireL = lens getCkt setCkt
+  where getCkt (ws :* m)   = case lookup𝐷 ws m of
+                             None   → HS.fromIntegral 0
+                             Some w → w
+        setCkt (ws :* m) w = (m ↦ w) ⩌ ws :* m
+
+iStateShareInfoNextWiresL ∷ Mode → IState ⟢ ((Mode ⇰ Wire) ∧ Mode)
+iStateShareInfoNextWiresL m = lens getCkts setCkts
+  where getCkts st = access iStateNextWiresL st :* m
+        setCkts st (ws :* _m) = update iStateNextWiresL ws st
+
+iStateNextWireL ∷ Mode → IState ⟢ Wire
+iStateNextWireL m = iStateShareInfoNextWireL ⊚ (iStateShareInfoNextWiresL m)
+
 ω₀ ∷ IState
-ω₀ = IState wø (𝕫64 1) 0 null
+ω₀ = IState wø (𝕫64 1) dø null
 
 ------------
 -- OUTPUT --
@@ -323,8 +342,8 @@ evalITLM θ ωtl = mapp snd ∘ runITLM θ ωtl
 evalITLMIO ∷ IParams → ITLState → 𝕊 → ITLM a → IO a
 evalITLMIO θ ωtl name = map snd ∘ runITLMIO θ ωtl name
 
-asTLM ∷ Mode → IM a → ITLM a
-asTLM m xM = do
+asTLM ∷ IM a → ITLM a
+asTLM xM = do
   vps ← askL iParamsVirtualPartyArgsL
   mkITLM $ \ θ ωtl → do
     let ds = itlStateDeclPrins ωtl
@@ -342,7 +361,7 @@ asTLM m xM = do
               , update iCxtDeclPrinsL ds
               , update iCxtParamsL θ
               ]
-              (ξ₀ m)
+              ξ₀
         ω = itlStateExp ωtl
     rox ← runIM ξ ω xM
     return $ case rox of
