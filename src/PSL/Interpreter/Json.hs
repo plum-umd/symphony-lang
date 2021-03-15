@@ -46,7 +46,8 @@ getType = \case
 
 stringProtocol ∷ Prot → 𝕊
 stringProtocol = \case
-  YaoP  → "yao"
+  YaoN_P → "yaoN_P"
+  Yao2_P → "yao2_P"
   BGWP  → "bgw"
   GMWP  → "gmw"
   BGVP  → "bgv"

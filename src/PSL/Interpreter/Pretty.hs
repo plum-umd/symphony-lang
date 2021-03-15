@@ -75,7 +75,8 @@ ppISecPSL ρvs =
 
 instance Pretty Prot where
   pretty = \case
-    YaoP → ppBdr "yao"
+    YaoN_P → ppBdr "yaoN_P"
+    Yao2_P → ppBdr "yao2_P"
     BGWP → ppBdr "bgw"
     GMWP → ppBdr "gmw"
     BGVP → ppBdr "bgv"

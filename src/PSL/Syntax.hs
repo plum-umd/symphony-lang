@@ -152,13 +152,12 @@ type TVar = 𝕏
 data Prot =
     YaoN_P  -- yao2
   | Yao2_P  -- yao
+  | BGWP  -- bgw
+  | GMWP  -- gmw
+  | BGVP  -- bgv
+  | SPDZP -- spdz
+  | AutoP -- auto
   deriving (Eq,Ord,Show)
-  -- -- | BGWP  -- bgw
-  -- -- | GMWP  -- gmw
-  -- -- | BGVP  -- bgv
-  -- -- | SPDZP -- spdz
-  -- -- | AutoP -- auto
-
 ---------------
 -- Precision --
 ---------------
