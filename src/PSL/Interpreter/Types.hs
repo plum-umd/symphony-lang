@@ -6,54 +6,9 @@ import PSL.Syntax
 
 import qualified Prelude as HS
 
-class
-  ( Eq (MPCPrimVal p)
-  , Ord (MPCPrimVal p)
-  , Show (MPCPrimVal p)
-  ) ⇒
-  MPCPrim p where
-    type MPCPrimVal p ∷ ★
-    mpcPrim ∷ P p → Op → 𝐿 (MPCPrimVal p) → IO (MPCPrimVal p)
 
-data MPCVal where
-  MPCVal ∷ ∀ p. (MPCPrim p) ⇒ SProt p → MPCPrimVal p → MPCVal
 
-instance Eq MPCVal where
-  mpc₁ == mpc₂ = case (mpc₁,mpc₂) of
-    (MPCVal (sp₁ ∷ SProt p₁) (v₁ ∷ MPCPrimVal p₁),MPCVal (sp₂ ∷ SProt p₂) (v₂ ∷ MPCPrimVal p₂)) →
-      case deq sp₁ sp₂ of
-        NoDEq → False
-        YesDEq →
-          let pr₁ ∷ (SProt p₁,MPCPrimVal p₁)
-              pr₁ = (sp₁,v₁)
-              pr₂ ∷ (SProt p₁,MPCPrimVal p₁)
-              pr₂ = (sp₂,v₂)
-          in pr₁ ≡ pr₂
 
-instance Ord MPCVal where
-  compare mpc₁ mpc₂ = case (mpc₁,mpc₂) of
-    (MPCVal (sp₁ ∷ SProt p₁) (v₁ ∷ MPCPrimVal p₁),MPCVal (sp₂ ∷ SProt p₂) (v₂ ∷ MPCPrimVal p₂)) →
-      case dcmp sp₁ sp₂ of
-        LTDCmp → LT
-        GTDCmp → GT
-        EQDCmp →
-          let pr₁ ∷ (SProt p₁,MPCPrimVal p₁)
-              pr₁ = (sp₁,v₁)
-              pr₂ ∷ (SProt p₁,MPCPrimVal p₁)
-              pr₂ = (sp₂,v₂)
-          in compare pr₁ pr₂
-
-deriving instance Show MPCVal
-
-instance MPCPrim 'YaoN_P where
-  type MPCPrimVal 'YaoN_P = CktVal
-  mpcPrim ∷ P 'YaoN_P → Op → 𝐿 CktVal → IO CktVal
-  mpcPrim = undefined
-
-instance MPCPrim 'Yao2_P where
-  type MPCPrimVal 'Yao2_P = ()
-  mpcPrim ∷ P 'Yao2_P → Op → 𝐿 () → IO ()
-  mpcPrim = undefined
 
 ------------
 -- VALUES --
@@ -92,15 +47,69 @@ data ValP =
   | AllVP Val                         -- special case, equivalent to SSecVP ⊤ Val
   deriving (Eq,Ord,Show)
 
-data CktVal =
-    DefaultCV
-  | BaseCV Ckt
-  | PairCV CktVal CktVal
-  | SumCV Ckt CktVal CktVal
-  | NilCV
-  | ConsCV CktVal CktVal
-  | BulCV
+-- MPC Values
+-- v̂ ∈ mpc-val
+data MPCVal =
+    DefaultMV
+  | BaseMV Share
+  | PairMV MPCVal MPCVal
+  | SumMV Share MPCVal MPCVal
+  | NilMV
+  | ConsMV MPCVal MPCVal
+  | BulMV
   deriving (Eq,Ord,Show)
+
+-- MPC Protocols
+class
+  ( Eq (ProtocolVal p)
+  , Ord (ProtocolVal p)
+  , Show (ProtocolVal p)
+  ) ⇒
+  Protocol p where
+    type ProtocolVal p ∷ ★
+    exePrim ∷ P p → Op → 𝐿 (ProtocolVal p) → IO (ProtocolVal p)
+
+-- Shares
+-- sh ∈ share p
+data Share where
+  Share ∷ ∀ p. (Protocol p) ⇒ SProt p → ProtocolVal p → Share
+
+instance Eq Share where
+  sh₁ == sh₂ = case (sh₁, sh₂) of
+    (Share (sp₁ ∷ SProt p₁) (pv₁ ∷ ProtocolVal p₁), Share (sp₂ ∷ SProt p₂) (pv₂ ∷ ProtocolVal p₂)) →
+      case deq sp₁ sp₂ of
+        NoDEq → False
+        YesDEq →
+          let pr₁ ∷ (SProt p₁, ProtocolVal p₁)
+              pr₁ = (sp₁, pv₁)
+              pr₂ ∷ (SProt p₁, ProtocolVal p₁)
+              pr₂ = (sp₂, pv₂)
+          in pr₁ ≡ pr₂
+
+instance Ord Share where
+  compare sh₁ sh₂ = case (sh₁, sh₂) of
+    (Share (sp₁ ∷ SProt p₁) (pv₁ ∷ ProtocolVal p₁), Share (sp₂ ∷ SProt p₂) (pv₂ ∷ ProtocolVal p₂)) →
+      case dcmp sp₁ sp₂ of
+        LTDCmp → LT
+        GTDCmp → GT
+        EQDCmp →
+          let pr₁ ∷ (SProt p₁, ProtocolVal p₁)
+              pr₁ = (sp₁, pv₁)
+              pr₂ ∷ (SProt p₁, ProtocolVal p₁)
+              pr₂ = (sp₂, pv₂)
+          in compare pr₁ pr₂
+
+deriving instance Show Share
+
+instance Protocol 'YaoN_P where
+  type ProtocolVal 'YaoN_P = Ckt
+  exePrim ∷ P 'YaoN_P → Op → 𝐿 Ckt → IO Ckt
+  exePrim = undefined
+
+instance Protocol 'Yao2_P where
+  type ProtocolVal 'Yao2_P = ()
+  exePrim ∷ P 'Yao2_P → Op → 𝐿 () → IO ()
+  exePrim = undefined
 
 data Ckt = Ckt
   { gatesC ∷ Wire ⇰ Gate
@@ -139,13 +148,13 @@ type Env = 𝕏 ⇰ ValP
 
 makePrisms ''Val
 makePrisms ''ValP
-makePrisms ''CktVal
+makePrisms ''MPCVal
 makeLenses ''Ckt
 makePrisms ''Input
 makePrisms ''Gate
 makePrisms ''BaseGate
 
-makePrettySum ''CktVal
+makePrettySum ''MPCVal
 makePrettyRecord ''Ckt
 makePrettySum ''Input
 makePrettySum ''Gate
@@ -421,22 +430,22 @@ asTLM xM = do
 
 
 sameProts
-  ∷ 𝐿 MPCVal
+  ∷ 𝐿 Share
   → (∀ a. IM a)
   → IM b
-  → (∀ p. (MPCPrim p) ⇒ P p → SProt p → 𝐿 (MPCPrimVal p) → IM b)
+  → (∀ p. (Protocol p) ⇒ P p → SProt p → 𝐿 (ProtocolVal p) → IM b)
   → IM b
-sameProts wvs whenBad whenEmpty whenNotEmpty = case wvs of
+sameProts shs whenBad whenEmpty whenNotEmpty = case shs of
   Nil → whenEmpty
-  MPCVal sp v :& wvs' → do
-    vs ← flip error𝑂 whenBad $ sameProts' sp wvs'
-    whenNotEmpty P sp $ v :& vs
+  Share sp pv :& shs' → do
+    pvs ← flip error𝑂 whenBad $ sameProts' sp shs'
+    whenNotEmpty P sp $ pv :& pvs
 
-sameProts' ∷ SProt p → 𝐿 MPCVal → 𝑂 (𝐿 (MPCPrimVal p))
-sameProts' sp = mfoldrFromWith null $ \ (MPCVal sp' v) vs →
+sameProts' ∷ SProt p → 𝐿 Share → 𝑂 (𝐿 (ProtocolVal p))
+sameProts' sp = mfoldrFromWith null $ \ (Share sp' pv) pvs →
   case deq sp sp' of
     NoDEq → abort
-    YesDEq → return $ v :& vs
+    YesDEq → return $ pv :& pvs
 
 
 -- sameProts vs bad nulCase $ \ p sp v → ... mcpPrim p ...
