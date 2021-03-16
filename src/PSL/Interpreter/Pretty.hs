@@ -230,6 +230,14 @@ ppInflF f i oM x₁M x₂M = ppGA $ ppLevel i $ f $ map ppAlign $ iter [x₁M,oM
 ppTight ∷ (ToIter Doc t) ⇒ t → Doc
 ppTight = ppGroup ∘ concat ∘ inbetween ppNewlineIfBreak ∘ iter
 
+instance Pretty (SProt p) where
+  pretty = \case
+    SYaoN_P → ppLit "SYaoN_P"
+    SYao2_P → ppLit "SYao2_P"
+
+instance Pretty Share where
+  pretty (Share sp pv) = concat [pretty sp, pretty pv]
+
 makePrettySum ''MPCVal
 makePrettyRecord ''Ckt
 makePrettySum ''Input

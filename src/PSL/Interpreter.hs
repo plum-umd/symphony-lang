@@ -576,6 +576,32 @@ interpExp = wrapInterp $ \case
 -- TOP LEVEL --
 ---------------
 
+asTLM ∷ IM a → ITLM a
+asTLM xM = do
+  vps ← askL iParamsVirtualPartyArgsL
+  mkITLM $ \ θ ωtl → do
+    let ds = itlStateDeclPrins ωtl
+        -- princpal declarations as values
+        γ' = dict $ mapOn (iter $ itlStateDeclPrins ωtl) $ \ (ρ :* κ) → case κ of
+          SinglePK → (var ρ ↦) $ AllVP $ PrinV $ ValPEV $ SinglePV ρ
+          SetPK n → (var ρ ↦) $ AllVP $ PrinV $ SetPEV n ρ
+          VirtualPK → (var ρ ↦) $ AllVP $ PrinV $ case vps ⋕? ρ of
+            Some ρv → PowPEV ρv
+            None → ValPEV $ VirtualPV ρ
+        -- top-level defs
+        γ = itlStateEnv ωtl
+        ξ = compose
+              [ update iCxtEnvL (γ' ⩌ γ)
+              , update iCxtDeclPrinsL ds
+              , update iCxtParamsL θ
+              ]
+              ξ₀
+        ω = itlStateExp ωtl
+    rox ← runIM ξ ω xM
+    return $ case rox of
+      Inl r → Inl r
+      Inr (ω' :* o :* x) → Inr $ update itlStateExpL ω' ωtl :* o :* x
+
 interpTL ∷ TL → ITLM ()
 interpTL tl = case extract tl of
   DeclTL _ _ _ → skip

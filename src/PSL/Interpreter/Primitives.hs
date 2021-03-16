@@ -7,6 +7,7 @@ import PSL.Interpreter.Truncating
 import PSL.Interpreter.Pretty ()
 import PSL.Syntax
 import PSL.Interpreter.Json ()
+import PSL.Interpreter.Error
 
 import AddToUVMHS
 
