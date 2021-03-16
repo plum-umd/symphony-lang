@@ -97,15 +97,9 @@ instance Ord Share where
 
 deriving instance Show Share
 
-instance Protocol 'YaoN_P where
-  type ProtocolVal 'YaoN_P = Ckt
-  exePrim ∷ P 'YaoN_P → Op → 𝐿 Ckt → IO Ckt
-  exePrim = undefined
-
-instance Protocol 'Yao2_P where
-  type ProtocolVal 'Yao2_P = ()
-  exePrim ∷ P 'Yao2_P → Op → 𝐿 () → IO ()
-  exePrim = undefined
+--------------
+-- Circuits --
+--------------
 
 data Ckt = Ckt
   { gatesC ∷ Wire ⇰ Gate
@@ -117,7 +111,6 @@ data Input =
   | UnavailableI Type
   deriving (Eq,Ord,Show)
 
--- Gates. Note: Wires are inputs to the gate
 data Gate =
     BaseG BaseGate
   | InputG (𝑃 PrinVal) Input
@@ -134,7 +127,7 @@ data BaseGate =
 
 type Wire = ℕ64
 
- -----------------
+-----------------
 -- ENVIRONMENT --
 -----------------
 
