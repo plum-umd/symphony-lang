@@ -1,7 +1,7 @@
 module PSL.Syntax where
 
 import UVMHS
--- import AddToUVMHS
+import AddToUVMHS
 
 ----------
 -- Kind --
@@ -158,6 +158,28 @@ data Prot =
   | SPDZP -- spdz
   | AutoP -- auto
   deriving (Eq,Ord,Show)
+
+-- Singleton for Prot
+data SProt (p ∷ Prot) where
+  SYaoN_P ∷ SProt 'YaoN_P
+  SYao2_P ∷ SProt 'Yao2_P
+
+deriving instance Eq (SProt p)
+deriving instance Ord (SProt p)
+deriving instance Show (SProt p)
+
+instance DEqable SProt where
+  deq sp₁ sp₂ = case (sp₁, sp₂) of
+    (SYaoN_P, SYaoN_P) → YesDEq
+    (SYao2_P, SYao2_P) → YesDEq
+    _ → NoDEq
+
+instance DCmpable SProt where
+  dcmp sp₁ sp₂ = case (sp₁, sp₂) of
+    (SYaoN_P,SYaoN_P) → EQDCmp
+    (SYaoN_P,SYao2_P) → LTDCmp
+    (SYao2_P,SYaoN_P) → GTDCmp
+    (SYao2_P,SYao2_P) → EQDCmp
 ---------------
 -- Precision --
 ---------------

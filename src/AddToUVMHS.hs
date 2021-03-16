@@ -57,6 +57,21 @@ instance (Pretty a) ⇒ Pretty (AddBTD a) where
   pretty TopBTD = ppCon "⊤"
   pretty (AddBTD x) = pretty x
 
+data DEq a b where
+  YesDEq ∷ (a ~ b) ⇒ DEq a b
+  NoDEq ∷ DEq a b
+
+data DCmp a b where
+  LTDCmp ∷ DCmp a b
+  EQDCmp ∷ (a ~ b) ⇒ DCmp a b
+  GTDCmp ∷ DCmp a b
+
+class DEqable (a ∷ k → ★) where
+  deq ∷ (a b) → (a c) → DEq b c
+
+class DCmpable (a ∷ k → ★) where
+  dcmp ∷ (a b) → (a c) → DCmp b c
+
 logBase ∷ 𝔻 → 𝔻 → 𝔻
 logBase = HS.logBase
 
