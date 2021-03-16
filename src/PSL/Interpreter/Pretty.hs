@@ -205,7 +205,8 @@ instance Pretty ValP where
     None → case v₀ of
      SSecVP ρs v → ppPostF concat levelMODE (pretty ρs) (pretty v)
      ISecVP ρvs → ppISecPSL ρvs
-     ShareVP φ ρs cv →
+     ShareVP ρs mpcv → undefined
+{-
        ppPostF concat levelMODE
          (ppSetBotLevel $ concat
              [ ppPun "{"
@@ -214,7 +215,7 @@ instance Pretty ValP where
              , concat $ inbetween (ppPun ",") $ map pretty $ iter ρs
              , ppPun "}"
              ]) $
-         pretty cv
+         pretty cv -}
      AllVP (v ∷ Val) → pretty v
 
 ppPreF ∷ (𝐼 Doc → Doc) → ℕ64 → Doc → Doc → Doc
@@ -228,3 +229,18 @@ ppInflF f i oM x₁M x₂M = ppGA $ ppLevel i $ f $ map ppAlign $ iter [x₁M,oM
 
 ppTight ∷ (ToIter Doc t) ⇒ t → Doc
 ppTight = ppGroup ∘ concat ∘ inbetween ppNewlineIfBreak ∘ iter
+
+makePrettySum ''MPCVal
+makePrettyRecord ''Ckt
+makePrettySum ''Input
+makePrettySum ''Gate
+makePrettySum ''BaseGate
+
+makePrettySum ''ShareInfo
+makePrettySum ''IParams
+makePrettySum ''ICxt
+makePrettySum ''IState
+makePrettySum ''ResEv
+makePrettySum ''IOut
+makePrettySum ''IErrorClass
+makePrettySum ''ITLState

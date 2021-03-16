@@ -6,10 +6,6 @@ import PSL.Syntax
 
 import qualified Prelude as HS
 
-
-
-
-
 ------------
 -- VALUES --
 ------------
@@ -154,17 +150,10 @@ makePrisms ''Input
 makePrisms ''Gate
 makePrisms ''BaseGate
 
-makePrettySum ''MPCVal
-makePrettyRecord ''Ckt
-makePrettySum ''Input
-makePrettySum ''Gate
-makePrettySum ''BaseGate
-
 data ShareInfo =
     NotShared
   | Shared Prot (𝑃 PrinVal)
   deriving (Eq,Ord,Show)
-makePrettySum ''ShareInfo
 
 -----------
 -- STORE --
@@ -186,7 +175,6 @@ data IParams = IParams
   , iParamsVirtualPartyArgs ∷ 𝕊 ⇰ 𝑃 PrinVal
   } deriving (Eq,Ord,Show)
 makeLenses ''IParams
-makePrettySum ''IParams
 
 θ₀ ∷ IParams
 θ₀ = IParams TopM False dø
@@ -206,7 +194,6 @@ data ICxt = ICxt
   , iCxtMPCPathCondition ∷ 𝐿 (Ckt ∧ ShareInfo)
   } deriving (Show)
 makeLenses ''ICxt
-makePrettySum ''ICxt
 
 iCxtIsExampleL ∷ ICxt ⟢ 𝔹
 iCxtIsExampleL = iParamsIsExampleL ⊚ iCxtParamsL
@@ -230,7 +217,6 @@ data IState = IState
   , iStateMPCCont ∷ 𝐿 (𝐿 (Ckt ∧ ShareInfo) ∧ ShareInfo ∧ Ckt)
   } deriving (Eq,Ord,Show)
 makeLenses ''IState
-makePrettySum ''IState
 
 iStateShareInfoNextWireL ∷ ((Mode ⇰ Wire) ∧ Mode) ⟢ Wire
 iStateShareInfoNextWireL = lens getCkt setCkt
@@ -264,15 +250,11 @@ data ResEv = ResEv
   , resEvTypeTo ∷ 𝕊
   , resEvOp ∷ 𝕊
   } deriving (Eq,Ord,Show)
-makePrettySum ''ResEv
 makeLenses ''ResEv
 
 data IOut = IOut
   {
   } deriving (Show)
-makePrettySum ''IOut
--- TODO(ins): Ask DD why this wasn't ok w/ empty record
---makeLenses ''IOut
 
 instance Null IOut where null = IOut
 instance Append IOut where IOut ⧺ IOut = IOut
@@ -288,7 +270,6 @@ data IErrorClass =
   | NotImplementedIError
   | InternalIError
   deriving (Eq,Ord,Show)
-makePrettySum ''IErrorClass
 
 -- r ∈ cerr
 data IError = IError
@@ -331,7 +312,6 @@ data ITLState = ITLState
   , itlStateExp ∷ IState
   } deriving (Eq,Ord,Show)
 makeLenses ''ITLState
-makePrettySum ''ITLState
 
 ωtl₀ ∷ ITLState
 ωtl₀ = ITLState dø dø ω₀
@@ -427,7 +407,6 @@ asTLM xM = do
       Inr (ω' :* o :* x) → Inr $ update itlStateExpL ω' ωtl :* o :* x
 
 -- extra stuff --
-
 
 sameProts
   ∷ 𝐿 Share
