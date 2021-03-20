@@ -8,25 +8,23 @@ import PSL.Interpreter.Types
 import PSL.Interpreter.Pretty ()
 import PSL.Interpreter.Error
 
-withShare ∷ Share → (∀ p. (Protocol p) ⇒ P p → SProt p → ProtocolVal p → IM b) → IM b
-withShare (Share sp pv) k = k P sp pv
+import PSL.Interpreter.YaoN ()
 
-withShares
-  ∷ 𝐿 Share
-  → IM b
-  → (∀ p. (Protocol p) ⇒ P p → SProt p → 𝐿 (ProtocolVal p) → IM b)
-  → IM b
-withShares shs kEmpty kNotEmpty = case shs of
-  Nil → kEmpty
-  Share sp pv :& shs' → do
-    pvs ← error𝑂 (sameProts sp shs') $ throwIErrorCxt TypeIError "withShares: sameProts sp shs' ≡ None" $ frhs
-      [ ("sp", pretty sp)
-      , ("shs'", pretty shs')
-      ]
-    kNotEmpty P sp $ pv :& pvs
+withProt ∷ Prot → (∀ (p ∷ Prot). (Protocol p) ⇒ P p → SProt p → IM b) → IM b
+withProt φ k = case φ of
+  YaoN_P → k P SYaoN_P
+  _      → undefined
 
-sameProts ∷ SProt p → 𝐿 Share → 𝑂 (𝐿 (ProtocolVal p))
-sameProts sp = mfoldrFromWith null $ \ (Share sp' pv) pvs →
-  case deq sp sp' of
-    NoDEq → abort
-    YesDEq → return $ pv :& pvs
+sameProt ∷ ∀ (p ∷ Prot). (Protocol p) ⇒ Prot → SProt p → IM ()
+sameProt φ sp = case (φ, sp) of
+  (YaoN_P, SYaoN_P) → return ()
+  _ → throwIErrorCxt TypeIError "sameProt: φ ≢ sp" $ frhs [ ("φ", pretty φ), ("sp", pretty sp) ]
+
+
+unwrapShare ∷ ∀ (p ∷ Prot). (Protocol p) ⇒ Share → SProt p → IM (ProtocolVal p)
+unwrapShare (Share sp₁ pv) sp₂ = case deq sp₁ sp₂ of
+  NoDEq → throwIErrorCxt TypeIError "unwrapShare: deq sp₁ sp₂ ≡ NoDEq" $ frhs
+          [ ("sp₁", pretty sp₁)
+          , ("sp₂", pretty sp₂)
+          ]
+  YesDEq → return pv

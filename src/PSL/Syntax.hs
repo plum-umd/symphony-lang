@@ -150,17 +150,19 @@ type TVar = 𝕏
 
 -- φ ∈ protocol ⩴  …
 data Prot =
-    YaoN_P  -- yao2
-  | Yao2_P  -- yao
-  | BGWP  -- bgw
-  | GMWP  -- gmw
-  | BGVP  -- bgv
-  | SPDZP -- spdz
-  | AutoP -- auto
+    Plain  -- plaintext
+  | YaoN_P -- yao2
+  | Yao2_P -- yao
+  | BGWP   -- bgw
+  | GMWP   -- gmw
+  | BGVP   -- bgv
+  | SPDZP  -- spdz
+  | AutoP  -- auto
   deriving (Eq,Ord,Show)
 
 -- Singleton for Prot
 data SProt (p ∷ Prot) where
+  SPlain  ∷ SProt 'Plain
   SYaoN_P ∷ SProt 'YaoN_P
   SYao2_P ∷ SProt 'Yao2_P
 
@@ -170,16 +172,23 @@ deriving instance Show (SProt p)
 
 instance DEqable SProt where
   deq sp₁ sp₂ = case (sp₁, sp₂) of
+    (SPlain , SPlain ) → YesDEq
     (SYaoN_P, SYaoN_P) → YesDEq
     (SYao2_P, SYao2_P) → YesDEq
     _ → NoDEq
 
 instance DCmpable SProt where
   dcmp sp₁ sp₂ = case (sp₁, sp₂) of
-    (SYaoN_P,SYaoN_P) → EQDCmp
-    (SYaoN_P,SYao2_P) → LTDCmp
-    (SYao2_P,SYaoN_P) → GTDCmp
-    (SYao2_P,SYao2_P) → EQDCmp
+    (SPlain , SPlain ) → EQDCmp
+    (SPlain , SYaoN_P) → LTDCmp
+    (SPlain , SYao2_P) → LTDCmp
+    (SYaoN_P, SPlain ) → GTDCmp
+    (SYaoN_P, SYaoN_P) → EQDCmp
+    (SYaoN_P, SYao2_P) → LTDCmp
+    (SYao2_P, SPlain ) → GTDCmp
+    (SYao2_P, SYaoN_P) → GTDCmp
+    (SYao2_P, SYao2_P) → EQDCmp
+
 ---------------
 -- Precision --
 ---------------

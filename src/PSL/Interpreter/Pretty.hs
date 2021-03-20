@@ -75,6 +75,7 @@ ppISecPSL ρvs =
 
 instance Pretty Prot where
   pretty = \case
+    Plain → ppBdr "plain"
     YaoN_P → ppBdr "yaoN_P"
     Yao2_P → ppBdr "yao2_P"
     BGWP → ppBdr "bgw"
@@ -124,12 +125,7 @@ instance Pretty Mode where
 
 instance Pretty Val where
   pretty = \case
-    BoolV b → ppBoolPSL b
-    StrV s → pretty s
-    NatV p n → ppNatPSL p n
-    IntV p i → ppIntPSL p i
-    FltV p d → ppFltPSL p d
-    BulV → ppCon "•"
+    BaseV bv → pretty bv
     LV v → ppApp (ppCon "L") [pretty v]
     RV v → ppApp (ppCon "R") [pretty v]
     NilV → ppCon "[]"
@@ -151,13 +147,22 @@ instance Pretty Val where
       --          , pretty ξ
       --          ]) $
       --       pretty e
-    PrinV ρe → pretty ρe
     PrinSetV ρs → pretty ρs
     LocV m ℓ → ppApp (ppCon "loc") [pretty m,pretty ℓ]
     ArrayV ṽs → ppArrayPSL ṽs
     PairV ṽ₁ ṽ₂ → ppInflF ppTight levelCOMMA (ppPun ",") (pretty ṽ₁) $ pretty ṽ₂
     DefaultV → ppPun "⊥"
     UnknownV _τ → ppPun "?"
+
+instance Pretty BaseVal where
+  pretty = \case
+    BoolBV b → ppBoolPSL b
+    StrBV s → pretty s
+    NatBV p n → ppNatPSL p n
+    IntBV p i → ppIntPSL p i
+    FltBV p d → ppFltPSL p d
+    BulBV → ppCon "•"
+    PrinBV ρe → pretty ρe
 
 asListVP ∷ ValP → 𝑂 (𝐿 ValP ∧ Mode)
 asListVP = \case
@@ -205,8 +210,7 @@ instance Pretty ValP where
     None → case v₀ of
      SSecVP ρs v → ppPostF concat levelMODE (pretty ρs) (pretty v)
      ISecVP ρvs → ppISecPSL ρvs
-     ShareVP ρs mpcv → undefined
-{-
+     ShareVP φ ρs mpcv →
        ppPostF concat levelMODE
          (ppSetBotLevel $ concat
              [ ppPun "{"
@@ -215,7 +219,7 @@ instance Pretty ValP where
              , concat $ inbetween (ppPun ",") $ map pretty $ iter ρs
              , ppPun "}"
              ]) $
-         pretty cv -}
+         pretty mpcv
      AllVP (v ∷ Val) → pretty v
 
 ppPreF ∷ (𝐼 Doc → Doc) → ℕ64 → Doc → Doc → Doc
@@ -232,19 +236,20 @@ ppTight = ppGroup ∘ concat ∘ inbetween ppNewlineIfBreak ∘ iter
 
 instance Pretty (SProt p) where
   pretty = \case
+    SPlain  → ppLit "SPlain"
     SYaoN_P → ppLit "SYaoN_P"
     SYao2_P → ppLit "SYao2_P"
 
 instance Pretty Share where
-  pretty (Share sp pv) = concat [pretty sp, pretty pv]
+  pretty = undefined
 
 makePrettySum ''MPCVal
+
 makePrettyRecord ''Ckt
 makePrettySum ''Input
 makePrettySum ''Gate
 makePrettySum ''BaseGate
 
-makePrettySum ''ShareInfo
 makePrettySum ''IParams
 makePrettySum ''ICxt
 makePrettySum ''IState

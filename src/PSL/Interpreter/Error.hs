@@ -28,3 +28,6 @@ error𝑂 ∷ (Monad m,MonadError IError m) ⇒ 𝑂 a -> m a -> m a
 error𝑂 e er = case e of
   Some x → return x
   None → er
+
+impossible ∷ IM a
+impossible = throwIErrorCxt InternalIError "Impossible." empty𝐿

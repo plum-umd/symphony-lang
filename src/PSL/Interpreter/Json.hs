@@ -24,19 +24,19 @@ fprecisionSuffix (FixedFPr n₁ n₂) = concat ["#",show𝕊 n₁,".",show𝕊 n
 
 getType ∷ Val → 𝕊
 getType = \case
-  BoolV _ → "bool"
-  StrV _ → "string"
-  NatV p _ → "nat"⧺iprecisionSuffix p
-  IntV p _ → "int"⧺iprecisionSuffix p
-  FltV p _ → "flt"⧺fprecisionSuffix p
-  BulV → "bul"
+  BaseV (BoolBV _) → "bool"
+  BaseV (StrBV _) → "string"
+  BaseV (NatBV p _) → "nat"⧺iprecisionSuffix p
+  BaseV (IntBV p _) → "int"⧺iprecisionSuffix p
+  BaseV (FltBV p _) → "flt"⧺fprecisionSuffix p
+  BaseV BulBV → "bul"
   LV _ → "left"
   RV _ → "right"
   NilV → "list"
   ConsV _ _ → "list"
   CloV _ _ _ _ → "clo"
   TCloV _ _ _ → "tclo"
-  PrinV _ → "prin"
+  BaseV (PrinBV _) → "prin"
   PrinSetV _ → "prinset"
   LocV _ _ → "loc"
   ArrayV _ → "array"
@@ -46,6 +46,7 @@ getType = \case
 
 stringProtocol ∷ Prot → 𝕊
 stringProtocol = \case
+  Plain → "plain"
   YaoN_P → "yaoN_P"
   Yao2_P → "yao2_P"
   BGWP  → "bgw"

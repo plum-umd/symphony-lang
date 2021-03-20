@@ -14,6 +14,10 @@ import PSL.Interpreter.ReadType
 import PSL.Interpreter.Truncating
 import PSL.Interpreter.Types
 import PSL.Interpreter.Circuits
+import PSL.Interpreter.Val
+import PSL.Interpreter.Lens
+import PSL.Interpreter.Error
+import PSL.Interpreter.UnShare
 
 import qualified Prelude as HS
 import qualified System.Console.GetOpt as O
@@ -90,7 +94,7 @@ bindPatO ψ ṽ = case ψ of
   BundleP ρx ψ₁ ψ₂ → do
     ρvs ← abort𝑂 $ view iSecVPL ṽ
     ρ :* v :* ρvs' ← abort𝑂 $ dminView ρvs
-    ρv ← lift $ introValP $ PrinV $ ValPEV ρ
+    ρv ← lift $ valPFrVal $ BaseV $ PrinBV $ ValPEV ρ
     let f₁ = bindVar ρx ρv
     f₂ ← bindPatO ψ₁ $ SSecVP (single ρ) v
     f₃ ← bindPatO ψ₂ $ ISecVP ρvs'
@@ -103,30 +107,25 @@ bindPatO ψ ṽ = case ψ of
     v ← lift $ elimValP ṽ
     ρvs ← abort𝑂 $ view prinSetVL v
     ρ :* ρs ← abort𝑂 $ pmin ρvs
-    ρv ← lift $ introValP $ PrinV $ ValPEV ρ
-    ρvs' ← lift $ introValP $ PrinSetV ρs
+    ρv ← lift $ valPFrVal $ BaseV $ PrinBV $ ValPEV ρ
+    ρvs' ← lift $ valPFrVal $ PrinSetV ρs
     let f₁ = bindVar x ρv
     f₂ ← bindPatO ψ' ρvs'
     return $ f₂ ∘ f₁
   AscrP ψ' _τ → bindPatO ψ' ṽ
   WildP → return id
 
-bindPatMPC ∷ (STACK) ⇒ ShareInfo → Pat → CktVal → 𝑂 (IM (ShareInfo ∧ CktVal) → IM (ShareInfo ∧ CktVal))
-bindPatMPC si ψ cv = case ψ of
+bindPatMPC ∷ (STACK) ⇒ Pat → UnShare → FailT IM (IM UnShare → IM UnShare)
+bindPatMPC ψ us = case ψ of
   VarP x → return $ \ xM → do
-    ṽ ← reShareValP cv si
-    si' :* cv' ← bindVar x ṽ xM
-    si'' ← joinShareInfo si si'
-    return $ si'' :* cv'
+    ṽ ← reShareValP us
+    bindVar x ṽ xM
   TupP ψ₁ ψ₂ → do
-    cv₁ :* cv₂ ← view pairCVL cv
-    f₁ ← bindPatMPC si ψ₁ cv₁
-    f₂ ← bindPatMPC si ψ₂ cv₂
-    return $ \ xM → do
-      si' :* cv' ← compose [f₁,f₂] xM
-      si'' ← joinShareInfo si si'
-      return $ si'' :* cv'
-  LP ψ' → do
+    us₁ :* us₂ ← viewPairUnShare us
+    f₁ ← bindPatMPC ψ₁ us₁
+    f₂ ← bindPatMPC ψ₂ us₂
+    return $ compose [f₁, f₂]
+{-  LP ψ' → do
     c₁ :* cv₂ :* _cv₃ ← view sumCVL cv
     f ← bindPatMPC si ψ' cv₂
     return $ \ xM → do
@@ -155,7 +154,7 @@ bindPatMPC si ψ cv = case ψ of
       si'' ← joinShareInfo si si'
       return $ si'' :* cv'
   WildP → return id
-  _ → error "TODO: not implemented"
+  _ → error "TODO: not implemented" -}
 
 interpCase ∷ (STACK) ⇒ ValP → 𝐿 (Pat ∧ Exp) → IM ValP
 interpCase ṽ ψes = do
@@ -222,16 +221,16 @@ modeCheckReveal ρvs₂ = do
 interpExp ∷ (STACK) ⇒ Exp → IM ValP
 interpExp = wrapInterp $ \case
   VarE x → restrictValP *$ interpVar x
-  BoolE b → introValP $ BoolV b
-  StrE s → introValP $ StrV s
-  NatE pr n → introValP $ NatV pr $ trPrNat pr n
-  IntE pr i → introValP $ IntV pr $ trPrInt pr i
-  FltE pr f → introValP $ FltV pr $ f --trPrFlt pr f (trPrFlt needs to be written)
-  BulE → introValP BulV
+  BoolE b → valPFrVal $ BaseV $ BoolBV b
+  StrE s → valPFrVal $ BaseV $ StrBV s
+  NatE pr n → valPFrVal $ BaseV $ NatBV pr $ trPrNat pr n
+  IntE pr i → valPFrVal $ BaseV $ IntBV pr $ trPrInt pr i
+  FltE pr f → valPFrVal $ BaseV $ FltBV pr $ f --trPrFlt pr f (trPrFlt needs to be written)
+  BulE → valPFrVal $ BaseV BulBV
   IfE e₁ e₂ e₃ → do
     ṽ ← interpExp e₁
     v ← elimValP ṽ
-    b ← error𝑂 (view boolVL v) (throwIErrorCxt TypeIError "interpExp: IfE: view boolVL v ≡ None" $ frhs
+    b ← error𝑂 (view (boolBVL ⊚ baseVL) v) (throwIErrorCxt TypeIError "interpExp: IfE: view boolVL v ≡ None" $ frhs
                                 [ ("v",pretty v)
                                 ])
     if b
@@ -239,33 +238,29 @@ interpExp = wrapInterp $ \case
       else interpExp e₃
   MuxIfE e₁ e₂ e₃ → do
     ṽ₁ ← interpExp e₁
-    si₁ :* cv₁ ← unShareValP ṽ₁
-    c₁ ← error𝑂 (view baseCVL cv₁) (throwIErrorCxt TypeIError "interpExp: MuxIfE: view baseCVL cv₁ ≡ None" $ frhs
-                                   [ ("cv₁",pretty cv₁)
-                                   ])
-    nc₁ ← notCkt c₁
-    ṽ₂ ← mapEnvL iCxtMPCPathConditionL ((c₁ :* si₁) :&) $ interpExp e₂
-    ṽ₃ ← mapEnvL iCxtMPCPathConditionL ((nc₁ :* si₁) :&) $ interpExp e₃
-    si₂ :* cv₂ ← unShareValP ṽ₂
-    si₃ :* cv₃ ← unShareValP ṽ₃
-    si ← joinShareInfos [si₁,si₂,si₃]
-    c' ← muxCktVal c₁ cv₂ cv₃
-    reShareValP c' si
+    us₁ ← unShareValP ṽ₁
+    nus₁ ← notUnShare us₁
+    ṽ₂ ← mapEnvL iCxtMPCPathConditionL (us₁ :&) $ interpExp e₂
+    ṽ₃ ← mapEnvL iCxtMPCPathConditionL (nus₁ :&) $ interpExp e₃
+    us₂ ← unShareValP ṽ₂
+    us₃ ← unShareValP ṽ₃
+    us' ← muxUnShare us₁ us₂ us₃
+    reShareValP us'
   LE e → do
     ṽ ← interpExp e
-    introValP $ LV ṽ
+    valPFrVal $ LV ṽ
   RE e → do
     ṽ ← interpExp e
-    introValP $ RV ṽ
+    valPFrVal $ RV ṽ
   TupE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
-    introValP $ PairV ṽ₁ ṽ₂
-  NilE → introValP NilV
+    valPFrVal $ PairV ṽ₁ ṽ₂
+  NilE → valPFrVal NilV
   ConsE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
-    introValP $ ConsV ṽ₁ ṽ₂
+    valPFrVal $ ConsV ṽ₁ ṽ₂
   LetTyE _ e → interpExp e
   LetE ψ e₁ e₂ → do
     ṽ ← interpExp e₁
@@ -275,19 +270,16 @@ interpExp = wrapInterp $ \case
     interpCase ṽ ψes
   MuxCaseE e ψes → do
     ṽ ← interpExp e
-    si :* cv ← unShareValP ṽ
-    pptraceM si
-    sicvs ← concat ^$ mapMOn ψes $ \ (ψ :* e') → do
-      case bindPatMPC si ψ cv of
+    us ← unShareValP ṽ
+    uss ← concat ^$ mapMOn ψes $ \ (ψ :* e') → do
+      bp ← unFailT $ bindPatMPC ψ us
+      case bp of
         None → return $ list []
         Some f → single ^$ f $ do
           ṽ' ← interpExp e'
           unShareValP ṽ'
-    si' :* cv' ← mfoldOnFrom sicvs (NotShared :* DefaultCV) $ \ (si₁ :* cv₁) (si₂ :* cv₂) → do
-      si'' ← joinShareInfo si₁ si₂
-      cv'' ← sumCktVal cv₁ cv₂
-      return $ si'' :* cv''
-    reShareValP cv' si'
+    us' ← mfoldOnFrom uss (NotShared DefaultV) sumUnShare
+    reShareValP us'
   LamE selfO ψs e → do
     γ ← askL iCxtEnvL
     (ψ :* ψs') ← error𝑂 (view unconsL $ ψs) (throwIErrorCxt TypeIError "interpExp: LamE: view unconsL $ ψs ≡ None" $ frhs
@@ -296,7 +288,7 @@ interpExp = wrapInterp $ \case
     let e' = if ψs' ≡ Nil
               then e
               else siphon e $ LamE None ψs' e
-      in introValP $ CloV selfO ψ e' γ
+      in valPFrVal $ CloV selfO ψ e' γ
   AppE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
@@ -311,7 +303,7 @@ interpExp = wrapInterp $ \case
         τ ← error𝑂 oτ (throwIErrorCxt NotImplementedIError "interpExp: ParE: mτ ≡ None" $ frhs
                        [ ("oτ",pretty oτ)
                        ])
-        introValP $ UnknownV τ
+        valPFrVal $ UnknownV τ
       else interpExp e
   ShareE φ ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
@@ -383,9 +375,9 @@ interpExp = wrapInterp $ \case
     ṽ ← interpExp e
     v ← elimValP ṽ
     case v of
-      NatV _p n → introValP $ StrV $ show𝕊 n
-      IntV _p i → introValP $ StrV $ show𝕊 i
-      FltV _p f → introValP $ StrV $ show𝕊 f
+      BaseV (NatBV _p n) → valPFrVal $ BaseV $ StrBV $ show𝕊 n
+      BaseV (IntBV _p i) → valPFrVal $ BaseV $ StrBV $ show𝕊 i
+      BaseV (FltBV _p f) → valPFrVal $ BaseV $ StrBV $ show𝕊 f
       _ → throwIErrorCxt TypeIError "interpExp: ToStringE: v ∉ {NatV _ _ , IntV _ _, FltV _ _}" $ null
   StringConcatE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
@@ -393,14 +385,14 @@ interpExp = wrapInterp $ \case
     v₁ ← elimValP ṽ₁
     v₂ ← elimValP ṽ₂
     case (v₁,v₂) of
-      (StrV s₁, StrV s₂) → introValP $ StrV (s₁ ⧺ s₂)
+      (BaseV (StrBV s₁), BaseV (StrBV s₂)) → valPFrVal $ BaseV (StrBV (s₁ ⧺ s₂))
       _ → throwIErrorCxt TypeIError "interpExp: StringConcatE: v₁,v₂ ∉ {StrV _}" $ null
   ReadE τA e → do
     ṽ ← interpExp e
     v ← elimValP ṽ
     m ← askL iCxtGlobalModeL
     case (v,m) of
-      (StrV fn,SecM ρs) | [ρ] ← tohs $ list ρs → do
+      (BaseV (StrBV fn),SecM ρs) | [ρ] ← tohs $ list ρs → do
         v' ← readType ρ τA fn
         return $ SSecVP (single ρ) v'
       _ → throwIErrorCxt TypeIError "interpExp: ReadE: (v,m) ≠ (StrV _,SecM {_})" $ frhs
@@ -414,29 +406,26 @@ interpExp = wrapInterp $ \case
     v₂ ← elimValP ṽ₂
     m ← askL iCxtGlobalModeL
     case (m,v₂) of
-      (SecM ρs,StrV fn) | [ρ] ← tohs $ list ρs → do
+      (SecM ρs,BaseV (StrBV fn)) | [ρ] ← tohs $ list ρs → do
         writeVal ρ v₁ fn
-        introValP $ BulV
+        valPFrVal $ BaseV BulBV
       _ → throwIErrorCxt TypeIError "interpExp: WriteE: m ≠ SecM {ρ}" null
   PrimE op es → do
     ṽs ← mapM interpExp es
-    si :* cvs ← unShareValPs ṽs
-    cs ← error𝑂 (mapMOn cvs $ view baseCVL) (throwIErrorCxt TypeIError "interpExp: PrimE: mapMOn cvs $ view baseCVL ≡ None" $ frhs
-                                             [ ("cvs",pretty cvs)
-                                             ])
-    c' ← primCkt op cs
-    reShareValP (BaseCV c') si
+    uss ← unShareValPs ṽs
+    us' ← primUnShare op uss
+    reShareValP us'
   TraceE e₁ e₂ → do
     v ← interpExp e₁
     pptrace v $ interpExp e₂
   SetE ρes → do
     ρvs ← prinExpValss *$ mapM interpPrinExp ρes
-    introValP $ PrinSetV ρvs
+    valPFrVal $ PrinSetV ρvs
   RefE e → do
     ṽ ← interpExp e
     ℓ ← nextL iStateNextLocL
     modifyL iStateStoreL $ \ σ → (ℓ ↦♮ ṽ) ⩌♮ σ
-    introLocV ℓ ≫= introValP
+    introLocV ℓ ≫= valPFrVal
   RefReadE e → do
     ṽ ← interpExp e
     v ← elimValP ṽ
@@ -460,11 +449,11 @@ interpExp = wrapInterp $ \case
     ṽ₂ ← interpExp e₂
     v₁ ← elimValP ṽ₁
     case v₁ of
-      NatV _ n → do
+      BaseV (NatBV _ n) → do
         ℓ ← nextL iStateNextLocL
-        ṽ ← introValP $ ArrayV $ vec $ list $ repeat n ṽ₂
+        ṽ ← valPFrVal $ ArrayV $ vec $ list $ repeat n ṽ₂
         modifyL iStateStoreL $ \ σ → (ℓ ↦♮ ṽ) ⩌♮ σ
-        introLocV ℓ ≫= introValP
+        introLocV ℓ ≫= valPFrVal
       _ → throwIErrorCxt TypeIError "interpExp: ArrayE: v₁ ≠ NatV _ n" $ frhs
         [ ("v₁",pretty v₁)
         ]
@@ -475,7 +464,7 @@ interpExp = wrapInterp $ \case
     v₂ ← elimValP ṽ₂
     ℓ ← elimLocV v₁
     case v₂ of
-      NatV _ n → do
+      BaseV (NatBV _ n) → do
         σ ← getL iStateStoreL
         case σ ⋕? ℓ of
           Some ṽ' → do
@@ -505,7 +494,7 @@ interpExp = wrapInterp $ \case
     v₂ ← elimValP ṽ₂
     ℓ ← elimLocV v₁
     case v₂ of
-      NatV _ n → do
+      BaseV (NatBV _ n) → do
         σ ← getL iStateStoreL
         case σ ⋕? ℓ of
           Some ṽ' → do
@@ -514,7 +503,7 @@ interpExp = wrapInterp $ \case
               ArrayV ṽs →
                 if idxOK𝕍 ṽs $ natΩ64 n
                    then do
-                     ṽ'' ← introValP $ ArrayV $ set𝕍 (natΩ64 n) ṽ₃ ṽs
+                     ṽ'' ← valPFrVal $ ArrayV $ set𝕍 (natΩ64 n) ṽ₃ ṽs
                      putL iStateStoreL $ (ℓ ↦♮ ṽ'') ⩌♮ σ
                      return ṽ₃
                     else do
@@ -541,35 +530,24 @@ interpExp = wrapInterp $ \case
       Some ṽ' → do
         v' ← elimValP ṽ'
         case v' of
-          ArrayV ṽs → introValP $ NatV InfIPr $ nat $ size ṽs
+          ArrayV ṽs → valPFrVal $ BaseV $ NatBV InfIPr $ nat $ size ṽs
           _ → throwIErrorCxt TypeIError "interpExp: SizeE: v' ≠ ArrayV _" null
       _ → throwIErrorCxt TypeIError "interpExp: SizeE: ℓ ∉ dom(σ)" null
-  DefaultE → introValP DefaultV
+  DefaultE → valPFrVal DefaultV
   ProcE e → do
     κ :* ṽ ←
       localizeL iStateMPCContL null $
       localL iCxtMPCPathConditionL null $
       interpExp e
-    si₀ :* cv₀ ← unShareValP ṽ
-    c₀ ← error𝑂 (view baseCVL cv₀) $ (throwIErrorCxt InternalIError "interpExp: ReturnE: view baseCVL cv₀ ≡ None" $ frhs
-                                      [ ("cv₀",pretty cv₀)
-                                      ])
-    si :* c ← mfoldrOnFrom (reverse κ) (si₀ :* c₀) $ \ (pcᴿ :* si₁ :* cᴿ₀) (si₂ :* c) →  do
-      si₃ ← joinShareInfo si₁ si₂
-      mfoldrOnFrom pcᴿ (si₃ :* cᴿ₀) $ \ (bᵖᶜ :* siᵖᶜ) (si :* cᴿ) → do
-        si' ← joinShareInfo si siᵖᶜ
-        c' ← muxCkt bᵖᶜ cᴿ c
-        return $ si' :* c'
-    reShareValP (BaseCV c) si
+    us₀ ← unShareValP ṽ
+    us ← mfoldrOnFrom (reverse κ) us₀ $ \ (pcᴿ :* us₁) us₂ → mfoldrOnFrom pcᴿ us₁ $ \ usᵖᶜ acc → muxUnShare usᵖᶜ acc us₂
+    reShareValP us
   ReturnE e → do
     ṽ ← interpExp e
-    si :* cv ← unShareValP ṽ
-    c ← error𝑂 (view baseCVL cv) $ (throwIErrorCxt InternalIError "interpExp: ReturnE: view baseCVL cv ≡ None" $ frhs
-                                    [ ("cv",pretty cv)
-                                    ])
+    us ← unShareValP ṽ
     pc ← askL iCxtMPCPathConditionL
-    modifyL iStateMPCContL $ \ κ → (pc :* si :* c) :& κ
-    introValP DefaultV
+    modifyL iStateMPCContL $ \ κ → (pc :* us) :& κ
+    valPFrVal DefaultV
   _ → throwIErrorCxt NotImplementedIError "interpExp: not implemented" null
 
 ---------------
@@ -583,9 +561,9 @@ asTLM xM = do
     let ds = itlStateDeclPrins ωtl
         -- princpal declarations as values
         γ' = dict $ mapOn (iter $ itlStateDeclPrins ωtl) $ \ (ρ :* κ) → case κ of
-          SinglePK → (var ρ ↦) $ AllVP $ PrinV $ ValPEV $ SinglePV ρ
-          SetPK n → (var ρ ↦) $ AllVP $ PrinV $ SetPEV n ρ
-          VirtualPK → (var ρ ↦) $ AllVP $ PrinV $ case vps ⋕? ρ of
+          SinglePK → (var ρ ↦) $ AllVP $ BaseV $ PrinBV $ ValPEV $ SinglePV ρ
+          SetPK n → (var ρ ↦) $ AllVP $ BaseV $ PrinBV $ SetPEV n ρ
+          VirtualPK → (var ρ ↦) $ AllVP $ BaseV $ PrinBV $ case vps ⋕? ρ of
             Some ρv → PowPEV ρv
             None → ValPEV $ VirtualPV ρ
         -- top-level defs
@@ -744,7 +722,7 @@ interpretFileMain ∷ IParams → ITLState → 𝕊 → 𝕊 → IO (ValP ∧ �
 interpretFileMain θ ωtl name path = do
   ωtl' :* _ ← interpretFile θ ωtl name path
   let main = itlStateEnv ωtl' ⋕! var "main"
-  v ← evalITLMIO θ ωtl' name $ asTLM $ interpApp main $ AllVP BulV
+  v ← evalITLMIO θ ωtl' name $ asTLM $ interpApp main $ AllVP $ BaseV BulBV
   let expectedO = itlStateEnv ωtl' ⋕? var "expected"
   return $ v :* expectedO
 

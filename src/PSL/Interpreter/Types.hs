@@ -11,12 +11,7 @@ import PSL.Syntax
 -- General values
 -- v ∈ val
 data Val =
-    BoolV 𝔹
-  | StrV 𝕊
-  | NatV IPrecision ℕ
-  | IntV IPrecision ℤ
-  | FltV FPrecision 𝔻
-  | BulV
+    BaseV BaseVal
   | PairV ValP ValP
   | LV ValP
   | RV ValP
@@ -24,7 +19,6 @@ data Val =
   | ConsV ValP ValP
   | CloV (𝑂 Var) Pat Exp Env
   | TCloV TVar Exp Env
-  | PrinV PrinExpVal
   | PrinSetV (𝑃 PrinVal)
   | LocV Mode ℤ64
   | ArrayV (𝕍 ValP)
@@ -32,18 +26,28 @@ data Val =
   | UnknownV Type
   deriving (Eq,Ord,Show)
 
+data BaseVal =
+    BoolBV 𝔹
+  | StrBV 𝕊
+  | NatBV IPrecision ℕ
+  | IntBV IPrecision ℤ
+  | FltBV FPrecision 𝔻
+  | BulBV
+  | PrinBV PrinExpVal
+  deriving (Eq,Ord,Show)
+
 -- Distributed Values
 -- ṽ ∈ dist-val
 data ValP =
     SSecVP (𝑃 PrinVal) Val            -- values which are the same on parties (not shares)
   | ISecVP (PrinVal ⇰ Val)            -- values which are different on parties (bundles, not shares)
-  | ShareVP (𝑃 PrinVal) MPCVal        -- shares
+  | ShareVP Prot (𝑃 PrinVal) MPCVal   -- shares
   | AllVP Val                         -- special case, equivalent to SSecVP ⊤ Val
   deriving (Eq,Ord,Show)
 
-data ShareInfo =
-    NotShared
-  | Shared Prot (𝑃 PrinVal)
+data UnShare =
+    NotShared Val
+  | Shared Prot (𝑃 PrinVal) MPCVal
   deriving (Eq,Ord,Show)
 
 -- MPC Values
@@ -67,10 +71,21 @@ class
   ) ⇒
   Protocol p where
     type ProtocolVal p ∷ ★
-    exePrim ∷ P p → Op → 𝐿 (ProtocolVal p) → IO (ProtocolVal p)
+
+    typeOf ∷ P p → ProtocolVal p → IM Type
+    defaultOf ∷ P p → Type → IM (ProtocolVal p)
+
+    boolConst ∷ P p → 𝔹 → IM (ProtocolVal p)
+    natConst ∷ P p → IPrecision → ℕ → IM (ProtocolVal p)
+    intConst ∷ P p → IPrecision → ℤ → IM (ProtocolVal p)
+    fltConst ∷ P p → FPrecision → 𝔻 → IM (ProtocolVal p)
+
+    boolInput ∷ P p → 𝑃 PrinVal → 𝔹 → IM (ProtocolVal p)
+    unkInput ∷ P p → 𝑃 PrinVal → τ → IM (ProtocolVal p)
+    exePrim ∷ P p → Op → 𝐿 (ProtocolVal p) → IM (ProtocolVal p)
 
 -- Shares
--- sh ∈ share p
+-- sh ∈ share
 data Share where
   Share ∷ ∀ p. (Protocol p) ⇒ SProt p → ProtocolVal p → Share
 
@@ -174,7 +189,7 @@ data ICxt = ICxt
   , iCxtDeclPrins ∷ Prin ⇰ PrinKind
   , iCxtEnv ∷ Env
   , iCxtGlobalMode ∷ Mode
-  , iCxtMPCPathCondition ∷ 𝐿 (Ckt ∧ ShareInfo)
+  , iCxtMPCPathCondition ∷ 𝐿 UnShare
   } deriving (Show)
 
 ξ₀ ∷ ICxt
@@ -190,7 +205,7 @@ data IState = IState
   { iStateStore ∷ Store
   , iStateNextLoc ∷ ℤ64
   , iStateNextWires ∷ Mode ⇰ Wire
-  , iStateMPCCont ∷ 𝐿 (𝐿 (Ckt ∧ ShareInfo) ∧ ShareInfo ∧ Ckt)
+  , iStateMPCCont ∷ 𝐿 (𝐿 UnShare ∧ UnShare)
   } deriving (Eq,Ord,Show)
 
 ω₀ ∷ IState

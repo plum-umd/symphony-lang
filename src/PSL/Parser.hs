@@ -58,7 +58,7 @@ lexer = lexerBasic puns kws prim ops
       , "is-signed"
       ]
     prim = list
-      [ "yao","gmw","bgw","bgv","spdz","auto"
+      [ "yaoN","yao2","gmw","bgw","bgv","spdz","auto"
       , "ssec","isec","bundle"
       , "☆","type"
       , "ℙ","prin"

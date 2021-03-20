@@ -12,7 +12,9 @@ import qualified Prelude as HS
 ------------
 
 makePrisms ''Val
+makePrisms ''BaseVal
 makePrisms ''ValP
+makePrisms ''UnShare
 makePrisms ''MPCVal
 
 --------------

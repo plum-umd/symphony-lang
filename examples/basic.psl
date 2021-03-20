@@ -2,6 +2,6 @@ principal A B
 
 def main • =
   par {A,B}
-    let x = share{yao:A → A,B} (par {A:ℤ} 10) in
-    let y = share{yao:B → A,B} (par {B:ℤ} 20) in
+    let x = share{yaoN:A → A,B} (par {A:ℤ} 10) in
+    let y = share{yaoN:B → A,B} (par {B:ℤ} 20) in
     reveal {A,B} x + y
