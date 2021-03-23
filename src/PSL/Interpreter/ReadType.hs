@@ -5,7 +5,7 @@ import UVMHS
 import PSL.Config
 import PSL.Syntax
 
-import PSL.Interpreter.Access
+import PSL.Interpreter.Val
 import PSL.Interpreter.Truncating
 import PSL.Interpreter.Types
 import PSL.Interpreter.Lens

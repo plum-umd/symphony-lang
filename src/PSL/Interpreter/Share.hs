@@ -21,8 +21,8 @@ sameProt φ sp = case (φ, sp) of
   _ → throwIErrorCxt TypeIError "sameProt: φ ≢ sp" $ frhs [ ("φ", pretty φ), ("sp", pretty sp) ]
 
 
-unwrapShare ∷ ∀ (p ∷ Prot). (Protocol p) ⇒ Share → SProt p → IM (ProtocolVal p)
-unwrapShare (Share sp₁ pv) sp₂ = case deq sp₁ sp₂ of
+unwrapShare ∷ ∀ (p ∷ Prot). (Protocol p) ⇒ SProt p → Share → IM (ProtocolVal p)
+unwrapShare sp₁ (Share sp₂ pv) = case deq sp₁ sp₂ of
   NoDEq → throwIErrorCxt TypeIError "unwrapShare: deq sp₁ sp₂ ≡ NoDEq" $ frhs
           [ ("sp₁", pretty sp₁)
           , ("sp₂", pretty sp₂)

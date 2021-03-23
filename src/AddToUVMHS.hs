@@ -86,3 +86,9 @@ find𝐷 d v = foldOnFrom d None $ \ (k :* v') ok →
   case ok of
     None   → if v ≡ v' then Some k else None
     Some _ → ok
+
+mapM𝐷 ∷ (Ord k,Monad m) ⇒ (a → m b) → (k ⇰ a) → m (k ⇰ b)
+mapM𝐷 f d = mapM (mapM f) (iter d) ≫= return ∘ dict𝐼
+
+instance Ord k ⇒ FunctorM ((⇰) k) where
+  mapM = mapM𝐷

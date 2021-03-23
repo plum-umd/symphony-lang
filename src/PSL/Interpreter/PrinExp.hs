@@ -6,7 +6,7 @@ import PSL.Syntax
 import PSL.Interpreter.Types
 import PSL.Interpreter.Lens
 import PSL.Interpreter.Error
-import PSL.Interpreter.Access
+import PSL.Interpreter.Val
 
 interpPrinVar ∷ (STACK) ⇒ 𝕏 → IM PrinExpVal
 interpPrinVar x = do

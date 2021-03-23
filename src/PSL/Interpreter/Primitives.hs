@@ -75,6 +75,7 @@ interpPrim o vs = case (o,tohs vs) of
   (CondO   ,[BoolBV b,IntBV p₁ i₁,IntBV p₂ i₂])|p₁≡p₂→ return $ IntBV p₁ $ if b then i₁ else i₂
   (CondO   ,[BoolBV b,FltBV p₁ f₁,FltBV p₂ f₂])|p₁≡p₂→ return $ FltBV p₁ $ if b then f₁ else f₂
   (CondO   ,[BoolBV b,PrinBV p₁  ,PrinBV p₂  ])      → return $ PrinBV   $ if b then p₁ else p₂
+  (CondO   ,[BoolBV _,BulBV      ,BulBV      ])      → return $ BulBV
   (AbsO    ,[IntBV p i])                             → return $ NatBV p  $ zabs i
   (LogO    ,[FltBV p f])                             → return $ FltBV p  $ logBase 2.0 f
   (SqrtO   ,[FltBV p f])                             → return $ FltBV p  $ root f

@@ -75,13 +75,12 @@ class
     typeOf ∷ P p → ProtocolVal p → IM Type
     defaultOf ∷ P p → Type → IM (ProtocolVal p)
 
-    boolConst ∷ P p → 𝔹 → IM (ProtocolVal p)
-    natConst ∷ P p → IPrecision → ℕ → IM (ProtocolVal p)
-    intConst ∷ P p → IPrecision → ℤ → IM (ProtocolVal p)
-    fltConst ∷ P p → FPrecision → 𝔻 → IM (ProtocolVal p)
+    exeBool ∷ P p → 𝑂 (𝑃 PrinVal) → 𝔹 → IM (ProtocolVal p)
+    exeNat ∷ P p → 𝑂 (𝑃 PrinVal) → IPrecision → ℕ → IM (ProtocolVal p)
+    exeInt ∷ P p → 𝑂 (𝑃 PrinVal) → IPrecision → ℤ → IM (ProtocolVal p)
+    exeFlt ∷ P p → 𝑂 (𝑃 PrinVal) → FPrecision → 𝔻 → IM (ProtocolVal p)
+    exeUnk ∷ P p → 𝑃 PrinVal → Type → IM (ProtocolVal p)
 
-    boolInput ∷ P p → 𝑃 PrinVal → 𝔹 → IM (ProtocolVal p)
-    unkInput ∷ P p → 𝑃 PrinVal → τ → IM (ProtocolVal p)
     exePrim ∷ P p → Op → 𝐿 (ProtocolVal p) → IM (ProtocolVal p)
 
 -- Shares
