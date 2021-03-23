@@ -41,11 +41,11 @@ parseInputType ρ τ s = case τ of
     return $ (s' :*) $ BaseV $ BoolBV b
   ListT τ' → do
     vs ← mapM (snd ^∘ parseInputType ρ τ') $ list $ filter (≢ "") $ splitOn𝕊 "\n" s
-    return $ (null :*) $ foldrOnFrom vs NilV $ \ v₁ v₂ → ConsV (SSecVP (single ρ) v₁) $ SSecVP (single ρ) v₂
+    return $ (null :*) $ foldrOnFrom vs NilV $ \ v₁ v₂ → ConsV (SSecVP (SecM (single ρ)) v₁) $ SSecVP (SecM (single ρ)) v₂
   τ₁ :×: τ₂ → do
     s'  :* v₁ ← parseInputType ρ τ₁ s
     s'' :* v₂ ← parseInputType ρ τ₂ s'
-    return $ (s'' :*) $ PairV (SSecVP (single ρ) v₁) $ SSecVP (single ρ) v₂
+    return $ (s'' :*) $ PairV (SSecVP (SecM (single ρ)) v₁) $ SSecVP (SecM (single ρ)) v₂
   ℙT → do
     kinds ← askL iCxtDeclPrinsL
     s' :* l ← error𝑂

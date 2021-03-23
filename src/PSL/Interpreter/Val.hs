@@ -15,24 +15,26 @@ import qualified Prelude as HS
 
 withValP ∷ (STACK) ⇒ (Val → IM a) → (Prot → 𝑃 PrinVal → MPCVal → IM a) → ValP → IM a
 withValP kVal kMPCVal ṽ = do
-  m ← askL iCxtGlobalModeL
+  gm ← askL iCxtGlobalModeL
   case ṽ of
-    SSecVP ρvs v → do
-      guardErr (m ⊑ SecM ρvs) $ -- All the parties who are present must know the value
-        throwIErrorCxt TypeIError "withValP: SSecVP: m ⋢ SecM ρvs " $ frhs
-        [ ("m",pretty m)
-        , ("ρvs",pretty ρvs)
+    SSecVP m v → do
+      -- (1) All parties executing this code must have the value (gm ⊑ m)
+      guardErr (gm ⊑ m) $
+        throwIErrorCxt TypeIError "withValP: SSecVP: gm ⋢ m " $ frhs
+        [ ("gm",pretty gm)
+        , ("m",pretty m)
         ]
       kVal v
     ShareVP φ ρvs v̂ → do
-      guardErr (SecM ρvs ⊑ m) $ -- All shared parties must be present ... but missing here is that all the present parties must "know the value" (i.e. be one of the shared parties).
-        throwIErrorCxt TypeIError "withValP: SecM ρvs ⋢ m" $ frhs
-        [ ("ρvs", pretty ρvs)
-        , ("m", pretty m)
+      -- (1) All parties executing this code must have the value (gm ⊑ SecM ρvs) AND
+      -- (2) All parties that have the value (i.e. the parties amongst whom the value is shared) must be executing this code (SecM ρvs ⊑ gm)
+      guardErr (gm ≡ SecM ρvs) $
+        throwIErrorCxt TypeIError "withValP: gm ≢ SecM ρvs" $ frhs
+        [ ("gm", pretty gm)
+        , ("ρvs", pretty ρvs)
         ]
       kMPCVal φ ρvs v̂
-    AllVP v → kVal v
-    _ → throwIErrorCxt TypeIError "withValP: ṽ ∉ {SSecVP _ _,ShareVP _ _ _,AllVP _}" $ frhs
+    _ → throwIErrorCxt TypeIError "withValP: ṽ ∉ {SSecVP _ _,ShareVP _ _ _}" $ frhs
         [ ("ṽ",pretty ṽ) ]
 
 -- restrict the mode on a value to be no larger than execution mode
@@ -43,12 +45,12 @@ withValP kVal kMPCVal ṽ = do
 -- ‣ if current mode is {par:A,B} and value is {ssec:A,B,C}, this succeeds with value in {ssec:A,B}
 restrictValP ∷ (STACK) ⇒ ValP → IM ValP
 restrictValP ṽ = do
-  m ← askL iCxtGlobalModeL
-  case (m,ṽ) of
-    (SecM ρs₁, SSecVP ρs₂ v) → do
+  gm ← askL iCxtGlobalModeL
+  case (gm,ṽ) of
+    (SecM _ρs₁, SSecVP m v) → do
       v' ← recVal v
-      let ρs = ρs₁ ∩ ρs₂
-      return $ SSecVP ρs v'
+      let m' = gm ⊓ m
+      return $ SSecVP m' v'
     (SecM ρs, ISecVP ρvs) → do
       ρvs' ← mapM recVal (restrict ρs ρvs)
       return $ ISecVP ρvs'
@@ -58,32 +60,29 @@ restrictValP ṽ = do
                             , ("ρs₂",pretty ρs₂)
                             ])
       return $ ShareVP φ ρs₂ v
-    (SecM ρs, AllVP v) → do
-      v' ← recVal v
-      return $ SSecVP ρs v'
     (TopM,_) → return ṽ
     where recVal v = case v of
             BaseV _ → return v
-            LV ṽ → do
-              ṽ' ← restrictValP ṽ
-              return $ LV ṽ'
-            RV ṽ → do
-              ṽ' ← restrictValP ṽ
-              return $ RV ṽ'
+            LV ṽ' → do
+              ṽ'' ← restrictValP ṽ'
+              return $ LV ṽ''
+            RV ṽ' → do
+              ṽ'' ← restrictValP ṽ'
+              return $ RV ṽ''
             NilV → return v
             ConsV ṽ₁ ṽ₂ → do
-              ṽ₁ ← restrictValP ṽ₁
-              ṽ₂ ← restrictValP ṽ₂
-              return $ ConsV ṽ₁ ṽ₂
+              ṽ₁' ← restrictValP ṽ₁
+              ṽ₂' ← restrictValP ṽ₂
+              return $ ConsV ṽ₁' ṽ₂'
             CloV _ _ _ _  → return v
             TCloV _ _ _ → return v
             PrinSetV _ → return v
             LocV _ _ → return v
             ArrayV ṽs → ArrayV ∘ vec ^$ mapMOn (list ṽs) restrictValP
             PairV ṽ₁ ṽ₂ → do
-              ṽ₁ ← restrictValP ṽ₁
-              ṽ₂ ← restrictValP ṽ₂
-              return $ PairV ṽ₁ ṽ₂
+              ṽ₁' ← restrictValP ṽ₁
+              ṽ₂' ← restrictValP ṽ₂
+              return $ PairV ṽ₁' ṽ₂'
             UnknownV _ → return v
             DefaultV → return DefaultV
 
@@ -93,14 +92,12 @@ restrictValP ṽ = do
 
 introValP ∷ (STACK) ⇒ Val → IM ValP
 introValP v = do
-  m ← askL iCxtGlobalModeL
-  return $ case m of
-    SecM ρs → SSecVP ρs v
-    TopM → AllVP v
+  gm ← askL iCxtGlobalModeL
+  return $ SSecVP gm v
 
 elimValP ∷ (STACK) ⇒ ValP → IM Val
 elimValP = withValP return shareError
-  where shareError φ ρvs v̂ = throwIErrorCxt TypeIError "elimValP: ShareVP φ ρvs v̂ ∉ {SSecVP _ _, AllVP _}" $ frhs
+  where shareError φ ρvs v̂ = throwIErrorCxt TypeIError "elimValP: ShareVP φ ρvs v̂" $ frhs
                                 [ ("φ", pretty φ)
                                 , ("ρvs", pretty ρvs)
                                 , ("v̂", pretty v̂)
@@ -110,17 +107,17 @@ elimValP = withValP return shareError
 --- Share / Embed / Reveal ---
 ------------------------------
 
-shareValP ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → 𝑃 PrinVal → ValP → IM MPCVal
-shareValP p sp ρvsFrom ρvsTo₁ = withValP kShareVal kShareMPCVal
-  where kShareVal = shareVal p sp ρvsFrom ρvsTo₁ (shareValP p sp ρvsFrom ρvsTo₁)
-        kShareMPCVal φ ρvsTo₂ v̂ = throwIErrorCxt TypeIError "shareValP: ShareVP φ ρvsTo₂ v̂ cannot be shared." $ frhs
+shareValP ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → ValP → IM MPCVal
+shareValP p sp ρvsFrom = withValP kShareVal kShareMPCVal
+  where kShareVal              = shareVal p sp ρvsFrom (shareValP p sp ρvsFrom)
+        kShareMPCVal φ ρvsTo v̂ = throwIErrorCxt TypeIError "shareValP: ShareVP φ ρvsTo v̂ cannot be shared." $ frhs
                                   [ ("φ", pretty φ)
-                                  , ("ρvsTo₂", pretty ρvsTo₂)
+                                  , ("ρvsTo", pretty ρvsTo)
                                   , ("v̂", pretty v̂)
                                   ]
 
-shareVal ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → 𝑃 PrinVal → (ValP → IM MPCVal) → Val → IM MPCVal
-shareVal p sp ρvsFrom ρvsTo kValP = mpcValFrVal p sp kShareBaseV kShareUnknownV kValP
+shareVal ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → (ValP → IM MPCVal) → Val → IM MPCVal
+shareVal p sp ρvsFrom kValP = mpcValFrVal p sp kShareBaseV kShareUnknownV kValP
   where kShareBaseV    = mpcValFrBaseVal p sp (Some ρvsFrom)
         kShareUnknownV = shareUnknown p sp ρvsFrom
 

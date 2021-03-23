@@ -6,14 +6,12 @@ import PSL.Config
 import PSL.Parser
 import PSL.Syntax
 
-import PSL.Interpreter.Access
 import PSL.Interpreter.Json ()
 import PSL.Interpreter.Pretty ()
 import PSL.Interpreter.PrinExp
 import PSL.Interpreter.ReadType
 import PSL.Interpreter.Truncating
 import PSL.Interpreter.Types
-import PSL.Interpreter.Circuits
 import PSL.Interpreter.Val
 import PSL.Interpreter.Share
 import PSL.Interpreter.Lens
@@ -27,6 +25,15 @@ import qualified System.Random as R
 -- VERSION --
 -------------
 
+restrictMode ∷ (STACK) ⇒ Mode → IM a → IM a
+restrictMode m xM = do
+  gm ← askL iCxtGlobalModeL
+  let m' = gm ⊓ m
+  guardErr (m' ≢ SecM pø) (throwIErrorCxt TypeIError "gm ⊓ m ≡ ∅" $ frhs
+    [ ("gm",pretty gm)
+    , ("m",pretty m)
+    ])
+  localL iCxtGlobalModeL m' xM
 
 ---------------
 -- VARIABLES --
@@ -96,7 +103,7 @@ bindPatO ψ ṽ = case ψ of
     ρ :* v :* ρvs' ← abort𝑂 $ dminView ρvs
     ρv ← lift $ introValP $ BaseV $ PrinBV $ ValPEV ρ
     let f₁ = bindVar ρx ρv
-    f₂ ← bindPatO ψ₁ $ SSecVP (single ρ) v
+    f₂ ← bindPatO ψ₁ $ SSecVP (SecM (single ρ)) v
     f₃ ← bindPatO ψ₂ $ ISecVP ρvs'
     return $ f₃ ∘ f₂ ∘ f₁
   EmptySetP → do
@@ -200,14 +207,25 @@ wrapInterp ∷ (STACK) ⇒ (ExpR → IM ValP) → Exp → IM ValP
 wrapInterp f e = localL iCxtSourceL (Some $ annotatedTag e) $ f $ extract e
 
 modeCheckShare ∷ 𝑃 PrinVal → 𝑃 PrinVal → IM ()
-modeCheckShare ρvs₁ ρvs₂ = do
-  m ← askL iCxtGlobalModeL
-  guardErr (SecM (ρvs₁ ∪ ρvs₂) ≡ m) $
-    throwIErrorCxt TypeIError "interpExp: ShareE: ρvs₁ ∪ ρvs₂ ≢ m" $ frhs
-        [ ("ρvs₁",pretty ρvs₁)
-        , ("ρvs₂",pretty ρvs₂)
-        , ("m",pretty m)
-        ]
+modeCheckShare ρvsSharer ρvsSharees = do                           -- Formalism:
+  gm ← askL iCxtGlobalModeL                                        --   ρvsSharer = p, ρvsSharees = q, gm = m
+  let singleSharer    = count ρvsSharer ≡ 1                        --   |p| = 1
+  let shareesNonEmpty = ρvsSharees ≢ pø                            --   q ≠ ∅
+  let sharerAndShareesPresent = SecM (ρvsSharer ∪ ρvsSharees) ≡ gm --   p ∪ q = m
+  guardErr singleSharer $                                          --   p ⊆ p' is handled by shareValP (by way of withValP)
+    throwIErrorCxt TypeIError "modeCheckShare: count ρvsSharer ≢ 1" $ frhs
+    [ ("ρvsSharer",pretty ρvsSharer)
+    ]
+  guardErr shareesNonEmpty $
+    throwIErrorCxt TypeIError "modeCheckShare: ρvsSharees ≡ pø" $ frhs
+    [ ("ρvsSharees",pretty ρvsSharees)
+    ]
+  guardErr sharerAndShareesPresent $
+    throwIErrorCxt TypeIError "modeCheckShare: SecM (ρvsSharer ∪ ρvsSharees) ≢ gm" $ frhs
+    [ ("ρvsSharer", pretty ρvsSharer)
+    , ("ρvsSharees", pretty ρvsSharees)
+    , ("gm", pretty gm)
+    ]
 
 modeCheckReveal ∷ 𝑃 PrinVal → IM ()
 modeCheckReveal ρvs₂ = do
@@ -308,9 +326,8 @@ interpExp = wrapInterp $ \case
   ShareE φ ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
-    modeCheckShare ρvs₁ ρvs₂
     ṽ ← interpExp e
-    v̂ ← restrictMode (SecM ρvs₁) $ withProt φ $ \ p sp → shareValP p sp ρvs₁ ρvs₂ ṽ
+    v̂ ← restrictMode (SecM ρvs₁) $ withProt φ $ \ p sp → shareValP p sp ρvs₁ ṽ
     return $ ShareVP φ ρvs₂ v̂
   AccessE e ρ → do
     ρv ← interpPrinExpSingle ρ
@@ -322,16 +339,16 @@ interpExp = wrapInterp $ \case
                                          [ ("ρv",pretty ρv)
                                          , ("ρvs",pretty ρvs)
                                          ])
-    return $ SSecVP (single ρv) v
+    return $ SSecVP (SecM (single ρv)) v
   BundleE ρes → do
     ISecVP ^$ dict ^$ mapMOn (iter ρes) $ \ (ρ :* e) → do
       ρv ← interpPrinExpSingle ρ
       ṽ ← restrictMode (SecM $ single ρv) $ interpExp e
-      ρvs :* v ← error𝑂 (view sSecVPL ṽ) (throwIErrorCxt TypeIError "interpExp: BundleE: view sSecVPL ṽ ≡ None" $ frhs
+      m :* v ← error𝑂 (view sSecVPL ṽ) (throwIErrorCxt TypeIError "interpExp: BundleE: view sSecVPL ṽ ≡ None" $ frhs
                                          [ ("ṽ",pretty ṽ)
                                          ])
-      guardErr (ρvs ≡ single ρv) (throwIErrorCxt TypeIError "interpExp: BundleE: ρvs ≢ single ρv" $ frhs
-                                  [ ("ρvs",pretty ρvs)
+      guardErr (m ≡ SecM (single ρv)) (throwIErrorCxt TypeIError "interpExp: BundleE: m ≢ SecM (single ρv)" $ frhs
+                                  [ ("m",pretty m)
                                   , ("ρv",pretty ρv)
                                   ])
       return $ ρv ↦ v
@@ -344,7 +361,7 @@ interpExp = wrapInterp $ \case
         [ ("ṽ₁",pretty ṽ₁)
         , ("ṽ₂",pretty ṽ₂)
         ]
-  RevealE ρes e → do
+  RevealE ρes e → do -- add a 'from' annotation?
     ρvs ← prinExpValss *$ mapM interpPrinExp ρes
     modeCheckReveal ρvs
     ṽ ← interpExp e
@@ -355,8 +372,8 @@ interpExp = wrapInterp $ \case
     guardErr (count ρvs₁ ≡ 1) $
       throwIErrorCxt TypeIError "interpExp: SendE: size ρvs₁ ≠ 1" $ frhs
         [ ("ρvs₁",pretty ρvs₁) ]
-    m ← askL iCxtGlobalModeL
-    case m of
+    gm ← askL iCxtGlobalModeL
+    case gm of
       SecM ρs → guardErr (ρvs₂ ⊆ ρs) $
         throwIErrorCxt TypeIError "interpExp: SendE: ρvs ⊈ ρs" $ frhs
           [ ("ρvs₂",pretty ρvs₂)
@@ -365,9 +382,8 @@ interpExp = wrapInterp $ \case
       TopM → skip
     ṽ ← interpExp e
     case ṽ of
-      SSecVP ρs v | ρvs₁ ⊆ ρs → return $ SSecVP ρvs₂ v
-      AllVP v → return $ SSecVP ρvs₂ v
-      _ → throwIErrorCxt TypeIError "interpExp: SendE: ṽ ∉ {ShareVP _ _ _,SSecVP _ _}" $ frhs
+      SSecVP m v | (SecM ρvs₁) ⊑ m → return $ SSecVP (SecM ρvs₂) v
+      _ → throwIErrorCxt TypeIError "interpExp: SendE: ṽ ∉ {SSecVP _ _}" $ frhs
         [ ("ṽ",pretty ṽ)
         ]
   -- AscrE
@@ -394,7 +410,7 @@ interpExp = wrapInterp $ \case
     case (v,m) of
       (BaseV (StrBV fn),SecM ρs) | [ρ] ← tohs $ list ρs → do
         v' ← readType ρ τA fn
-        return $ SSecVP (single ρ) v'
+        return $ SSecVP (SecM (single ρ)) v'
       _ → throwIErrorCxt TypeIError "interpExp: ReadE: (v,m) ≠ (StrV _,SecM {_})" $ frhs
         [ ("v",pretty v)
         , ("m",pretty m)
@@ -561,9 +577,9 @@ asTLM xM = do
     let ds = itlStateDeclPrins ωtl
         -- princpal declarations as values
         γ' = dict $ mapOn (iter $ itlStateDeclPrins ωtl) $ \ (ρ :* κ) → case κ of
-          SinglePK → (var ρ ↦) $ AllVP $ BaseV $ PrinBV $ ValPEV $ SinglePV ρ
-          SetPK n → (var ρ ↦) $ AllVP $ BaseV $ PrinBV $ SetPEV n ρ
-          VirtualPK → (var ρ ↦) $ AllVP $ BaseV $ PrinBV $ case vps ⋕? ρ of
+          SinglePK → (var ρ ↦) $ SSecVP TopM $ BaseV $ PrinBV $ ValPEV $ SinglePV ρ
+          SetPK n → (var ρ ↦) $ SSecVP TopM $ BaseV $ PrinBV $ SetPEV n ρ
+          VirtualPK → (var ρ ↦) $ SSecVP TopM $ BaseV $ PrinBV $ case vps ⋕? ρ of
             Some ρv → PowPEV ρv
             None → ValPEV $ VirtualPV ρ
         -- top-level defs
@@ -722,7 +738,7 @@ interpretFileMain ∷ IParams → ITLState → 𝕊 → 𝕊 → IO (ValP ∧ �
 interpretFileMain θ ωtl name path = do
   ωtl' :* _ ← interpretFile θ ωtl name path
   let main = itlStateEnv ωtl' ⋕! var "main"
-  v ← evalITLMIO θ ωtl' name $ asTLM $ interpApp main $ AllVP $ BaseV BulBV
+  v ← evalITLMIO θ ωtl' name $ asTLM $ interpApp main $ SSecVP TopM $ BaseV BulBV
   let expectedO = itlStateEnv ωtl' ⋕? var "expected"
   return $ v :* expectedO
 

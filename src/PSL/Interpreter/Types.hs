@@ -39,10 +39,9 @@ data BaseVal =
 -- Distributed Values
 -- ṽ ∈ dist-val
 data ValP =
-    SSecVP (𝑃 PrinVal) Val            -- values which are the same on parties (not shares)
+    SSecVP Mode Val                   -- values which are the same on parties (not shares)
   | ISecVP (PrinVal ⇰ Val)            -- values which are different on parties (bundles, not shares)
   | ShareVP Prot (𝑃 PrinVal) MPCVal   -- shares
-  | AllVP Val                         -- special case, equivalent to SSecVP ⊤ Val
   deriving (Eq,Ord,Show)
 
 data UnShare =

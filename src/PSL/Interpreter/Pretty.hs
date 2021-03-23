@@ -166,20 +166,12 @@ instance Pretty BaseVal where
 
 asListVP ∷ ValP → 𝑂 (𝐿 ValP ∧ Mode)
 asListVP = \case
-  SSecVP ρs v → do
+  SSecVP m v → do
     ṽs :* mO ← asListV v
     case mO of
-      None → return $ ṽs :* SecM ρs
-      Some m → do
-        guard $ m ≡ SecM ρs
-        return $ ṽs :* m
-  AllVP v → do
-    ṽs :* mO ← asListV v
-    case mO of
-      None → return $ ṽs :* TopM
-      Some m → do
-        guard $ m ≡ TopM
-        return $ ṽs :* m
+      None → return $ ṽs :* m
+      Some m' → do
+        return $ ṽs :* m'
   _ → abort
 
 asListV ∷ Val → 𝑂 (𝐿 ValP ∧ 𝑂 Mode)
@@ -220,7 +212,6 @@ instance Pretty ValP where
              , ppPun "}"
              ]) $
          pretty mpcv
-     AllVP (v ∷ Val) → pretty v
 
 ppPreF ∷ (𝐼 Doc → Doc) → ℕ64 → Doc → Doc → Doc
 ppPreF f i oM xM = ppGA $ ppLevel i $ f $ map ppAlign $ iter [oM,xM]
