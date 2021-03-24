@@ -75,9 +75,9 @@ ppISecPSL ρvs =
 
 instance Pretty Prot where
   pretty = \case
-    Plain → ppBdr "plain"
-    YaoN_P → ppBdr "yaoN_P"
-    Yao2_P → ppBdr "yao2_P"
+    PlainP → ppBdr "plainP"
+    YaoNP → ppBdr "yaoNP"
+    Yao2P → ppBdr "yao2P"
     BGWP → ppBdr "bgw"
     GMWP → ppBdr "gmw"
     BGVP → ppBdr "bgv"
@@ -227,9 +227,14 @@ ppTight = ppGroup ∘ concat ∘ inbetween ppNewlineIfBreak ∘ iter
 
 instance Pretty (SProt p) where
   pretty = \case
-    SPlain  → ppLit "SPlain"
-    SYaoN_P → ppLit "SYaoN_P"
-    SYao2_P → ppLit "SYao2_P"
+    SPlainP → ppLit "SPlain"
+    SYaoNP  → ppLit "SYaoNP"
+    SYao2P  → ppLit "SYao2P"
+    SBGWP   → ppLit "SBGWP"
+    SGMWP   → ppLit "SGMWP"
+    SBGVP   → ppLit "SBGVP"
+    SSPDZP  → ppLit "SSPDZP"
+    SAutoP  → ppLit "SAutoP"
 
 instance Pretty Share where
   pretty = undefined

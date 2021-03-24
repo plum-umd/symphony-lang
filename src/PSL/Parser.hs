@@ -58,7 +58,7 @@ lexer = lexerBasic puns kws prim ops
       , "is-signed"
       ]
     prim = list
-      [ "yaoN","yao2","gmw","bgw","bgv","spdz","auto"
+      [ "plain","yaoN","yao2","gmw","bgw","bgv","spdz","auto"
       , "ssec","isec","bundle"
       , "☆","type"
       , "ℙ","prin"
@@ -391,13 +391,14 @@ pBool = concat
 
 pProt ∷ CParser TokenBasic Prot
 pProt = cpNewContext "prot" $ concat
-  [ do cpSyntax "yaoN" ; return YaoN_P
-  , do cpSyntax "yao2" ; return Yao2_P
-  , do cpSyntax "bgw"  ; return BGWP
-  , do cpSyntax "gmw"  ; return GMWP
-  , do cpSyntax "bgv"  ; return BGVP
-  , do cpSyntax "spdz" ; return SPDZP
-  , do cpSyntax "auto" ; return AutoP
+  [ do cpSyntax "plain" ; return PlainP
+  , do cpSyntax "yaoN"  ; return YaoNP
+  , do cpSyntax "yao2"  ; return Yao2P
+  , do cpSyntax "bgw"   ; return BGWP
+  , do cpSyntax "gmw"   ; return GMWP
+  , do cpSyntax "bgv"   ; return BGVP
+  , do cpSyntax "spdz"  ; return SPDZP
+  , do cpSyntax "auto"  ; return AutoP
   ]
 
 ---------

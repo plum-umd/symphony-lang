@@ -97,3 +97,17 @@ one𝑃L ∷ (Ord a) ⇒ 𝑃 a ⌲ a
 one𝑃L = prism constr destr
   where constr x = single x
         destr  p = map fst $ pmin p
+
+two𝐿L ∷ 𝐿 a ⌲ a ∧ a
+two𝐿L = prism constr destr
+  where constr (x :* y) = frhs [ x, y ]
+        destr = \case
+          x :& y :& Nil → Some $ x :* y
+          _ → None
+
+three𝐿L ∷ 𝐿 a ⌲ a ∧ a ∧ a
+three𝐿L = prism constr destr
+  where constr (x :* y :* z) = frhs [ x, y, z ]
+        destr = \case
+          x :& y :& z :& Nil → Some $ x :* y :* z
+          _ → None

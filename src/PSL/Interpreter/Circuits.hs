@@ -1,7 +1,6 @@
 module PSL.Interpreter.Circuits where
 
 import UVMHS
-import AddToUVMHS
 
 import PSL.Interpreter.Types
 import PSL.Interpreter.Pretty ()

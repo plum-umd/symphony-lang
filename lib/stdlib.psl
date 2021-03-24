@@ -1,6 +1,6 @@
 ---
 --- errors and exceptions
---- 
+---
 
 -- err msg: raise a runtime exception that prints msg
 def err msg = msg + 0
@@ -30,14 +30,14 @@ def uncurry f (a, b) = f a b
 
 ---
 --- Equality typeclass
---- 
+---
 
 -- eq: wrapper for equality
 def eq x y = x == y
 
---- 
+---
 --- Numeric typeclass
---- 
+---
 
 -- wrappers for the infix operators:
 def plus m n = m + n
@@ -50,7 +50,7 @@ def div m n = m / n
 
 def exp m n = m ^ n
 
--- square: 
+-- square:
 def square a = a * a
 
 -- max:
@@ -70,9 +70,9 @@ def max-muxable = max mux-wrap
 
 def min-muxable = min mux-wrap
 
---- 
+---
 --- bool library
---- 
+---
 
 -- and: wrapper for conjunction:
 def and b0 b1 = b0 && b1
@@ -98,7 +98,7 @@ def dec n = n - 1n
 def sec-dec n = mux if n == 0n then 0n else n - 1n
 
 -- elim_nat: elimination form for nats
-def elim_nat m z s = 
+def elim_nat m z s =
   if m == 0n then z
   else s (elim_nat (m - 1n) z s)
 
@@ -136,7 +136,7 @@ def if-then guard tc = if guard then tc else ()
 
 ---
 --- pair library
---- 
+---
 def pair x y = (x, y)
 
 
@@ -149,7 +149,7 @@ def snd x = case x { (_, b) -> b }
 
 ---
 --- bundle library
---- 
+---
 def solo-f : forall A:type. (P:prins) -> ((p:prin | {p} <= P) -> A{p}) -> A{bundle:P}
 def solo-f P f = case P
   { {} -> <<>>
@@ -195,7 +195,7 @@ def bundle-map f = fold-f
 
 ---
 --- list library
---- 
+---
 
 -- cons: wrapper for list constructor
 def cons : t -> list t -> list t
@@ -420,7 +420,7 @@ def mux_ls guard l0 l1 = zip-map (mux-wrap guard) l0 l1
 -- minus-lists l0 l1: vector subtraction over lists of numerics l0 and
 -- l1
 def minus-lists : point -> point -> point
-def minus-lists v0 v1 = zip-map minus v0 v1 
+def minus-lists v0 v1 = zip-map minus v0 v1
 
 -- mult-scalar-vec a v: scalar product of constant a and vector v
 def mult-scalar-vec a = map (mult a)
@@ -478,7 +478,7 @@ def get-gen muxer l i = snd
     (0n, _|_)
     (fun x (idx, elt) -> (inc idx, muxer (idx == i) x elt)) )
 
-def get = get-gen ite-wrap 
+def get = get-gen ite-wrap
 
 def sec-get = get-gen mux-wrap
 
@@ -492,7 +492,7 @@ def upd-gen muxer l i v = reverse (snd
 def sec-upd = upd-gen mux-wrap
 
 def upd = upd-gen ite-wrap
-    
+
 def swap-ls l i j =
   sec-upd (sec-upd l i (sec-get l j)) j (sec-get l i)
 
@@ -502,15 +502,11 @@ def tail-n l n = snd (zipper-n l n)
 
 def sub-list l start end = tail-n (head-n l end) (dec start)
 
--- wrap-reveal: wrapper around reveal syntax
-def wrap-reveal P x = reveal { P } x
-
-
 -- wrap-deref: wrapper around dereference syntax
 def wrap-deref r = !r
 
 def swap a i j =
-  a := swap-ls !a i j 
+  a := swap-ls !a i j
 
 def upd-if fp guard act =
   let vals = map wrap-deref fp in
@@ -527,10 +523,10 @@ def sec-iter fp lb ub n body =
 -- contents) from p0 to P1.
 
 -- TODO: can this and the following two functions be refactored?
-def send-ls p0 P1 l = 
+def send-ls p0 P1 l =
   case (send{ p0 -> P1 } l)
   { [] -> []
-  ; x :: l' -> x :: (send-ls p0 P1 l') 
+  ; x :: l' -> x :: (send-ls p0 P1 l')
   }
 
 
@@ -663,7 +659,7 @@ def update-list x n ls = case ls
 
 
 -- given a swap function for type a, build swap for bool * a
--- def tag-swap : (bool{P} -> a -> a -> a) 
+-- def tag-swap : (bool{P} -> a -> a -> a)
 --             -> (bool{P} -> bool{P} * a -> bool{P} * a -> bool{P} * a)
 def tag-swap swap =
   fun b x y ->
@@ -832,17 +828,6 @@ def share-as-vec knowers shareFlag shareContent default n xs =
 
 
 
--- def vec-reveal : (a{P} -> a) -> vec{P} a -> list a
-def vec-reveal revealContent vec =
-  let _, xs = vec
-  let revealed = map (fun cell ->
-    let t, x = cell
-    in reveal {this} t, revealContent x) xs
-  let filtered = filter (fun cell ->
-    let t, x = cell in t) revealed
-  in map snd filtered
-
-
 def content-fold f acc xs =
   case xs
   { [] -> acc
@@ -962,7 +947,7 @@ def map-has predicate map =
 def loop-f f n =
   if n == 0n
   then ()
-  else 
+  else
     do f ()
     in loop-f f (n - 1n)
 
@@ -1019,7 +1004,7 @@ def cont_seq m cv = cont_bind m (const cv)
 -- cont_seq': lift a raw value, then us it in a bind
 def cont-seq m v = cont_seq m (cont_return v)
 
--- if-then-ret guard tc: an if-then branch 
+-- if-then-ret guard tc: an if-then branch
 def if-then-ret guard tc = ((mux-wrap guard tc), ())
 
 -- iter_sec_nat muxer n bnd s rv: iterate bnd times, but return the
@@ -1105,9 +1090,8 @@ def zero-mat = const-sq-mat 0.0
 def to_flt x = flt x
 
 -- PKI library:
-def wrap-is-signed N x = is-signed { N } x 
+def wrap-is-signed N x = is-signed { N } x
 
 def wrap-sign P x = sign { P } x
 
 def wrap-unsign = id
-

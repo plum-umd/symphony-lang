@@ -150,9 +150,9 @@ type TVar = 𝕏
 
 -- φ ∈ protocol ⩴  …
 data Prot =
-    Plain  -- plaintext
-  | YaoN_P -- yao2
-  | Yao2_P -- yao
+    PlainP -- plaintext
+  | YaoNP  -- yao
+  | Yao2P  -- yao2
   | BGWP   -- bgw
   | GMWP   -- gmw
   | BGVP   -- bgv
@@ -162,9 +162,14 @@ data Prot =
 
 -- Singleton for Prot
 data SProt (p ∷ Prot) where
-  SPlain  ∷ SProt 'Plain
-  SYaoN_P ∷ SProt 'YaoN_P
-  SYao2_P ∷ SProt 'Yao2_P
+  SPlainP ∷ SProt 'PlainP
+  SYaoNP  ∷ SProt 'YaoNP
+  SYao2P  ∷ SProt 'Yao2P
+  SBGWP   ∷ SProt 'BGWP
+  SGMWP   ∷ SProt 'GMWP
+  SBGVP   ∷ SProt 'BGVP
+  SSPDZP  ∷ SProt 'SPDZP
+  SAutoP  ∷ SProt 'AutoP
 
 deriving instance Eq (SProt p)
 deriving instance Ord (SProt p)
@@ -172,22 +177,54 @@ deriving instance Show (SProt p)
 
 instance DEqable SProt where
   deq sp₁ sp₂ = case (sp₁, sp₂) of
-    (SPlain , SPlain ) → YesDEq
-    (SYaoN_P, SYaoN_P) → YesDEq
-    (SYao2_P, SYao2_P) → YesDEq
+    (SPlainP, SPlainP) → YesDEq
+    (SYaoNP , SYaoNP ) → YesDEq
+    (SYao2P , SYao2P ) → YesDEq
+    (SBGWP  , SBGWP  ) → YesDEq
+    (SGMWP  , SGMWP  ) → YesDEq
+    (SBGVP  , SBGVP  ) → YesDEq
+    (SSPDZP , SSPDZP ) → YesDEq
+    (SAutoP , SAutoP ) → YesDEq
     _ → NoDEq
 
 instance DCmpable SProt where
   dcmp sp₁ sp₂ = case (sp₁, sp₂) of
-    (SPlain , SPlain ) → EQDCmp
-    (SPlain , SYaoN_P) → LTDCmp
-    (SPlain , SYao2_P) → LTDCmp
-    (SYaoN_P, SPlain ) → GTDCmp
-    (SYaoN_P, SYaoN_P) → EQDCmp
-    (SYaoN_P, SYao2_P) → LTDCmp
-    (SYao2_P, SPlain ) → GTDCmp
-    (SYao2_P, SYaoN_P) → GTDCmp
-    (SYao2_P, SYao2_P) → EQDCmp
+    -- SPlain
+    (SPlainP, SPlainP) → EQDCmp
+    (SPlainP, _      ) → LTDCmp
+    -- SYaoNP
+    (SYaoNP , SPlainP) → GTDCmp
+    (SYaoNP , SYaoNP ) → EQDCmp
+    (SYaoNP , _      ) → LTDCmp
+    -- SYao2P
+    (SYao2P , SPlainP) → GTDCmp
+    (SYao2P , SYaoNP ) → GTDCmp
+    (SYao2P , SYao2P ) → EQDCmp
+    (SYao2P , _      ) → LTDCmp
+    -- SBGWP
+    (SBGWP  , SPlainP) → GTDCmp
+    (SBGWP  , SYaoNP ) → GTDCmp
+    (SBGWP  , SYao2P ) → GTDCmp
+    (SBGWP  , SBGWP  ) → EQDCmp
+    (SBGWP  , _      ) → LTDCmp
+    -- SGMWP
+    (SGMWP  , SAutoP ) → LTDCmp
+    (SGMWP  , SSPDZP ) → LTDCmp
+    (SGMWP  , SBGVP  ) → LTDCmp
+    (SGMWP  , SGMWP  ) → EQDCmp
+    (SGMWP  , _      ) → GTDCmp
+    -- SBGVP
+    (SBGVP  , SAutoP ) → LTDCmp
+    (SBGVP  , SSPDZP ) → LTDCmp
+    (SBGVP  , SBGVP  ) → EQDCmp
+    (SBGVP  , _      ) → GTDCmp
+    -- SSPDZP
+    (SSPDZP , SAutoP ) → LTDCmp
+    (SSPDZP , SSPDZP ) → EQDCmp
+    (SSPDZP , _      ) → GTDCmp
+    -- SAutoP
+    (SAutoP , SAutoP ) → EQDCmp
+    (SAutoP , _      ) → GTDCmp
 
 ---------------
 -- Precision --

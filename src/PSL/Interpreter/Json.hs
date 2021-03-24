@@ -46,14 +46,14 @@ getType = \case
 
 stringProtocol ∷ Prot → 𝕊
 stringProtocol = \case
-  Plain → "plain"
-  YaoN_P → "yaoN_P"
-  Yao2_P → "yao2_P"
-  BGWP  → "bgw"
-  GMWP  → "gmw"
-  BGVP  → "bgv"
-  SPDZP → "spdz"
-  AutoP → "auto"
+  PlainP → "plain"
+  YaoNP  → "yaoN_P"
+  Yao2P  → "yao2_P"
+  BGWP   → "bgw"
+  GMWP   → "gmw"
+  BGVP   → "bgv"
+  SPDZP  → "spdz"
+  AutoP  → "auto"
 
 jsonPrinVal ∷ PrinVal → 𝕊
 jsonPrinVal = \case

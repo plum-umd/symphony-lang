@@ -36,12 +36,19 @@ data BaseVal =
   | FltBV FPrecision 𝔻
   deriving (Eq,Ord,Show)
 
+typeOfBaseVal ∷ BaseVal → BaseType
+typeOfBaseVal = \case
+  BoolBV _b → 𝔹T
+  NatBV pr _n → ℕT pr
+  IntBV pr _i → ℤT pr
+  FltBV pr _f → 𝔽T pr
+
 -- Distributed Values
 -- ṽ ∈ dist-val
 data ValP =
-    SSecVP Mode Val                   -- values which are the same on parties (not shares)
-  | ISecVP (PrinVal ⇰ Val)            -- values which are different on parties (bundles, not shares)
-  | ShareVP Prot (𝑃 PrinVal) MPCVal   -- shares
+    SSecVP Mode Val                   -- Values
+  | ISecVP (PrinVal ⇰ Val)            -- Bundles
+  | ShareVP Prot (𝑃 PrinVal) MPCVal   -- MPC Values
   deriving (Eq,Ord,Show)
 
 data UnShare =
@@ -71,12 +78,10 @@ class
   Protocol p where
     type ProtocolVal p ∷ ★
 
-    typeOf ∷ P p → ProtocolVal p → IM BaseType
-
+    typeOf ∷ P p → ProtocolVal p → BaseType
     exeBaseVal ∷ P p → 𝑂 PrinVal → BaseVal → IM (ProtocolVal p)
     exeUnk ∷ P p → PrinVal → BaseType → IM (ProtocolVal p)
     exePrim ∷ P p → Op → 𝐿 (ProtocolVal p) → IM (ProtocolVal p)
-
     reveal ∷ P p → 𝑃 PrinVal → ProtocolVal p → IM BaseVal
 
 -- Shares

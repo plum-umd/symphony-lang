@@ -204,6 +204,13 @@ interpApp ṽ₁ ṽ₂ = do
 -- EXPRESSIONS --
 -----------------
 
+-- If all parties who know the value are locally present, don't bother with MPC
+sequentialSwitch ∷ Prot → IM Prot
+sequentialSwitch φ = do
+  gm ← askL iCxtGlobalModeL
+  lm ← askL iCxtLocalModeL
+  return $ if gm ⊑ lm then PlainP else φ
+
 wrapInterp ∷ (STACK) ⇒ (ExpR → IM ValP) → Exp → IM ValP
 wrapInterp f e = localL iCxtSourceL (Some $ annotatedTag e) $ f $ extract e
 
@@ -336,9 +343,10 @@ interpExp = wrapInterp $ \case
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
     modeCheckShare ρvs₁ ρvs₂
     ρv₁ ← fromSome (view one𝑃L ρvs₁)
+    φ' ← sequentialSwitch φ
     ṽ ← interpExp e
-    v̂ ← restrictMode (SecM ρvs₁) $ withProt φ $ \ p sp → shareValP p sp ρv₁ ṽ
-    return $ ShareVP φ ρvs₂ v̂
+    v̂ ← restrictMode (SecM ρvs₁) $ withProt φ' $ \ p sp → shareValP p sp ρv₁ ṽ
+    return $ ShareVP φ' ρvs₂ v̂
   AccessE e ρ → do
     ρv ← interpPrinExpSingle ρ
     ṽ ← interpExp e
@@ -375,8 +383,9 @@ interpExp = wrapInterp $ \case
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
     modeCheckReveal ρvs₁ ρvs₂
+    φ' ← sequentialSwitch φ
     ṽ ← interpExp e
-    v ← restrictMode (SecM ρvs₁) $ withProt φ $ \ p sp → revealValP p sp ρvs₁ ρvs₂ ṽ
+    v ← restrictMode (SecM ρvs₁) $ withProt φ' $ \ p sp → revealValP p sp ρvs₁ ρvs₂ ṽ
     return $ SSecVP (SecM ρvs₂) v
   SendE ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
