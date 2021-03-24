@@ -29,5 +29,8 @@ error𝑂 e er = case e of
   Some x → return x
   None → er
 
-impossible ∷ IM a
+fromSome ∷ (Monad m,MonadReader ICxt m,MonadError IError m) ⇒ 𝑂 a → m a
+fromSome x = error𝑂 x impossible
+
+impossible ∷ (Monad m,MonadReader ICxt m,MonadError IError m,STACK) ⇒ m a
 impossible = throwIErrorCxt InternalIError "Impossible." empty𝐿

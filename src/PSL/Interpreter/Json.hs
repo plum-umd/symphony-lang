@@ -25,18 +25,18 @@ fprecisionSuffix (FixedFPr n₁ n₂) = concat ["#",show𝕊 n₁,".",show𝕊 n
 getType ∷ Val → 𝕊
 getType = \case
   BaseV (BoolBV _) → "bool"
-  BaseV (StrBV _) → "string"
   BaseV (NatBV p _) → "nat"⧺iprecisionSuffix p
   BaseV (IntBV p _) → "int"⧺iprecisionSuffix p
   BaseV (FltBV p _) → "flt"⧺fprecisionSuffix p
-  BaseV BulBV → "bul"
+  StrV _ → "string"
+  BulV → "bul"
   LV _ → "left"
   RV _ → "right"
   NilV → "list"
   ConsV _ _ → "list"
   CloV _ _ _ _ → "clo"
   TCloV _ _ _ → "tclo"
-  BaseV (PrinBV _) → "prin"
+  PrinV _ → "prin"
   PrinSetV _ → "prinset"
   LocV _ _ → "loc"
   ArrayV _ → "array"

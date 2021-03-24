@@ -11,8 +11,8 @@ import PSL.Interpreter.Error
 
 import AddToUVMHS
 
-primType ∷ (STACK) ⇒ Op → 𝐿 Type → IM Type
-primType op τs = case (op, tohs τs) of
+primType ∷ (STACK) ⇒ Op → 𝐿 BaseType → IM BaseType
+primType op bτs = case (op, tohs bτs) of
   (OrO, [𝔹T, 𝔹T]) → return 𝔹T
   (PlusO, [ℕT pr₁, ℕT pr₂]) | pr₁ ≡ pr₂ → return $ ℕT pr₁
   (PlusO, [ℤT pr₁, ℤT pr₂]) | pr₁ ≡ pr₂ → return $ ℤT pr₁
@@ -20,7 +20,7 @@ primType op τs = case (op, tohs τs) of
   (CondO, [𝔹T, ℤT pr₁, ℤT pr₂]) | pr₁ ≡ pr₂ → return $ ℤT pr₁
   _ → throwIErrorCxt NotImplementedIError "primType" $ frhs
     [ ("op", pretty op)
-    , ("τs", pretty τs)
+    , ("bτs", pretty bτs)
     ]
 
 interpPrim ∷ (STACK) ⇒ Op → 𝐿 BaseVal → IM BaseVal
@@ -35,10 +35,6 @@ interpPrim o vs = case (o,tohs vs) of
   (PlusO   ,[NatBV p₁ n₁,NatBV p₂ n₂])          |p₁≡p₂→ return $ NatBV p₁ $ trPrNat p₁ $ n₁ + n₂
   (PlusO   ,[IntBV p₁ i₁,IntBV p₂ i₂])         |p₁≡p₂→ return $ IntBV p₁ $ trPrInt p₁ $ i₁ + i₂
   (PlusO   ,[FltBV p₁ f₁,FltBV p₂ f₂])         |p₁≡p₂→ return $ FltBV p₁ $ f₁ + f₂
-  (PlusO   ,[PrinBV (ValPEV ρv₁)  ,PrinBV (ValPEV ρv₂)  ])               → case (AddBTD ρv₁) ⊔ (AddBTD ρv₂) of
-                                                                                    BotBTD → impossible
-                                                                                    AddBTD ρv → return $ PrinBV $ ValPEV ρv
-                                                                                    TopBTD → return $ BulBV
   (MinusO  ,[NatBV p₁ n₁,NatBV p₂ n₂])         |p₁≡p₂→ return $ NatBV p₁ $ trPrNat p₁ $ buPrNat p₁ n₁ - n₂
   (MinusO  ,[IntBV p₁ i₁,IntBV p₂ i₂])         |p₁≡p₂→ return $ IntBV p₁ $ trPrInt p₁ $ i₁ - i₂
   (MinusO  ,[FltBV p₁ f₁,FltBV p₂ f₂])         |p₁≡p₂→ return $ FltBV p₁ $ f₁ - f₂
@@ -57,7 +53,6 @@ interpPrim o vs = case (o,tohs vs) of
   (EqO     ,[NatBV p₁ n₁,NatBV p₂ n₂])         |p₁≡p₂→ return $ BoolBV   $ n₁ ≡ n₂
   (EqO     ,[IntBV p₁ i₁,IntBV p₂ i₂])         |p₁≡p₂→ return $ BoolBV   $ i₁ ≡ i₂
   (EqO     ,[FltBV p₁ f₁,FltBV p₂ f₂])         |p₁≡p₂→ return $ BoolBV   $ f₁ ≡ f₂
-  (EqO     ,[PrinBV ρev₁,PrinBV ρev₂])               → return $ BoolBV   $ ρev₁ ≡ ρev₂
   (LTO     ,[NatBV p₁ n₁,NatBV p₂ n₂])         |p₁≡p₂→ return $ BoolBV   $ n₁ < n₂
   (LTO     ,[IntBV p₁ i₁,IntBV p₂ i₂])         |p₁≡p₂→ return $ BoolBV   $ i₁ < i₂
   (LTO     ,[FltBV p₁ f₁,FltBV p₂ f₂])         |p₁≡p₂→ return $ BoolBV   $ f₁ < f₂
@@ -74,8 +69,6 @@ interpPrim o vs = case (o,tohs vs) of
   (CondO   ,[BoolBV b,NatBV p₁ n₁,NatBV p₂ n₂])|p₁≡p₂→ return $ NatBV p₁ $ if b then n₁ else n₂
   (CondO   ,[BoolBV b,IntBV p₁ i₁,IntBV p₂ i₂])|p₁≡p₂→ return $ IntBV p₁ $ if b then i₁ else i₂
   (CondO   ,[BoolBV b,FltBV p₁ f₁,FltBV p₂ f₂])|p₁≡p₂→ return $ FltBV p₁ $ if b then f₁ else f₂
-  (CondO   ,[BoolBV b,PrinBV p₁  ,PrinBV p₂  ])      → return $ PrinBV   $ if b then p₁ else p₂
-  (CondO   ,[BoolBV _,BulBV      ,BulBV      ])      → return $ BulBV
   (AbsO    ,[IntBV p i])                             → return $ NatBV p  $ zabs i
   (LogO    ,[FltBV p f])                             → return $ FltBV p  $ logBase 2.0 f
   (SqrtO   ,[FltBV p f])                             → return $ FltBV p  $ root f

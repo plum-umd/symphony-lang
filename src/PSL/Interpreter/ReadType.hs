@@ -27,15 +27,15 @@ prinDataPath = \case
 
 parseInputType ∷ (STACK) ⇒ PrinVal → Type → 𝕊 → IM (𝕊 ∧ Val)
 parseInputType ρ τ s = case τ of
-  ℤT pr → do
+  BaseT (ℤT pr) → do
     s' :* i ← error𝑂 (primRead @ ℤ s) $
       throwIErrorCxt TypeIError "parseInputType: ℤT: could not parse" null
     return $ (s' :*) $ BaseV $ IntBV pr $ trPrInt pr i
-  𝔽T pr → do
+  BaseT (𝔽T pr) → do
     s' :* d ← error𝑂 (primRead @ 𝔻 s) $
       throwIErrorCxt TypeIError "parseInputType: 𝔻T: could not parse" null
     return $ (s' :*) $ BaseV $ FltBV pr d
-  𝔹T → do
+  BaseT 𝔹T → do
     s' :* b ← error𝑂 (primRead @ 𝔹 s) $
       throwIErrorCxt TypeIError "parseInputType: 𝔹T: could not parse" null
     return $ (s' :*) $ BaseV $ BoolBV b
@@ -54,7 +54,7 @@ parseInputType ρ τ s = case τ of
          _ → None
       ) $
       throwIErrorCxt TypeIError "parseInputType: ℙT: could not parse" null
-    (s' :*) ∘ BaseV ∘ PrinBV ^$ case tohs $ list $ splitOn𝕊 "_" l of
+    (s' :*) ∘ PrinV ^$ case tohs $ list $ splitOn𝕊 "_" l of
       [ρ'] → case kinds ⋕? ρ' of
         Some ρv → return $ case ρv of
           SinglePK → ValPEV $ SinglePV ρ'
@@ -99,22 +99,16 @@ readType ρ τA fn = do
     else return $ concat ["data-input/",ppath]
   snd ^$ parseInputType ρ τA *$ io $ fread path
 
-serializeBaseVal ∷ BaseVal → IM (𝐼 𝕊)
+serializeBaseVal ∷ BaseVal → 𝐼 𝕊
 serializeBaseVal = \case
-  BoolBV b → return $ single $ show𝕊 b
-  NatBV _ n → return $ single $ show𝕊 n
-  IntBV _ i → return $ single $ show𝕊 i
-  FltBV _ d → return $ single $ show𝕊 d
-  PrinBV (ValPEV ρv) → case ρv of
-    SinglePV ρ → return $ single ρ
-    AccessPV ρ n → return $ single $ concat [ρ,".",show𝕊 n]
-    VirtualPV ρ → return $ single ρ
-  bv → throwIErrorCxt NotImplementedIError "serializeBaseVal" $ frhs
-    [ ("bv", pretty bv) ]
+  BoolBV b → single $ show𝕊 b
+  NatBV _ n → single $ show𝕊 n
+  IntBV _ i → single $ show𝕊 i
+  FltBV _ d → single $ show𝕊 d
 
 serializeVal ∷ Val → IM (𝐼 𝕊)
 serializeVal = \case
-  BaseV bv → serializeBaseVal bv
+  BaseV bv → return $ serializeBaseVal bv
   PairV ṽ₁ ṽ₂ → do
     v₁ ← elimValP ṽ₁
     v₂ ← elimValP ṽ₂
@@ -128,6 +122,10 @@ serializeVal = \case
     s₂ ← serializeVal v₂
     return $ concat [s₁,single "\n",s₂]
   NilV → return null
+  PrinV (ValPEV ρv) → case ρv of
+    SinglePV ρ → return $ single ρ
+    AccessPV ρ n → return $ single $ concat [ρ,".",show𝕊 n]
+    VirtualPV ρ → return $ single ρ
   v → throwIErrorCxt NotImplementedIError "serializeVal" $ frhs
     [ ("v", pretty v) ]
 

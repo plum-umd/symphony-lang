@@ -12,6 +12,8 @@ import PSL.Syntax
 -- v ∈ val
 data Val =
     BaseV BaseVal
+  | StrV 𝕊
+  | BulV
   | PairV ValP ValP
   | LV ValP
   | RV ValP
@@ -19,6 +21,7 @@ data Val =
   | ConsV ValP ValP
   | CloV (𝑂 Var) Pat Exp Env
   | TCloV TVar Exp Env
+  | PrinV PrinExpVal
   | PrinSetV (𝑃 PrinVal)
   | LocV Mode ℤ64
   | ArrayV (𝕍 ValP)
@@ -28,12 +31,9 @@ data Val =
 
 data BaseVal =
     BoolBV 𝔹
-  | StrBV 𝕊
   | NatBV IPrecision ℕ
   | IntBV IPrecision ℤ
   | FltBV FPrecision 𝔻
-  | BulBV
-  | PrinBV PrinExpVal
   deriving (Eq,Ord,Show)
 
 -- Distributed Values
@@ -71,16 +71,13 @@ class
   Protocol p where
     type ProtocolVal p ∷ ★
 
-    typeOf ∷ P p → ProtocolVal p → IM Type
-    defaultOf ∷ P p → Type → IM (ProtocolVal p)
+    typeOf ∷ P p → ProtocolVal p → IM BaseType
 
-    exeBool ∷ P p → 𝑂 (𝑃 PrinVal) → 𝔹 → IM (ProtocolVal p)
-    exeNat ∷ P p → 𝑂 (𝑃 PrinVal) → IPrecision → ℕ → IM (ProtocolVal p)
-    exeInt ∷ P p → 𝑂 (𝑃 PrinVal) → IPrecision → ℤ → IM (ProtocolVal p)
-    exeFlt ∷ P p → 𝑂 (𝑃 PrinVal) → FPrecision → 𝔻 → IM (ProtocolVal p)
-    exeUnk ∷ P p → 𝑃 PrinVal → Type → IM (ProtocolVal p)
-
+    exeBaseVal ∷ P p → 𝑂 PrinVal → BaseVal → IM (ProtocolVal p)
+    exeUnk ∷ P p → PrinVal → BaseType → IM (ProtocolVal p)
     exePrim ∷ P p → Op → 𝐿 (ProtocolVal p) → IM (ProtocolVal p)
+
+    reveal ∷ P p → 𝑃 PrinVal → ProtocolVal p → IM BaseVal
 
 -- Shares
 -- sh ∈ share
@@ -125,7 +122,7 @@ data Ckt = Ckt
 
 data Input =
     AvailableI BaseGate
-  | UnavailableI Type
+  | UnavailableI BaseType
   deriving (Eq,Ord,Show)
 
 data Gate =
@@ -139,7 +136,6 @@ data BaseGate =
   | NatBG IPrecision ℕ
   | IntBG IPrecision ℤ
   | FltBG FPrecision 𝔻
-  | PrinBG (AddBTD PrinVal)
   deriving (Eq,Ord,Show)
 
 type Wire = ℕ64

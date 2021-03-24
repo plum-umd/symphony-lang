@@ -262,7 +262,7 @@ pType = cpNewContext "type" $ mixfix $ concat
   -- 𝟙
   , mixTerminal $ do concat [cpSyntax "𝟙",cpSyntax "unit"] ; return UnitT
   -- 𝔹
-  , mixTerminal $ do concat [cpSyntax "𝔹",cpSyntax "bool"] ; return 𝔹T
+  , mixTerminal $ do concat [cpSyntax "𝔹",cpSyntax "bool"] ; return $ BaseT 𝔹T
   -- 𝕊
   , mixTerminal $ do concat [cpSyntax "𝕊",cpSyntax "string"] ; return 𝕊T
   -- ℙ
@@ -273,17 +273,17 @@ pType = cpNewContext "type" $ mixfix $ concat
   , mixTerminal $ do
       concat [cpSyntax "ℕ",cpSyntax "nat"]
       pr ← pIPrecision
-      return $ ℕT pr
+      return $ BaseT $ ℕT pr
   -- ℤ#n.n
   , mixTerminal $ do
       concat [cpSyntax "ℤ",cpSyntax "int"]
       pr ← pIPrecision
-      return $ ℤT pr
+      return $ BaseT $ ℤT pr
   -- 𝔽#n
   , mixTerminal $ do
       concat [cpSyntax "𝔽",cpSyntax "flt"]
       pr ← pFPrecision
-      return $ 𝔽T pr
+      return $ BaseT $ 𝔽T pr
   -- τ + τ
   , mixInfixL levelPLUS $ do concat [cpSyntax "+"] ; return (:+:)
   -- τ × τ
@@ -615,12 +615,16 @@ pExp = fmixfixWithContext "exp" $ concat
   -- e⧺e
   , fmixInfixL levelPLUS $ do concat [cpSyntax "⧺",cpSyntax "++"] ; return BundleUnionE
   -- reveal{P→P} e
-  , fmixPrefix levelREVEAL $ do
+  , fmixPrefix levelAPP $ do
       cpSyntax "reveal"
       cpSyntax "{"
-      ρes ← pPrinExps
+      φ ← pProt
+      cpSyntax ":"
+      ρes₁ ← pPrinExps
+      concat [cpSyntax "→",cpSyntax "->"]
+      ρes₂ ← pPrinExps
       cpSyntax "}"
-      return $ RevealE ρes
+      return $ RevealE φ ρes₁ ρes₂
   -- send{P→P} e
   , fmixPrefix levelAPP $ do
       cpSyntax "send"

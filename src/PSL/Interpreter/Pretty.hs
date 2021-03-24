@@ -126,6 +126,8 @@ instance Pretty Mode where
 instance Pretty Val where
   pretty = \case
     BaseV bv → pretty bv
+    StrV s → pretty s
+    BulV → ppCon "•"
     LV v → ppApp (ppCon "L") [pretty v]
     RV v → ppApp (ppCon "R") [pretty v]
     NilV → ppCon "[]"
@@ -147,6 +149,7 @@ instance Pretty Val where
       --          , pretty ξ
       --          ]) $
       --       pretty e
+    PrinV ρe → pretty ρe
     PrinSetV ρs → pretty ρs
     LocV m ℓ → ppApp (ppCon "loc") [pretty m,pretty ℓ]
     ArrayV ṽs → ppArrayPSL ṽs
@@ -157,12 +160,9 @@ instance Pretty Val where
 instance Pretty BaseVal where
   pretty = \case
     BoolBV b → ppBoolPSL b
-    StrBV s → pretty s
     NatBV p n → ppNatPSL p n
     IntBV p i → ppIntPSL p i
     FltBV p d → ppFltPSL p d
-    BulBV → ppCon "•"
-    PrinBV ρe → pretty ρe
 
 asListVP ∷ ValP → 𝑂 (𝐿 ValP ∧ Mode)
 asListVP = \case

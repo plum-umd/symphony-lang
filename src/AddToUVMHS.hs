@@ -92,3 +92,8 @@ mapM𝐷 f d = mapM (mapM f) (iter d) ≫= return ∘ dict𝐼
 
 instance Ord k ⇒ FunctorM ((⇰) k) where
   mapM = mapM𝐷
+
+one𝑃L ∷ (Ord a) ⇒ 𝑃 a ⌲ a
+one𝑃L = prism constr destr
+  where constr x = single x
+        destr  p = map fst $ pmin p

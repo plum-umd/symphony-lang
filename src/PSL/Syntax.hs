@@ -212,17 +212,23 @@ fprDefault = FixedFPr 11 53
 -- Type --
 ----------
 
--- τ ∈ type ⩴  …
-data Type =
-    VarT TVar                                   --  α                          /  α
-  | UnitT                                       --  𝟙                          /  unit
-  | 𝔹T                                          --  𝔹                          /  bool
-  | 𝕊T                                          --  𝕊                          /  string
-  | ℙT                                          --  ℙ                          /  prin
-  | ℙsT                                         --  ℙs                         /  prins
+-- bτ ∈ base-type
+data BaseType =
+    𝔹T                                          --  𝔹                          /  bool
   | ℕT IPrecision                               --  ℕ#n.n                      /  nat#n.n
   | ℤT IPrecision                               --  ℤ#n.n                      /  int#n.n
   | 𝔽T FPrecision                               --  𝔽#n                        /  float#n
+  deriving (Eq,Ord,Show)
+makePrettySum ''BaseType
+
+-- τ ∈ type ⩴  …
+data Type =
+    VarT TVar                                   --  α                          /  α
+  | BaseT BaseType
+  | UnitT                                       --  𝟙                          /  unit
+  | 𝕊T                                          --  𝕊                          /  string
+  | ℙT                                          --  ℙ                          /  prin
+  | ℙsT                                         --  ℙs                         /  prins
   | Type :+: Type                               --  τ + τ                      /  τ + τ
   | Type :×: Type                               --  τ × τ                      /  τ * τ
   | ListT Type                                  --  list τ                     /  list τ
@@ -336,7 +342,7 @@ data ExpR =
   | AccessE Exp PrinExp                      -- e@ρ                     /  e@ρ
   | BundleE (𝐿 (PrinExp ∧ Exp))              -- ⟪ρ|e;…;ρ|e⟫             /  <<ρ|e;…;ρ|e>>
   | BundleUnionE Exp Exp                     -- e⧺e                     /  e++e
-  | RevealE (𝐿 PrinExp) Exp                  -- reveal {P} e            /  reveal{P} e
+  | RevealE Prot (𝐿 PrinExp) (𝐿 PrinExp) Exp -- reveal{φ:P→P} e            /  reveal{φ:P→P} e
   | SendE (𝐿 PrinExp) (𝐿 PrinExp) Exp        -- send {P→P} e            /  send{P->P} e
   | AscrE Exp Type                           -- e:τ                     /  e:τ
   | ReadE Type Exp                           -- read τ e                /  read τ e

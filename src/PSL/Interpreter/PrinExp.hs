@@ -15,10 +15,10 @@ interpPrinVar x = do
     Some ṽ → do
       v ← elimValP ṽ
       case v of
-        BaseV (PrinBV ρev) → return ρev
+        PrinV ρev → return ρev
         PrinSetV ρvs → return $ PowPEV ρvs
         _ → do
-          throwIErrorCxt TypeIError "interpPrinVar: v ≢ BaseV (PrinBV _)" $ frhs
+          throwIErrorCxt TypeIError "interpPrinVar: v ≢ PrinV _" $ frhs
             [ ("v",pretty v)
             , ("γ #? x",pretty (γ ⋕? x))
             ]

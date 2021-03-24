@@ -10,20 +10,19 @@ import PSL.Interpreter.Error
 import PSL.Interpreter.Primitives
 import PSL.Syntax
 
-baseGateType ∷ BaseGate → Type
+baseGateType ∷ BaseGate → BaseType
 baseGateType bg = case bg of
   BoolBG   _ → 𝔹T
   NatBG pr _ → ℕT pr
   IntBG pr _ → ℤT pr
   FltBG pr _ → 𝔽T pr
-  PrinBG   _ → ℙT
 
-inputType ∷ Input → Type
+inputType ∷ Input → BaseType
 inputType i = case i of
   AvailableI bg → baseGateType bg
-  UnavailableI τ → τ
+  UnavailableI bτ → bτ
 
-wireType ∷ (STACK) ⇒ Ckt → Wire → IM Type
+wireType ∷ (STACK) ⇒ Ckt → Wire → IM BaseType
 wireType ckt w = do
   let gates = access gatesCL ckt
   g ← error𝑂 (gates ⋕? w) (throwIErrorCxt InternalIError "wireType: gates ⋕? w ≡ None" $ frhs
@@ -37,22 +36,18 @@ wireType ckt w = do
       gτs ← mapMOn ws $ wireType ckt
       primType op gτs
 
-cktType ∷ (STACK) ⇒ Ckt → IM Type
+cktType ∷ (STACK) ⇒ Ckt → IM BaseType
 cktType ckt = do
   let output = access outCL ckt
   wireType ckt output
 
-defaultCkt ∷ (STACK) ⇒ Type → IM Ckt
-defaultCkt τ = do
-  bg ← case τ of
+defaultCkt ∷ (STACK) ⇒ BaseType → IM Ckt
+defaultCkt bτ = do
+  bg ← case bτ of
          𝔹T    → return $ BoolBG False
          ℕT pr → return $ NatBG pr zero
          ℤT pr → return $ IntBG pr zero
          𝔽T pr → return $ FltBG pr zero
-         ℙT    → return $ PrinBG BotBTD
-         _     → throwIErrorCxt NotImplementedIError "defaultCkt" $ frhs
-                 [ ("τ", pretty τ)
-                 ]
   baseCkt bg
 
 mkCkt ∷ (STACK) ⇒ Gate → IM Ckt
@@ -104,12 +99,6 @@ fltCkt pr f = baseCkt (FltBG pr f)
 
 fltInputCkt ∷ (STACK) ⇒ 𝑃 PrinVal → FPrecision → 𝔻 → IM Ckt
 fltInputCkt ρvs pr f = inputCkt ρvs (AvailableI $ FltBG pr f)
-
-prinCkt ∷ (STACK) ⇒ AddBTD PrinVal → IM Ckt
-prinCkt btd = baseCkt (PrinBG btd)
-
-prinInputCkt ∷ (STACK) ⇒ 𝑃 PrinVal → AddBTD PrinVal → IM Ckt
-prinInputCkt ρvs btd = inputCkt ρvs (AvailableI $ PrinBG btd)
 
 primCkt ∷ (STACK) ⇒ Op → 𝐿 Ckt → IM Ckt
 primCkt op cs = do

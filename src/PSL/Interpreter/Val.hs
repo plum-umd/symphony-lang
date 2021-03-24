@@ -107,31 +107,31 @@ elimValP = withValP return shareError
 --- Share / Embed / Reveal ---
 ------------------------------
 
-shareValP ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → ValP → IM MPCVal
-shareValP p sp ρvsFrom = withValP kShareVal kShareMPCVal
-  where kShareVal              = shareVal p sp ρvsFrom (shareValP p sp ρvsFrom)
-        kShareMPCVal φ ρvsTo v̂ = throwIErrorCxt TypeIError "shareValP: ShareVP φ ρvsTo v̂ cannot be shared." $ frhs
-                                  [ ("φ", pretty φ)
-                                  , ("ρvsTo", pretty ρvsTo)
-                                  , ("v̂", pretty v̂)
-                                  ]
+shareValP ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → PrinVal → ValP → IM MPCVal
+shareValP p sp ρvSharer = withValP kShareVal kShareMPCVal
+  where kShareVal                    = shareVal p sp ρvSharer (shareValP p sp ρvSharer)
+        kShareMPCVal φ ρvsShareees v̂ = throwIErrorCxt NotImplementedIError "shareValP: sharing (ShareVP φ ρvsShareees v̂) unimplemented" $ frhs
+                                 [ ("φ", pretty φ)
+                                 , ("ρvsShareees", pretty ρvsShareees)
+                                 , ("v̂", pretty v̂)
+                                 ]
 
-shareVal ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → (ValP → IM MPCVal) → Val → IM MPCVal
-shareVal p sp ρvsFrom kValP = mpcValFrVal p sp kShareBaseV kShareUnknownV kValP
-  where kShareBaseV    = mpcValFrBaseVal p sp (Some ρvsFrom)
-        kShareUnknownV = shareUnknown p sp ρvsFrom
+shareVal ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → PrinVal → (ValP → IM MPCVal) → Val → IM MPCVal
+shareVal p sp ρvSharer kValP = mpcValFrVal p sp kShareBaseV kShareUnknownV kValP
+  where kShareBaseV    = mpcValFrBaseVal p sp (Some ρvSharer)
+        kShareUnknownV = shareUnknown p sp ρvSharer
 
-shareUnknown ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → Type → IM MPCVal
-shareUnknown p sp ρvsFrom = \case
-  τ | base τ → do
-        pv ← exeUnk p ρvsFrom τ
-        return $ BaseMV $ Share sp pv
+shareUnknown ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → PrinVal → Type → IM MPCVal
+shareUnknown p sp ρvSharer = \case
+  BaseT bτ → do
+    pv ← exeUnk p ρvSharer bτ
+    return $ BaseMV $ Share sp pv
   τ₁ :×: τ₂ → do
     v̂₁ ← shareUnknownR τ₁
     v̂₂ ← shareUnknownR τ₂
     return $ PairMV v̂₁ v̂₂
   τ₁ :+: τ₂ → do
-    tag ← exeUnk p ρvsFrom 𝔹T ≫= return ∘ Share sp
+    tag ← exeUnk p ρvSharer 𝔹T ≫= return ∘ Share sp
     v̂₁ ← shareUnknownR τ₁
     v̂₂ ← shareUnknownR τ₂
     return $ SumMV tag v̂₁ v̂₂
@@ -139,25 +139,19 @@ shareUnknown p sp ρvsFrom = \case
   τ → throwIErrorCxt NotImplementedIError "shareUnknown: sharing type τ is not supported." $ frhs
       [ ("τ", pretty τ)
       ]
-  where shareUnknownR = shareUnknown p sp ρvsFrom
-        base 𝔹T = True
-        base (ℕT _) = True
-        base (ℤT _) = True
-        base (𝔽T _) = True
-        base ℙT = True
-        base _ = False
+  where shareUnknownR = shareUnknown p sp ρvSharer
 
 embedValP ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → ValP → IM MPCVal
-embedValP p sp ρvsTo₁ = withValP kEmbedVal kEmbedMPCVal
-  where kEmbedVal               = embedVal p sp (embedValP p sp ρvsTo₁)
-        kEmbedMPCVal φ ρvsTo₂ v̂ = do
+embedValP p sp ρvsShareees = withValP kEmbedVal kEmbedMPCVal
+  where kEmbedVal                     = embedVal p sp (embedValP p sp ρvsShareees)
+        kEmbedMPCVal φ ρvsShareees' v̂ = do
           sameProt φ sp
-          if ρvsTo₁ ≡ ρvsTo₂ then
+          if ρvsShareees ≡ ρvsShareees' then
             return v̂
           else
-            throwIErrorCxt TypeIError "embedValP: ρvsTo₁ ≢ ρvsTo₂" $ frhs
-            [ ("ρvsTo₁", pretty ρvsTo₁)
-            , ("ρvsTo₂", pretty ρvsTo₂)
+            throwIErrorCxt TypeIError "embedValP: ρvsShareees ≢ ρvsShareees'" $ frhs
+            [ ("ρvsShareees", pretty ρvsShareees)
+            , ("ρvsShareees'", pretty ρvsShareees')
             ]
 
 embedVal ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → (ValP → IM MPCVal) → Val → IM MPCVal
@@ -176,11 +170,11 @@ mpcValFrVal p sp kBaseV kUnknownV kValP = \case
     return $ PairMV v̂₁ v̂₂
   LV ṽ → do
     v̂ ← kValP ṽ
-    tt ← exeBool p None True ≫= return ∘ Share sp
+    tt ← exeBaseVal p None (BoolBV True) ≫= return ∘ Share sp
     return $ SumMV tt v̂ DefaultMV
   RV ṽ → do
     v̂ ← kValP ṽ
-    ff ← exeBool p None False ≫= return ∘ Share sp
+    ff ← exeBaseVal p None (BoolBV False) ≫= return ∘ Share sp
     return $ SumMV ff DefaultMV v̂
   NilV → return NilMV
   ConsV ṽ₁ ṽ₂ → do
@@ -191,26 +185,46 @@ mpcValFrVal p sp kBaseV kUnknownV kValP = \case
   v → throwIErrorCxt NotImplementedIError "mpcValFrVal" $ frhs
       [ ("v", pretty v) ]
 
-mpcValFrBaseVal ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → 𝑂 (𝑃 PrinVal) → BaseVal → IM MPCVal
-mpcValFrBaseVal p sp ρvsFrom bv = do
-  case bv of
-    BoolBV b → do
-      pv ← exeBool p ρvsFrom b
-      return $ BaseMV $ Share sp pv
-    NatBV pr n → do
-      pv ← exeNat p ρvsFrom pr n
-      return $ BaseMV $ Share sp pv
-    IntBV pr i → do
-      pv ← exeInt p ρvsFrom pr i
-      return $ BaseMV $ Share sp pv
-    FltBV pr f → do
-      pv ← exeFlt p ρvsFrom pr f
-      return $ BaseMV $ Share sp pv
-    BulBV → return BulMV
-    _ → throwIErrorCxt TypeIError "mpcValFrBaseVal: bv ∈ {StrBV _, PrinBV _}" $ frhs [ ("bv", pretty bv) ]
+mpcValFrBaseVal ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → 𝑂 PrinVal → BaseVal → IM MPCVal
+mpcValFrBaseVal p sp ρvSharer bv = do
+  pv ← exeBaseVal p ρvSharer bv
+  return $ BaseMV $ Share sp pv
 
-revealValP ∷ (STACK) ⇒ 𝑃 PrinVal → ValP → IM ValP
-revealValP ρvs = withValP undefined undefined
+revealValP ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → 𝑃 PrinVal → ValP → IM Val
+revealValP p sp ρvsRevealers ρvsRevealees = withValP kRevealVal kRevealMPCVal
+  where kRevealVal v                 = throwIErrorCxt NotImplementedIError "revealValP: revealing value v unimplemented" $ frhs
+                                       [ ("v", pretty v)
+                                       ]
+        kRevealMPCVal φ ρvsSharees v̂ = do
+          sameProt φ sp
+          if ρvsSharees ≡ ρvsRevealers then
+            revealMPCVal p sp ρvsRevealees v̂
+          else
+            throwIErrorCxt TypeIError "revealValP: ρvsRevealers ≢ ρvsSharees" $ frhs
+            [ ("ρvsRevealers", pretty ρvsRevealers)
+            , ("ρvsSharees", pretty ρvsSharees)
+            ]
+
+revealMPCVal ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → MPCVal → IM Val
+revealMPCVal p sp ρvsRevealees = \case
+  BaseMV sh → do
+    pv ← unwrapShare sp sh
+    bv ← reveal p ρvsRevealees pv
+    return $ BaseV bv
+  PairMV v̂₁ v̂₂ → do
+    v₁ ← revealMPCValR v̂₁
+    v₂ ← revealMPCValR v̂₂
+    return $ PairV (toValP v₁) (toValP v₂)
+  SumMV sh₁ v̂₂ v̂₃ → do
+    pv ← unwrapShare sp sh₁
+    bv₁ ← reveal p ρvsRevealees pv
+    b₁ ← error𝑂 (view boolBVL bv₁) (throwIErrorCxt TypeIError "revealMPCVal: (view boolBVL bv₁) ≡ None" $ frhs
+                                   [ ("bv₁", pretty bv₁)
+                                   ])
+    let inj :* mv = if b₁ then LV :* (revealMPCValR v̂₂) else RV :* (revealMPCValR v̂₃)
+    map (inj ∘ toValP) mv
+  where revealMPCValR = revealMPCVal p sp ρvsRevealees
+        toValP = SSecVP (SecM ρvsRevealees)
 
 ----------------
 --- UnShares ---
@@ -312,13 +326,11 @@ muxVal ∷ (STACK) ⇒ BaseVal → Val → Val → IM Val
 muxVal bv₁ v₂ v₃ = case (v₂, v₃) of
   (DefaultV, DefaultV) → return DefaultV
   (DefaultV, BaseV bv₃) → do
-    τ₂ ← typeOfBaseVal bv₃
-    bv₂ ← defaultBaseValOf τ₂
+    let bv₂ = defaultBaseValOf (typeOfBaseVal bv₃)
     bv' ← interpPrim CondO $ frhs [ bv₁, bv₂, bv₃ ]
     return $ BaseV bv'
   (BaseV bv₂, DefaultV) → do
-    τ₃ ← typeOfBaseVal bv₂
-    bv₃ ← defaultBaseValOf τ₃
+    let bv₃ = defaultBaseValOf (typeOfBaseVal bv₂)
     bv' ← interpPrim CondO $ frhs [ bv₁, bv₂, bv₃ ]
     return $ BaseV bv'
   (BaseV bv₂, BaseV bv₃) → do
@@ -384,15 +396,15 @@ muxMPCVal p sp sh₁ v̂₂ v̂₃ = case (v̂₂, v̂₃) of
   (DefaultMV, BaseMV sh₃) → do
     pv₁ ← unwrapShare sp sh₁
     pv₃ ← unwrapShare sp sh₃
-    τ₂  ← typeOf p pv₃
-    pv₂ ← defaultOf p τ₂
+    bτ₂  ← typeOf p pv₃
+    pv₂ ← exeBaseVal p None (defaultBaseValOf bτ₂)
     pv' ← exePrim p CondO $ frhs [ pv₁, pv₂, pv₃ ]
     return $ BaseMV $ Share sp pv'
   (BaseMV sh₂, DefaultMV) → do
     pv₁ ← unwrapShare sp sh₁
     pv₂ ← unwrapShare sp sh₂
-    τ₃  ← typeOf p pv₂
-    pv₃ ← defaultOf p τ₃
+    bτ₃  ← typeOf p pv₂
+    pv₃ ← exeBaseVal p None (defaultBaseValOf bτ₃)
     pv' ← exePrim p CondO $ frhs [ pv₁, pv₂, pv₃ ]
     return $ BaseMV $ Share sp pv'
   (BaseMV sh₂, BaseMV sh₃) → do
@@ -405,10 +417,10 @@ muxMPCVal p sp sh₁ v̂₂ v̂₃ = case (v̂₂, v̂₃) of
   (PairMV v̂₂ₗ v̂₂ᵣ, DefaultMV) → muxTup v̂₂ₗ v̂₂ᵣ DefaultMV DefaultMV PairMV
   (PairMV v̂₂ₗ v̂₂ᵣ, PairMV v̂₃ₗ v̂₃ᵣ) → muxTup v̂₂ₗ v̂₂ᵣ v̂₃ₗ v̂₃ᵣ PairMV
   (DefaultMV, SumMV sh₃ v̂₃ₗ v̂₃ᵣ) → do
-    pv₂ ← exeBool p None False
+    pv₂ ← exeBaseVal p None (BoolBV False)
     muxSum (Share sp pv₂) DefaultMV DefaultMV sh₃ v̂₃ₗ v̂₃ᵣ
   (SumMV sh₂ v̂₂ₗ v̂₂ᵣ, DefaultMV) → do
-    pv₃ ← exeBool p None False
+    pv₃ ← exeBaseVal p None (BoolBV False)
     muxSum sh₂ v̂₂ₗ v̂₂ᵣ (Share sp pv₃) DefaultMV DefaultMV
   (SumMV sh₂ v̂₂ₗ v̂₂ᵣ, SumMV sh₃ v̂₃ₗ v̂₃ᵣ) → muxSum sh₂ v̂₂ₗ v̂₂ᵣ sh₃ v̂₃ₗ v̂₃ᵣ
   (DefaultMV, NilMV) → return NilMV
@@ -434,23 +446,19 @@ muxMPCVal p sp sh₁ v̂₂ v̂₃ = case (v̂₂, v̂₃) of
           v̂ᵣ ← muxMPCVal p sp sh₁ v̂₂ᵣ v̂₃ᵣ
           return $ SumMV (Share sp tag) v̂ₗ v̂ᵣ
 
-typeOfBaseVal ∷ BaseVal → IM Type
+typeOfBaseVal ∷ BaseVal → BaseType
 typeOfBaseVal = \case
-  BoolBV _b → return 𝔹T
-  NatBV pr _n → return $ ℕT pr
-  IntBV pr _i → return $ ℤT pr
-  FltBV pr _f → return $ 𝔽T pr
-  BulBV → return UnitT
-  bv → throwIErrorCxt NotImplementedIError "typeOfBaseVal" $ frhs [ ("bv", pretty bv) ]
+  BoolBV _b → 𝔹T
+  NatBV pr _n → ℕT pr
+  IntBV pr _i → ℤT pr
+  FltBV pr _f → 𝔽T pr
 
-defaultBaseValOf ∷ (STACK) ⇒ Type → IM BaseVal
+defaultBaseValOf ∷ BaseType → BaseVal
 defaultBaseValOf = \case
-  𝔹T → return $ BoolBV False
-  ℕT pr → return $ NatBV pr 0
-  ℤT pr → return $ IntBV pr $ HS.fromIntegral 0
-  𝔽T pr → return $ FltBV pr $ HS.fromIntegral 0
-  UnitT → return BulBV
-  τ → throwIErrorCxt NotImplementedIError "defaultBaseValOf" $ frhs [ ("τ", pretty τ) ]
+  𝔹T → BoolBV False
+  ℕT pr → NatBV pr 0
+  ℤT pr → IntBV pr $ HS.fromIntegral 0
+  𝔽T pr → FltBV pr $ HS.fromIntegral 0
 
 sumUnShare ∷ (STACK) ⇒ UnShare → UnShare → IM UnShare
 sumUnShare us₁ us₂ = do
