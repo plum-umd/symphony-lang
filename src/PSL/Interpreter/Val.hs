@@ -16,7 +16,6 @@ import qualified Prelude as HS
 
 withValP ∷ (STACK) ⇒ (Val → IM a) → (Prot → 𝑃 PrinVal → MPCVal → IM a) → ValP → IM a
 withValP kVal kMPCVal ṽ = do
-  pptraceM "here"
   gm ← askL iCxtGlobalModeL
   case ṽ of
     SSecVP m v → do
@@ -114,7 +113,7 @@ elimValP = withValP return shareError
 
 shareValP ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → PrinVal → ValP → IM MPCVal
 shareValP p sp ρvSharer = withValP kShareVal kShareMPCVal
-  where kShareVal                    = shareVal p sp ρvSharer (shareValP p sp ρvSharer)
+  where kShareVal                    = shareVal p sp ρvSharer (\ ṽ → return BulMV)
         kShareMPCVal φ ρvsShareees v̂ = throwIErrorCxt NotImplementedIError "shareValP: sharing (ShareVP φ ρvsShareees v̂) unimplemented" $ frhs
                                        [ ("φ", pretty φ)
                                        , ("ρvsShareees", pretty ρvsShareees)
@@ -122,13 +121,12 @@ shareValP p sp ρvSharer = withValP kShareVal kShareMPCVal
                                        ]
 
 shareVal ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → PrinVal → (ValP → IM MPCVal) → Val → IM MPCVal
-shareVal p sp ρvSharer kValP = undefined
---  mpcValFrVal p sp kShareBaseV kShareUnknownV kValP
+shareVal p sp ρvSharer kValP = mpcValFrVal p sp kShareBaseV kShareUnknownV kValP
   where kShareBaseV    = mpcValFrBaseVal p sp (Some ρvSharer)
         kShareUnknownV = shareUnknown p sp ρvSharer
 
 shareUnknown ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → PrinVal → Type → IM MPCVal
-shareUnknown p sp ρvSharer = \case
+shareUnknown p sp ρvSharer τ = case τ of
   BaseT bτ → do
     pv ← exeUnk p ρvSharer bτ
     return $ BaseMV $ Share sp pv
@@ -161,7 +159,7 @@ embedValP p sp ρvsShareees = withValP kEmbedVal kEmbedMPCVal
             ]
 
 embedVal ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → (ValP → IM MPCVal) → Val → IM MPCVal
-embedVal p sp kValP = mpcValFrVal p sp kEmbedBaseV kEmbedUnknownV kValP
+embedVal p sp kValP v = mpcValFrVal p sp kEmbedBaseV kEmbedUnknownV kValP v
   where kEmbedBaseV      = mpcValFrBaseVal p sp None
         kEmbedUnknownV τ = throwIErrorCxt TypeIError "embedValP: UnknownV τ cannot be embedded" $ frhs
                            [ ("τ", pretty τ)
@@ -169,7 +167,7 @@ embedVal p sp kValP = mpcValFrVal p sp kEmbedBaseV kEmbedUnknownV kValP
 
 mpcValFrVal ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → (BaseVal → IM MPCVal) → (Type → IM MPCVal) → (ValP → IM MPCVal) → Val → IM MPCVal
 mpcValFrVal p sp kBaseV kUnknownV kValP = \case
-{-  BaseV bv → kBaseV bv
+  BaseV bv → kBaseV bv
   PairV ṽ₁ ṽ₂ → do
     v̂₁ ← kValP ṽ₁
     v̂₂ ← kValP ṽ₂
@@ -187,13 +185,12 @@ mpcValFrVal p sp kBaseV kUnknownV kValP = \case
     v̂₁ ← kValP ṽ₁
     v̂₂ ← kValP ṽ₂
     return $ ConsMV v̂₁ v̂₂
-  UnknownV τ → kUnknownV τ -}
+  UnknownV τ → kUnknownV τ
   v → throwIErrorCxt TypeIError "mpcValFrVal: value v cannot be converted to a MPC value" $ frhs
       [ ("v", pretty v) ]
 
 mpcValFrBaseVal ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → 𝑂 PrinVal → BaseVal → IM MPCVal
 mpcValFrBaseVal p sp ρvSharer bv = do
-  pptraceM "yes..."
   pv ← exeBaseVal p ρvSharer bv
   return $ BaseMV $ Share sp pv
 
@@ -213,7 +210,7 @@ revealValP p sp ρvsRevealers ρvsRevealees = withValP kRevealVal kRevealMPCVal
             ]
 
 revealMPCVal ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → MPCVal → IM Val
-revealMPCVal p sp ρvsRevealees = \case
+revealMPCVal p sp ρvsRevealees v̂ = case v̂ of
   DefaultMV → throwIErrorCxt TypeIError "revealMPCVal: DefaultMV" empty𝐿
   BaseMV sh → do
     pv ← unwrapShare sp sh
@@ -291,7 +288,7 @@ unwrapUnShares uvs = do
     Some (φ :* ρvs) → do
       v̂s ← mapMOn uvs $ \ uv →
         case uv of
-          NotShared v → withProt φ $ \ p sp → embedVal p sp (embedValP p sp ρvs)  v
+          NotShared v → withProt φ $ \ p sp → embedVal p sp (embedValP p sp ρvs) v
           Shared _φ _ρvs v̂ → return v̂
       return $ Inr $ φ :* ρvs :* v̂s
 

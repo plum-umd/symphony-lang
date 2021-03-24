@@ -237,7 +237,7 @@ instance Pretty (SProt p) where
     SAutoP  → ppLit "SAutoP"
 
 instance Pretty Share where
-  pretty = undefined
+  pretty (Share sp pv) = pretty pv
 
 makePrettySum ''MPCVal
 
