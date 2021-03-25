@@ -239,7 +239,15 @@ instance Pretty (SProt p) where
 instance Pretty Share where
   pretty (Share _sp pv) = pretty pv
 
-makePrettySum ''MPCVal
+instance Pretty MPCVal where
+  pretty = \case
+    DefaultMV → ppPun "⊥"
+    BaseMV sh  → pretty sh
+    PairMV v₁ v₂ → ppInflF ppTight levelCOMMA (ppPun ",") (pretty v₁) $ pretty v₂
+    SumMV sh v₁ v₂ → ppApp (ppCon "SUM") [pretty sh,pretty v₁,pretty v₂]
+    NilMV → ppCon "[]"
+    ConsMV v₁ v₂ → ppInfr levelCONS (ppPun "∷") (pretty v₁) $ pretty v₂
+    BulMV → ppCon "•"
 
 makePrettyRecord ''Ckt
 makePrettySum ''Input
