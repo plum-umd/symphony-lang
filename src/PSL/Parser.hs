@@ -58,7 +58,7 @@ lexer = lexerBasic puns kws prim ops
       , "is-signed"
       ]
     prim = list
-      [ "plain","yaoN","yao2","gmw","bgw","bgv","spdz","auto"
+      [ "plain","yao","yaoN","yao2","gmw","bgw","bgv","spdz","auto"
       , "ssec","isec","bundle"
       , "☆","type"
       , "ℙ","prin"
@@ -392,6 +392,7 @@ pBool = concat
 pProt ∷ CParser TokenBasic Prot
 pProt = cpNewContext "prot" $ concat
   [ do cpSyntax "plain" ; return PlainP
+  , do cpSyntax "yao"   ; return Yao2P
   , do cpSyntax "yaoN"  ; return YaoNP
   , do cpSyntax "yao2"  ; return Yao2P
   , do cpSyntax "bgw"   ; return BGWP
@@ -616,7 +617,7 @@ pExp = fmixfixWithContext "exp" $ concat
   -- e⧺e
   , fmixInfixL levelPLUS $ do concat [cpSyntax "⧺",cpSyntax "++"] ; return BundleUnionE
   -- reveal{P→P} e
-  , fmixPrefix levelAPP $ do
+  , fmixPrefix levelREVEAL $ do
       cpSyntax "reveal"
       cpSyntax "{"
       φ ← pProt

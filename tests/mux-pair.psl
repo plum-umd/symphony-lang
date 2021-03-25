@@ -1,9 +1,10 @@
 principal A B
 
 def main • =
-  let x = share {yao:A → A,B} false
-  let y = (share {yao:B → A,B} 3, share {yao:B → A,B} 4)
-  let z = (share {yao:B → A,B} 4, share {yao:B → A,B} 1)
+  par {A,B}
+  let x = share {yaoN:A → A,B} false
+  let y = (share {yaoN:B → A,B} 3, share {yaoN:B → A,B} 4)
+  let z = (share {yaoN:B → A,B} 4, share {yaoN:B → A,B} 1)
   in (mux if x then y else z)
 
-def expected = (share {yao:B → A,B} 4, share {yao:B → A,B} 1)
+def expected = par {A,B} (share {yaoN:B → A,B} 4, share {yaoN:B → A,B} 1)

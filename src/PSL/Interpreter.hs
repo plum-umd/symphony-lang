@@ -30,7 +30,7 @@ restrictMode ∷ (STACK) ⇒ Mode → IM a → IM a
 restrictMode m xM = do
   gm ← askL iCxtGlobalModeL
   let m' = gm ⊓ m
-  guardErr (m' ≢ SecM pø) (throwIErrorCxt TypeIError "gm ⊓ m ≡ ∅" $ frhs
+  guardErr (m' ≢ SecM pø) (throwIErrorCxt TypeIError "restrictMode: gm ⊓ m ≡ ∅" $ frhs
     [ ("gm",pretty gm)
     , ("m",pretty m)
     ])
@@ -128,41 +128,39 @@ bindPatMPC ψ us = case ψ of
   VarP x → return $ \ xM → do
     ṽ ← reShareValP us
     bindVar x ṽ xM
+  BulP → return id
   TupP ψ₁ ψ₂ → do
     us₁ :* us₂ ← viewPairUnShare us
     f₁ ← bindPatMPC ψ₁ us₁
     f₂ ← bindPatMPC ψ₂ us₂
     return $ compose [f₁, f₂]
-{-  LP ψ' → do
-    c₁ :* cv₂ :* _cv₃ ← view sumCVL cv
-    f ← bindPatMPC si ψ' cv₂
+  LP ψ' → do
+    us₁ :* us₂ :* _us₃ ← viewSumUnShare us
+    f ← bindPatMPC ψ' us₂
     return $ \ xM → do
-      si' :* cv' ← mapEnvL iCxtMPCPathConditionL ((c₁ :* si) :&) $ f xM
-      cv'' ← muxCktVal c₁ cv' DefaultCV
-      si'' ← joinShareInfo si si'
-      return $ si'' :* cv''
+      us' ← mapEnvL iCxtMPCPathConditionL (us₁ :&) $ f xM
+      us'' ← muxUnShare us₁ us' (NotShared DefaultV)
+      return us''
   RP ψ' → do
-    c₁ :* _cv₂ :* cv₃ ← view sumCVL cv
-    f ← bindPatMPC si ψ' cv₃
+    us₁ :* _us₂ :* us₃ ← viewSumUnShare us
+    f ← bindPatMPC ψ' us₃
     return $ \ xM → do
-      nc₁ ← notCkt c₁
-      si' :* cv' ← mapEnvL iCxtMPCPathConditionL ((nc₁ :* si) :&) $ f xM
-      cv'' ← muxCktVal c₁ DefaultCV cv'
-      si'' ← joinShareInfo si si'
-      return $ si'' :* cv''
+      nus₁ ← notUnShare us₁
+      us' ← mapEnvL iCxtMPCPathConditionL (nus₁ :&) $ f xM
+      us'' ← muxUnShare us₁ (NotShared DefaultV) us'
+      return us''
   NilP → do
-    view nilCVL cv
+    viewNilUnShare us
     return id
   ConsP ψ₁ ψ₂ → do
-    cv₁ :* cv₂ ← view consCVL cv
-    f₁ ← bindPatMPC si ψ₁ cv₁
-    f₂ ← bindPatMPC si ψ₂ cv₂
+    us₁ :* us₂ ← viewConsUnShare us
+    f₁ ← bindPatMPC ψ₁ us₁
+    f₂ ← bindPatMPC ψ₂ us₂
     return $ \ xM → do
-      si' :* cv' ← compose [f₁,f₂] xM
-      si'' ← joinShareInfo si si'
-      return $ si'' :* cv'
+      us' ← compose [f₁,f₂] xM
+      return us'
   WildP → return id
-  _ → error "TODO: not implemented" -}
+  _ → throwIErrorCxt NotImplementedIError "bindPatMPC: pattern ψ not implemented" $ frhs [ ("ψ", pretty ψ) ]
 
 interpCase ∷ (STACK) ⇒ ValP → 𝐿 (Pat ∧ Exp) → IM ValP
 interpCase ṽ ψes = do
@@ -344,9 +342,9 @@ interpExp = wrapInterp $ \case
     modeCheckShare ρvs₁ ρvs₂
     ρv₁ ← fromSome (view one𝑃L ρvs₁)
     φ' ← sequentialSwitch φ
-    ṽ ← interpExp e
-    v̂ ← restrictMode (SecM ρvs₁) $ withProt φ' $ \ p sp → shareValP p sp ρv₁ ṽ
-    return $ ShareVP φ' ρvs₂ v̂
+    restrictMode (SecM ρvs₁) $ do
+      ṽ ← interpExp e
+      withProt φ' $ \ p sp → runReaderT (Sharing p sp ρv₁ ρvs₂) $ shareValP ṽ
   AccessE e ρ → do
     ρv ← interpPrinExpSingle ρ
     ṽ ← interpExp e
@@ -379,14 +377,14 @@ interpExp = wrapInterp $ \case
         [ ("ṽ₁",pretty ṽ₁)
         , ("ṽ₂",pretty ṽ₂)
         ]
-  RevealE φ ρes₁ ρes₂ e → do -- add a 'from' annotation?
+  RevealE φ ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
     modeCheckReveal ρvs₁ ρvs₂
     φ' ← sequentialSwitch φ
-    ṽ ← interpExp e
-    v ← restrictMode (SecM ρvs₁) $ withProt φ' $ \ p sp → revealValP p sp ρvs₁ ρvs₂ ṽ
-    return $ SSecVP (SecM ρvs₂) v
+    restrictMode (SecM ρvs₁) $ do
+      ṽ ← interpExp e
+      withProt φ' $ \ p sp → runReaderT (Revealing p sp ρvs₁ ρvs₂) $ revealValP ṽ
   SendE ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂

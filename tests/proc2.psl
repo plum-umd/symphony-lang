@@ -1,15 +1,15 @@
 principal A B
 
 def main • =
+  par {A,B}
   proc
-  do mux if share{yao:A → A,B} true
-     then 
-       mux if share{yao:A → A,B} false
+  do mux if share{yaoN:A → A,B} true
+     then
+       mux if share{yaoN:A → A,B} false
          then return 1
          else return 2
      else ⊥
-  in 
+  in
   5
 
-def expected = share{yao:A → A,B} 2
-
+def expected = par {A,B} share{yaoN:A → A,B} 2

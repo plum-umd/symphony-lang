@@ -11,9 +11,10 @@ import PSL.Syntax
 -- General values
 -- v ∈ val
 data Val =
-    BaseV BaseVal
-  | StrV 𝕊
+    DefaultV
   | BulV
+  | BaseV BaseVal
+  | StrV 𝕊
   | PairV ValP ValP
   | LV ValP
   | RV ValP
@@ -25,7 +26,6 @@ data Val =
   | PrinSetV (𝑃 PrinVal)
   | LocV Mode ℤ64
   | ArrayV (𝕍 ValP)
-  | DefaultV
   | UnknownV Type
   deriving (Eq,Ord,Show)
 
@@ -60,12 +60,12 @@ data UnShare =
 -- v̂ ∈ mpc-val
 data MPCVal =
     DefaultMV
+  | BulMV
   | BaseMV Share
   | PairMV MPCVal MPCVal
   | SumMV Share MPCVal MPCVal
   | NilMV
   | ConsMV MPCVal MPCVal
-  | BulMV
   deriving (Eq,Ord,Show)
 
 -- MPC Protocols
@@ -78,11 +78,12 @@ class
   Protocol p where
     type ProtocolVal p ∷ ★
 
-    typeOf ∷ P p → ProtocolVal p → BaseType
-    exeBaseVal ∷ P p → 𝑂 PrinVal → BaseVal → IM (ProtocolVal p)
-    exeUnk ∷ P p → PrinVal → BaseType → IM (ProtocolVal p)
-    exePrim ∷ P p → Op → 𝐿 (ProtocolVal p) → IM (ProtocolVal p)
-    reveal ∷ P p → 𝑃 PrinVal → ProtocolVal p → IM BaseVal
+    typeOf       ∷ P p → ProtocolVal p                     → BaseType
+    shareBaseVal ∷ P p → PrinVal       → BaseVal           → IM (ProtocolVal p)
+    shareUnk     ∷ P p → PrinVal       → BaseType          → IM (ProtocolVal p)
+    embedBaseVal ∷ P p → BaseVal                           → IM (ProtocolVal p)
+    exePrim      ∷ P p → Op            → 𝐿 (ProtocolVal p) → IM (ProtocolVal p)
+    reveal       ∷ P p → 𝑃 PrinVal     → ProtocolVal p     → IM BaseVal
 
 -- Shares
 -- sh ∈ share

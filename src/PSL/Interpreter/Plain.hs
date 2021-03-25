@@ -14,11 +14,14 @@ instance Protocol 'PlainP where
   typeOf ∷ P 'PlainP → BaseVal → BaseType
   typeOf _p = typeOfBaseVal
 
-  exeBaseVal ∷ P 'PlainP → 𝑂 PrinVal → BaseVal → IM BaseVal
-  exeBaseVal _p _ρv bv = return bv
+  shareBaseVal ∷ P 'PlainP → PrinVal → BaseVal → IM BaseVal
+  shareBaseVal _p _ρv = return
 
-  exeUnk ∷ P 'PlainP → PrinVal → BaseType → IM BaseVal
-  exeUnk _p ρv bτ = throwIErrorCxt NotImplementedIError "[PlainP] exeUnk: TODO" empty𝐿
+  shareUnk ∷ P 'PlainP → PrinVal → BaseType → IM BaseVal
+  shareUnk _p ρv bτ = throwIErrorCxt NotImplementedIError "[PlainP] exeUnk: TODO" empty𝐿
+
+  embedBaseVal ∷ P 'PlainP → BaseVal → IM BaseVal
+  embedBaseVal _p = return
 
   exePrim ∷ P 'PlainP → Op → 𝐿 BaseVal → IM BaseVal
   exePrim _p = interpPrim

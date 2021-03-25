@@ -3,10 +3,10 @@ principal B
 
 def main () =
   par {A,B}
-    share {yao : A -> this} (par {A} (1, 2))
+    share {yaoN : A -> this} (par {A} (1, 2))
 
-def expected = 
+def expected =
   par {A,B}
-    ( (share {yao : A -> this} (par {A} 1))
-    , (share {yao : A -> this} (par {A} 2))
+    ( (share {yaoN : A -> this} (par {A} 1))
+    , (share {yaoN : A -> this} (par {A} 2))
     )

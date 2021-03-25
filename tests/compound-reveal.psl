@@ -3,13 +3,13 @@ principal B
 
 def main () =
   par {A,B}
-    let a = share{yao: A -> this} (par {A} 1)
-    let b = share{yao: A -> this} (par {A} 2)
+    let a = share{yaoN: A -> this} (par {A} 1)
+    let b = share{yaoN: A -> this} (par {A} 2)
     let c = par {A,B} 3
-    in reveal {B} ([a;b;c],(a,b,c))
+    in reveal {yaoN:A,B → B} ([a;b;c],(a,b,c))
 
 def expected =
-  par{A,B}
-  ( [(par {B} 1);(par {B} 2);(par {A,B} 3)]
-  , ((par {B} 1),(par {B} 2),(par {A,B} 3))
+  par{B}
+  ( [(par {B} 1);(par {B} 2);(par {B} 3)]
+  , ((par {B} 1),(par {B} 2),(par {B} 3))
   )

@@ -226,6 +226,17 @@ instance DCmpable SProt where
     (SAutoP , SAutoP ) → EQDCmp
     (SAutoP , _      ) → GTDCmp
 
+protFrSProt ∷ SProt p → Prot
+protFrSProt = \case
+  SPlainP → PlainP
+  SYaoNP  → YaoNP
+  SYao2P  → Yao2P
+  SBGWP   → BGWP
+  SGMWP   → GMWP
+  SBGVP   → BGVP
+  SSPDZP  → SPDZP
+  SAutoP  → AutoP
+
 ---------------
 -- Precision --
 ---------------

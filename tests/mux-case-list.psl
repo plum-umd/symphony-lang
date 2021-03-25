@@ -1,7 +1,8 @@
 principal A B
 
 def main • =
-  let x = share {yao:A → A,B} [L 1 ; R 2]
+  par {A,B}
+  let x = share {yaoN:A → A,B} [L 1 ; R 2]
   in mux case x
     { [L x;L y] → 1
     ; [L x;R y] → 2
@@ -9,5 +10,4 @@ def main • =
     ; [R x;R y] → 4
     }
 
-def expected = share{yao:A → A,B} 2
-
+def expected = par {A,B} share{yaoN:A → A,B} 2

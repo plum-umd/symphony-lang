@@ -1,7 +1,8 @@
 principal A B
 
 def main • =
+  par {A,B}
   let xy = solo {A,B} 2
-  in reveal{A,B} ((share{yao:A→A,B} xy@A) + (share{yao:B→A,B} xy@B))
+  in reveal{yaoN:A,B → A,B} ((share{yaoN:A→A,B} xy@A) + (share{yaoN:B→A,B} xy@B))
 
 def expected = par {A,B} 4
