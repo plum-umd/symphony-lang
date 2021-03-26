@@ -16,7 +16,10 @@ primType op τs = case (op, tohs τs) of
   (PlusO, [ℕT pr₁, ℕT pr₂]) | pr₁ ≡ pr₂ → return $ ℕT pr₁
   (PlusO, [ℤT pr₁, ℤT pr₂]) | pr₁ ≡ pr₂ → return $ ℤT pr₁
   (ExpO, [𝔽T pr₁, 𝔽T pr₂]) | pr₁ ≡ pr₂ → return $ 𝔽T pr₁
+  (EqO, [ℤT pr₁, ℤT pr₂]) | pr₁ ≡ pr₂ → return 𝔹T
+  (EqO, [𝔹T, 𝔹T]) → return 𝔹T
   (CondO, [𝔹T, ℤT pr₁, ℤT pr₂]) | pr₁ ≡ pr₂ → return $ ℤT pr₁
+  (CondO, [𝔹T, 𝔹T, 𝔹T]) → return 𝔹T
   _ → throwIErrorCxt NotImplementedIError "primType" $ frhs
     [ ("op", pretty op)
     , ("τs", pretty τs)

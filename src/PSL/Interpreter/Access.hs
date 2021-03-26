@@ -10,6 +10,7 @@ import PSL.Interpreter.Pretty ()
 import PSL.Interpreter.Json ()
 import PSL.Interpreter.Primitives
 import PSL.Interpreter.Circuits
+import PSL.Interpreter.Bristol
 
 -- enter a strictly smaller mode than the current one
 restrictMode ∷ (STACK) ⇒ Mode → IM a → IM a
@@ -396,7 +397,13 @@ revealValP ρsʳ ṽ = case ṽ of
   SSecVP ρs' v | ρsʳ ⊆ ρs' → revealVal ρsʳ v
   ShareVP _φ ρsˢ cv → do
     lm ← askL iCxtLocalModeL
-    let frCktVal = if (SecM ρsˢ) ⊑ lm then valPFrCktVal else undefined -- TODO: actually run EMP
+    frCktVal ← if (SecM ρsˢ) ⊑ lm
+               then return valPFrCktVal
+               else do
+      (CompBCV bc wns) ← generateBristol cv
+      io $ fwrite "bristol/test.txt" $ printBCir bc
+      io $ shout bc
+      error $ show𝕊 wns
     restrictMode (SecM ρsʳ) $ restrictValP *$ frCktVal cv
   _ → throwIErrorCxt TypeIError "revealValP: Cannot reveal ṽ." $ frhs [ ("ρsʳ", pretty ρsʳ), ("ṽ", pretty ṽ) ]
 
