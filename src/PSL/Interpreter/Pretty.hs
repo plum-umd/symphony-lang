@@ -56,7 +56,7 @@ ppFltPSL p d = concat [pretty d,pretty p]
 ppListPSL ∷ 𝐿 ValP → Doc
 ppListPSL = ppCollection (ppPun "[") (ppPun "]") (ppPun ";") ∘ map pretty ∘ iter
 
-ppArrayPSL ∷ 𝕍 ValP → Doc
+ppArrayPSL ∷ 𝑉 ValP → Doc
 ppArrayPSL = ppCollection (ppPun "[|") (ppPun "|]") (ppPun ";") ∘ map pretty ∘ iter
 
 ppISecPSL ∷ PrinVal ⇰ Val → Doc
@@ -252,7 +252,6 @@ instance Pretty MPCVal where
 makePrettyRecord ''Ckt
 makePrettySum ''Input
 makePrettySum ''Gate
-makePrettySum ''BaseGate
 
 makePrettySum ''IParams
 makePrettySum ''ICxt

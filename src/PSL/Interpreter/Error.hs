@@ -12,7 +12,7 @@ throwIErrorCxt ec em vals = withFrozenCallStack $ do
   es ← askL iCxtSourceL
   throwIError es ec em vals
 
-throwIError ∷ (Monad m,MonadError IError m,STACK) ⇒ 𝑂 FullContext → IErrorClass → 𝕊 → 𝐿 (𝕊 ∧ Doc) → m a
+throwIError ∷ (Monad m,MonadError IError m,STACK) ⇒ 𝑂 SrcCxt → IErrorClass → 𝕊 → 𝐿 (𝕊 ∧ Doc) → m a
 throwIError es ec em vals =
   throw $ IError es callStack ec $ ppVertical
     [ ppString em

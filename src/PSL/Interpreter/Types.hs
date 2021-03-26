@@ -25,7 +25,7 @@ data Val =
   | PrinV PrinExpVal
   | PrinSetV (𝑃 PrinVal)
   | LocV Mode ℤ64
-  | ArrayV (𝕍 ValP)
+  | ArrayV (𝑉 ValP)
   | UnknownV Type
   deriving (Eq,Ord,Show)
 
@@ -127,21 +127,14 @@ data Ckt = Ckt
   } deriving (Eq,Ord,Show)
 
 data Input =
-    AvailableI BaseGate
+    AvailableI BaseVal
   | UnavailableI BaseType
   deriving (Eq,Ord,Show)
 
 data Gate =
-    BaseG BaseGate
-  | InputG (𝑃 PrinVal) Input
+    BaseG BaseVal
+  | InputG PrinVal Input
   | PrimG Op (𝐿 Wire)
-  deriving (Eq,Ord,Show)
-
-data BaseGate =
-    BoolBG 𝔹
-  | NatBG IPrecision ℕ
-  | IntBG IPrecision ℤ
-  | FltBG FPrecision 𝔻
   deriving (Eq,Ord,Show)
 
 type Wire = ℕ64
@@ -160,7 +153,7 @@ type Env = 𝕏 ⇰ ValP
 
 -- Value Store
 -- σ ∈ store
-type Store = 𝑊 ValP
+type Store = 𝑉 ValP
 
 ------------
 -- PARAMS --
@@ -185,7 +178,7 @@ data IParams = IParams
 -- ξ ∈ cxt
 data ICxt = ICxt
   { iCxtParams ∷ IParams
-  , iCxtSource ∷ 𝑂 FullContext
+  , iCxtSource ∷ 𝑂 SrcCxt
   , iCxtDeclPrins ∷ Prin ⇰ PrinKind
   , iCxtEnv ∷ Env
   , iCxtGlobalMode ∷ Mode
@@ -247,7 +240,7 @@ data IErrorClass =
 
 -- r ∈ cerr
 data IError = IError
-  { iErrorSource ∷ 𝑂 FullContext
+  { iErrorSource ∷ 𝑂 SrcCxt
   , iErrorCallStack ∷ CallStack
   , iErrorClass ∷ IErrorClass
   , iErrorMsg ∷ Doc

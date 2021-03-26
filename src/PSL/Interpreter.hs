@@ -50,8 +50,8 @@ interpVar x = do
      , ("dom(γ)",pretty $ keys γ)
      ]
 
-bindVar ∷ (STACK) ⇒ Var → ValP → IM a → IM a
-bindVar x ṽ = mapEnvL iCxtEnvL ((x ↦ ṽ) ⩌)
+bindVarTo ∷ (STACK) ⇒ Var → ValP → IM a → IM a
+bindVarTo x ṽ = mapEnvL iCxtEnvL ((x ↦ ṽ) ⩌)
 
 --------------
 -- PATTERNS --
@@ -69,7 +69,7 @@ bindPat ψ ṽ xM = do
 
 bindPatO ∷ (STACK) ⇒ Pat → ValP → FailT IM (IM a → IM a)
 bindPatO ψ ṽ = case ψ of
-  VarP x → return $ bindVar x ṽ
+  VarP x → return $ bindVarTo x ṽ
   BulP → return id
   TupP ψ₁ ψ₂ → do
     v ← lift $ elimValP ṽ
@@ -103,7 +103,7 @@ bindPatO ψ ṽ = case ψ of
     ρvs ← abort𝑂 $ view iSecVPL ṽ
     ρ :* v :* ρvs' ← abort𝑂 $ dminView ρvs
     ρv ← lift $ introValP $ PrinV $ ValPEV ρ
-    let f₁ = bindVar ρx ρv
+    let f₁ = bindVarTo ρx ρv
     f₂ ← bindPatO ψ₁ $ SSecVP (SecM (single ρ)) v
     f₃ ← bindPatO ψ₂ $ ISecVP ρvs'
     return $ f₃ ∘ f₂ ∘ f₁
@@ -117,7 +117,7 @@ bindPatO ψ ṽ = case ψ of
     ρ :* ρs ← abort𝑂 $ pmin ρvs
     ρv ← lift $ introValP $ PrinV $ ValPEV ρ
     ρvs' ← lift $ introValP $ PrinSetV ρs
-    let f₁ = bindVar x ρv
+    let f₁ = bindVarTo x ρv
     f₂ ← bindPatO ψ' ρvs'
     return $ f₂ ∘ f₁
   AscrP ψ' _τ → bindPatO ψ' ṽ
@@ -127,7 +127,7 @@ bindPatMPC ∷ (STACK) ⇒ Pat → UnShare → FailT IM (IM UnShare → IM UnSha
 bindPatMPC ψ us = case ψ of
   VarP x → return $ \ xM → do
     ṽ ← reShareValP us
-    bindVar x ṽ xM
+    bindVarTo x ṽ xM
   BulP → return id
   TupP ψ₁ ψ₂ → do
     us₁ :* us₂ ← viewPairUnShare us
@@ -192,7 +192,7 @@ interpApp ṽ₁ ṽ₂ = do
     CloV selfO ψ e γ → do
       let selfγ = case selfO of
             None → id
-            Some self → bindVar self ṽ₁
+            Some self → bindVarTo self ṽ₁
       compose [localL iCxtEnvL γ,bindPat ψ ṽ₂,selfγ] $ interpExp e
     _ → throwIErrorCxt TypeIError "interpExp: AppE: v₁ ≢ CloV _ _ _ _" $ frhs
       [ ("v₁",pretty v₁)
@@ -210,7 +210,7 @@ sequentialSwitch φ = do
   return $ if gm ⊑ lm then PlainP else φ
 
 wrapInterp ∷ (STACK) ⇒ (ExpR → IM ValP) → Exp → IM ValP
-wrapInterp f e = localL iCxtSourceL (Some $ annotatedTag e) $ f $ extract e
+wrapInterp f e = localL iCxtSourceL (Some $ atag e) $ f $ extract e
 
 modeCheckShare ∷ 𝑃 PrinVal → 𝑃 PrinVal → IM ()
 modeCheckShare ρvsSharer ρvsSharees = do                           -- Formalism:
@@ -451,8 +451,9 @@ interpExp = wrapInterp $ \case
     us' ← primUnShare op uss
     reShareValP us'
   TraceE e₁ e₂ → do
-    v ← interpExp e₁
-    pptrace v $ interpExp e₂
+    ṽ₁ ← interpExp e₁
+    pptraceM ṽ₁
+    interpExp e₂
   SetE ρes → do
     ρvs ← prinExpValss *$ mapM interpPrinExp ρes
     introValP $ PrinSetV ρvs
@@ -470,7 +471,7 @@ interpExp = wrapInterp $ \case
       Some ṽ' → restrictValP ṽ'
       None → throwIErrorCxt InternalIError "interpExp: RefReadE: ℓ ∉ dom(σ)" $ frhs
         [ ("ℓ",pretty ℓ)
-        , ("dom(σ)",pretty $ keys𝑊 σ)
+        , ("dom(σ)",pretty $ keys𝑉 σ)
         ]
   RefWriteE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
@@ -486,7 +487,7 @@ interpExp = wrapInterp $ \case
     case v₁ of
       BaseV (NatBV _ n) → do
         ℓ ← nextL iStateNextLocL
-        ṽ ← introValP $ ArrayV $ vec $ list $ repeat n ṽ₂
+        ṽ ← introValP $ ArrayV $ repeat𝑉 (intΩ64 n) ṽ₂
         modifyL iStateStoreL $ \ σ → (ℓ ↦♮ ṽ) ⩌♮ σ
         introLocV ℓ ≫= introValP
       _ → throwIErrorCxt TypeIError "interpExp: ArrayE: v₁ ≠ NatV _ n" $ frhs
@@ -505,17 +506,17 @@ interpExp = wrapInterp $ \case
           Some ṽ' → do
             v' ← elimValP ṽ'
             case v' of
-              ArrayV ṽs → case ṽs ⋕? natΩ64 n of
+              ArrayV ṽs → case ṽs ⋕? intΩ64 n of
                 Some ṽ → restrictValP ṽ
                 None → throwIErrorCxt TypeIError "interpExp: ArrayReadE: n ∉ dom(ṽs)" $ frhs
                   [ ("n",pretty n)
-                  , ("dom(ṽs)",pretty $ (0,size ṽs - 𝕟64 1))
+                  , ("dom(ṽs)",pretty $ (0,count ṽs - 𝕟64 1))
                   ]
               _ → throwIErrorCxt TypeIError "interpExp: ArrayReadE: v' ≠ ArrayV _" $ frhs
                 [ ("v'",pretty v') ]
           None → throwIErrorCxt TypeIError "interpExp: ArrayReadE: ℓ ∉ dom(σ)" $ frhs
             [ ("ℓ",pretty ℓ)
-            , ("dom(σ)",pretty $ keys𝑊 σ)
+            , ("dom(σ)",pretty $ keys𝑉 σ)
             ]
       _ → throwIErrorCxt TypeIError "interpExp: ArrayReadE: v₂ ≠ NatV _ _" $ frhs
         [ ("v₁",pretty v₁)
@@ -536,9 +537,9 @@ interpExp = wrapInterp $ \case
             v' ← elimValP ṽ'
             case v' of
               ArrayV ṽs →
-                if idxOK𝕍 ṽs $ natΩ64 n
+                if isSome $ ṽs ⋕? intΩ64 n
                    then do
-                     ṽ'' ← introValP $ ArrayV $ set𝕍 (natΩ64 n) ṽ₃ ṽs
+                     ṽ'' ← introValP $ ArrayV $ ((intΩ64 n) ↦♮ ṽ₃) ⩌♮ ṽs
                      putL iStateStoreL $ (ℓ ↦♮ ṽ'') ⩌♮ σ
                      return ṽ₃
                     else do
@@ -550,7 +551,7 @@ interpExp = wrapInterp $ \case
                 [ ("v'",pretty v') ]
           None → throwIErrorCxt TypeIError "interpExp: ArrayWriteE: ℓ ∉ dom(σ)" $ frhs
             [ ("ℓ",pretty ℓ)
-            , ("dom(σ)",pretty $ keys𝑊 σ)
+            , ("dom(σ)",pretty $ keys𝑉 σ)
             ]
       _ → throwIErrorCxt TypeIError "interpExp: ArrayWriteE: v₂ ≠ NatV _ _" $ frhs
         [ ("v₁",pretty v₁)
@@ -565,7 +566,7 @@ interpExp = wrapInterp $ \case
       Some ṽ' → do
         v' ← elimValP ṽ'
         case v' of
-          ArrayV ṽs → introValP $ BaseV $ NatBV InfIPr $ nat $ size ṽs
+          ArrayV ṽs → introValP $ BaseV $ NatBV InfIPr $ count ṽs
           _ → throwIErrorCxt TypeIError "interpExp: SizeE: v' ≠ ArrayV _" null
       _ → throwIErrorCxt TypeIError "interpExp: SizeE: ℓ ∉ dom(σ)" null
   DefaultE → introValP DefaultV
@@ -621,8 +622,8 @@ interpTL tl = case extract tl of
   DefnTL b x ψs e →  do
     let e' =
           if b
-          then buildUnfixedLambda (annotatedTag tl) x ψs e
-          else buildLambda (annotatedTag tl) x ψs e
+          then buildUnfixedLambda (atag tl) x ψs e
+          else buildLambda (atag tl) x ψs e
     v ← asTLM $ interpExp e'
     modifyL itlStateEnvL ((x ↦ v) ⩌)
   PrinTL ps → do
@@ -643,7 +644,7 @@ interpTL tl = case extract tl of
   VirtualPartyTL ρs → do
     modifyL itlStateDeclPrinsL $ (⩌) $
       dict $ mapOn ρs $ \ ρ → ρ ↦ VirtualPK
-  _ → pptrace (annotatedTag tl) $ error "interpTL: not implemented"
+  _ → let _ = pptrace (atag tl) in error "interpTL: not implemented"
 
 interpTLs ∷ 𝐿 TL → ITLM ()
 interpTLs = eachWith interpTL
@@ -690,8 +691,8 @@ options₀ = do
     , optLibPath = libPath
     }
 
-usageInfoTop ∷ [O.OptDescr (Options → Options)]
-usageInfoTop =
+usageInfoTop ∷ 𝐿 (O.OptDescr (Options → Options))
+usageInfoTop = frhs
   [ O.Option ['v'] [chars "version"]
              (O.NoArg $ update optVersionL True)
            $ chars "print version"
@@ -700,8 +701,8 @@ usageInfoTop =
            $ chars "show help"
   ]
 
-usageInfoRun ∷ [O.OptDescr (Options → Options)]
-usageInfoRun =
+usageInfoRun ∷ 𝐿 (O.OptDescr (Options → Options))
+usageInfoRun = frhs
   [ O.Option ['p'] [chars "print"]
              (O.NoArg$ update optJustPrintL True) $
                chars "just print the program"
@@ -713,8 +714,8 @@ usageInfoRun =
            $ chars "set random seed"
   ]
 
-usageInfoExample ∷ [O.OptDescr (Options → Options)]
-usageInfoExample =
+usageInfoExample ∷ 𝐿 (O.OptDescr (Options → Options))
+usageInfoExample = frhs
   [ O.Option ['p'] [chars "print"]
              (O.NoArg$ update optJustPrintL True) $
                chars "just print the program"
@@ -723,8 +724,8 @@ usageInfoExample =
            $ chars "set random seed"
   ]
 
-usageInfoTest ∷ [O.OptDescr (Options → Options)]
-usageInfoTest =
+usageInfoTest ∷ 𝐿 (O.OptDescr (Options → Options))
+usageInfoTest = frhs
   [ O.Option ['s'] [chars "seed"]
              (O.ReqArg (\ s → update optRandomSeedL $ Some $ HS.read s) $ chars "NAT")
            $ chars "set random seed"
@@ -768,31 +769,31 @@ printFileMain path = do
   ls ← tokenizeIO lexer path ts
   pprint $ concat $ map (concat ∘ iter ∘ parserContextDisplayL ∘ parserTokenContext) ls
 
-parseOptions ∷ IO (Options ∧ [𝕊])
-parseOptions = do
+parseOptionsPSL ∷ IO (Options ∧ 𝐿 𝕊)
+parseOptionsPSL = do
   as ← iargs
-  let (fs,nos,ems) = O.getOpt O.RequireOrder (usageInfoTop ⧺ usageInfoRun) $ lazyList $ map chars as
-  eachOn ems (out ∘ string)
+  let fs :* nos :* ems = parseOptions (usageInfoTop ⧺ usageInfoRun) as
+  eachOn ems out
   os ← compose fs ^$ options₀
-  when (optVersion os) $ \ () → do
+  when (optVersion os) $ do
     out $ "psl version " ⧺ psl_VERSION
-  when (optVersion os ⩓ optHelp os) $ \ () → do
+  when (optVersion os ⩓ optHelp os) $ do
     out ""
-  when (optHelp os) $ \ () → do
+  when (optHelp os) $ do
     out "Usage: psl [<command>] [<arguments>] [<target>]"
     out ""
-    out $ string $ O.usageInfo (chars "psl [arguments]") usageInfoTop
-    out $ string $ O.usageInfo (chars "psl run [arguments] <file>") usageInfoRun
-    out $ string $ O.usageInfo (chars "psl example [arguments] <name>")  usageInfoExample
-    out $ string $ O.usageInfo (chars "psl test [arguments]") usageInfoTest
-  return $ frhs (os,map string nos)
+    out $ optUsageInfo "psl [arguments]" usageInfoTop
+    out $ optUsageInfo "psl run [arguments] <file>" usageInfoRun
+    out $ optUsageInfo "psl example [arguments] <name>"  usageInfoExample
+    out $ optUsageInfo "psl test [arguments]" usageInfoTest
+  return $ os :* nos
 
 pslMainRun ∷ IO ()
 pslMainRun = do
-  (os,ts) ← tohs ^$ parseOptions
+  os :* ts ← parseOptionsPSL
   fn ← case ts of
-    [] → failIO "ERROR: No file specified as target. Correct usage: psl run [<arguments>] <file>"
-    [t] → return t
+    Nil      → failIO "ERROR: No file specified as target. Correct usage: psl run [<arguments>] <file>"
+    t :& Nil → return t
     _ → failIO "ERROR: Too many files specified as target. Correct usage: psl run [<arguments>] <file>"
   if optJustPrint os
     then do
@@ -815,16 +816,16 @@ pslMainRun = do
 
 pslMainExample ∷ IO ()
 pslMainExample = do
-  (os,ts) ← tohs ^$ parseOptions
+  os :* ts ← parseOptionsPSL
   name ← case ts of
-    [] → failIO "ERROR: No file specified as target. Correct usage: psl example [<arguments>] <name>"
-    [t] → return t
+    Nil      → failIO "ERROR: No file specified as target. Correct usage: psl example [<arguments>] <name>"
+    t :& Nil → return t
     _ → failIO "ERROR: Too many files specified as target. Correct usage: psl example [<arguments>] <name>"
   let exampleRelativePath = "examples/" ⧺ name ⧺ ".psl"
   exampleDataFilePath ← datapath exampleRelativePath
   exampleLocalExists ← pexists exampleRelativePath
   exampleDataFileExists ← pexists exampleDataFilePath
-  when (not exampleLocalExists ⩓ exampleDataFileExists) $ \ _ → do
+  when (not exampleLocalExists ⩓ exampleDataFileExists) $ do
     dtouch "examples"
     fcopy exampleDataFilePath exampleRelativePath
   if optJustPrint os
@@ -848,10 +849,10 @@ pslMainExample = do
 
 pslMainTest ∷ IO ()
 pslMainTest = do
-  (os,ts) ← tohs ^$ parseOptions
+  os :* ts ← parseOptionsPSL
   case ts of
-    [] → skip
-    _ → failIO "ERROR: Command does not accept targets. Correct usage: psl test [<arguments>]"
+    Nil → skip
+    _   → failIO "ERROR: Command does not accept targets. Correct usage: psl test [<arguments>]"
   let θ = initializeEnv os
   pprint $ ppHeader "TESTING INTERPRETER"
   ωtl :* _ ← interpretFile θ ωtl₀ "lib:stdlib.psl" (optLibPath os ⧺ "/stdlib.psl")
@@ -866,18 +867,18 @@ pslMainTest = do
         [ ppSpace $ 𝕟64 2
         , ppAlign $ ppVertical $ mapOn vevs $ \ (fn :* (v :* evO)) → case evO of
             None → ppHorizontal
-              [ ppFormat (formats [FG darkYellow]) $ ppString "SKIPPD"
+              [ ppFormat (formats [FG yellow]) $ ppString "SKIPPD"
               , ppString fn
               ]
             Some ev →
               if v ≡ ev
               then ppHorizontal
-                [ ppFormat (formats [FG darkGreen]) $ ppString "PASSED"
+                [ ppFormat (formats [FG green]) $ ppString "PASSED"
                 , ppString fn
                 ]
               else ppVertical
                 [ ppHorizontal
-                    [ ppFormat (formats [FG darkRed]) $ ppString "FAILED"
+                    [ ppFormat (formats [FG red]) $ ppString "FAILED"
                     , ppString fn
                     ]
                 , concat
@@ -899,10 +900,10 @@ pslMainInfo = do
     , "the PANTHEON team, funded by IARPA for the HECTOR project."
     , ""
     ]
-  (_,ts) ← tohs ^$ parseOptions
+  _ :* ts ← parseOptionsPSL
   case ts of
-    [] → skip
-    _ → failIO "ERROR: Command does not accept targets. Correct usage: psl [<arguments>]"
+    Nil → skip
+    _   → failIO "ERROR: Command does not accept targets. Correct usage: psl [<arguments>]"
 
 interpreterMain ∷ IO ()
 interpreterMain = do

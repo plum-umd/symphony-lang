@@ -57,6 +57,7 @@ library:
   dependencies:
     - aeson
     - base
+    - process
     - bytestring
     - directory
     - filepath

@@ -40,7 +40,7 @@ makeLenses ''CTLState
 
 -- Ξ ∈ ccxt
 data CCxt = CCxt
-  { cCxtSource ∷ 𝑂 FullContext
+  { cCxtSource ∷ 𝑂 SrcCxt
   , cCxtPrins ∷ PrinExp ⇰ PrinKind
   , cCxtTyDec ∷ CTyEnv
   , cCxtTyEnv ∷ CTyEnv
@@ -73,17 +73,17 @@ makeLenses ''COut
 -- ERROR --
 -----------
 
-data CErrorClass = 
-    SyntaxCError 
-  | TypeCError 
-  | NotImplementedCError 
+data CErrorClass =
+    SyntaxCError
+  | TypeCError
+  | NotImplementedCError
   | InternalCError
   deriving (Eq,Ord,Show)
 makePrettySum ''CErrorClass
 
 -- r ∈ cerr
 data CError = CError
-  { cErrorSource ∷ 𝑂 FullContext
+  { cErrorSource ∷ 𝑂 SrcCxt
   , cErrorCallStack ∷ CallStack
   , cErrorClass ∷ CErrorClass
   , cErrorMsg ∷ Doc
@@ -93,8 +93,8 @@ throwCErrorCxt ∷ (Monad m,MonadReader CCxt m,MonadError CError m,STACK) ⇒ CE
 throwCErrorCxt ec em vals = withFrozenCallStack $ do
   es ← askL cCxtSourceL
   throwCError es ec em vals
-  
-throwCError ∷ (Monad m,MonadError CError m,STACK) ⇒ 𝑂 FullContext → CErrorClass → 𝕊 → 𝐿 (𝕊 ∧ Doc) → m a
+
+throwCError ∷ (Monad m,MonadError CError m,STACK) ⇒ 𝑂 SrcCxt → CErrorClass → 𝕊 → 𝐿 (𝕊 ∧ Doc) → m a
 throwCError es ec em vals =
   throw $ CError es callStack ec $ ppVertical
     [ ppString em
@@ -169,7 +169,7 @@ runCM γ xM = case unID $ unErrorT $ runRWST γ () $ unCM xM of
   Inr (() :* o :* x) → Inr (o :* x)
 
 asCTLM ∷ CM a → CTLM (COut ∧ a)
-asCTLM xM = mkCTLM $ \ σ → 
+asCTLM xM = mkCTLM $ \ σ →
   let ξ = ξ₀ { cCxtPrins = ctlStatePrins σ
              , cCxtTyDec = ctlStateTyDec σ
              , cCxtTyEnv = ctlStateTyEnv σ
@@ -177,7 +177,7 @@ asCTLM xM = mkCTLM $ \ σ →
              , cCxtTmEnv = map snd $ ctlStateTmEnv σ
              }
   in case runCM ξ xM of
-    Inl r → Inl r 
+    Inl r → Inl r
     Inr (o :* x) → Inr $ σ :* (o :* x)
 
 -- =========== --
@@ -307,7 +307,7 @@ elabExpInfer e = mapFst (siphon e) ^$ localL cCxtSourceL (Some $ annotatedTag e)
           𝔹T → return 𝔹T
           ℕT n → return $ ℕT n
           ℤT n → return $ ℤT n
-          _ → throwCErrorCxt TypeCError "elabExpInfer: ShareE: τ' ∉ {SecT _ _,𝔹T,ℕT _,ℤT _}" $ frhs 
+          _ → throwCErrorCxt TypeCError "elabExpInfer: ShareE: τ' ∉ {SecT _ _,𝔹T,ℕT _,ℤT _}" $ frhs
             [ ("τ'",pretty τ')
             ]
     return $ ShareE φ ρs₁ ρs₂ eᴱ' :* ShareT φ ρs₂ τ''
@@ -315,7 +315,7 @@ elabExpInfer e = mapFst (siphon e) ^$ localL cCxtSourceL (Some $ annotatedTag e)
     eᴱ' :* τ' ← elabExpInfer e'
     τ'' ← case τ' of
       ISecT ρs τ'³ →
-        if ρ ∈ pow ρs 
+        if ρ ∈ pow ρs
         then return $ SecT ρ τ'³
         else throwCErrorCxt TypeCError "elabExpInfer: AccessE: ISecT: ρ ∉ ρs" $ frhs
           [ ("ρ",pretty ρ)
@@ -368,17 +368,17 @@ elabExpInfer e = mapFst (siphon e) ^$ localL cCxtSourceL (Some $ annotatedTag e)
 -- TYPE CHECKING --
 -------------------
 
-elabExpCheck ∷ Type → Exp → CM Exp 
+elabExpCheck ∷ Type → Exp → CM Exp
 elabExpCheck τ e = siphon e ^$ localL cCxtSourceL (Some $ annotatedTag e) $ case extract e of
   LamE selfO ψ e' → do
     case τ of
-      τ₁ :→: (η :* τ₂) → 
+      τ₁ :→: (η :* τ₂) →
         let f = case selfO of
               Some self → bindVar self τ
               None → id
         in f $ do
           η' :* eᴱ ← undefined -- hijackL cOutEffL $ bindPat ψ τ₁ $ elabExpCheck τ₂ e'
-          -- when False {-(not $ η' ⊑ η)-} $ \ _ → 
+          -- when False {-(not $ η' ⊑ η)-} $ \ _ →
           --   throwCErrorCxt TypeCError "elabExpCheck: LamE: ¬ (η' ⊑ η)" $ frhs
           --     [ ("η'",pretty η')
           --     , ("η",pretty η)
@@ -423,7 +423,7 @@ elabTL tl = case extract tl of
     -- old code
     -- let pρs = pow ρnOs
     -- ρs' ← getL ctlStatePrinsL
-    -- when (pmap fst pρs ∩ pmap fst ρs' ≢ pø) $ \ _ → 
+    -- when (pmap fst pρs ∩ pmap fst ρs' ≢ pø) $ \ _ →
     --   throwCError (Some $ annotatedTag tl) TypeCError "elabTL: PrinTL: pρs ∩ ρs' ≢ ∅" $ frhs
     --     [ ("pρs",pretty pρs)
     --     , ("ρs'",pretty ρs')
@@ -441,7 +441,7 @@ elabTL tl = case extract tl of
           eᴱ' ← elabExpCheck τ e'
           return $ eᴱ' :* τ
       None → asCTLM $ elabExpInfer e'
-    when (η ≢ null) $ \ _ → 
+    when (η ≢ null) $ \ _ →
       throwCError (Some $ annotatedTag tl) TypeCError "elabTL: DefnTL: η ≠ null" $ frhs
         [ ("η",pretty η)
         ]

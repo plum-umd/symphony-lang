@@ -361,7 +361,7 @@ makePrisms ''Op
 -------------------
 
 -- e ∈ term ⩴  …
-type Exp = Annotated FullContext ExpR
+type Exp = 𝐴 SrcCxt ExpR
 data ExpR =
     VarE Var                                 -- x                       /  x
   | BoolE 𝔹                                  -- b                       /  b
@@ -423,22 +423,22 @@ data ExpR =
   -- [e₁;…;eₙ] ≜ e₁ ∷ ⋯ ∷ eₙ ∷ []
 makePrettySum ''ExpR
 
-buildLambda ∷ FullContext → Var → 𝐿 Pat → Exp → Exp
+buildLambda ∷ SrcCxt → Var → 𝐿 Pat → Exp → Exp
 buildLambda c x ψs e
   | ψs ≡ Nil = e
-  | otherwise = Annotated c $ LamE (Some x) ψs e
+  | otherwise = 𝐴 c $ LamE (Some x) ψs e
 
-buildUnfixedLambda ∷ FullContext → Var → 𝐿 Pat → Exp → Exp
+buildUnfixedLambda ∷ SrcCxt → Var → 𝐿 Pat → Exp → Exp
 buildUnfixedLambda c x ψs e
   | ψs ≡ Nil = e
-  | otherwise = Annotated c $ LamE None (VarP x :& ψs) e
+  | otherwise = 𝐴 c $ LamE None (VarP x :& ψs) e
 
 ---------------
 -- Top-level --
 ---------------
 
 -- tl ∈ top-level ⩴  …
-type TL = Annotated FullContext TLR
+type TL = 𝐴 SrcCxt TLR
 data TLR =
     DeclTL 𝔹 Var Type               -- def [sec] x : τ            /  def [sec] x : τ
   | DefnTL 𝔹 Var (𝐿 Pat) Exp        -- def [sec] x ψ₁ … = e       /  def [sec] x  ψ₁ … = e

@@ -92,7 +92,7 @@ readType ρ τA fn = do
       dataFilePath ← datapath relativePath
       relativePathExists ← pexists relativePath
       dataFilePathExists ← pexists dataFilePath
-      when (not relativePathExists ⩓ dataFilePathExists) $ \ _ → do
+      when (not relativePathExists ⩓ dataFilePathExists) $ do
         dtouch $ concat ["examples-input/",ppath]
         fcopy dataFilePath relativePath
       return relativePath

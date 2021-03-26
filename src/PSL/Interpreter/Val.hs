@@ -82,7 +82,7 @@ restrictValP ṽ = do
             PrinV _ → return v
             PrinSetV _ → return v
             LocV _ _ → return v
-            ArrayV ṽs → ArrayV ∘ vec ^$ mapMOn (list ṽs) restrictValP
+            ArrayV ṽs → ArrayV ∘ spvec𝐼 ^$ mapMOn (iter ṽs) (mapMSnd restrictValP)
             PairV ṽ₁ ṽ₂ → do
               ṽ₁' ← restrictValP ṽ₁
               ṽ₂' ← restrictValP ṽ₂

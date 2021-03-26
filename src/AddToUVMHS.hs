@@ -78,8 +78,13 @@ logBase = HS.logBase
 impLookup𝐷 ∷ Ord k ⇒ (k ⇰ v) → k → v
 impLookup𝐷 d k =
   case lookup𝐷 d k of
-    None   → assert False undefined -- Impossible
+    None   → undefined -- Impossible
     Some v → v
+
+impFromSome ∷ 𝑂 a → a
+impFromSome = \case
+  None   → undefined
+  Some v → v
 
 find𝐷 ∷ Eq v ⇒ k ⇰ v → v → 𝑂 k
 find𝐷 d v = foldOnFrom d None $ \ (k :* v') ok →
@@ -111,3 +116,9 @@ three𝐿L = prism constr destr
         destr = \case
           x :& y :& z :& Nil → Some $ x :* y :* z
           _ → None
+
+repeat𝑉 ∷ ℤ64 → a → 𝑉 a
+repeat𝑉 z v = spvec𝐼 $ repeatI z $ \ z' → z' :* v
+
+instance (Pretty a) ⇒ Pretty (𝑉 a) where
+  pretty = ppCollection (ppPun "[|") (ppPun "|]") (ppPun ";") ∘ map pretty ∘ iter

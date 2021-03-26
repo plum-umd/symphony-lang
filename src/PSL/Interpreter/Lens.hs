@@ -24,7 +24,6 @@ makePrisms ''MPCVal
 makeLenses ''Ckt
 makePrisms ''Input
 makePrisms ''Gate
-makePrisms ''BaseGate
 
 ------------
 -- PARAMS --
