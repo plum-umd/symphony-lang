@@ -151,10 +151,11 @@ shareValPToMPC = withValP shareValToMPC kShareMPCVal
 shareValToMPC ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ Val → ReaderT (Sharing p) IM MPCVal
 shareValToMPC = mpcValFrVal kShareBaseV shareUnknownToMPC shareValPToMPC
   where kShareBaseV bv = do
-          p  ← askL sharingProxyL
-          sp ← askL sharingSProtL
-          ρv ← askL sharingSharerL
-          pv ← lift $ shareBaseVal p ρv bv
+          p   ← askL sharingProxyL
+          sp  ← askL sharingSProtL
+          ρv  ← askL sharingSharerL
+          ρvs ← askL sharingShareeesL
+          pv  ← lift $ shareBaseVal p ρvs ρv bv
           return $ BaseMV $ Share sp pv
 
 shareUnknownToMPC ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ Type → ReaderT (Sharing p) IM MPCVal
@@ -162,16 +163,17 @@ shareUnknownToMPC τ = do
   p  ← askL sharingProxyL
   sp ← askL sharingSProtL
   ρv ← askL sharingSharerL
+  ρvs ← askL sharingShareeesL
   case τ of
     BaseT bτ → do
-      pv ← lift $ shareUnk p ρv bτ
+      pv ← lift $ shareUnk p ρvs ρv bτ
       return $ BaseMV $ Share sp pv
     τ₁ :×: τ₂ → do
       v̂₁ ← shareUnknownToMPC τ₁
       v̂₂ ← shareUnknownToMPC τ₂
       return $ PairMV v̂₁ v̂₂
     τ₁ :+: τ₂ → do
-      tag ← lift $ shareUnk p ρv 𝔹T ≫= return ∘ Share sp
+      tag ← lift $ shareUnk p ρvs ρv 𝔹T ≫= return ∘ Share sp
       v̂₁ ← shareUnknownToMPC τ₁
       v̂₂ ← shareUnknownToMPC τ₂
       return $ SumMV tag v̂₁ v̂₂
@@ -206,7 +208,8 @@ embedValToMPC = mpcValFrVal kEmbedBaseV kEmbedUnknownV embedValPToMPC
   where kEmbedBaseV bv = do
           p  ← askL sharingProxyL
           sp ← askL sharingSProtL
-          pv ← lift $ embedBaseVal p bv
+          ρvs ← askL sharingShareeesL
+          pv ← lift $ embedBaseVal p ρvs bv
           return $ BaseMV $ Share sp pv
         kEmbedUnknownV τ = lift $ throwIErrorCxt TypeIError "embedValP: UnknownV τ cannot be embedded" $ frhs
                                   [ ("τ", pretty τ)
@@ -220,6 +223,7 @@ mpcValFrVal ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ (BaseVal → ReaderT (
 mpcValFrVal kBaseV kUnknownV kValP v = do
   p ← askL sharingProxyL
   sp ← askL sharingSProtL
+  ρvs ← askL sharingShareeesL
   case v of
     DefaultV → return DefaultMV
     BulV → return BulMV
@@ -230,11 +234,11 @@ mpcValFrVal kBaseV kUnknownV kValP v = do
       return $ PairMV v̂₁ v̂₂
     LV ṽ → do
       v̂ ← kValP ṽ
-      tt ← lift $ embedBaseVal p (BoolBV True) ≫= return ∘ Share sp
+      tt ← lift $ embedBaseVal p ρvs (BoolBV True) ≫= return ∘ Share sp
       return $ SumMV tt v̂ DefaultMV
     RV ṽ → do
       v̂ ← kValP ṽ
-      ff ← lift $ embedBaseVal p (BoolBV False) ≫= return ∘ Share sp
+      ff ← lift $ embedBaseVal p ρvs (BoolBV False) ≫= return ∘ Share sp
       return $ SumMV ff DefaultMV v̂
     NilV → return NilMV
     ConsV ṽ₁ ṽ₂ → do
@@ -312,13 +316,14 @@ revealMPCVal ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ MPCVal → ReaderT (R
 revealMPCVal v̂ = do
   p   ← askL revealingProxyL
   sp  ← askL revealingSProtL
-  ρvs ← askL revealingRevealeesL
-  let toValP = SSecVP (SecM ρvs)
+  ρvsFr ← askL revealingRevealersL
+  ρvsTo ← askL revealingRevealeesL
+  let toValP = SSecVP (SecM ρvsTo)
   case v̂ of
     DefaultMV → lift $ throwIErrorCxt TypeIError "revealMPCVal: DefaultMV" empty𝐿
     BaseMV sh → lift $ do
       pv ← unwrapShare sp sh
-      bv ← reveal p ρvs pv
+      bv ← reveal p ρvsFr ρvsTo pv
       return $ BaseV bv
     PairMV v̂₁ v̂₂ → do
       v₁ ← revealMPCVal v̂₁
@@ -326,7 +331,7 @@ revealMPCVal v̂ = do
       return $ PairV (toValP v₁) (toValP v₂)
     SumMV sh₁ v̂₂ v̂₃ → do
       pv  ← lift $ unwrapShare sp sh₁
-      bv₁ ← lift $ reveal p ρvs pv
+      bv₁ ← lift $ reveal p ρvsFr ρvsTo pv
       b₁  ← lift $ error𝑂 (view boolBVL bv₁) (throwIErrorCxt TypeIError "revealMPCVal: (view boolBVL bv₁) ≡ None" $ frhs
                                               [ ("bv₁", pretty bv₁)
                                               ])
@@ -428,7 +433,7 @@ primUnShare op uss = do
                                               ])
       sh' ← withProt φ $ \ p sp → do
         pvs ← mapMOn shs $ \ sh → unwrapShare sp sh
-        pv' ← exePrim p op pvs
+        pv' ← exePrim p ρvs op pvs
         return $ Share sp pv'
       return $ Shared φ ρvs $ BaseMV sh'
 
@@ -449,7 +454,7 @@ muxUnShare us₁ us₂ us₃ = do
       sh₁ ← error𝑂 (view baseMVL v̂₁) (throwIErrorCxt TypeIError "muxUnShare: view baseMVL v̂₁ ≡ None" $ frhs
                                       [ ("v̂₁", pretty v̂₁)
                                       ])
-      v̂' ← withProt φ $ \ p sp → muxMPCVal p sp sh₁ v̂₂ v̂₃
+      v̂' ← withProt φ $ \ p sp → muxMPCVal p sp ρvs sh₁ v̂₂ v̂₃
       return $ Shared φ ρvs v̂'
     _ → impossible
 
@@ -524,35 +529,35 @@ muxVal bv₁ v₂ v₃ = case (v₂, v₃) of
           ṽ' ← reShareValP us'
           return $ if tag then LV ṽ' else RV ṽ'
 
-muxMPCVal ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → Share → MPCVal → MPCVal → IM MPCVal
-muxMPCVal p sp sh₁ v̂₂ v̂₃ = case (v̂₂, v̂₃) of
+muxMPCVal ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → Share → MPCVal → MPCVal → IM MPCVal
+muxMPCVal p sp ρvs sh₁ v̂₂ v̂₃ = case (v̂₂, v̂₃) of
   (DefaultMV, DefaultMV) → return DefaultMV
   (DefaultMV, BaseMV sh₃) → do
     pv₁ ← unwrapShare sp sh₁
     pv₃ ← unwrapShare sp sh₃
-    pv₂ ← embedBaseVal p (defaultBaseValOf $ typeOf p pv₃)
-    pv' ← exePrim p CondO $ frhs [ pv₁, pv₂, pv₃ ]
+    pv₂ ← embedBaseVal p ρvs (defaultBaseValOf $ typeOf p pv₃)
+    pv' ← exePrim p ρvs CondO $ frhs [ pv₁, pv₂, pv₃ ]
     return $ BaseMV $ Share sp pv'
   (BaseMV sh₂, DefaultMV) → do
     pv₁ ← unwrapShare sp sh₁
     pv₂ ← unwrapShare sp sh₂
-    pv₃ ← embedBaseVal p (defaultBaseValOf $ typeOf p pv₂)
-    pv' ← exePrim p CondO $ frhs [ pv₁, pv₂, pv₃ ]
+    pv₃ ← embedBaseVal p ρvs (defaultBaseValOf $ typeOf p pv₂)
+    pv' ← exePrim p ρvs CondO $ frhs [ pv₁, pv₂, pv₃ ]
     return $ BaseMV $ Share sp pv'
   (BaseMV sh₂, BaseMV sh₃) → do
     pv₁ ← unwrapShare sp sh₁
     pv₂ ← unwrapShare sp sh₂
     pv₃ ← unwrapShare sp sh₃
-    pv' ← exePrim p CondO $ frhs [ pv₁, pv₂, pv₃ ]
+    pv' ← exePrim p ρvs CondO $ frhs [ pv₁, pv₂, pv₃ ]
     return $ BaseMV $ Share sp pv'
   (DefaultMV, PairMV v̂₃ₗ v̂₃ᵣ) → muxTup DefaultMV DefaultMV v̂₃ₗ v̂₃ᵣ PairMV
   (PairMV v̂₂ₗ v̂₂ᵣ, DefaultMV) → muxTup v̂₂ₗ v̂₂ᵣ DefaultMV DefaultMV PairMV
   (PairMV v̂₂ₗ v̂₂ᵣ, PairMV v̂₃ₗ v̂₃ᵣ) → muxTup v̂₂ₗ v̂₂ᵣ v̂₃ₗ v̂₃ᵣ PairMV
   (DefaultMV, SumMV sh₃ v̂₃ₗ v̂₃ᵣ) → do
-    pv₂ ← embedBaseVal p (BoolBV False)
+    pv₂ ← embedBaseVal p ρvs (BoolBV False)
     muxSum (Share sp pv₂) DefaultMV DefaultMV sh₃ v̂₃ₗ v̂₃ᵣ
   (SumMV sh₂ v̂₂ₗ v̂₂ᵣ, DefaultMV) → do
-    pv₃ ← embedBaseVal p (BoolBV False)
+    pv₃ ← embedBaseVal p ρvs (BoolBV False)
     muxSum sh₂ v̂₂ₗ v̂₂ᵣ (Share sp pv₃) DefaultMV DefaultMV
   (SumMV sh₂ v̂₂ₗ v̂₂ᵣ, SumMV sh₃ v̂₃ₗ v̂₃ᵣ) → muxSum sh₂ v̂₂ₗ v̂₂ᵣ sh₃ v̂₃ₗ v̂₃ᵣ
   (DefaultMV, NilMV) → return NilMV
@@ -569,16 +574,16 @@ muxMPCVal p sp sh₁ v̂₂ v̂₃ = case (v̂₂, v̂₃) of
       , ("v̂₃", pretty v̂₃)
       ]
   where muxTup v̂₂ₗ v̂₂ᵣ v̂₃ₗ v̂₃ᵣ constr = do
-          v̂ₗ ← muxMPCVal p sp sh₁ v̂₂ₗ v̂₃ₗ
-          v̂ᵣ ← muxMPCVal p sp sh₁ v̂₂ᵣ v̂₃ᵣ
+          v̂ₗ ← muxMPCVal p sp ρvs sh₁ v̂₂ₗ v̂₃ₗ
+          v̂ᵣ ← muxMPCVal p sp ρvs sh₁ v̂₂ᵣ v̂₃ᵣ
           return $ constr v̂ₗ v̂ᵣ
         muxSum sh₂ v̂₂ₗ v̂₂ᵣ sh₃ v̂₃ₗ v̂₃ᵣ = do
           tag₁ ← unwrapShare sp sh₁
           tag₂ ← unwrapShare sp sh₂
           tag₃ ← unwrapShare sp sh₃
-          tag ← exePrim p CondO $ frhs [ tag₁, tag₂, tag₃ ]
-          v̂ₗ ← muxMPCVal p sp sh₁ v̂₂ₗ v̂₃ₗ
-          v̂ᵣ ← muxMPCVal p sp sh₁ v̂₂ᵣ v̂₃ᵣ
+          tag ← exePrim p ρvs CondO $ frhs [ tag₁, tag₂, tag₃ ]
+          v̂ₗ ← muxMPCVal p sp ρvs sh₁ v̂₂ₗ v̂₃ₗ
+          v̂ᵣ ← muxMPCVal p sp ρvs sh₁ v̂₂ᵣ v̂₃ᵣ
           return $ SumMV (Share sp tag) v̂ₗ v̂ᵣ
 
 defaultBaseValOf ∷ BaseType → BaseVal
@@ -598,7 +603,7 @@ sumUnShare us₁ us₂ = do
       return $ NotShared v'
     Inr (φ :* ρvs :* v̂s) → do
       v̂₁ :* v̂₂ ← fromSome $ view two𝐿L v̂s
-      v̂' ← withProt φ $ \ p sp → sumMPCVal p sp v̂₁ v̂₂
+      v̂' ← withProt φ $ \ p sp → sumMPCVal p sp ρvs v̂₁ v̂₂
       return $ Shared φ ρvs v̂'
 
 sumVal ∷ (STACK) ⇒ Val → Val → IM Val
@@ -635,14 +640,14 @@ sumVal v₁ v₂ = case (v₁, v₂) of
           ṽ ← reShareValP us
           return $ if tag then LV ṽ else RV ṽ
 
-sumMPCVal ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → MPCVal → MPCVal → IM MPCVal
-sumMPCVal p sp v̂₁ v̂₂ = case (v̂₁, v̂₂) of
+sumMPCVal ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → MPCVal → MPCVal → IM MPCVal
+sumMPCVal p sp ρvs v̂₁ v̂₂ = case (v̂₁, v̂₂) of
   (DefaultMV, _) → return v̂₂
   (_, DefaultMV) → return v̂₁
   (BaseMV sh₁, BaseMV sh₂) → do
     pv₁ ← unwrapShare sp sh₁
     pv₂ ← unwrapShare sp sh₂
-    pv' ← exePrim p PlusO $ frhs [ pv₁, pv₂ ]
+    pv' ← exePrim p ρvs PlusO $ frhs [ pv₁, pv₂ ]
     return $ BaseMV $ Share sp pv'
   (PairMV v̂₁ₗ v̂₁ᵣ, PairMV v̂₂ₗ v̂₂ᵣ) → sumTup v̂₁ₗ v̂₁ᵣ v̂₂ₗ v̂₂ᵣ PairMV
   (SumMV sh₁ v̂₁ₗ v̂₁ᵣ, SumMV sh₂ v̂₂ₗ v̂₂ᵣ) → sumSum sh₁ v̂₁ₗ v̂₁ᵣ sh₂ v̂₂ₗ v̂₂ᵣ
@@ -654,15 +659,15 @@ sumMPCVal p sp v̂₁ v̂₂ = case (v̂₁, v̂₂) of
       , ("v̂₂", pretty v̂₂)
       ]
   where sumTup v̂₁ₗ v̂₁ᵣ v̂₂ₗ v̂₂ᵣ constr = do
-          v̂ₗ ← sumMPCVal p sp v̂₁ₗ v̂₂ₗ
-          v̂ᵣ ← sumMPCVal p sp v̂₁ᵣ v̂₂ᵣ
+          v̂ₗ ← sumMPCVal p sp ρvs v̂₁ₗ v̂₂ₗ
+          v̂ᵣ ← sumMPCVal p sp ρvs v̂₁ᵣ v̂₂ᵣ
           return $ constr v̂ₗ v̂ᵣ
         sumSum sh₁ v̂₁ₗ v̂₁ᵣ sh₂ v̂₂ₗ v̂₂ᵣ = do
           tag₁ ← unwrapShare sp sh₁
           tag₂ ← unwrapShare sp sh₂
-          tag ← exePrim p PlusO $ frhs [ tag₁, tag₂ ]
-          v̂ₗ ← sumMPCVal p sp v̂₁ₗ v̂₂ₗ
-          v̂ᵣ ← sumMPCVal p sp v̂₁ᵣ v̂₂ᵣ
+          tag ← exePrim p ρvs PlusO $ frhs [ tag₁, tag₂ ]
+          v̂ₗ ← sumMPCVal p sp ρvs v̂₁ₗ v̂₂ₗ
+          v̂ᵣ ← sumMPCVal p sp ρvs v̂₁ᵣ v̂₂ᵣ
           return $ SumMV (Share sp tag) v̂ₗ v̂ᵣ
 
 viewPairUnShare ∷ UnShare → FailT IM (UnShare ∧ UnShare)

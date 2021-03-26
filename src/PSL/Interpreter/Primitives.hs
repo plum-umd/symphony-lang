@@ -11,13 +11,17 @@ import PSL.Interpreter.Error
 
 import AddToUVMHS
 
+
 primType ∷ (STACK) ⇒ Op → 𝐿 BaseType → BaseType
-primType op bτs = case (op, tohs bτs) of
+primType op τs = case (op, tohs τs) of
   (OrO, [𝔹T, 𝔹T]) → 𝔹T
   (PlusO, [ℕT pr₁, ℕT pr₂]) | pr₁ ≡ pr₂ → ℕT pr₁
   (PlusO, [ℤT pr₁, ℤT pr₂]) | pr₁ ≡ pr₂ → ℤT pr₁
   (ExpO, [𝔽T pr₁, 𝔽T pr₂]) | pr₁ ≡ pr₂ → 𝔽T pr₁
+  (EqO, [ℤT pr₁, ℤT pr₂]) | pr₁ ≡ pr₂ → 𝔹T
+  (EqO, [𝔹T, 𝔹T]) → 𝔹T
   (CondO, [𝔹T, ℤT pr₁, ℤT pr₂]) | pr₁ ≡ pr₂ → ℤT pr₁
+  (CondO, [𝔹T, 𝔹T, 𝔹T]) → 𝔹T
 
 interpPrim ∷ (STACK) ⇒ Op → 𝐿 BaseVal → IM BaseVal
 interpPrim o vs = case (o,tohs vs) of

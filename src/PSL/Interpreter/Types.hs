@@ -78,12 +78,12 @@ class
   Protocol p where
     type ProtocolVal p ∷ ★
 
-    typeOf       ∷ P p → ProtocolVal p                     → BaseType
-    shareBaseVal ∷ P p → PrinVal       → BaseVal           → IM (ProtocolVal p)
-    shareUnk     ∷ P p → PrinVal       → BaseType          → IM (ProtocolVal p)
-    embedBaseVal ∷ P p → BaseVal                           → IM (ProtocolVal p)
-    exePrim      ∷ P p → Op            → 𝐿 (ProtocolVal p) → IM (ProtocolVal p)
-    reveal       ∷ P p → 𝑃 PrinVal     → ProtocolVal p     → IM BaseVal
+    typeOf       ∷ P p → ProtocolVal p                                 → BaseType
+    shareBaseVal ∷ P p → 𝑃 PrinVal     → PrinVal   → BaseVal           → IM (ProtocolVal p)
+    shareUnk     ∷ P p → 𝑃 PrinVal     → PrinVal   → BaseType          → IM (ProtocolVal p)
+    embedBaseVal ∷ P p → 𝑃 PrinVal     → BaseVal                       → IM (ProtocolVal p)
+    exePrim      ∷ P p → 𝑃 PrinVal     → Op        → 𝐿 (ProtocolVal p) → IM (ProtocolVal p)
+    reveal       ∷ P p → 𝑃 PrinVal     → 𝑃 PrinVal → ProtocolVal p     → IM BaseVal
 
 -- Shares
 -- sh ∈ share
@@ -197,7 +197,7 @@ data ICxt = ICxt
 data IState = IState
   { iStateStore ∷ Store
   , iStateNextLoc ∷ ℤ64
-  , iStateNextWires ∷ Mode ⇰ Wire
+  , iStateNextWires ∷ (𝑃 PrinVal) ⇰ Wire
   , iStateMPCCont ∷ 𝐿 (𝐿 UnShare ∧ UnShare)
   } deriving (Eq,Ord,Show)
 

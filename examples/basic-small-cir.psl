@@ -1,0 +1,7 @@
+principal A B
+
+def main • =
+  par {A,B}
+    let x = share{yao:A → A,B} (par {A:𝔹} true) in
+    let y = share{yao:B → A,B} (par {B:𝔹} false) in
+    reveal {A,B} (mux if x == y then x else y)

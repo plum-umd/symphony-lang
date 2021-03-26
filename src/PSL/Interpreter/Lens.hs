@@ -49,19 +49,19 @@ iCxtLocalModeL = iParamsLocalModeL ⊚ iCxtParamsL
 
 makeLenses ''IState
 
-iStateShareInfoNextWireL ∷ ((Mode ⇰ Wire) ∧ Mode) ⟢ Wire
+iStateShareInfoNextWireL ∷ (((𝑃 PrinVal) ⇰ Wire) ∧ 𝑃 PrinVal) ⟢ Wire
 iStateShareInfoNextWireL = lens getCkt setCkt
-  where getCkt (ws :* m)   = case lookup𝐷 ws m of
+  where getCkt (ws :* ρvs)   = case lookup𝐷 ws ρvs of
                              None   → HS.fromIntegral 0
                              Some w → w
-        setCkt (ws :* m) w = (m ↦ w) ⩌ ws :* m
+        setCkt (ws :* ρvs) w = (ρvs ↦ w) ⩌ ws :* ρvs
 
-iStateShareInfoNextWiresL ∷ Mode → IState ⟢ ((Mode ⇰ Wire) ∧ Mode)
-iStateShareInfoNextWiresL m = lens getCkts setCkts
-  where getCkts st = access iStateNextWiresL st :* m
-        setCkts st (ws :* _m) = update iStateNextWiresL ws st
+iStateShareInfoNextWiresL ∷ 𝑃 PrinVal → IState ⟢ (((𝑃 PrinVal) ⇰ Wire) ∧ 𝑃 PrinVal)
+iStateShareInfoNextWiresL ρvs = lens getCkts setCkts
+  where getCkts st = access iStateNextWiresL st :* ρvs
+        setCkts st (ws :* _ρvs) = update iStateNextWiresL ws st
 
-iStateNextWireL ∷ Mode → IState ⟢ Wire
+iStateNextWireL ∷ 𝑃 PrinVal → IState ⟢ Wire
 iStateNextWireL m = iStateShareInfoNextWireL ⊚ (iStateShareInfoNextWiresL m)
 
 ------------
