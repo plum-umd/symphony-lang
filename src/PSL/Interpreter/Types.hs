@@ -122,8 +122,9 @@ deriving instance Show Share
 --------------
 
 data Ckt = Ckt
-  { gatesC ∷ Wire ⇰ Gate
-  , outC   ∷ Wire
+  { inputsC  ∷ PrinVal ⇰ (Wire ⇰ Input)
+  , gatesC   ∷ Wire ⇰ Gate
+  , outputC  ∷ Wire
   } deriving (Eq,Ord,Show)
 
 data Input =
@@ -133,11 +134,10 @@ data Input =
 
 data Gate =
     BaseG BaseVal
-  | InputG PrinVal Input
   | PrimG Op (𝐿 Wire)
   deriving (Eq,Ord,Show)
 
-type Wire = ℕ64
+type Wire = ℕ
 
 -----------------
 -- ENVIRONMENT --

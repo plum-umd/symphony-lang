@@ -78,12 +78,18 @@ logBase = HS.logBase
 impLookup𝐷 ∷ Ord k ⇒ (k ⇰ v) → k → v
 impLookup𝐷 d k =
   case lookup𝐷 d k of
-    None   → undefined -- Impossible
+    None   → impossible
     Some v → v
+
+(⩌!) ∷ Ord k ⇒ (k ⇰ v) → (k ⇰ v) → k ⇰ v
+d₁ ⩌! d₂ = unionWith (\ _ _ → impossible) d₁ d₂
+
+unionsUniq ∷ (Ord k, ToIter (k ⇰ v) t) => t -> k ⇰ v
+unionsUniq = unionsWith (\ _ _ → impossible)
 
 impFromSome ∷ 𝑂 a → a
 impFromSome = \case
-  None   → undefined
+  None   → impossible
   Some v → v
 
 find𝐷 ∷ Eq v ⇒ k ⇰ v → v → 𝑂 k
@@ -122,3 +128,6 @@ repeat𝑉 z v = spvec𝐼 $ repeatI z $ \ z' → z' :* v
 
 instance (Pretty a) ⇒ Pretty (𝑉 a) where
   pretty = ppCollection (ppPun "[|") (ppPun "|]") (ppPun ";") ∘ map pretty ∘ iter
+
+impossible ∷ a
+impossible = assert False undefined

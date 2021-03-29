@@ -30,7 +30,7 @@ error𝑂 e er = case e of
   None → er
 
 fromSome ∷ (Monad m,MonadReader ICxt m,MonadError IError m) ⇒ 𝑂 a → m a
-fromSome x = error𝑂 x impossible
+fromSome x = error𝑂 x impossibleM
 
-impossible ∷ (Monad m,MonadReader ICxt m,MonadError IError m,STACK) ⇒ m a
-impossible = throwIErrorCxt InternalIError "Impossible." empty𝐿
+impossibleM ∷ (Monad m,MonadReader ICxt m,MonadError IError m,STACK) ⇒ m a
+impossibleM = throwIErrorCxt InternalIError "Impossible." empty𝐿

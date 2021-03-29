@@ -212,7 +212,7 @@ sequentialSwitch φ = do
 wrapInterp ∷ (STACK) ⇒ (ExpR → IM ValP) → Exp → IM ValP
 wrapInterp f e = localL iCxtSourceL (Some $ atag e) $ f $ extract e
 
-modeCheckShare ∷ 𝑃 PrinVal → 𝑃 PrinVal → IM ()
+modeCheckShare ∷ 𝑃 PrinVal → 𝑃 PrinVal → IM PrinVal
 modeCheckShare ρvsSharer ρvsSharees = do                           -- Formalism:
   gm ← askL iCxtGlobalModeL                                        --   ρvsSharer = p, ρvsSharees = q, gm = m
   let singleSharer    = count ρvsSharer ≡ 1                        --   |p| = 1
@@ -232,6 +232,7 @@ modeCheckShare ρvsSharer ρvsSharees = do                           -- Formalis
     , ("ρvsSharees", pretty ρvsSharees)
     , ("gm", pretty gm)
     ]
+  fromSome $ view one𝑃L ρvsSharer
 
 modeCheckReveal ∷ 𝑃 PrinVal → 𝑃 PrinVal → IM ()
 modeCheckReveal ρvsRevealers ρvsRevealees = do                               -- Formalism:
@@ -339,9 +340,8 @@ interpExp = wrapInterp $ \case
   ShareE φ ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
-    modeCheckShare ρvs₁ ρvs₂
-    ρv₁ ← fromSome (view one𝑃L ρvs₁)
-    φ' ← sequentialSwitch φ
+    ρv₁  ← modeCheckShare ρvs₁ ρvs₂
+    φ'   ← sequentialSwitch φ
     restrictMode (SecM ρvs₁) $ do
       ṽ ← interpExp e
       withProt φ' $ \ p sp → runReaderT (Sharing p sp ρv₁ ρvs₂) $ shareValP ṽ

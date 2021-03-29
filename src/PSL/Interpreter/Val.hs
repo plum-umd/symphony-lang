@@ -456,7 +456,7 @@ muxUnShare us₁ us₂ us₃ = do
                                       ])
       v̂' ← withProt φ $ \ p sp → muxMPCVal p sp ρvs sh₁ v̂₂ v̂₃
       return $ Shared φ ρvs v̂'
-    _ → impossible
+    _ → impossibleM
 
 muxVal ∷ (STACK) ⇒ BaseVal → Val → Val → IM Val
 muxVal bv₁ v₂ v₃ = case (v₂, v₃) of
