@@ -13,9 +13,10 @@ import qualified Prelude as HS
 
 makePrisms ''Val
 makePrisms ''BaseVal
-makePrisms ''ValP
-makePrisms ''UnShare
-makePrisms ''MPCVal
+--makePrisms ''ValP
+makeLenses ''MPCify
+--makePrisms ''UnShare
+--makePrisms ''MPCVal
 
 --------------
 -- Circuits --

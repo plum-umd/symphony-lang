@@ -45,28 +45,95 @@ typeOfBaseVal = \case
 
 -- Distributed Values
 -- ṽ ∈ dist-val
-data ValP =
-    SSecVP Mode Val                   -- Values
-  | ISecVP (PrinVal ⇰ Val)            -- Bundles
-  | ShareVP Prot (𝑃 PrinVal) MPCVal   -- MPC Values
-  deriving (Eq,Ord,Show)
+data ValP where
+  SSecVP  ∷ Mode → Val → ValP                                           -- Values
+  ISecVP  ∷ (PrinVal ⇰ Val) → ValP                                      -- Bundles
+  ShareVP ∷ ∀ p. (Protocol p) ⇒ SProt p → (𝑃 PrinVal) → MPCVal p → ValP -- Shares
 
-data UnShare =
-    NotShared Val
-  | Shared Prot (𝑃 PrinVal) MPCVal
-  deriving (Eq,Ord,Show)
+instance Eq ValP where
+  ṽ₁ == ṽ₂ = case (ṽ₁, ṽ₂) of
+    (SSecVP m₁ v₁, SSecVP m₂ v₂) → m₁ ≡ m₂ ⩓ v₁ ≡ v₂
+    (ISecVP b₁, ISecVP b₂) → b₁ ≡ b₂
+    (ShareVP sp₁ ρvs₁ v̂₁, ShareVP sp₂ ρvs₂ v̂₂) →
+      case deq sp₁ sp₂ of
+        NoDEq  → False
+        YesDEq → ρvs₁ ≡ ρvs₂ ⩓ v̂₁ ≡ v̂₂
+    _ → False
+
+instance Ord ValP where
+  compare ṽ₁ ṽ₂ = case (ṽ₁, ṽ₂) of
+    (SSecVP m₁ v₁, SSecVP m₂ v₂) →
+      case compare m₁ m₂ of
+        LT → LT
+        GT → GT
+        EQ → compare v₁ v₂
+    (SSecVP _ _, _) → LT
+    (ISecVP _, SSecVP _ _) → GT
+    (ISecVP b₁, ISecVP b₂) → compare b₁ b₂
+    (ISecVP _, ShareVP _ _ _) → LT
+    (ShareVP sp₁ ρvs₁ v̂₁, ShareVP sp₂ ρvs₂ v̂₂) →
+      case dcmp sp₁ sp₂ of
+        LTDCmp → LT
+        GTDCmp → GT
+        EQDCmp →
+          case compare ρvs₁ ρvs₂ of
+            LT → LT
+            GT → GT
+            EQ → compare v̂₁ v̂₂
+    (ShareVP _ _ _, _) → GT
+
+deriving instance (Show ValP)
+
+data MPCify p = MPCify
+  { proxyMPC ∷ P p
+  , protMPC  ∷ SProt p
+  , fromMPC  ∷ 𝑂 PrinVal
+  , toMPC    ∷ 𝑃 PrinVal
+  } deriving (Eq,Ord,Show)
+
+
+data UnShare where
+  NotShared ∷ Val → UnShare
+  Shared    ∷ ∀ p. (Protocol p) ⇒ SProt p → (𝑃 PrinVal) → (MPCVal p) → UnShare
+
+instance Eq UnShare where
+  us₁ == us₂ = case (us₁, us₂) of
+    (NotShared v₁, NotShared v₂) → v₁ ≡ v₂
+    (Shared sp₁ ρvs₁ v̂₁, Shared sp₂ ρvs₂ v̂₂) →
+      case deq sp₁ sp₂ of
+        NoDEq  → False
+        YesDEq → ρvs₁ ≡ ρvs₂ ⩓ v̂₁ ≡ v̂₂
+    _ → False
+
+instance Ord UnShare where
+  compare us₁ us₂ = case (us₁, us₂) of
+    (NotShared v₁, NotShared v₂) → compare v₁ v₂
+    (NotShared _, _) → LT
+    (Shared sp₁ ρvs₁ v̂₁, Shared sp₂ ρvs₂ v̂₂) →
+      case dcmp sp₁ sp₂ of
+        LTDCmp → LT
+        GTDCmp → GT
+        EQDCmp →
+          case compare ρvs₁ ρvs₂ of
+            LT → LT
+            GT → GT
+            EQ → compare v̂₁ v̂₂
+    (Shared _ _ _, _) → GT
+
+deriving instance (Show UnShare)
 
 -- MPC Values
 -- v̂ ∈ mpc-val
-data MPCVal =
-    DefaultMV
-  | BulMV
-  | BaseMV Share
-  | PairMV MPCVal MPCVal
-  | SumMV Share MPCVal MPCVal
-  | NilMV
-  | ConsMV MPCVal MPCVal
-  deriving (Eq,Ord,Show)
+data MPCVal p where
+  DefaultMV ∷ MPCVal p
+  BulMV     ∷ MPCVal p
+  BaseMV    ∷ (Protocol p) ⇒ (ProtocolVal p) → MPCVal p
+  PairMV    ∷ MPCVal p → MPCVal p → MPCVal p
+  SumMV     ∷ (Protocol p) ⇒ (ProtocolVal p) → MPCVal p → MPCVal p → MPCVal p
+
+deriving instance (Eq (MPCVal p))
+deriving instance (Ord (MPCVal p))
+deriving instance (Show (MPCVal p))
 
 -- MPC Protocols
 class
@@ -83,39 +150,7 @@ class
     shareUnk     ∷ P p → 𝑃 PrinVal     → PrinVal   → BaseType          → IM (ProtocolVal p)
     embedBaseVal ∷ P p → 𝑃 PrinVal     → BaseVal                       → IM (ProtocolVal p)
     exePrim      ∷ P p → 𝑃 PrinVal     → Op        → 𝐿 (ProtocolVal p) → IM (ProtocolVal p)
-    reveal       ∷ P p → 𝑃 PrinVal     → 𝑃 PrinVal → ProtocolVal p     → IM BaseVal
-
--- Shares
--- sh ∈ share
-data Share where
-  Share ∷ ∀ p. (Protocol p) ⇒ SProt p → ProtocolVal p → Share
-
-instance Eq Share where
-  sh₁ == sh₂ = case (sh₁, sh₂) of
-    (Share (sp₁ ∷ SProt p₁) (pv₁ ∷ ProtocolVal p₁), Share (sp₂ ∷ SProt p₂) (pv₂ ∷ ProtocolVal p₂)) →
-      case deq sp₁ sp₂ of
-        NoDEq → False
-        YesDEq →
-          let pr₁ ∷ (SProt p₁, ProtocolVal p₁)
-              pr₁ = (sp₁, pv₁)
-              pr₂ ∷ (SProt p₁, ProtocolVal p₁)
-              pr₂ = (sp₂, pv₂)
-          in pr₁ ≡ pr₂
-
-instance Ord Share where
-  compare sh₁ sh₂ = case (sh₁, sh₂) of
-    (Share (sp₁ ∷ SProt p₁) (pv₁ ∷ ProtocolVal p₁), Share (sp₂ ∷ SProt p₂) (pv₂ ∷ ProtocolVal p₂)) →
-      case dcmp sp₁ sp₂ of
-        LTDCmp → LT
-        GTDCmp → GT
-        EQDCmp →
-          let pr₁ ∷ (SProt p₁, ProtocolVal p₁)
-              pr₁ = (sp₁, pv₁)
-              pr₂ ∷ (SProt p₁, ProtocolVal p₁)
-              pr₂ = (sp₂, pv₂)
-          in compare pr₁ pr₂
-
-deriving instance Show Share
+    reveal       ∷ P p → 𝑃 PrinVal     → 𝑃 PrinVal → MPCVal p          → IM Val
 
 --------------
 -- Circuits --

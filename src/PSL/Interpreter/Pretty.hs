@@ -236,18 +236,13 @@ instance Pretty (SProt p) where
     SSPDZP  → ppLit "SSPDZP"
     SAutoP  → ppLit "SAutoP"
 
-instance Pretty Share where
-  pretty (Share _sp pv) = pretty pv
-
-instance Pretty MPCVal where
+instance Protocol p ⇒ Pretty (MPCVal p) where
   pretty = \case
     DefaultMV → ppPun "⊥"
-    BaseMV sh  → pretty sh
-    PairMV v₁ v₂ → ppInflF ppTight levelCOMMA (ppPun ",") (pretty v₁) $ pretty v₂
-    SumMV sh v₁ v₂ → ppApp (ppCon "SUM") [pretty sh,pretty v₁,pretty v₂]
-    NilMV → ppCon "[]"
-    ConsMV v₁ v₂ → ppInfr levelCONS (ppPun "∷") (pretty v₁) $ pretty v₂
     BulMV → ppCon "•"
+    BaseMV pv → pretty pv
+    PairMV v₁ v₂ → ppInflF ppTight levelCOMMA (ppPun ",") (pretty v₁) $ pretty v₂
+    SumMV pv v₁ v₂ → ppApp (ppCon "SUM") [pretty pv,pretty v₁,pretty v₂]
 
 makePrettyRecord ''Ckt
 makePrettySum ''Input

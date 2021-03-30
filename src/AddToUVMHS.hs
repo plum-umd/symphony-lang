@@ -131,3 +131,9 @@ instance (Pretty a) ⇒ Pretty (𝑉 a) where
 
 impossible ∷ a
 impossible = assert False undefined
+
+foldmapM ∷ (Monad m, ToIter a t) ⇒ b → (a → b → m (b ∧ c)) → t → m (b ∧ 𝐼 c)
+foldmapM init f xs = mfold (init :* empty𝐼) thread xs
+  where thread x (acc :* r) = do
+          (acc' :* x') ← f x acc
+          return $ acc' :* (snoc𝐼 r x')

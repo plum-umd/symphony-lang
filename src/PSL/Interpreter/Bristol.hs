@@ -39,15 +39,17 @@ type WireMap = 𝐿 (ℕ ∧ (ℕ → BWire))
 
 type RWireMap = (𝐿 ℕ) ∧ ℕ ∧ (𝐿 ℕ)
 
+bristolFrMPCVal ∷ MPCVal 'YaoNP → IM BCir
+bristolFrMPCVal v̂ = undefined
+
 generateBristol ∷ Ckt → IM BCktVal
-generateBristol ckt@(Ckt gates out) = case gates ⋕! out of
+generateBristol ckt@(Ckt ins gates out) = case gates ⋕! out of
     BaseG bv → case bv of
       BoolBV b → return $ CompBCV (boolToCir b) null
       NatBV _ n → return $ CompBCV (natToCir $ 𝕟64 n) null
-    InputG _ _ → return $ InputBCV out
     PrimG op ws → do
       let outT = cktType ckt
-      cs ← mapM (generateBristol ∘ Ckt gates) ws
+      cs ← mapM (generateBristol ∘ Ckt ins gates) ws
       oc ← case op :* outT of
         PlusO :* ℤT _ → io $ parseCircuitFile "bristol/adder64.txt"
         PlusO :* 𝔽T  _→ io $ parseCircuitFile "bristol/FP-add.txt"
@@ -65,7 +67,7 @@ generateBristol ckt@(Ckt gates out) = case gates ⋕! out of
         CondO :* _ → return $ muxCir $ getBitLength ckt
         EqO :* _ →
           let w :& _ = ws
-          in return $ eqCir $ getBitLength $ Ckt gates w
+          in return $ eqCir $ getBitLength $ Ckt ins gates w
       return $ plugInputs (CompBCV oc null) cs
 
 getBitLength ∷ Ckt → ℕ

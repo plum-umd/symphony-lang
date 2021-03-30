@@ -15,6 +15,12 @@ import PSL.Interpreter.Bristol
 import qualified Data.Text as Text
 import qualified System.Process as Process
 
+getParty ∷ IM PrinVal
+getParty = do
+  lm ← askL iCxtLocalModeL       -- Note: Local Mode, `lm`, is always either TopM or a singleton
+  ρvs ← fromSome $ view secML lm --   TopM is impossible, since we are in the YaoN protocol (TopM always executes plaintext protocol -- i.e. sequential mode)
+  fromSome $ view one𝑃L ρvs      --   ∴ `lm` is a singleton.
+
 instance Protocol 'YaoNP where
   type ProtocolVal 'YaoNP = Ckt
 
@@ -33,24 +39,22 @@ instance Protocol 'YaoNP where
   exePrim ∷ P 'YaoNP → 𝑃 PrinVal → Op → 𝐿 Ckt → IM Ckt
   exePrim _p = exePrimCkt
 
-  getParty ∷ IM PrinVal
-  getParty = do
-    lm ← askL iCxtLocalMode        -- Note: Local Mode, `lm`, is always either TopM or a singleton
-    ρvs ← fromSome $ view secML lm --   TopM is impossible, since we are in the YaoN protocol (TopM always executes plaintext protocol -- i.e. sequential mode)
-    fromSome $ view one𝑃L ρvs      --   ∴ `lm` is a singleton.
-
-  reveal ∷ P 'YaoNP → 𝑃 PrinVal → 𝑃 PrinVal → Ckt → IM BaseVal
-  reveal _p ρvs₁ ρvs₂ ckt = do
-    let bτ = cktType ckt
+  reveal ∷ P 'YaoNP → 𝑃 PrinVal → 𝑃 PrinVal → MPCVal 'YaoNP → IM Val
+  reveal _p ρvs₁ ρvs₂ v̂ = do
+    pptraceM v̂
+    bristol ← bristolFrMPCVal v̂
+--    pptraceM bristol
+    return $ BaseV $ BoolBV True
+{-
+    do
+    let bτ = mpcValType v̂
     party   ← getParty
     bristol ← cktToBristol ckt
-    let cktpath = concat [bristolDir,ppshow party,".txt"]
-    io $ fwrite cktpath bristol -- write bristol format circuit to file
-    revealed ← runEMP path
-    parseBaseType bτ revealed
+    let cktPath = concat [bristolDir,ppshow party,".txt"]
+    io $ fwrite cktPath bristol
+    revealed ← runEMP "" party ""
+    return $ BoolBV True
     where cktToBristol = return ∘ printBCktVal *∘ generateBristol
-          bristolDir  = "bristol-circuits/"
-          runEMP path = map Text.pack $ io $ Process.readProcess emp [ config,
-            Text.unpack path ] []
+          runEMP configPath party input = map Text.pack $ io $ Process.readProcess emp [ Text.unpack configPath, Text.unpack $ show𝕊 party ] $ Text.unpack input
           emp = Text.unpack "emp-backend"
-          parseBaseType bτ str = return $ BoolBV True
+          bristolDir   = "bristol-circuits/" -}
