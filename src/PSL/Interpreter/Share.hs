@@ -15,7 +15,7 @@ withProt ∷ Prot → (∀ (p ∷ Prot). (Protocol p) ⇒ P p → SProt p → IM
 withProt φ k = case φ of
   PlainP → k P SPlainP
   YaoNP  → k P SYaoNP
---  Yao2P  → k P SYao2P
+  Yao2P  → k P SYaoNP
 --  BGWP   → k P SBGWP
 --  GMWP   → k P SGMWP
 --  BGVP   → k P SBGVP
@@ -27,7 +27,7 @@ sameProt ∷ ∀ (p ∷ Prot). (Protocol p) ⇒ Prot → SProt p → IM ()
 sameProt φ sp = case (φ, sp) of
   (PlainP, SPlainP) → return ()
   (YaoNP , SYaoNP ) → return ()
---  (Yao2P , SYao2P ) → return ()
+  (Yao2P , SYaoNP ) → return ()
 --  (BGWP  , SBGWP  ) → return ()
 --  (GMWP  , SGMWP  ) → return ()
 --  (BGVP  , SBGVP  ) → return ()

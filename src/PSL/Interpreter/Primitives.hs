@@ -15,6 +15,7 @@ import AddToUVMHS
 primType ∷ (STACK) ⇒ Op → 𝐿 BaseType → BaseType
 primType op τs = case (op, tohs τs) of
   (OrO, [𝔹T, 𝔹T]) → 𝔹T
+  (AndO, [𝔹T, 𝔹T]) → 𝔹T
   (PlusO, [ℕT pr₁, ℕT pr₂]) | pr₁ ≡ pr₂ → ℕT pr₁
   (PlusO, [ℤT pr₁, ℤT pr₂]) | pr₁ ≡ pr₂ → ℤT pr₁
   (ExpO, [𝔽T pr₁, 𝔽T pr₂]) | pr₁ ≡ pr₂ → 𝔽T pr₁

@@ -36,12 +36,15 @@ instance Protocol 'YaoNP where
 
   reveal ∷ P 'YaoNP → 𝑃 PrinVal → 𝑃 PrinVal → Ckt → IM BaseVal
   reveal _p ρvs₁ ρvs₂ ckt = do
+    pptraceM ckt
     src ← fromSome *$ askL iCxtSourceL
     let lr = fullContextLocRange src
     pptraceM $ show𝕊 lr
     let bτ = cktType ckt
     party   ← getParty
-    bristol ← cktToBristol ckt
+    bristol :* inputs ← toBristol (list ρvs₁) ckt
+    io $ out "writing bristol, this party's input: "
+    io $ out $ concat $ map (\b → if b then "1" else "0") inputs
     let path = concat [bristolDir,party,".txt"]
     io $ fwrite path bristol -- write bristol format circuit to file
     revealed ← runEMP path
@@ -54,9 +57,6 @@ instance Protocol 'YaoNP where
               SinglePV ρ   → return ρ
               AccessPV s i → return $ s ⧺ "_" ⧺ show𝕊 i
               VirtualPV s  → impossible
-          cktToBristol ckt' = do
-            bcv ← generateBristol ckt'
-            return $ printBCktVal bcv
           bristolDir  = "bristol-circuits/"
           runEMP path = map Text.pack $ io $ Process.readProcess emp [ Text.unpack path ] []
           emp = Text.unpack "cat"
