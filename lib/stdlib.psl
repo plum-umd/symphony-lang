@@ -127,6 +127,10 @@ def babylonian_sqrt x = eliml_nat sqrt_steps
   1.0
   (fun s -> (s + x / s) / 2.0)
 
+def babylonian_sqrt_nat x = eliml_nat sqrt_steps
+  1
+  (fun s -> (s + x / s) / 2)
+
 ---
 --- unit library
 ---
@@ -146,6 +150,19 @@ def fst x = case x { (a, _) -> a }
 
 def snd : (a * b) -> a
 def snd x = case x { (_, b) -> b }
+
+---
+--- option library
+--- 
+
+def just x = L x
+
+def nothing = R ()
+
+def elim-option v vNothing vJust = case v
+  { R() -> vNothing
+  ; L x -> vJust x
+  }
 
 ---
 --- bundle library
@@ -317,6 +334,8 @@ def median lt default xs =
 -- TODO: rename these to [sum] and [sum-flt] ?
 def sum-gen v z = elim-list v z plus
 
+def sum-ints v = sum-gen v 0
+
 def sum : list float -> float
 def sum = foldr (fun x y -> x + y) 0.0
 
@@ -453,6 +472,9 @@ def range m n =
     (elim_nat (n - m)
        [ 0n ]
        (fun rng -> snoc (len rng) rng) )
+
+-- range-nat n: list of numbers from 0 to n
+def range-nat n = elim_nat n [ ] (fun rng -> (len rng) :: rng)
 
 def reverse-help : list a -> list a -> list a
 def reverse-help xs acc =
