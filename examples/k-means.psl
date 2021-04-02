@@ -1,0 +1,81 @@
+principal A B
+
+-- find k-means:
+
+def elim-ooption v vNothing vJust = mux case v
+  { R () -> vNothing
+  ; L x -> vJust x
+  }
+
+def elim-osum-list l acc0 f = elim-list l acc0
+  (fun x acc -> elim-ooption x acc (fun y -> f y acc))
+
+def osumSum z pls l = elim-osum-list l z pls
+
+def osumLen l = elim-osum-list l 0 (const (plus 1))
+
+-- k: the number of means
+def k = 3n
+
+def origin = (0, 0, 0)
+
+def plus-tuples (a0, b0, c0) (a1, b1, c1) = (a0 + a1, b0 + b1, c0 + c1)
+
+def minus-tuples (a0, b0, c0) (a1, b1, c1) = (a0 - a1, b0 - b1, c0 - c1)
+
+def scalar-div-tuples (a, b, c) denom = (a/denom, b/denom, c/denom)
+
+def magn (a, b, c) =
+  (square a) +
+  (square b) +
+  (square c)
+
+def eq-vals (_, b0) (_, b1) = b0 == b1
+
+def init-assign pts = elim-list pts [ ]
+  (fun pt init-assign -> (pt, (len init-assign) % k)::init-assign)
+
+def get-means assign = elim_nat k [ ]
+  (fun means0 ->
+    let k0 = len means0 in
+    let kthSet = map
+      (fun (pt, meanIdx) ->
+        mux if meanIdx == k0 then just pt
+        else nothing)
+      assign in
+    (scalar-div-tuples (osumSum origin plus-tuples kthSet) (osumLen kthSet))
+    ::means0)
+
+def k-means-iter assign0 =
+  -- compute means:
+  let means = get-means assign0 in
+  let idxedMeans = elim-list means [ ]
+    (fun m idxMeans -> (m, len idxMeans)::idxMeans) in
+  let defaultMean = head _|_ means in
+  -- update the assignment:
+  map
+    (fun (pt, idx0) ->
+      let ptDiff = minus-tuples pt in
+      let (_, idx) = elim-list idxedMeans (defaultMean, 0n)
+        (fun (m, midx) (bestMean, bestIdx) ->
+          mux if ((square (magn (ptDiff m))) <
+                  (square (magn (ptDiff bestMean))) )
+          then (m, midx)
+          else (bestMean, bestIdx) ) in
+      (pt, idx))
+    assign0
+
+def k-means assign0 = 
+  let assign1 = k-means-iter assign0 in
+  if reveal{A, B} eq-lists eq-vals assign0 assign1 then assign1
+  else k-means assign1
+
+def main () = par{A, B}
+  let ptsA = map (fun x -> share {yao: A -> A, B} x) 
+      (send-ls {A} {A, B}
+       (par {A} (read list (int * int * int) from "k-means-input.txt"))) in
+  let ptsB = map (fun x -> share {yao: B -> A, B} x) 
+      (send-ls {B} {A, B}
+       (par {B} (read list (int * int * int) from "k-means-input.txt"))) in
+  let clusters = k-means (init-assign (append ptsA ptsB)) in
+  map (fun m -> reveal{A, B} m) (get-means clusters)

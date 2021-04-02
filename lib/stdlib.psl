@@ -430,7 +430,9 @@ def all_true l = elim-list l true and
 -- eq_lists l0 l1: test equaltity of l0 and l1, which contain lists of
 -- elements that can be tested for equality
 def eq_lists l0 l1 = all_true (zip-map eq l0 l1)
+-- TODO: refactor, using eq-lists
 
+def eq-lists test-eq l0 l1 = all_true (zip-map test-eq l0 l1)
 
 -- mux_ls: multiplex over a pair of lists:
 def mux_ls guard l0 l1 = zip-map (mux-wrap guard) l0 l1
