@@ -202,16 +202,16 @@ instance Pretty ValP where
     None → case v₀ of
      SSecVP ρs v → ppPostF concat levelMODE (pretty ρs) (pretty v)
      ISecVP ρvs → ppISecPSL ρvs
-     ShareVP φ ρs mpcv →
+     ShareVP φ ρvs v̂ →
        ppPostF concat levelMODE
          (ppSetBotLevel $ concat
              [ ppPun "{"
              , pretty φ
              , ppPun ":"
-             , concat $ inbetween (ppPun ",") $ map pretty $ iter ρs
+             , concat $ inbetween (ppPun ",") $ map pretty $ iter ρvs
              , ppPun "}"
              ]) $
-         pretty mpcv
+         pretty v̂
 
 ppPreF ∷ (𝐼 Doc → Doc) → ℕ64 → Doc → Doc → Doc
 ppPreF f i oM xM = ppGA $ ppLevel i $ f $ map ppAlign $ iter [oM,xM]

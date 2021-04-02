@@ -46,16 +46,16 @@ typeOfBaseVal = \case
 -- Distributed Values
 -- ṽ ∈ dist-val
 data ValP where
-  SSecVP  ∷ Mode → Val → ValP                                           -- Values
-  ISecVP  ∷ (PrinVal ⇰ Val) → ValP                                      -- Bundles
-  ShareVP ∷ ∀ p. (Protocol p) ⇒ SProt p → (𝑃 PrinVal) → MPCVal p → ValP -- Shares
+  SSecVP  ∷ Mode → Val → ValP                                         -- Values
+  ISecVP  ∷ (PrinVal ⇰ Val) → ValP                                    -- Bundles
+  ShareVP ∷ ∀ p. (Protocol p) ⇒ SProt p → 𝑃 PrinVal → MPCVal p → ValP -- Shares
 
 instance Eq ValP where
   ṽ₁ == ṽ₂ = case (ṽ₁, ṽ₂) of
     (SSecVP m₁ v₁, SSecVP m₂ v₂) → m₁ ≡ m₂ ⩓ v₁ ≡ v₂
     (ISecVP b₁, ISecVP b₂) → b₁ ≡ b₂
-    (ShareVP sp₁ ρvs₁ v̂₁, ShareVP sp₂ ρvs₂ v̂₂) →
-      case deq sp₁ sp₂ of
+    (ShareVP φ₁ ρvs₁ v̂₁, ShareVP φ₂ ρvs₂ v̂₂) →
+      case deq φ₁ φ₂ of
         NoDEq  → False
         YesDEq → ρvs₁ ≡ ρvs₂ ⩓ v̂₁ ≡ v̂₂
     _ → False
@@ -71,8 +71,8 @@ instance Ord ValP where
     (ISecVP _, SSecVP _ _) → GT
     (ISecVP b₁, ISecVP b₂) → compare b₁ b₂
     (ISecVP _, ShareVP _ _ _) → LT
-    (ShareVP sp₁ ρvs₁ v̂₁, ShareVP sp₂ ρvs₂ v̂₂) →
-      case dcmp sp₁ sp₂ of
+    (ShareVP φ₁ ρvs₁ v̂₁, ShareVP φ₂ ρvs₂ v̂₂) →
+      case dcmp φ₁ φ₂ of
         LTDCmp → LT
         GTDCmp → GT
         EQDCmp →
@@ -84,33 +84,30 @@ instance Ord ValP where
 
 deriving instance (Show ValP)
 
-data MPCify p = MPCify
-  { proxyMPC ∷ P p
-  , protMPC  ∷ SProt p
-  , fromMPC  ∷ 𝑂 PrinVal
-  , toMPC    ∷ 𝑃 PrinVal
-  } deriving (Eq,Ord,Show)
+data ValS where
+  SSecVS  ∷ Val → ValS                                                -- Values
+  ISecVS  ∷ (PrinVal ⇰ Val) → ValS                                    -- Bundles
+  ShareVS ∷ ∀ p. (Protocol p) ⇒ SProt p → 𝑃 PrinVal → MPCVal p → ValS -- Shares
 
-
-data UnShare where
-  NotShared ∷ Val → UnShare
-  Shared    ∷ ∀ p. (Protocol p) ⇒ SProt p → (𝑃 PrinVal) → (MPCVal p) → UnShare
-
-instance Eq UnShare where
-  us₁ == us₂ = case (us₁, us₂) of
-    (NotShared v₁, NotShared v₂) → v₁ ≡ v₂
-    (Shared sp₁ ρvs₁ v̂₁, Shared sp₂ ρvs₂ v̂₂) →
-      case deq sp₁ sp₂ of
+instance Eq ValS where
+  ṽ₁ == ṽ₂ = case (ṽ₁, ṽ₂) of
+    (SSecVS v₁, SSecVS v₂) → v₁ ≡ v₂
+    (ISecVS b₁, ISecVS b₂) → b₁ ≡ b₂
+    (ShareVS φ₁ ρvs₁ v̂₁, ShareVS φ₂ ρvs₂ v̂₂) →
+      case deq φ₁ φ₂ of
         NoDEq  → False
         YesDEq → ρvs₁ ≡ ρvs₂ ⩓ v̂₁ ≡ v̂₂
     _ → False
 
-instance Ord UnShare where
-  compare us₁ us₂ = case (us₁, us₂) of
-    (NotShared v₁, NotShared v₂) → compare v₁ v₂
-    (NotShared _, _) → LT
-    (Shared sp₁ ρvs₁ v̂₁, Shared sp₂ ρvs₂ v̂₂) →
-      case dcmp sp₁ sp₂ of
+instance Ord ValS where
+  compare ṽ₁ ṽ₂ = case (ṽ₁, ṽ₂) of
+    (SSecVS v₁, SSecVS v₂) → compare v₁ v₂
+    (SSecVS _, _) → LT
+    (ISecVS _, SSecVS _) → GT
+    (ISecVS b₁, ISecVS b₂) → compare b₁ b₂
+    (ISecVS _, ShareVS _ _ _) → LT
+    (ShareVS φ₁ ρvs₁ v̂₁, ShareVS φ₂ ρvs₂ v̂₂) →
+      case dcmp φ₁ φ₂ of
         LTDCmp → LT
         GTDCmp → GT
         EQDCmp →
@@ -118,9 +115,19 @@ instance Ord UnShare where
             LT → LT
             GT → GT
             EQ → compare v̂₁ v̂₂
-    (Shared _ _ _, _) → GT
+    (ShareVS _ _ _, _) → GT
 
-deriving instance (Show UnShare)
+deriving instance (Show ValS)
+
+data ShareInfo p = ShareInfo
+  { proxySI ∷ P p
+  , protSI  ∷ SProt p
+  , prinsSI ∷ 𝑃 PrinVal
+  }
+
+deriving instance (Eq (ShareInfo p))
+deriving instance (Ord (ShareInfo p))
+deriving instance (Show (ShareInfo p))
 
 -- MPC Values
 -- v̂ ∈ mpc-val
@@ -217,7 +224,7 @@ data ICxt = ICxt
   , iCxtDeclPrins ∷ Prin ⇰ PrinKind
   , iCxtEnv ∷ Env
   , iCxtGlobalMode ∷ Mode
-  , iCxtMPCPathCondition ∷ 𝐿 UnShare
+  , iCxtMPCPathCondition ∷ 𝐿 ValP
   } deriving (Show)
 
 ξ₀ ∷ ICxt
@@ -233,7 +240,7 @@ data IState = IState
   { iStateStore ∷ Store
   , iStateNextLoc ∷ ℤ64
   , iStateNextWires ∷ (𝑃 PrinVal) ⇰ Wire
-  , iStateMPCCont ∷ 𝐿 (𝐿 UnShare ∧ UnShare)
+  , iStateMPCCont ∷ 𝐿 (𝐿 ValP ∧ ValP)
   } deriving (Eq,Ord,Show)
 
 ω₀ ∷ IState

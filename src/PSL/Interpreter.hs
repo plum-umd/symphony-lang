@@ -123,42 +123,38 @@ bindPatO ψ ṽ = case ψ of
   AscrP ψ' _τ → bindPatO ψ' ṽ
   WildP → return id
 
-bindPatMPC ∷ (STACK) ⇒ Pat → UnShare → FailT IM (IM UnShare → IM UnShare)
-bindPatMPC ψ us = case ψ of
-  VarP x → return $ \ xM → do
-    ṽ ← reShareValP us
-    bindVarTo x ṽ xM
+bindPatMPC ∷ (STACK) ⇒ Pat → ValP → FailT IM (IM ValP → IM ValP)
+bindPatMPC ψ ṽ = case ψ of
+  VarP x → return $ bindVarTo x ṽ
   BulP → return id
   TupP ψ₁ ψ₂ → do
-    us₁ :* us₂ ← viewPairUnShare us
-    f₁ ← bindPatMPC ψ₁ us₁
-    f₂ ← bindPatMPC ψ₂ us₂
+    ṽ₁ :* ṽ₂ ← viewPairValP ṽ
+    f₁ ← bindPatMPC ψ₁ ṽ₁
+    f₂ ← bindPatMPC ψ₂ ṽ₂
     return $ compose [f₁, f₂]
   LP ψ' → do
-    us₁ :* us₂ :* _us₃ ← viewSumUnShare us
-    f ← bindPatMPC ψ' us₂
+    ṽ₁ :* ṽ₂ :* _ṽ₃ ← viewSumValP ṽ
+    f ← bindPatMPC ψ' ṽ₂
     return $ \ xM → do
-      us' ← mapEnvL iCxtMPCPathConditionL (us₁ :&) $ f xM
-      us'' ← muxUnShare us₁ us' (NotShared DefaultV)
-      return us''
+      ṽb ← mapEnvL iCxtMPCPathConditionL (ṽ₁ :&) $ f xM
+      ṽd ← introValP DefaultV
+      muxValP ṽ₁ ṽb ṽd
   RP ψ' → do
-    us₁ :* _us₂ :* us₃ ← viewSumUnShare us
-    f ← bindPatMPC ψ' us₃
+    ṽ₁ :* _ṽ₂ :* ṽ₃ ← viewSumValP ṽ
+    f ← bindPatMPC ψ' ṽ₃
     return $ \ xM → do
-      nus₁ ← notUnShare us₁
-      us' ← mapEnvL iCxtMPCPathConditionL (nus₁ :&) $ f xM
-      us'' ← muxUnShare us₁ (NotShared DefaultV) us'
-      return us''
+      negṽ₁ ← notValP ṽ₁
+      ṽb    ← mapEnvL iCxtMPCPathConditionL (negṽ₁ :&) $ f xM
+      ṽd    ← introValP DefaultV
+      muxValP ṽ₁ ṽd ṽb
   NilP → do
-    viewNilUnShare us
+    viewNilValP ṽ
     return id
   ConsP ψ₁ ψ₂ → do
-    us₁ :* us₂ ← viewConsUnShare us
-    f₁ ← bindPatMPC ψ₁ us₁
-    f₂ ← bindPatMPC ψ₂ us₂
-    return $ \ xM → do
-      us' ← compose [f₁,f₂] xM
-      return us'
+    ṽ₁ :* ṽ₂ ← viewConsValP ṽ
+    f₁ ← bindPatMPC ψ₁ ṽ₁
+    f₂ ← bindPatMPC ψ₂ ṽ₂
+    return $ compose [f₁, f₂]
   WildP → return id
   _ → throwIErrorCxt NotImplementedIError "bindPatMPC: pattern ψ not implemented" $ frhs [ ("ψ", pretty ψ) ]
 
@@ -212,13 +208,15 @@ sequentialSwitch φ = do
 wrapInterp ∷ (STACK) ⇒ (ExpR → IM ValP) → Exp → IM ValP
 wrapInterp f e = localL iCxtSourceL (Some $ atag e) $ f $ extract e
 
-modeCheckShare ∷ 𝑃 PrinVal → 𝑃 PrinVal → IM PrinVal
-modeCheckShare ρvsSharer ρvsSharees = do                           -- Formalism:
-  gm ← askL iCxtGlobalModeL                                        --   ρvsSharer = p, ρvsSharees = q, gm = m
+modeCheckShare ∷ 𝑃 PrinVal → 𝑃 PrinVal → ValP → IM ()
+modeCheckShare ρvsSharer ρvsSharees ṽ = do
+  gm ← askL iCxtGlobalModeL                                        -- Formalism:
+  let ρvsVal = modeFrValP ṽ                                        --   ρvsSharer = p, ρvsSharees = q, gm = m, ρvsVal = p'
   let singleSharer    = count ρvsSharer ≡ 1                        --   |p| = 1
   let shareesNonEmpty = ρvsSharees ≢ pø                            --   q ≠ ∅
   let sharerAndShareesPresent = SecM (ρvsSharer ∪ ρvsSharees) ≡ gm --   p ∪ q = m
-  guardErr singleSharer $                                          --   p ⊆ p' is handled by shareValP (by way of withValP)
+  let sharerHasVal = (SecM ρvsSharer) ⊑ ρvsVal                     --   p ⊆ p'
+  guardErr singleSharer $
     throwIErrorCxt TypeIError "modeCheckShare: count ρvsSharer ≢ 1" $ frhs
     [ ("ρvsSharer",pretty ρvsSharer)
     ]
@@ -232,13 +230,19 @@ modeCheckShare ρvsSharer ρvsSharees = do                           -- Formalis
     , ("ρvsSharees", pretty ρvsSharees)
     , ("gm", pretty gm)
     ]
-  fromSome $ view one𝑃L ρvsSharer
+  guardErr sharerHasVal $
+    throwIErrorCxt TypeIError "modeCheckShare: (SecM ρvsSharer) ⋢ ρvsVal" $ frhs
+    [ ("ρvsSharer", pretty ρvsSharer)
+    , ("ρvsVal", pretty ρvsVal)
+    ]
 
-modeCheckReveal ∷ 𝑃 PrinVal → 𝑃 PrinVal → IM ()
-modeCheckReveal ρvsRevealers ρvsRevealees = do                               -- Formalism:
-  gm ← askL iCxtGlobalModeL                                                  --   ρvsRevealers = p, ρvsRevealees = q, gm = m
+modeCheckReveal ∷ 𝑃 PrinVal → 𝑃 PrinVal → ValP → IM ()
+modeCheckReveal ρvsRevealers ρvsRevealees ṽ = do
+  gm ← askL iCxtGlobalModeL                                                  -- Formalism:
+  let ρvsVal = modeFrValP ṽ                                                  --   ρvsRevealers = p, ρvsRevealees = q, gm = m, ρvsVal = p'
   let revealeesNonEmpty = ρvsRevealees ≢ pø                                  --   q ≠ ∅
   let revealersAndRevealeesPresent = SecM (ρvsRevealers ∪ ρvsRevealees) ≡ gm --   p ∪ q = m
+  let revealersHaveVal = (SecM ρvsRevealers) ≡ ρvsVal                        --   p = p'
   guardErr revealeesNonEmpty $
     throwIErrorCxt TypeIError "modeCheckReveal: ρvsRevealees ≡ pø" $ frhs
     [ ("ρvsRevealees",pretty ρvsRevealees)
@@ -248,6 +252,11 @@ modeCheckReveal ρvsRevealers ρvsRevealees = do                               -
     [ ("ρvsRevealers",pretty ρvsRevealers)
     , ("ρvsRevealees",pretty ρvsRevealees)
     , ("gm", pretty gm)
+    ]
+  guardErr revealersHaveVal $
+    throwIErrorCxt TypeIError "modeCheckReveal: (SecM ρvsRevealers) ≢ ρvsVal" $ frhs
+    [ ("ρvsRevealers",pretty ρvsRevealers)
+    , ("ρvsVal",pretty ρvsVal)
     ]
 
 interpExp ∷ (STACK) ⇒ Exp → IM ValP
@@ -263,21 +272,17 @@ interpExp = wrapInterp $ \case
     ṽ ← interpExp e₁
     v ← elimValP ṽ
     b ← error𝑂 (view (boolBVL ⊚ baseVL) v) (throwIErrorCxt TypeIError "interpExp: IfE: view boolVL v ≡ None" $ frhs
-                                [ ("v",pretty v)
-                                ])
+                                            [ ("v",pretty v)
+                                            ])
     if b
       then interpExp e₂
       else interpExp e₃
   MuxIfE e₁ e₂ e₃ → do
     ṽ₁ ← interpExp e₁
-    us₁ ← unShareValP ṽ₁
-    nus₁ ← notUnShare us₁
-    ṽ₂ ← mapEnvL iCxtMPCPathConditionL (us₁ :&) $ interpExp e₂
-    ṽ₃ ← mapEnvL iCxtMPCPathConditionL (nus₁ :&) $ interpExp e₃
-    us₂ ← unShareValP ṽ₂
-    us₃ ← unShareValP ṽ₃
-    us' ← muxUnShare us₁ us₂ us₃
-    reShareValP us'
+    negṽ₁ ← notValP ṽ₁
+    ṽ₂ ← mapEnvL iCxtMPCPathConditionL (ṽ₁ :&) $ interpExp e₂
+    ṽ₃ ← mapEnvL iCxtMPCPathConditionL (negṽ₁ :&) $ interpExp e₃
+    muxValP ṽ₁ ṽ₂ ṽ₃
   LE e → do
     ṽ ← interpExp e
     introValP $ LV ṽ
@@ -302,16 +307,13 @@ interpExp = wrapInterp $ \case
     interpCase ṽ ψes
   MuxCaseE e ψes → do
     ṽ ← interpExp e
-    us ← unShareValP ṽ
-    uss ← concat ^$ mapMOn ψes $ \ (ψ :* e') → do
-      bp ← unFailT $ bindPatMPC ψ us
+    ṽs ← concat ^$ mapMOn ψes $ \ (ψ :* e') → do
+      bp ← unFailT $ bindPatMPC ψ ṽ
       case bp of
         None → return $ list []
-        Some f → single ^$ f $ do
-          ṽ' ← interpExp e'
-          unShareValP ṽ'
-    us' ← mfoldOnFrom uss (NotShared DefaultV) sumUnShare
-    reShareValP us'
+        Some f → single ^$ f $ interpExp e'
+    ṽd ← introValP DefaultV
+    mfold ṽd sumValP ṽs
   LamE selfO ψs e → do
     γ ← askL iCxtEnvL
     (ψ :* ψs') ← error𝑂 (view unconsL $ ψs) (throwIErrorCxt TypeIError "interpExp: LamE: view unconsL $ ψs ≡ None" $ frhs
@@ -337,14 +339,15 @@ interpExp = wrapInterp $ \case
                        ])
         introValP $ UnknownV τ
       else interpExp e
-  ShareE φ ρes₁ ρes₂ e → do
+  ShareE prot ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
-    ρv₁  ← modeCheckShare ρvs₁ ρvs₂
-    φ'   ← sequentialSwitch φ
+    ṽ ← interpExp e
+    modeCheckShare ρvs₁ ρvs₂ ṽ
+    ρv₁ ← fromSome $ view one𝑃L ρvs₁
+    prot' ← sequentialSwitch prot
     restrictMode (SecM ρvs₁) $ do
-      ṽ ← interpExp e
-      withProt φ' $ \ p sp → runReaderT (Sharing p sp ρv₁ ρvs₂) $ shareValP ṽ
+      withProt prot' $ \ p φ → shareValP p φ (ρvs₁ ∪ ρvs₂) ρv₁ ṽ
   AccessE e ρ → do
     ρv ← interpPrinExpSingle ρ
     ṽ ← interpExp e
@@ -377,14 +380,13 @@ interpExp = wrapInterp $ \case
         [ ("ṽ₁",pretty ṽ₁)
         , ("ṽ₂",pretty ṽ₂)
         ]
-  RevealE φ ρes₁ ρes₂ e → do
+  RevealE prot ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
-    modeCheckReveal ρvs₁ ρvs₂
-    φ' ← sequentialSwitch φ
-    restrictMode (SecM ρvs₁) $ do
-      ṽ ← interpExp e
-      withProt φ' $ \ p sp → runReaderT (Revealing p sp ρvs₁ ρvs₂) $ revealValP ṽ
+    ṽ ← interpExp e
+    modeCheckReveal ρvs₁ ρvs₂ ṽ
+    prot' ← sequentialSwitch prot
+    withProt prot' $ \ p φ → revealValP p φ ρvs₁ ρvs₂ ṽ
   SendE ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
@@ -447,9 +449,7 @@ interpExp = wrapInterp $ \case
       _ → throwIErrorCxt TypeIError "interpExp: WriteE: m ≠ SecM {ρ}" null
   PrimE op es → do
     ṽs ← mapM interpExp es
-    uss ← mapM unShareValP ṽs
-    us' ← primUnShare op uss
-    reShareValP us'
+    primValP op ṽs
   TraceE e₁ e₂ → do
     ṽ₁ ← interpExp e₁
     pptraceM ṽ₁
@@ -571,18 +571,15 @@ interpExp = wrapInterp $ \case
       _ → throwIErrorCxt TypeIError "interpExp: SizeE: ℓ ∉ dom(σ)" null
   DefaultE → introValP DefaultV
   ProcE e → do
-    κ :* ṽ ←
+    κ :* ṽ₀ ←
       localizeL iStateMPCContL null $
       localL iCxtMPCPathConditionL null $
       interpExp e
-    us₀ ← unShareValP ṽ
-    us ← mfoldrOnFrom (reverse κ) us₀ $ \ (pcᴿ :* us₁) us₂ → mfoldrOnFrom pcᴿ us₁ $ \ usᵖᶜ acc → muxUnShare usᵖᶜ acc us₂
-    reShareValP us
+    mfoldrOnFrom (reverse κ) ṽ₀ $ \ (pcᴿ :* ṽ₁) ṽ₂ → mfoldrOnFrom pcᴿ ṽ₁ $ \ ṽᵖᶜ acc → muxValP ṽᵖᶜ acc ṽ₂
   ReturnE e → do
     ṽ ← interpExp e
-    us ← unShareValP ṽ
     pc ← askL iCxtMPCPathConditionL
-    modifyL iStateMPCContL $ \ κ → (pc :* us) :& κ
+    modifyL iStateMPCContL $ \ κ → (pc :* ṽ) :& κ
     introValP DefaultV
   _ → throwIErrorCxt NotImplementedIError "interpExp: not implemented" null
 

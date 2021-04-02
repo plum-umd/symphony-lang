@@ -109,6 +109,13 @@ one𝑃L = prism constr destr
   where constr x = single x
         destr  p = map fst $ pmin p
 
+one𝐿L ∷ 𝐿 a ⌲ a
+one𝐿L = prism constr destr
+  where constr x = frhs [ x ]
+        destr = \case
+          x :& Nil → Some x
+          _ → None
+
 two𝐿L ∷ 𝐿 a ⌲ a ∧ a
 two𝐿L = prism constr destr
   where constr (x :* y) = frhs [ x, y ]

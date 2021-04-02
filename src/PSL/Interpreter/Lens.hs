@@ -13,10 +13,30 @@ import qualified Prelude as HS
 
 makePrisms ''Val
 makePrisms ''BaseVal
+
+sSecVPL ∷ ValP ⌲ Mode ∧ Val
+sSecVPL = prism constr destr
+  where constr (m :* v) = SSecVP m v
+        destr = \case
+          SSecVP m v → Some $ m :* v
+          _ → None
+
+iSecVPL ∷ ValP ⌲ PrinVal ⇰ Val
+iSecVPL = prism constr destr
+  where constr b = ISecVP b
+        destr = \case
+          ISecVP b → Some b
+          _ → None
+
 --makePrisms ''ValP
-makeLenses ''MPCify
 --makePrisms ''UnShare
---makePrisms ''MPCVal
+
+baseMVL ∷ ∀ (p ∷ Prot). (Protocol p) ⇒ MPCVal p ⌲ (ProtocolVal p)
+baseMVL = prism constr destr
+  where constr pv = BaseMV pv
+        destr = \case
+          BaseMV pv → Some pv
+          _         → abort
 
 --------------
 -- Circuits --
