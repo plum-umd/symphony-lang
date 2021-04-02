@@ -336,6 +336,8 @@ def sum-gen v z = elim-list v z plus
 
 def sum-ints v = sum-gen v 0
 
+def sum-nats v = sum-gen v 0n
+
 def sum : list float -> float
 def sum = foldr (fun x y -> x + y) 0.0
 
