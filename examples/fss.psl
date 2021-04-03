@@ -1,0 +1,62 @@
+principal A B
+
+-- type FSS = ℕ#λ{yao:A,B} × ℕ#1{yao:A,B} × (array (ℕ#λ{yao:A,B} × ℕ#1{yao:A,B} × ℕ#1{yao:A,B})) × ℕ#λ{yao:A,B}
+-- I know ℕ#1 is isomorphic to ℕ, but this makes it easier to perform operations like multiplication
+-- The array is expected to be λ elements long, where λ is the security parameter for the function secret sharing scheme
+-- This type corresponds to lines 12,13 in the pseudocode for `Gen` in Figure 1 of the FLORAM paper.
+
+-- This is a fake for right now.
+def prg n = (70n#128,80n#128)
+
+def lsb n = n ⌲ 0n
+
+def gen : ℕ#64{yao:A,B} → ℕ#128{yao:A,B} → (ℕ#128{yao:A,B} × ℕ#1{yao:A,B} × (array (ℕ#128{yao:A,B} × ℕ#1{yao:A,B} × ℕ#1{yao:A,B})) × ℕ#128{yao:A,B}) ×
+                                           (ℕ#128{yao:A,B} × ℕ#1{yao:A,B} × (array (ℕ#128{yao:A,B} × ℕ#1{yao:A,B} × ℕ#1{yao:A,B})) × ℕ#128{yao:A,B})
+def gen α β =
+  let sa'⁰ = share {yao:A → A,B} ℕ#128 (par {A} rand ℕ#128)
+  let sb'⁰ = share {yao:B → A,B} ℕ#128 (par {B} rand ℕ#128)
+  let ta⁰  = 1n#1
+  let tb⁰  = 0n#1
+  let sa'  = ref sa'⁰
+  let sb'  = ref sb'⁰
+  let ta   = ref ta⁰
+  let tb   = ref tb⁰
+  let στ⁰¹ = array[64n] (0n#128, 0n#1, 0n#1)
+  let gen' =
+    λ [gen'] j →
+      if j == 64n then
+        •
+      else
+        let sa⁰,sa¹       = prg !sa'
+        let sb⁰,sb¹       = prg !sb'
+        let αⱼ            = α ⌲ j
+        let σ             = mux if αⱼ == 1n#1 then sa⁰ ⊻ sb⁰ else sa¹ ⊻ sb¹
+        let τ⁰            = (lsb sa⁰) ⊻ (lsb sb⁰) ⊻ αⱼ ⊻ 1n#1
+        let τ¹            = (lsb sa¹) ⊻ (lsb sb¹) ⊻ αⱼ
+        let saαⱼ,sbαⱼ,ταⱼ = mux if αⱼ == 0n#1 then sa⁰,sb⁰,τ⁰ else sa¹,sb¹,τ¹
+        let saʲ           = saαⱼ ⊻ (nat#128 !ta) × σ
+        let sbʲ           = sbαⱼ ⊻ (nat#128 !tb) × σ
+        let taʲ           = (lsb saαⱼ) ⊻ !ta × ταⱼ
+        let tbʲ           = (lsb sbαⱼ) ⊻ !tb × ταⱼ
+        let •             = στ⁰¹.j ← (σ, τ⁰, τ¹)
+        let •             = sa' := saʲ
+        let •             = sb' := sbʲ
+        let •             = ta  := taʲ
+        let •             = tb  := tbʲ in
+        gen' (j + 1n)
+  let • = gen' 0n
+  let γ = !sa' ⊻ !sb' ⊻ β in
+  ((sa'⁰, ta⁰, στ⁰¹, γ),(sb'⁰, tb⁰, στ⁰¹, γ))
+
+--def eval : (ℕ#128{yao:A,B} × ℕ#1{yao:A,B} × (array (ℕ#128{yao:A,B} × ℕ#1{yao:A,B} × ℕ#1{yao:A,B})) × ℕ#128{yao:A,B}) → N#64{yao:A,B} -- → (N#128{yao:A,B} × N#1{yao:A,B})
+def eval (s⁰, t⁰, στ⁰¹, γ) x = (5n#128,1n#1)
+
+def main • =
+  let a = share {yao:A → A,B} ℕ#64 (par {A} 20n#64)
+  let b = share {yao:B → A,B} ℕ#128 (par {B} 72n#128)
+  let (fssa, fssb) = gen a b
+  let (ya, ta) = eval fssa a
+  let (yb, tb) = eval fssb a
+  let y = reveal {A,B} ya ⊻ yb
+  let t = reveal {A,B} ta ⊻ tb in
+  (y, t)
