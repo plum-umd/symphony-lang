@@ -137,6 +137,8 @@ data MPCVal p where
   BaseMV    ∷ (Protocol p) ⇒ (ProtocolVal p) → MPCVal p
   PairMV    ∷ MPCVal p → MPCVal p → MPCVal p
   SumMV     ∷ (Protocol p) ⇒ (ProtocolVal p) → MPCVal p → MPCVal p → MPCVal p
+  NilMV     ∷ MPCVal p
+  ConsMV    ∷ MPCVal p → MPCVal p → MPCVal p
 
 deriving instance (Eq (MPCVal p))
 deriving instance (Ord (MPCVal p))

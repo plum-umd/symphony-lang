@@ -342,12 +342,13 @@ interpExp = wrapInterp $ \case
   ShareE prot ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
-    ṽ ← interpExp e
-    modeCheckShare ρvs₁ ρvs₂ ṽ
+
+--    modeCheckShare ρvs₁ ρvs₂ ṽ
     ρv₁ ← fromSome $ view one𝑃L ρvs₁
     prot' ← sequentialSwitch prot
     restrictMode (SecM ρvs₁) $ do
-      withProt prot' $ \ p φ → shareValP p φ (ρvs₁ ∪ ρvs₂) ρv₁ ṽ
+      ṽ ← interpExp e
+      withProt prot' $ \ p φ → shareValP p φ ρvs₂ ρv₁ ṽ
   AccessE e ρ → do
     ρv ← interpPrinExpSingle ρ
     ṽ ← interpExp e
@@ -383,10 +384,11 @@ interpExp = wrapInterp $ \case
   RevealE prot ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
-    ṽ ← interpExp e
-    modeCheckReveal ρvs₁ ρvs₂ ṽ
     prot' ← sequentialSwitch prot
-    withProt prot' $ \ p φ → revealValP p φ ρvs₁ ρvs₂ ṽ
+--    modeCheckReveal ρvs₁ ρvs₂ ṽ
+    restrictMode (SecM ρvs₁) $ do
+      ṽ ← interpExp e
+      withProt prot' $ \ p φ → revealValP p φ ρvs₁ ρvs₂ ṽ
   SendE ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂

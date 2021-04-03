@@ -243,6 +243,8 @@ instance Protocol p ⇒ Pretty (MPCVal p) where
     BaseMV pv → pretty pv
     PairMV v₁ v₂ → ppInflF ppTight levelCOMMA (ppPun ",") (pretty v₁) $ pretty v₂
     SumMV pv v₁ v₂ → ppApp (ppCon "SUM") [pretty pv,pretty v₁,pretty v₂]
+    NilMV → ppCon "[]"
+    ConsMV v₁ v₂ → ppInfr levelCONS (ppPun "∷") (pretty v₁) $ pretty v₂
 
 makePrettyRecord ''Ckt
 makePrettySum ''Input

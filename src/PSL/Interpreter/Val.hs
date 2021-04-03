@@ -130,10 +130,24 @@ primValP ∷ (STACK) ⇒ Op → 𝐿 ValP → IM ValP
 primValP op = withShareInfo (primVals op) (primMPCVals op)
 
 muxValP ∷ (STACK) ⇒ ValP → ValP → ValP → IM ValP
-muxValP ṽ₁ ṽ₂ ṽ₃ = undefined -- TODO
+muxValP ṽ₁ ṽ₂ ṽ₃ = withShareInfo kMuxVals kMuxMPCVals $ frhs [ ṽ₁, ṽ₂, ṽ₃ ]
+  where kMuxVals vs = do
+          v₁ :* v₂ :* v₃ ← fromSome $ view three𝐿L vs
+          bv₁ ← error𝑂 (view baseVL v₁) $ throwIErrorCxt TypeIError "bad" empty𝐿
+          introValP *$ muxVal bv₁ v₂ v₃
+        kMuxMPCVals p φ ρvs v̂s = do
+          v̂₁ :* v̂₂ :* v̂₃ ← fromSome $ view three𝐿L v̂s
+          pv₁ ← error𝑂 (view baseMVL v̂₁) $ throwIErrorCxt TypeIError "bad" empty𝐿
+          reValP *$ map ((reValS φ ρvs) ∘ Inr) $ muxMPCVal p ρvs pv₁ v̂₂ v̂₃
 
 sumValP ∷ (STACK) ⇒ ValP → ValP → IM ValP
-sumValP ṽ₁ ṽ₂ = undefined -- TODO
+sumValP ṽ₁ ṽ₂ = withShareInfo kSumVals kSumMPCVals $ frhs [ ṽ₁, ṽ₂ ]
+  where kSumVals vs = do
+          v₁ :* v₂ ← fromSome $ view two𝐿L vs
+          introValP *$ sumVal v₁ v₂
+        kSumMPCVals p φ ρvs v̂s = do
+          v̂₁ :* v̂₂ ← fromSome $ view two𝐿L v̂s
+          reValP *$ map ((reValS φ ρvs) ∘ Inr) $ sumMPCVal p ρvs v̂₁ v̂₂
 
 introLocV ∷ (STACK) ⇒ ℤ64 → IM Val
 introLocV ℓ = do
@@ -170,6 +184,15 @@ unValP ṽ = do
         , ("m",pretty m)
         ]
       return $ SSecVS v
+    ISecVP b → do
+      let m = SecM $ keys b
+      -- (1) All parties executing this code must have a value (gm ⊑ m)
+      guardErr (gm ⊑ m) $
+        throwIErrorCxt TypeIError "unValP: ISecVP: gm ⋢ m " $ frhs
+        [ ("gm",pretty gm)
+        , ("m",pretty m)
+        ]
+      return $ ISecVS b
     ShareVP φ ρvs v̂ → do
       -- (1) All parties executing this code must have the value (gm ⊑ SecM ρvs) AND
       -- (2) All parties that have the value (i.e. the parties amongst whom the value is shared) must be executing this code (SecM ρvs ⊑ gm)
@@ -179,22 +202,25 @@ unValP ṽ = do
         , ("ρvs", pretty ρvs)
         ]
       return $ ShareVS φ ρvs v̂
-    _ → throwIErrorCxt TypeIError "withValP: ṽ ∉ {SSecVP _ _,ShareVP _ _ _}" $ frhs
-        [ ("ṽ",pretty ṽ) ]
 
 reValP ∷ (STACK) ⇒ ValS → IM ValP
 reValP = \case
   SSecVS v → introValP v
+  ISecVS b → return $ ISecVP b
   ShareVS φ ρvs v̂ → case v̂ of
     DefaultMV → return $ SSecVP (SecM ρvs) DefaultV
     BulMV → return $ SSecVP (SecM ρvs) BulV
-    BaseMV pv → return $ ShareVP φ ρvs v̂
+    BaseMV _ → return $ ShareVP φ ρvs v̂
     PairMV v̂₁ v̂₂ → do
       ṽ₁ ← reValP $ ShareVS φ ρvs v̂₁
       ṽ₂ ← reValP $ ShareVS φ ρvs v̂₂
       return $ SSecVP (SecM ρvs) $ PairV ṽ₁ ṽ₂
-    SumMV pv₁ v̂₂ v̂₃ → return $ ShareVP φ ρvs v̂
-
+    SumMV _ _ _ → return $ ShareVP φ ρvs v̂
+    NilMV → return $ SSecVP (SecM ρvs) NilV
+    ConsMV v̂₁ v̂₂ → do
+      ṽ₁ ← reValP $ ShareVS φ ρvs v̂₁
+      ṽ₂ ← reValP $ ShareVS φ ρvs v̂₂
+      return $ SSecVP (SecM ρvs) $ ConsV ṽ₁ ṽ₂
 
 unValS ∷ (STACK) ⇒ SProt p → 𝑃 PrinVal → ValS → IM (Val ∨ MPCVal p)
 unValS φ ρvs = \case
@@ -225,7 +251,7 @@ shareInfoFrValSs v̑s = foldFromOn None v̑s $ \ v̑ si → case (si, v̑) of
                                                       (Some _, _)             → si
 
 shareOrEmbedValP ∷ (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → 𝑂 PrinVal → ValP → IM ValP
-shareOrEmbedValP p φ ρvs oρv ṽ = reValP *$ map (reValS φ ρvs) $ map Inr $ shareOrEmbed p φ ρvs oρv *$ unValS φ ρvs *$ unValP ṽ
+shareOrEmbedValP p φ ρvs oρv ṽ = reValP *$ map (ShareVS φ ρvs) $ shareOrEmbed p φ ρvs oρv *$ unValS φ ρvs *$ unValP ṽ
 
 shareOrEmbed ∷ (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → 𝑂 PrinVal → (Val ∨ MPCVal p) → IM (MPCVal p)
 shareOrEmbed p φ ρvs oρv vorv̂ = case vorv̂ of
@@ -247,6 +273,11 @@ shareOrEmbed p φ ρvs oρv vorv̂ = case vorv̂ of
       v̂  ← shareOrEmbedR *$ unValSR *$ unValP ṽ
       ff ← embedBaseVal p ρvs $ BoolBV False
       return $ SumMV ff DefaultMV v̂
+    NilV → return NilMV
+    ConsV ṽ₁ ṽ₂ → do
+      v̂₁ ← shareOrEmbedR *$ unValSR *$ unValP ṽ₁
+      v̂₂ ← shareOrEmbedR *$ unValSR *$ unValP ṽ₂
+      return $ ConsMV v̂₁ v̂₂
     UnknownV τ → do
       ρv ← error𝑂 oρv $ throwIErrorCxt TypeIError "shareOrEmbedVal: unknown of type τ cannot be embedded" $ frhs [ ("τ", pretty τ) ]
       shareUnknown p ρvs ρv τ
@@ -333,114 +364,19 @@ primMPCVals op p φ ρvs v̂s = do
   pv' ← exePrim p ρvs op pvs
   return $ ShareVP φ ρvs $ BaseMV pv'
 
-------------------------------------
---- Intro and Elim on Non-Shares ---
-------------------------------------
-
-
-
-------------------------------
---- Share / Embed / Reveal ---
-------------------------------
-
-
-{-
-
-
-
-
-----------------
---- UnShares ---
-----------------
-
-withShareInfo ∷ 𝐿 UnShare → (∀ p. (Protocol p)
-
---valToMPC ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ Val → ReaderT (MPCify p) IM (MPCVal p)
-shareInfoFrUnShare ∷ UnShare → ShareInfo
-shareInfoFrUnShare = \case
-  NotShared _v       → NotShare
-  Shared p sp ρvs _v̂ → Share p sp ρvs
-
-joinShareInfo ∷ ShareInfo → ShareInfo → IM ShareInfo
-joinShareInfo si₁ si₂ = case (si₁, si₂) of
-  (NotShare, _) → return si₂
-  (_, NotShare) → return si₁
-  (Share _ _ _, Share _ _ _) →
-    if si₁ ≡ si₂ then
-      return si₁
-    else
-      throwIErrorCxt TypeIError "joinShareInfo: si₁ ≢ si₂" $ frhs
-      [ ("si₁", pretty si₁)
-      , ("si₂", pretty si₂)
-      ]
-
-shareInfoFrUnShares ∷ 𝐿 UnShare → IM ShareInfo
-shareInfoFrUnShares uss = mfold NotShare joinShareInfo $ map shareInfoFrUnShare uss
-
-withUnShares ∷ (𝐿 Val → IM a) → (∀ p. (Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → 𝐿 (MPCVal p) → IM a) → 𝐿 UnShare → IM a
-withUnShares uss kVals kMPCVals = do
-  si ← shareInfoFrUnShares uss
-  case si of
-    NotShare → do
-      vs ← valsFrUnShares
-      kVals vs
-    Share p sp ρvs → do
-      v̂s ← mpcValsFrUnShares p sp ρvs
-      kMPCVals p sp ρvs v̂s
-  where valsFrUnShares = mapM valFrUnShare uss
-        valFrUnShare us = fromSome (view notSharedL us)
-        mpcValsFrUnShares p sp ρvs = mapM (mpcValFrUnShare p sp ρvs) uss
-        mpcValFrUnShare p sp₁ ρvs₁ = \case
-          NotShared v          → runReaderT (MPCify { proxyMPC = p, protMPC = sp₁, fromMPC = None, toMPC = ρvs₁ }) $ valToMPC v
-          Shared _p sp₂ ρvs₂ v̂ →
-            case deq sp₁ sp₂ of
-              NoDEq  → impossibleM
-              YesDEq → return v̂
-
-primValP ∷ Op → 𝐿 ValP → IM ValP
-primValP op ṽs = reValP *$ primValS op *$ mapM unValP ṽs
-
-primUnShare ∷ Op → 𝐿 UnShare → IM UnShare
-primUnShare op uss = withUnShares kPrimVals kPrimMPCVals uss
-  where kPrimVals vs = do
-          bvs ← error𝑂 (mapMOn vs $ view baseVL) (throwIErrorCxt TypeIError "primUnShare: mapMOn vs $ view baseVL ≡ None" $ frhs
-                                                  [ ("vs", pretty vs)
-                                                  ])
-          bv' ← interpPrim op bvs
-          return $ NotShared $ BaseV bv'
-        kPrimMPCVals p sp ρvs v̂s = do
-          pvs ← error𝑂 (mapMOn v̂s $ view baseMVL) (throwIErrorCxt TypeIError "primUnShare: mapMOn v̂s $ view baseMVL ≡ None" $ frhs
-                                                   [ ("v̂s", pretty v̂s)
-                                                   ])
-          pv' ← exePrim p ρvs op pvs
-          return $ Shared p sp ρvs $ BaseMV pv'
-
-notUnShare ∷ (STACK) ⇒ UnShare → IM UnShare
-notUnShare us = primUnShare NotO $ frhs [ us ]
-
-muxUnShare ∷ (STACK) ⇒ UnShare → UnShare → UnShare → IM UnShare
-muxUnShare us₁ us₂ us₃ = undefined {-do
-  vsorv̂s ← unwrapUnShares $ frhs [ us₁, us₂, us₃ ]
-  case vsorv̂s of
-    Inl vs → do
-      v₁ :* v₂ :* v₃ ← fromSome $ view three𝐿L vs
-      bv₁ ← error𝑂 (view baseVL v₁) (throwIErrorCxt TypeIError "muxUnShare: view baseVL v₁ ≡ None" $ frhs
-                                    [ ("v₁", pretty v₁)
-                                    ])
-      v' ← muxVal bv₁ v₂ v₃ -- TODO(ins): check bv₁ : Bool
-      return $ NotShared v'
-    Inr (ShareInfo p sp ρvs :* v̂s) → do
-      v̂₁ :* v̂₂ :* v̂₃ ← fromSome $ view three𝐿L v̂s
-      pv₁ ← error𝑂 (view baseMVL v̂₁) (throwIErrorCxt TypeIError "muxUnShare: view baseMVL v̂₁ ≡ None" $ frhs
-                                      [ ("v̂₁", pretty v̂₁)
-                                      ])
-      v̂' ← muxMPCVal p ρvs pv₁ v̂₂ v̂₃ -- TODO(ins): check pv₁ : Bool
-      return $ Shared p sp ρvs v̂'
-    _ → impossibleM-}
+defaultBaseValOf ∷ BaseType → BaseVal
+defaultBaseValOf = \case
+  𝔹T → BoolBV False
+  ℕT pr → NatBV pr 0
+  ℤT pr → IntBV pr $ HS.fromIntegral 0
+  𝔽T pr → FltBV pr $ HS.fromIntegral 0
 
 muxVal ∷ (STACK) ⇒ BaseVal → Val → Val → IM Val
 muxVal bv₁ v₂ v₃ = case (v₂, v₃) of
   (DefaultV, DefaultV) → return DefaultV
+  (DefaultV, BulV) → return BulV
+  (BulV, DefaultV) → return BulV
+  (BulV, BulV) → return BulV
   (DefaultV, BaseV bv₃) → do
     let bv₂ = defaultBaseValOf (typeOfBaseVal bv₃)
     bv' ← interpPrim CondO $ frhs [ bv₁, bv₂, bv₃ ]
@@ -485,28 +421,19 @@ muxVal bv₁ v₂ v₃ = case (v₂, v₃) of
     ṽ₃ ← introValP DefaultV
     muxTup ṽ₂ₗ ṽ₂ᵣ ṽ₃ ṽ₃ ConsV
   (ConsV ṽ₂ₗ ṽ₂ᵣ, ConsV ṽ₃ₗ ṽ₃ᵣ) → muxTup ṽ₂ₗ ṽ₂ᵣ ṽ₃ₗ ṽ₃ᵣ ConsV
-  (DefaultV, BulV) → return BulV
-  (BulV, DefaultV) → return BulV
-  (BulV, BulV) → return BulV
   _ → throwIErrorCxt TypeIError "muxVal: values v₂ and v₃ have different shapes." $ frhs
       [ ("v₂", pretty v₂)
       , ("v₃", pretty v₃)
       ]
   where muxTup ṽ₂ₗ ṽ₂ᵣ ṽ₃ₗ ṽ₃ᵣ constr = do
           ṽ₁ ← introValP $ BaseV bv₁
-          us₁ₗ :* us₂ₗ :* us₃ₗ ← (mapM unShareValP $ frhs [ ṽ₁, ṽ₂ₗ, ṽ₃ₗ ]) ≫= fromSome ∘ (view three𝐿L)
-          usₗ ← muxUnShare us₁ₗ us₂ₗ us₃ₗ
-          ṽₗ ← reShareValP usₗ
-          us₁ᵣ :* us₂ᵣ :* us₃ᵣ ← (mapM unShareValP $ frhs [ ṽ₁, ṽ₂ᵣ, ṽ₃ᵣ ]) ≫= fromSome ∘ (view three𝐿L)
-          usᵣ ← muxUnShare us₁ᵣ us₂ᵣ us₃ᵣ
-          ṽᵣ ← reShareValP usᵣ
+          ṽₗ ← muxValP ṽ₁ ṽ₂ₗ ṽ₃ₗ
+          ṽᵣ ← muxValP ṽ₁ ṽ₂ᵣ ṽ₃ᵣ
           return $ constr ṽₗ ṽᵣ
         muxSum tag₂ ṽ₂ tag₃ ṽ₃ = do
-          ṽ₁ ← introValP $ BaseV bv₁
+          ṽ₁  ← introValP $ BaseV bv₁
           tag ← (interpPrim CondO $ frhs [ bv₁, BoolBV tag₂, BoolBV tag₃ ]) ≫= fromSome ∘ (view boolBVL)
-          us₁ :* us₂ :* us₃ ← (mapM unShareValP $ frhs [ ṽ₁, ṽ₂, ṽ₃ ]) ≫= fromSome ∘ (view three𝐿L)
-          us' ← muxUnShare us₁ us₂ us₃
-          ṽ' ← reShareValP us'
+          ṽ'  ← muxValP ṽ₁ ṽ₂ ṽ₃
           return $ if tag then LV ṽ' else RV ṽ'
 
 muxMPCVal ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → 𝑃 PrinVal → (ProtocolVal p) → MPCVal p → MPCVal p → IM (MPCVal p)
@@ -526,9 +453,9 @@ muxMPCVal p ρvs pv₁ v̂₂ v̂₃ = case (v̂₂, v̂₃) of
   (BaseMV pv₂, BaseMV pv₃) → do
     pv' ← exePrim p ρvs CondO $ frhs [ pv₁, pv₂, pv₃ ]
     return $ BaseMV pv'
-  (DefaultMV, PairMV v̂₃ₗ v̂₃ᵣ) → muxTup DefaultMV DefaultMV v̂₃ₗ v̂₃ᵣ
-  (PairMV v̂₂ₗ v̂₂ᵣ, DefaultMV) → muxTup v̂₂ₗ v̂₂ᵣ DefaultMV DefaultMV
-  (PairMV v̂₂ₗ v̂₂ᵣ, PairMV v̂₃ₗ v̂₃ᵣ) → muxTup v̂₂ₗ v̂₂ᵣ v̂₃ₗ v̂₃ᵣ
+  (DefaultMV, PairMV v̂₃ₗ v̂₃ᵣ) → muxTup DefaultMV DefaultMV v̂₃ₗ v̂₃ᵣ PairMV
+  (PairMV v̂₂ₗ v̂₂ᵣ, DefaultMV) → muxTup v̂₂ₗ v̂₂ᵣ DefaultMV DefaultMV PairMV
+  (PairMV v̂₂ₗ v̂₂ᵣ, PairMV v̂₃ₗ v̂₃ᵣ) → muxTup v̂₂ₗ v̂₂ᵣ v̂₃ₗ v̂₃ᵣ PairMV
   (DefaultMV, SumMV pv₃ v̂₃ₗ v̂₃ᵣ) → do
     pv₂ ← embedBaseVal p ρvs (BoolBV False)
     muxSum pv₂ DefaultMV DefaultMV pv₃ v̂₃ₗ v̂₃ᵣ
@@ -536,39 +463,23 @@ muxMPCVal p ρvs pv₁ v̂₂ v̂₃ = case (v̂₂, v̂₃) of
     pv₃ ← embedBaseVal p ρvs (BoolBV False)
     muxSum pv₂ v̂₂ₗ v̂₂ᵣ pv₃ DefaultMV DefaultMV
   (SumMV pv₂ v̂₂ₗ v̂₂ᵣ, SumMV pv₃ v̂₃ₗ v̂₃ᵣ) → muxSum pv₂ v̂₂ₗ v̂₂ᵣ pv₃ v̂₃ₗ v̂₃ᵣ
+  (NilMV, NilMV) → return NilMV
+  (DefaultMV, ConsMV v̂₃ₗ v̂₃ᵣ) → muxTup DefaultMV DefaultMV v̂₃ₗ v̂₃ᵣ ConsMV
+  (ConsMV v̂₂ₗ v̂₂ᵣ, DefaultMV) → muxTup v̂₂ₗ v̂₂ᵣ DefaultMV DefaultMV ConsMV
+  (ConsMV v̂₂ₗ v̂₂ᵣ, ConsMV v̂₃ₗ v̂₃ᵣ) → muxTup v̂₂ₗ v̂₂ᵣ v̂₃ₗ v̂₃ᵣ ConsMV
   _ → throwIErrorCxt TypeIError "muxMPCVal: MPC values v̂₂ and v̂₃ have different shapes." $ frhs
       [ ("v̂₂", pretty v̂₂)
       , ("v̂₃", pretty v̂₃)
       ]
-  where muxTup v̂₂ₗ v̂₂ᵣ v̂₃ₗ v̂₃ᵣ = do
+  where muxTup v̂₂ₗ v̂₂ᵣ v̂₃ₗ v̂₃ᵣ constr = do
           v̂ₗ ← muxMPCVal p ρvs pv₁ v̂₂ₗ v̂₃ₗ
           v̂ᵣ ← muxMPCVal p ρvs pv₁ v̂₂ᵣ v̂₃ᵣ
-          return $ PairMV v̂ₗ v̂ᵣ
+          return $ constr v̂ₗ v̂ᵣ
         muxSum pv₂ v̂₂ₗ v̂₂ᵣ pv₃ v̂₃ₗ v̂₃ᵣ = do
           tag ← exePrim p ρvs CondO $ frhs [ pv₁, pv₂, pv₃ ]
           v̂ₗ ← muxMPCVal p ρvs pv₁ v̂₂ₗ v̂₃ₗ
           v̂ᵣ ← muxMPCVal p ρvs pv₁ v̂₂ᵣ v̂₃ᵣ
           return $ SumMV tag v̂ₗ v̂ᵣ
-
-defaultBaseValOf ∷ BaseType → BaseVal
-defaultBaseValOf = \case
-  𝔹T → BoolBV False
-  ℕT pr → NatBV pr 0
-  ℤT pr → IntBV pr $ HS.fromIntegral 0
-  𝔽T pr → FltBV pr $ HS.fromIntegral 0
-
-sumUnShare ∷ (STACK) ⇒ UnShare → UnShare → IM UnShare
-sumUnShare us₁ us₂ = undefined {- do
-  vsorv̂s ← unwrapUnShares $ frhs [ us₁, us₂ ]
-  case vsorv̂s of
-    Inl vs → do
-      v₁ :* v₂ ← fromSome $ view two𝐿L vs
-      v' ← sumVal v₁ v₂
-      return $ NotShared v'
-    Inr (ShareInfo p sp ρvs :* v̂s) → do
-      v̂₁ :* v̂₂ ← fromSome $ view two𝐿L v̂s
-      v̂' ← sumMPCVal p ρvs v̂₁ v̂₂
-      return $ Shared p sp ρvs v̂' -}
 
 sumVal ∷ (STACK) ⇒ Val → Val → IM Val
 sumVal v₁ v₂ = case (v₁, v₂) of
@@ -590,18 +501,12 @@ sumVal v₁ v₂ = case (v₁, v₂) of
       , ("v₂", pretty v₂)
       ]
   where sumTup ṽ₁ₗ ṽ₁ᵣ ṽ₂ₗ ṽ₂ᵣ constr = do
-          us₁ₗ :* us₂ₗ ← (mapM unShareValP $ frhs [ ṽ₁ₗ, ṽ₂ₗ ]) ≫= fromSome ∘ (view two𝐿L)
-          usₗ ← sumUnShare us₁ₗ us₂ₗ
-          ṽₗ ← reShareValP usₗ
-          us₁ᵣ :* us₂ᵣ ← (mapM unShareValP $ frhs [ ṽ₁ᵣ, ṽ₂ᵣ ]) ≫= fromSome ∘ (view two𝐿L)
-          usᵣ ← sumUnShare us₁ᵣ us₂ᵣ
-          ṽᵣ ← reShareValP usᵣ
+          ṽₗ ← sumValP ṽ₁ₗ ṽ₂ₗ
+          ṽᵣ ← sumValP ṽ₁ᵣ ṽ₂ᵣ
           return $ constr ṽₗ ṽᵣ
         sumSum tag₁ ṽ₁ tag₂ ṽ₂ = do
           tag ← (interpPrim PlusO $ frhs [ BoolBV tag₁, BoolBV tag₂ ]) ≫= fromSome ∘ (view boolBVL)
-          us₁ :* us₂ ← (mapM unShareValP $ frhs [ ṽ₁, ṽ₂ ]) ≫= fromSome ∘ (view two𝐿L)
-          us ← sumUnShare us₁ us₂
-          ṽ ← reShareValP us
+          ṽ ← sumValP ṽ₁ ṽ₂
           return $ if tag then LV ṽ else RV ṽ
 
 sumMPCVal ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → 𝑃 PrinVal → MPCVal p → MPCVal p → IM (MPCVal p)
@@ -612,58 +517,20 @@ sumMPCVal p ρvs v̂₁ v̂₂ = case (v̂₁, v̂₂) of
   (BaseMV pv₁, BaseMV pv₂) → do
     pv' ← exePrim p ρvs PlusO $ frhs [ pv₁, pv₂ ]
     return $ BaseMV pv'
-  (PairMV v̂₁ₗ v̂₁ᵣ, PairMV v̂₂ₗ v̂₂ᵣ) → sumTup v̂₁ₗ v̂₁ᵣ v̂₂ₗ v̂₂ᵣ
+  (PairMV v̂₁ₗ v̂₁ᵣ, PairMV v̂₂ₗ v̂₂ᵣ) → sumTup v̂₁ₗ v̂₁ᵣ v̂₂ₗ v̂₂ᵣ PairMV
   (SumMV pv₁ v̂₁ₗ v̂₁ᵣ, SumMV pv₂ v̂₂ₗ v̂₂ᵣ) → sumSum pv₁ v̂₁ₗ v̂₁ᵣ pv₂ v̂₂ₗ v̂₂ᵣ
+  (NilMV, NilMV) → return NilMV
+  (ConsMV v̂₁ₗ v̂₁ᵣ, ConsMV v̂₂ₗ v̂₂ᵣ) → sumTup v̂₁ₗ v̂₁ᵣ v̂₂ₗ v̂₂ᵣ ConsMV
   _ → throwIErrorCxt TypeIError "sumMPCVal: MPC values v̂₁ and v̂₂ have different shapes." $ frhs
       [ ("v̂₁", pretty v̂₁)
       , ("v̂₂", pretty v̂₂)
       ]
-  where sumTup v̂₁ₗ v̂₁ᵣ v̂₂ₗ v̂₂ᵣ = do
+  where sumTup v̂₁ₗ v̂₁ᵣ v̂₂ₗ v̂₂ᵣ constr = do
           v̂ₗ ← sumMPCVal p ρvs v̂₁ₗ v̂₂ₗ
           v̂ᵣ ← sumMPCVal p ρvs v̂₁ᵣ v̂₂ᵣ
-          return $ PairMV v̂ₗ v̂ᵣ
+          return $ constr v̂ₗ v̂ᵣ
         sumSum pv₁ v̂₁ₗ v̂₁ᵣ pv₂ v̂₂ₗ v̂₂ᵣ = do
           tag ← exePrim p ρvs PlusO $ frhs [ pv₁, pv₂ ]
           v̂ₗ ← sumMPCVal p ρvs v̂₁ₗ v̂₂ₗ
           v̂ᵣ ← sumMPCVal p ρvs v̂₁ᵣ v̂₂ᵣ
           return $ SumMV tag v̂ₗ v̂ᵣ
-
-viewPairUnShare ∷ UnShare → FailT IM (UnShare ∧ UnShare)
-viewPairUnShare = \case
-  NotShared (PairV ṽ₁ ṽ₂) → do
-    us₁ ← lift $ unShareValP ṽ₁
-    us₂ ← lift $ unShareValP ṽ₂
-    return $ us₁ :* us₂
-  Shared p sp ρvs (PairMV v̂₁ v̂₂) → return $ Shared p sp ρvs v̂₁ :* Shared p sp ρvs v̂₂
-  _ → abort
-
-viewSumUnShare ∷ UnShare → FailT IM (UnShare ∧ UnShare ∧ UnShare)
-viewSumUnShare = \case
-  NotShared (LV ṽ) → do
-    us ← lift $ unShareValP ṽ
-    return $ (NotShared $ BaseV $ BoolBV True) :* us :* (NotShared DefaultV)
-  NotShared (RV ṽ) → do
-    us ← lift $ unShareValP ṽ
-    return $ (NotShared $ BaseV $ BoolBV False) :* (NotShared DefaultV) :* us
-  Shared p sp ρvs (SumMV pv v̂ₗ v̂ᵣ) → return $ Shared p sp ρvs (BaseMV pv) :* Shared p sp ρvs v̂ₗ :* Shared p sp ρvs v̂ᵣ
-  _ → abort
-
-viewNilUnShare ∷ UnShare → FailT IM ()
-viewNilUnShare = \case
-  NotShared NilV → return ()
-  _ → abort
-
-viewConsUnShare ∷ UnShare → FailT IM (UnShare ∧ UnShare)
-viewConsUnShare = \case
-  NotShared (ConsV ṽ₁ ṽ₂) → do
-    us₁ ← lift $ unShareValP ṽ₁
-    us₂ ← lift $ unShareValP ṽ₂
-    return $ us₁ :* us₂
-  _ → abort
-
------------------------------------
---- Intro and Elim on Locations ---
------------------------------------
-
-
--}
