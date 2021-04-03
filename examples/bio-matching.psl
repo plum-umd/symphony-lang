@@ -1,0 +1,12 @@
+principal A B
+
+def main () = par{A, B}
+  let pA = map (fun x -> share {yao: A -> A, B} x) 
+      (send-ls {A} {A, B}
+       (par {A} (read list int from "biomatching-input.txt"))) in
+  let pB = map (fun x -> share {yao: B -> A, B} x) 
+      (send-ls {B} {A, B}
+       (par {B} (read list int from "biomatching-input.txt"))) in
+  reveal {A, B} (babylonian_sqrt_nat
+                 (sum-ints (map (fun (a, b) -> babylonian_sqrt_nat (a - b))
+                            (zip pA pB))))
