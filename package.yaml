@@ -67,6 +67,8 @@ library:
     - bytestring
     - random
     - text
+  extra-libraries:
+    - empc
 
 executables:
   psl:

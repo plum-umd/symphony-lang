@@ -9,13 +9,14 @@ import PSL.Interpreter.Pretty ()
 import PSL.Interpreter.Error
 
 import PSL.Interpreter.Plain ()
+import PSL.Interpreter.Yao ()
 import PSL.Interpreter.YaoN ()
 
 withProt ∷ Prot → (∀ (p ∷ Prot). (Protocol p) ⇒ P p → SProt p → IM b) → IM b
 withProt φ k = case φ of
   PlainP → k P SPlainP
   YaoNP  → k P SYaoNP
---  Yao2P  → k P SYao2P
+  Yao2P  → k P SYao2P
 --  BGWP   → k P SBGWP
 --  GMWP   → k P SGMWP
 --  BGVP   → k P SBGVP

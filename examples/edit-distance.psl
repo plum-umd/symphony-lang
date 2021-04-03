@@ -4,7 +4,7 @@ principal A B
 def edit-dist rowsWord colsWord =
   let (topFirst, topLast) = elim-list rowsWord
     (map inc (reverse (range-nat (len colsWord))), 0n)
-    (fun rowChar (prevSolnRow, prevLast) -> 
+    (fun rowChar (prevSolnRow, prevLast) ->
        let curLast = inc prevLast in
        let (curFirst, _) = elim-list (zip prevSolnRow colsWord)
          ([ ], prevLast)
@@ -16,13 +16,13 @@ def edit-dist rowsWord colsWord =
              else (choice0, 1n) in
            (choice1::curRow, prevRowCost)) in
        (curFirst, curLast)) in
-  head topLast topFirst 
+  head topLast topFirst
 
 def main () = par{A, B}
-  let wordA = map (fun x -> share {yao: A -> A, B} x) 
+  let wordA = map (fun x -> share {yao: A -> A, B} x)
       (send-ls {A} {A, B}
        (par {A} (read list int from "edit-dist-input.txt"))) in
-  let wordB = map (fun x -> share {yao: B -> A, B} x) 
+  let wordB = map (fun x -> share {yao: B -> A, B} x)
       (send-ls {B} {A, B}
        (par {B} (read list int from "edit-dist-input.txt"))) in
-  reveal{A, B} edit-dist wordA wordB
+  reveal{yao:A, B -> A, B} edit-dist wordA wordB

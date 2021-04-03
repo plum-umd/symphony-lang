@@ -4,6 +4,10 @@ import UVMHS
 import AddToUVMHS
 import PSL.Syntax
 
+import qualified Prelude as HS
+
+import Foreign.ForeignPtr
+
 ------------
 -- VALUES --
 ------------
@@ -42,6 +46,13 @@ typeOfBaseVal = \case
   NatBV pr _n → ℕT pr
   IntBV pr _i → ℤT pr
   FltBV pr _f → 𝔽T pr
+
+defaultBaseValOf ∷ BaseType → BaseVal
+defaultBaseValOf = \case
+  𝔹T → BoolBV False
+  ℕT pr → NatBV pr 0
+  ℤT pr → IntBV pr $ HS.fromIntegral 0
+  𝔽T pr → FltBV pr $ HS.fromIntegral 0
 
 -- Distributed Values
 -- ṽ ∈ dist-val
@@ -161,6 +172,22 @@ class
     exePrim      ∷ P p → 𝑃 PrinVal     → Op        → 𝐿 (ProtocolVal p) → IM (ProtocolVal p)
     reveal       ∷ P p → 𝑃 PrinVal     → 𝑃 PrinVal → MPCVal p          → IM Val
 
+----------------------
+--- EMP FFI Values ---
+----------------------
+
+data EMPBool = EMPBool deriving (Eq,Ord,Show)
+data EMPNat  = EMPNat  deriving (Eq,Ord,Show)
+data EMPInt  = EMPInt  deriving (Eq,Ord,Show)
+data EMPFlt  = EMPFlt  deriving (Eq,Ord,Show)
+
+data EMPVal =
+    BoolEV (ForeignPtr EMPBool)
+  | NatEV IPrecision (ForeignPtr EMPNat)
+  | IntEV IPrecision (ForeignPtr EMPInt)
+  | FltEV FPrecision (ForeignPtr EMPFlt)
+  deriving (Eq,Ord,Show)
+
 --------------
 -- Circuits --
 --------------
@@ -242,11 +269,12 @@ data IState = IState
   { iStateStore ∷ Store
   , iStateNextLoc ∷ ℤ64
   , iStateNextWires ∷ (𝑃 PrinVal) ⇰ Wire
+  , iStateYaoInit ∷ 𝔹
   , iStateMPCCont ∷ 𝐿 (𝐿 ValP ∧ ValP)
   } deriving (Eq,Ord,Show)
 
 ω₀ ∷ IState
-ω₀ = IState wø (𝕫64 1) dø null
+ω₀ = IState wø (𝕫64 1) dø False null
 
 ------------
 -- OUTPUT --

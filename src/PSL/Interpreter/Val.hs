@@ -364,13 +364,6 @@ primMPCVals op p φ ρvs v̂s = do
   pv' ← exePrim p ρvs op pvs
   return $ ShareVP φ ρvs $ BaseMV pv'
 
-defaultBaseValOf ∷ BaseType → BaseVal
-defaultBaseValOf = \case
-  𝔹T → BoolBV False
-  ℕT pr → NatBV pr 0
-  ℤT pr → IntBV pr $ HS.fromIntegral 0
-  𝔽T pr → FltBV pr $ HS.fromIntegral 0
-
 muxVal ∷ (STACK) ⇒ BaseVal → Val → Val → IM Val
 muxVal bv₁ v₂ v₃ = case (v₂, v₃) of
   (DefaultV, DefaultV) → return DefaultV

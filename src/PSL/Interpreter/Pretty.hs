@@ -246,6 +246,14 @@ instance Protocol p ⇒ Pretty (MPCVal p) where
     NilMV → ppCon "[]"
     ConsMV v₁ v₂ → ppInfr levelCONS (ppPun "∷") (pretty v₁) $ pretty v₂
 
+instance Pretty EMPVal where
+  pretty =
+    \case
+    BoolEV _  → ppCon "𝔹"
+    NatEV p _ → concat [ppCon "ℕ",pretty p]
+    IntEV p _ → concat [ppCon "ℤ",pretty p]
+    FltEV p _ → concat [ppCon "𝔽",pretty p]
+
 makePrettyRecord ''Ckt
 makePrettySum ''Input
 makePrettySum ''Gate

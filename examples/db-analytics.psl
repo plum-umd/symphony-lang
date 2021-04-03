@@ -1,10 +1,10 @@
 principal A B
 
 def main () = par{A, B}
-  let pA = map (fun x -> share {yao: A -> A, B} x) 
+  let pA = map (fun x -> share {yao: A -> A, B} x)
       (send-ls {A} {A, B}
        (par {A} (read list (int * int) from "biomatching-input.txt"))) in
-  let pB = map (fun x -> share {yao: B -> A, B} x) 
+  let pB = map (fun x -> share {yao: B -> A, B} x)
       (send-ls {B} {A, B}
        (par {B} (read list (int * int) from "biomatching-input.txt"))) in
 
@@ -45,4 +45,4 @@ def main () = par{A, B}
        }
     ) in
 
-  (variance, joinVar)
+  reveal {yao: A,B -> A,B} (variance, joinVar)

@@ -6,10 +6,10 @@ def hamming bs0 bs1 = sum-nats (map
 
 -- input lists must be of equal lengths:
 def main () = par {A, B}
-  let bitstringA = map (fun x -> share {yao: A -> A, B} x) 
+  let bitstringA = map (fun x -> share {yao: A -> A, B} x)
       (send-ls {A} {A, B}
        (par {A} (read list int from "hamming-input.txt"))) in
-  let bitstringB = map (fun x -> share {yao: B -> A, B} x) 
+  let bitstringB = map (fun x -> share {yao: B -> A, B} x)
       (send-ls {B} {A, B}
        (par {B} (read list int from "hamming-input.txt"))) in
-  reveal {A, B} (hamming bitstringA bitstringB)
+  reveal {yao: A,B -> A, B} (hamming bitstringA bitstringB)

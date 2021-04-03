@@ -11,7 +11,6 @@ import PSL.Interpreter.Error
 
 import AddToUVMHS
 
-
 primType ∷ (STACK) ⇒ Op → 𝐿 BaseType → BaseType
 primType op τs = case (op, tohs τs) of
   (OrO, [𝔹T, 𝔹T]) → 𝔹T
