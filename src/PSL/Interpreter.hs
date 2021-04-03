@@ -208,14 +208,12 @@ sequentialSwitch φ = do
 wrapInterp ∷ (STACK) ⇒ (ExpR → IM ValP) → Exp → IM ValP
 wrapInterp f e = localL iCxtSourceL (Some $ atag e) $ f $ extract e
 
-modeCheckShare ∷ 𝑃 PrinVal → 𝑃 PrinVal → ValP → IM ()
-modeCheckShare ρvsSharer ρvsSharees ṽ = do
-  gm ← askL iCxtGlobalModeL                                        -- Formalism:
-  let ρvsVal = modeFrValP ṽ                                        --   ρvsSharer = p, ρvsSharees = q, gm = m, ρvsVal = p'
+modeCheckShare ∷ 𝑃 PrinVal → 𝑃 PrinVal → IM ()
+modeCheckShare ρvsSharer ρvsSharees = do                           -- Formalism:
+  gm ← askL iCxtGlobalModeL                                        --   ρvsSharer = p, ρvsSharees = q, gm = m
   let singleSharer    = count ρvsSharer ≡ 1                        --   |p| = 1
   let shareesNonEmpty = ρvsSharees ≢ pø                            --   q ≠ ∅
   let sharerAndShareesPresent = SecM (ρvsSharer ∪ ρvsSharees) ≡ gm --   p ∪ q = m
-  let sharerHasVal = (SecM ρvsSharer) ⊑ ρvsVal                     --   p ⊆ p'
   guardErr singleSharer $
     throwIErrorCxt TypeIError "modeCheckShare: count ρvsSharer ≢ 1" $ frhs
     [ ("ρvsSharer",pretty ρvsSharer)
@@ -230,19 +228,12 @@ modeCheckShare ρvsSharer ρvsSharees ṽ = do
     , ("ρvsSharees", pretty ρvsSharees)
     , ("gm", pretty gm)
     ]
-  guardErr sharerHasVal $
-    throwIErrorCxt TypeIError "modeCheckShare: (SecM ρvsSharer) ⋢ ρvsVal" $ frhs
-    [ ("ρvsSharer", pretty ρvsSharer)
-    , ("ρvsVal", pretty ρvsVal)
-    ]
 
-modeCheckReveal ∷ 𝑃 PrinVal → 𝑃 PrinVal → ValP → IM ()
-modeCheckReveal ρvsRevealers ρvsRevealees ṽ = do
-  gm ← askL iCxtGlobalModeL                                                  -- Formalism:
-  let ρvsVal = modeFrValP ṽ                                                  --   ρvsRevealers = p, ρvsRevealees = q, gm = m, ρvsVal = p'
+modeCheckReveal ∷ 𝑃 PrinVal → 𝑃 PrinVal → IM ()
+modeCheckReveal ρvsRevealers ρvsRevealees = do                               -- Formalism:
+  gm ← askL iCxtGlobalModeL                                                  --   ρvsRevealers = p, ρvsRevealees = q, gm = m
   let revealeesNonEmpty = ρvsRevealees ≢ pø                                  --   q ≠ ∅
   let revealersAndRevealeesPresent = SecM (ρvsRevealers ∪ ρvsRevealees) ≡ gm --   p ∪ q = m
-  let revealersHaveVal = (SecM ρvsRevealers) ≡ ρvsVal                        --   p = p'
   guardErr revealeesNonEmpty $
     throwIErrorCxt TypeIError "modeCheckReveal: ρvsRevealees ≡ pø" $ frhs
     [ ("ρvsRevealees",pretty ρvsRevealees)
@@ -252,11 +243,6 @@ modeCheckReveal ρvsRevealers ρvsRevealees ṽ = do
     [ ("ρvsRevealers",pretty ρvsRevealers)
     , ("ρvsRevealees",pretty ρvsRevealees)
     , ("gm", pretty gm)
-    ]
-  guardErr revealersHaveVal $
-    throwIErrorCxt TypeIError "modeCheckReveal: (SecM ρvsRevealers) ≢ ρvsVal" $ frhs
-    [ ("ρvsRevealers",pretty ρvsRevealers)
-    , ("ρvsVal",pretty ρvsVal)
     ]
 
 interpExp ∷ (STACK) ⇒ Exp → IM ValP
@@ -342,8 +328,7 @@ interpExp = wrapInterp $ \case
   ShareE prot ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
-
---    modeCheckShare ρvs₁ ρvs₂ ṽ
+    modeCheckShare ρvs₁ ρvs₂
     ρv₁ ← fromSome $ view one𝑃L ρvs₁
     prot' ← sequentialSwitch prot
     restrictMode (SecM ρvs₁) $ do
@@ -384,8 +369,8 @@ interpExp = wrapInterp $ \case
   RevealE prot ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
+    modeCheckReveal ρvs₁ ρvs₂
     prot' ← sequentialSwitch prot
---    modeCheckReveal ρvs₁ ρvs₂ ṽ
     restrictMode (SecM ρvs₁) $ do
       ṽ ← interpExp e
       withProt prot' $ \ p φ → revealValP p φ ρvs₁ ρvs₂ ṽ
