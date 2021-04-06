@@ -156,8 +156,8 @@ empIntegerEq ez₁ ez₂ = do
     withForeignPtr ez₂ $ \ ezp₂ →
     newForeignPtr bit_destroy *$ integer_eq ezp₁ ezp₂
 
-empIntCond ∷ ForeignPtr EMPBool → ForeignPtr EMPInt → ForeignPtr EMPInt → IO (ForeignPtr EMPInt)
-empIntCond eb₁ ez₂ ez₃ = do
+empIntegerCond ∷ ForeignPtr EMPBool → ForeignPtr EMPInt → ForeignPtr EMPInt → IO (ForeignPtr EMPInt)
+empIntegerCond eb₁ ez₂ ez₃ = do
   withForeignPtr eb₁ $ \ ebp₁ →
     withForeignPtr ez₂ $ \ ezp₂ →
     withForeignPtr ez₃ $ \ ezp₃ →
