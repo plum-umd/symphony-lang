@@ -9,6 +9,7 @@ import PSL.Interpreter.Pretty ()
 import PSL.Interpreter.Lens
 import PSL.Interpreter.Error
 import PSL.Interpreter.Share
+import PSL.Interpreter.Send
 
 import PSL.Interpreter.Primitives
 
@@ -85,6 +86,21 @@ embedValP p φ ρvs ṽ = shareOrEmbedValP p φ ρvs None ṽ
 
 revealValP ∷ (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → 𝑃 PrinVal → ValP → IM ValP
 revealValP p φ ρvs ρvsRevealees ṽ = map (SSecVP (SecM ρvsRevealees)) $ revealValOrMPCVal p φ ρvs ρvsRevealees *$ unValS φ ρvs *$ unValP ṽ
+
+sendValP ∷ (STACK) ⇒ 𝑃 PrinVal → PrinVal → ValP → IM ValP
+sendValP ρvsRs ρvS ṽ = do
+  lm ← askL iCxtLocalModeL
+  v̑ ← unValP ṽ
+  case v̑ of
+    SSecVS v → case lm of
+      TopM → return $ SSecVP (SecM ρvsRs) v
+      SecM ρvsLM | ρvsRs ⊆ ρvsLM → return $ SSecVP (SecM ρvsRs) v
+      SecM ρvsLM | ρvS ∈ ρvsLM  → do
+                     io $ eachWith (\ ρvR → sendVal v) $ ρvsRs ∖ (single𝑃 ρvS)
+                     return $ SSecVP (SecM ρvsRs) v
+      SecM _ρvsLM → do
+        v ← io $ recvVal ρvS
+        return $ SSecVP (SecM ρvsRs) v
 
 viewPairValP ∷ (STACK) ⇒ ValP → FailT IM (ValP ∧ ValP)
 viewPairValP ṽ = do
@@ -180,7 +196,8 @@ unValP ṽ = do
       -- (1) All parties executing this code must have the value (gm ⊑ m)
       guardErr (gm ⊑ m) $
         throwIErrorCxt TypeIError "unValP: SSecVP: gm ⋢ m " $ frhs
-        [ ("gm",pretty gm)
+        [ ("ṽ", pretty ṽ)
+        , ("gm",pretty gm)
         , ("m",pretty m)
         ]
       return $ SSecVS v

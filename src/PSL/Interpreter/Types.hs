@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveGeneric #-}
+
 module PSL.Interpreter.Types where
 
 import UVMHS
@@ -7,6 +9,7 @@ import PSL.Syntax
 import qualified Prelude as HS
 
 import Foreign.ForeignPtr
+import GHC.Generics
 
 ------------
 -- VALUES --
@@ -31,7 +34,7 @@ data Val =
   | LocV Mode ℤ64
   | ArrayV (𝑉 ValP)
   | UnknownV Type
-  deriving (Eq,Ord,Show)
+  deriving (Eq,Ord,Show,Generic)
 
 data BaseVal =
     BoolBV 𝔹
@@ -177,13 +180,12 @@ class
 ----------------------
 
 data EMPBool = EMPBool deriving (Eq,Ord,Show)
-data EMPNat  = EMPNat  deriving (Eq,Ord,Show)
 data EMPInt  = EMPInt  deriving (Eq,Ord,Show)
 data EMPFlt  = EMPFlt  deriving (Eq,Ord,Show)
 
 data EMPVal =
     BoolEV (ForeignPtr EMPBool)
-  | NatEV IPrecision (ForeignPtr EMPNat)
+  | NatEV IPrecision (ForeignPtr EMPInt) -- Unfortunately, EMP doesn't support ℕ so we represent them as integers
   | IntEV IPrecision (ForeignPtr EMPInt)
   | FltEV FPrecision (ForeignPtr EMPFlt)
   deriving (Eq,Ord,Show)

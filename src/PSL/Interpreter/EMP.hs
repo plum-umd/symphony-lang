@@ -96,19 +96,43 @@ empShare _ρvsComputing ρvsSharing bv = do
   party ← serializeMode (SecM ρvsSharing)
   case bv of
     BoolBV b   → map BoolEV $ io $ newForeignPtr bit_destroy *$ bit_create b party
-    NatBV pr n → throwIErrorCxt NotImplementedIError "[Yao] empShare: ℕ not implemented" empty𝐿
+    NatBV pr n → do
+      prec ← serializePrec pr
+      map (NatEV pr) $ io $ newForeignPtr integer_destroy *$ integer_create prec (HS.fromIntegral n) party
     IntBV pr z → do
       prec ← serializePrec pr
       map (IntEV pr) $ io $ newForeignPtr integer_destroy *$ integer_create prec (HS.fromIntegral z) party
     FltBV pr f → throwIErrorCxt NotImplementedIError "[Yao] empShare: 𝔻 (Float) not implemented" empty𝐿
 
+foreign import ccall "empc.h bit_not" bit_not ∷ (Ptr EMPBool) → IO (Ptr EMPBool)
+
+empBitNot ∷ ForeignPtr EMPBool → IO (ForeignPtr EMPBool)
+empBitNot eb₁ = do
+  withForeignPtr eb₁ $ \ ebp₁ →
+    newForeignPtr bit_destroy *$ bit_not ebp₁
+
 foreign import ccall "empc.h integer_add" integer_add ∷ (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPInt)
+foreign import ccall "empc.h integer_eq" integer_eq ∷ (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPBool)
+foreign import ccall "empc.h integer_cond" integer_cond ∷ (Ptr EMPBool) → (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPInt)
 
 empIntegerAdd ∷ ForeignPtr EMPInt → ForeignPtr EMPInt → IO (ForeignPtr EMPInt)
 empIntegerAdd ez₁ ez₂ = do
   withForeignPtr ez₁ $ \ ezp₁ →
     withForeignPtr ez₂ $ \ ezp₂ →
     newForeignPtr integer_destroy *$ integer_add ezp₁ ezp₂
+
+empIntegerEq ∷ ForeignPtr EMPInt → ForeignPtr EMPInt → IO (ForeignPtr EMPBool)
+empIntegerEq ez₁ ez₂ = do
+  withForeignPtr ez₁ $ \ ezp₁ →
+    withForeignPtr ez₂ $ \ ezp₂ →
+    newForeignPtr bit_destroy *$ integer_eq ezp₁ ezp₂
+
+empIntCond ∷ ForeignPtr EMPBool → ForeignPtr EMPInt → ForeignPtr EMPInt → IO (ForeignPtr EMPInt)
+empIntCond eb₁ ez₂ ez₃ = do
+  withForeignPtr eb₁ $ \ ebp₁ →
+    withForeignPtr ez₂ $ \ ezp₂ →
+    withForeignPtr ez₃ $ \ ezp₃ →
+    newForeignPtr integer_destroy *$ integer_cond ebp₁ ezp₂ ezp₃
 
 foreign import ccall "empc.h integer_reveal" integer_reveal ∷ (Ptr EMPInt) → HS.Int → IO Int.Int64
 

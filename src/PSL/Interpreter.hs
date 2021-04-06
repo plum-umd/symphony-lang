@@ -162,7 +162,7 @@ interpCase ∷ (STACK) ⇒ ValP → 𝐿 (Pat ∧ Exp) → IM ValP
 interpCase ṽ ψes = do
   fO ← unFailT $ interpCaseO ṽ ψes
   case fO of
-    None → throwIErrorCxt TypeIError "interpCase: interpCaseO v ψes = None" $ frhs
+    None → throwIErrorCxt TypeIError "interpCase: interpCaseO ṽ ψes = None" $ frhs
       [ ("ṽ",pretty ṽ)
       , ("ψes",pretty ψes)
       ]
@@ -244,6 +244,16 @@ modeCheckReveal ρvsRevealers ρvsRevealees = do                               -
     , ("ρvsRevealees",pretty ρvsRevealees)
     , ("gm", pretty gm)
     ]
+
+modeCheckSend ∷ 𝑃 PrinVal → 𝑃 PrinVal → IM ()
+modeCheckSend ρvsFr ρvsTo = do
+  gm ← askL iCxtGlobalModeL
+  let singleFr = count ρvsFr ≡ 1
+  let presentTo = (SecM ρvsTo) ⊑ gm
+  guardErr singleFr $
+    throwIErrorCxt TypeIError "modeCheckSend: count ρvsFr ≢ 1" $ frhs [ ("ρvsFr", pretty ρvsFr) ]
+  guardErr presentTo $
+    throwIErrorCxt TypeIError "modeCheckSend: (SecM ρvsTo) ⋢ gm" $ frhs [ ("ρvsTo", pretty ρvsTo), ("gm", pretty gm) ]
 
 interpExp ∷ (STACK) ⇒ Exp → IM ValP
 interpExp = wrapInterp $ \case
@@ -377,23 +387,11 @@ interpExp = wrapInterp $ \case
   SendE ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
-    guardErr (count ρvs₁ ≡ 1) $
-      throwIErrorCxt TypeIError "interpExp: SendE: size ρvs₁ ≠ 1" $ frhs
-        [ ("ρvs₁",pretty ρvs₁) ]
-    gm ← askL iCxtGlobalModeL
-    case gm of
-      SecM ρs → guardErr (ρvs₂ ⊆ ρs) $
-        throwIErrorCxt TypeIError "interpExp: SendE: ρvs ⊈ ρs" $ frhs
-          [ ("ρvs₂",pretty ρvs₂)
-          , ("ρs",pretty ρs)
-          ]
-      TopM → skip
-    ṽ ← interpExp e
-    case ṽ of
-      SSecVP m v | (SecM ρvs₁) ⊑ m → return $ SSecVP (SecM ρvs₂) v
-      _ → throwIErrorCxt TypeIError "interpExp: SendE: ṽ ∉ {SSecVP _ _}" $ frhs
-        [ ("ṽ",pretty ṽ)
-        ]
+    modeCheckSend ρvs₁ ρvs₂
+    ρv₁ ← fromSome $ view one𝑃L ρvs₁
+    restrictMode (SecM ρvs₁) $ do
+      ṽ ← interpExp e
+      sendValP ρvs₂ ρv₁ ṽ
   -- AscrE
   ToStringE e → do
     ṽ ← interpExp e
