@@ -105,13 +105,24 @@ empShare _ρvsComputing ρvsSharing bv = do
     FltBV pr f → throwIErrorCxt NotImplementedIError "[Yao] empShare: 𝔻 (Float) not implemented" empty𝐿
 
 foreign import ccall "empc.h bit_not" bit_not ∷ (Ptr EMPBool) → IO (Ptr EMPBool)
+foreign import ccall "empc.h bit_cond" bit_cond ∷ (Ptr EMPBool) → (Ptr EMPBool) → (Ptr EMPBool) → IO (Ptr EMPBool)
 
 empBitNot ∷ ForeignPtr EMPBool → IO (ForeignPtr EMPBool)
 empBitNot eb₁ = do
   withForeignPtr eb₁ $ \ ebp₁ →
     newForeignPtr bit_destroy *$ bit_not ebp₁
 
+empBitCond ∷ ForeignPtr EMPBool → ForeignPtr EMPBool → ForeignPtr EMPBool → IO (ForeignPtr EMPBool)
+empBitCond eb₁ eb₂ eb₃ = do
+  withForeignPtr eb₁ $ \ ebp₁ →
+    withForeignPtr eb₂ $ \ ebp₂ →
+    withForeignPtr eb₃ $ \ ebp₃ →
+    newForeignPtr bit_destroy *$ bit_cond ebp₁ ebp₂ ebp₃
+
 foreign import ccall "empc.h integer_add" integer_add ∷ (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPInt)
+foreign import ccall "empc.h integer_sub" integer_sub ∷ (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPInt)
+foreign import ccall "empc.h integer_mult" integer_mult ∷ (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPInt)
+foreign import ccall "empc.h integer_div" integer_div ∷ (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPInt)
 foreign import ccall "empc.h integer_eq" integer_eq ∷ (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPBool)
 foreign import ccall "empc.h integer_cond" integer_cond ∷ (Ptr EMPBool) → (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPInt)
 
@@ -120,6 +131,24 @@ empIntegerAdd ez₁ ez₂ = do
   withForeignPtr ez₁ $ \ ezp₁ →
     withForeignPtr ez₂ $ \ ezp₂ →
     newForeignPtr integer_destroy *$ integer_add ezp₁ ezp₂
+
+empIntegerSub ∷ ForeignPtr EMPInt → ForeignPtr EMPInt → IO (ForeignPtr EMPInt)
+empIntegerSub ez₁ ez₂ = do
+  withForeignPtr ez₁ $ \ ezp₁ →
+    withForeignPtr ez₂ $ \ ezp₂ →
+    newForeignPtr integer_destroy *$ integer_sub ezp₁ ezp₂
+
+empIntegerMult ∷ ForeignPtr EMPInt → ForeignPtr EMPInt → IO (ForeignPtr EMPInt)
+empIntegerMult ez₁ ez₂ = do
+  withForeignPtr ez₁ $ \ ezp₁ →
+    withForeignPtr ez₂ $ \ ezp₂ →
+    newForeignPtr integer_destroy *$ integer_mult ezp₁ ezp₂
+
+empIntegerDiv ∷ ForeignPtr EMPInt → ForeignPtr EMPInt → IO (ForeignPtr EMPInt)
+empIntegerDiv ez₁ ez₂ = do
+  withForeignPtr ez₁ $ \ ezp₁ →
+    withForeignPtr ez₂ $ \ ezp₂ →
+    newForeignPtr integer_destroy *$ integer_div ezp₁ ezp₂
 
 empIntegerEq ∷ ForeignPtr EMPInt → ForeignPtr EMPInt → IO (ForeignPtr EMPBool)
 empIntegerEq ez₁ ez₂ = do

@@ -1,12 +1,18 @@
 principal A B
 
 def main () = par{A, B}
-  let pA = map (fun x -> share {yao: A -> A, B} x)
-      (send-ls {A} {A, B}
-       (par {A} (read list int from "biomatching-input.txt"))) in
-  let pB = map (fun x -> share {yao: B -> A, B} x)
-      (send-ls {B} {A, B}
-       (par {B} (read list int from "biomatching-input.txt"))) in
+  let pA0 = [ par {A:int} 1 ; par {A:int} 6  ;
+              par {A:int} 2 ; par {A:int} 7  ;
+              par {A:int} 3 ; par {A:int} 8  ;
+              par {A:int} 4 ; par {A:int} 9  ;
+              par {A:int} 5 ; par {A:int} 10 ] in
+  let pA = map (fun x -> share {yao: A -> A, B} x) pA0 in
+  let pB0 = [ par {B:int} 2 ; par {B:int} 3 ;
+              par {B:int} 3 ; par {B:int} 4 ;
+              par {B:int} 4 ; par {B:int} 5 ;
+              par {B:int} 5 ; par {B:int} 6 ;
+              par {B:int} 6 ; par {B:int} 7 ] in
+  let pB = map (fun x -> share {yao: B -> A, B} x) pB0 in
   reveal {yao: A, B -> A, B} (babylonian_sqrt_nat
                  (sum-ints (map (fun (a, b) -> babylonian_sqrt_nat (a - b))
                             (zip pA pB))))
