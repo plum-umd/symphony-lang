@@ -39,7 +39,7 @@ type WireMap = 𝐿 (ℕ ∧ (ℕ → BWire))
 
 type RWireMap = (𝐿 ℕ) ∧ ℕ ∧ (𝐿 ℕ)
 
-bristolFrMPCVal ∷ MPCVal 'YaoNP → IM BCir
+bristolFrMPCVal ∷ (Monad m) ⇒ MPCVal 'YaoNP → m BCir
 bristolFrMPCVal v̂ = undefined
 
 generateBristol ∷ Ckt → IM BCktVal

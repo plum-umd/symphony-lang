@@ -50,113 +50,19 @@ interpVar x = do
      , ("dom(γ)",pretty $ keys γ)
      ]
 
-bindVarTo ∷ (STACK) ⇒ Var → ValP → IM a → IM a
-bindVarTo x ṽ = mapEnvL iCxtEnvL ((x ↦ ṽ) ⩌)
-
 --------------
 -- PATTERNS --
 --------------
 
-bindPat ∷ (STACK) ⇒ Pat → ValP → IM a → IM a
+bindPat ∷ (STACK) ⇒ Pat → ValP → IM ValP → IM ValP
 bindPat ψ ṽ xM = do
-  fO ← unFailT $ bindPatO ψ ṽ
+  fO ← unFailT $ bindPatValP ψ ṽ
   case fO of
     Some f → f xM
     None → throwIErrorCxt TypeIError "bindPat: no matching cases" $ frhs
       [ ("ψ",pretty ψ)
       , ("ṽ",pretty ṽ)
       ]
-
-bindPatO ∷ (STACK) ⇒ Pat → ValP → FailT IM (IM a → IM a)
-bindPatO ψ ṽ = case ψ of
-  VarP x → return $ bindVarTo x ṽ
-  BulP → return id
-  TupP ψ₁ ψ₂ → do
-    v ← lift $ elimValP ṽ
-    ṽ₁ :* ṽ₂ ← abort𝑂 $ view pairVL v
-    f₁ ← bindPatO ψ₁ ṽ₁
-    f₂ ← bindPatO ψ₂ ṽ₂
-    return $ f₂ ∘ f₁
-  LP ψ' → do
-    v' ← lift $ elimValP ṽ
-    ṽ' ← abort𝑂 $ view lVL v'
-    bindPatO ψ' ṽ'
-  RP ψ' → do
-    v' ← lift $ elimValP ṽ
-    ṽ' ← abort𝑂 $ view rVL v'
-    bindPatO ψ' ṽ'
-  NilP → do
-    v ← lift $ elimValP ṽ
-    abort𝑂 $ view nilVL v
-    return id
-  ConsP ψ₁ ψ₂ → do
-    v ← lift $ elimValP ṽ
-    ṽ₁ :* ṽ₂ ← abort𝑂 $ view consVL v
-    f₁ ← bindPatO ψ₁ ṽ₁
-    f₂ ← bindPatO ψ₂ ṽ₂
-    return $ f₂ ∘ f₁
-  EmptyP → do
-    ρvs ← abort𝑂 $ view iSecVPL ṽ
-    guard $ count ρvs ≡ 0
-    return id
-  BundleP ρx ψ₁ ψ₂ → do
-    ρvs ← abort𝑂 $ view iSecVPL ṽ
-    ρ :* v :* ρvs' ← abort𝑂 $ dminView ρvs
-    ρv ← lift $ introValP $ PrinV $ ValPEV ρ
-    let f₁ = bindVarTo ρx ρv
-    f₂ ← bindPatO ψ₁ $ SSecVP (SecM (single ρ)) v
-    f₃ ← bindPatO ψ₂ $ ISecVP ρvs'
-    return $ f₃ ∘ f₂ ∘ f₁
-  EmptySetP → do
-    v ← lift $ elimValP ṽ
-    guard $ v ≡ PrinSetV pø
-    return id
-  SetP x ψ' → do
-    v ← lift $ elimValP ṽ
-    ρvs ← abort𝑂 $ view prinSetVL v
-    ρ :* ρs ← abort𝑂 $ pmin ρvs
-    ρv ← lift $ introValP $ PrinV $ ValPEV ρ
-    ρvs' ← lift $ introValP $ PrinSetV ρs
-    let f₁ = bindVarTo x ρv
-    f₂ ← bindPatO ψ' ρvs'
-    return $ f₂ ∘ f₁
-  AscrP ψ' _τ → bindPatO ψ' ṽ
-  WildP → return id
-
-bindPatMPC ∷ (STACK) ⇒ Pat → ValP → FailT IM (IM ValP → IM ValP)
-bindPatMPC ψ ṽ = case ψ of
-  VarP x → return $ bindVarTo x ṽ
-  BulP → return id
-  TupP ψ₁ ψ₂ → do
-    ṽ₁ :* ṽ₂ ← viewPairValP ṽ
-    f₁ ← bindPatMPC ψ₁ ṽ₁
-    f₂ ← bindPatMPC ψ₂ ṽ₂
-    return $ compose [f₁, f₂]
-  LP ψ' → do
-    ṽ₁ :* ṽ₂ :* _ṽ₃ ← viewSumValP ṽ
-    f ← bindPatMPC ψ' ṽ₂
-    return $ \ xM → do
-      ṽb ← mapEnvL iCxtMPCPathConditionL (ṽ₁ :&) $ f xM
-      ṽd ← introValP DefaultV
-      muxValP ṽ₁ ṽb ṽd
-  RP ψ' → do
-    ṽ₁ :* _ṽ₂ :* ṽ₃ ← viewSumValP ṽ
-    f ← bindPatMPC ψ' ṽ₃
-    return $ \ xM → do
-      negṽ₁ ← notValP ṽ₁
-      ṽb    ← mapEnvL iCxtMPCPathConditionL (negṽ₁ :&) $ f xM
-      ṽd    ← introValP DefaultV
-      muxValP ṽ₁ ṽd ṽb
-  NilP → do
-    viewNilValP ṽ
-    return id
-  ConsP ψ₁ ψ₂ → do
-    ṽ₁ :* ṽ₂ ← viewConsValP ṽ
-    f₁ ← bindPatMPC ψ₁ ṽ₁
-    f₂ ← bindPatMPC ψ₂ ṽ₂
-    return $ compose [f₁, f₂]
-  WildP → return id
-  _ → throwIErrorCxt NotImplementedIError "bindPatMPC: pattern ψ not implemented" $ frhs [ ("ψ", pretty ψ) ]
 
 interpCase ∷ (STACK) ⇒ ValP → 𝐿 (Pat ∧ Exp) → IM ValP
 interpCase ṽ ψes = do
@@ -172,7 +78,7 @@ interpCaseO ∷ (STACK) ⇒ ValP → 𝐿 (Pat ∧ Exp) → FailT IM ValP
 interpCaseO ṽ ψes = case ψes of
   Nil → abort
   (ψ :* e) :& ψes' → tries
-    [ do f ← bindPatO ψ ṽ
+    [ do f ← bindPatValP ψ ṽ
          lift $ f $ interpExp e
     , interpCaseO ṽ ψes'
     ]
@@ -278,7 +184,8 @@ interpExp = wrapInterp $ \case
     negṽ₁ ← notValP ṽ₁
     ṽ₂ ← mapEnvL iCxtMPCPathConditionL (ṽ₁ :&) $ interpExp e₂
     ṽ₃ ← mapEnvL iCxtMPCPathConditionL (negṽ₁ :&) $ interpExp e₃
-    muxValP ṽ₁ ṽ₂ ṽ₃
+    ṽ ← muxValP ṽ₁ ṽ₂ ṽ₃
+    return ṽ
   LE e → do
     ṽ ← interpExp e
     introValP $ LV ṽ
@@ -304,7 +211,7 @@ interpExp = wrapInterp $ \case
   MuxCaseE e ψes → do
     ṽ ← interpExp e
     ṽs ← concat ^$ mapMOn ψes $ \ (ψ :* e') → do
-      bp ← unFailT $ bindPatMPC ψ ṽ
+      bp ← unFailT $ bindPatValP ψ ṽ
       case bp of
         None → return $ list []
         Some f → single ^$ f $ interpExp e'

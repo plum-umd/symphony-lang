@@ -9,7 +9,7 @@ import PSL.Interpreter.Pretty ()
 import PSL.Interpreter.Lens
 import PSL.Interpreter.Primitives
 
-nextWire ∷ 𝑃 PrinVal → IM Wire
+nextWire ∷ (Monad m, MonadState IState m, STACK) ⇒ 𝑃 PrinVal → m Wire
 nextWire ρvs = nextL $ iStateNextWireL ρvs
 
 inputWireMap ∷ Ckt → (Wire ⇰ Input)
@@ -40,28 +40,28 @@ wireType ckt w = case getWire ckt w of
 cktType ∷ (STACK) ⇒ Ckt → BaseType
 cktType ckt = wireType ckt $ access outputCL ckt
 
-mkCkt ∷ (STACK) ⇒ 𝑃 PrinVal → Gate → IM Ckt
+mkCkt ∷ (Monad m, MonadState IState m, STACK) ⇒ 𝑃 PrinVal → Gate → m Ckt
 mkCkt ρvs g = do
   output ← nextWire ρvs
   let c = Ckt { inputsC = dø, gatesC = (output ↦ g), outputC = output }
   return c
 
-inputCkt ∷ (STACK) ⇒ 𝑃 PrinVal → PrinVal → Input → IM Ckt
+inputCkt ∷ (Monad m, MonadState IState m, STACK) ⇒ 𝑃 PrinVal → PrinVal → Input → m Ckt
 inputCkt ρvs ρv i = do
   input ← nextWire ρvs
   let c = Ckt { inputsC = (ρv ↦ (input ↦ i)), gatesC = dø, outputC = input }
   return c
 
-shareBaseValCkt ∷ (STACK) ⇒ 𝑃 PrinVal → PrinVal → BaseVal → IM Ckt
+shareBaseValCkt ∷ (Monad m, MonadState IState m, STACK) ⇒ 𝑃 PrinVal → PrinVal → BaseVal → m Ckt
 shareBaseValCkt ρvs ρv bv = inputCkt ρvs ρv (AvailableI bv)
 
-shareUnkCkt ∷ (STACK) ⇒ 𝑃 PrinVal → PrinVal → BaseType → IM Ckt
+shareUnkCkt ∷ (Monad m, MonadState IState m, STACK) ⇒ 𝑃 PrinVal → PrinVal → BaseType → m Ckt
 shareUnkCkt ρvs ρv bτ = inputCkt ρvs ρv (UnavailableI bτ)
 
-embedBaseValCkt ∷ (STACK) ⇒ 𝑃 PrinVal → BaseVal → IM Ckt
+embedBaseValCkt ∷ (Monad m, MonadState IState m, STACK) ⇒ 𝑃 PrinVal → BaseVal → m Ckt
 embedBaseValCkt ρvs bv = mkCkt ρvs (BaseG bv)
 
-exePrimCkt ∷ (STACK) ⇒ 𝑃 PrinVal → Op → 𝐿 Ckt → IM Ckt
+exePrimCkt ∷ (Monad m, MonadState IState m, STACK) ⇒ 𝑃 PrinVal → Op → 𝐿 Ckt → m Ckt
 exePrimCkt ρvs op cs = do
   output ← nextWire ρvs
   let inputs' = unionsWith (⩌) $ (mapOn cs inputsC)

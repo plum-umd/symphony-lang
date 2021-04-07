@@ -12,7 +12,7 @@ import PSL.Interpreter.Plain ()
 import PSL.Interpreter.Yao ()
 import PSL.Interpreter.YaoN ()
 
-withProt ∷ Prot → (∀ (p ∷ Prot). (Protocol p) ⇒ P p → SProt p → IM b) → IM b
+withProt ∷ (Monad m, MonadReader ICxt m, MonadError IError m, STACK) ⇒ Prot → (∀ (p ∷ Prot). (Protocol p) ⇒ P p → SProt p → m b) → m b
 withProt φ k = case φ of
   PlainP → k P SPlainP
   YaoNP  → k P SYaoNP

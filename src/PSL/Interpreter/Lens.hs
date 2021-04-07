@@ -31,12 +31,47 @@ iSecVPL = prism constr destr
 --makePrisms ''ValP
 --makePrisms ''UnShare
 
+bulMVL ∷ MPCVal p ⌲ ()
+bulMVL = prism constr destr
+  where constr () = BulMV
+        destr = \case
+          BulMV → Some ()
+          _     → abort
+
 baseMVL ∷ ∀ (p ∷ Prot). (Protocol p) ⇒ MPCVal p ⌲ (ProtocolVal p)
 baseMVL = prism constr destr
   where constr pv = BaseMV pv
         destr = \case
           BaseMV pv → Some pv
           _         → abort
+
+pairMVL ∷ MPCVal p ⌲ MPCVal p ∧ MPCVal p
+pairMVL = prism constr destr
+  where constr (v̂₁ :* v̂₂) = PairMV v̂₁ v̂₂
+        destr = \case
+          PairMV v̂₁ v̂₂ → Some $ v̂₁ :* v̂₂
+          _            → abort
+
+sumMVL ∷ (Protocol p) ⇒ MPCVal p ⌲ ProtocolVal p ∧ MPCVal p ∧ MPCVal p
+sumMVL = prism constr destr
+  where constr (pv₁ :* v̂₂ :* v̂₃) = SumMV pv₁ v̂₂ v̂₃
+        destr = \case
+          SumMV pv₁ v̂₂ v̂₃ → Some $ pv₁ :* v̂₂ :* v̂₃
+          _               → abort
+
+nilMVL ∷ MPCVal p ⌲ ()
+nilMVL = prism constr destr
+  where constr () = NilMV
+        destr = \case
+          NilMV → Some ()
+          _     → abort
+
+consMVL ∷ MPCVal p ⌲ MPCVal p ∧ MPCVal p
+consMVL = prism constr destr
+  where constr (v̂₁ :* v̂₂) = ConsMV v̂₁ v̂₂
+        destr = \case
+          ConsMV v̂₁ v̂₂ → Some $ v̂₁ :* v̂₂
+          _            → abort
 
 --------------
 -- Circuits --

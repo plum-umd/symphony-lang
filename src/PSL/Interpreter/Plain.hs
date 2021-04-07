@@ -15,19 +15,19 @@ instance Protocol 'PlainP where
   typeOf ∷ P 'PlainP → BaseVal → BaseType
   typeOf _p = typeOfBaseVal
 
-  shareBaseVal ∷ P 'PlainP → 𝑃 PrinVal → PrinVal → BaseVal → IM BaseVal
+  shareBaseVal ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P 'PlainP → 𝑃 PrinVal → PrinVal → BaseVal → m BaseVal
   shareBaseVal _p _ρvs _ρv = return
 
-  shareUnk ∷ P 'PlainP → 𝑃 PrinVal → PrinVal → BaseType → IM BaseVal
+  shareUnk ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P 'PlainP → 𝑃 PrinVal → PrinVal → BaseType → m BaseVal
   shareUnk _p _ρvs _ρv _bτ = throwIErrorCxt NotImplementedIError "[PlainP] exeUnk: TODO" empty𝐿
 
-  embedBaseVal ∷ P 'PlainP → 𝑃 PrinVal → BaseVal → IM BaseVal
+  embedBaseVal ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P 'PlainP → 𝑃 PrinVal → BaseVal → m BaseVal
   embedBaseVal _p _ρvs = return
 
-  exePrim ∷ P 'PlainP → 𝑃 PrinVal → Op → 𝐿 BaseVal → IM BaseVal
+  exePrim ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P 'PlainP → 𝑃 PrinVal → Op → 𝐿 BaseVal → m BaseVal
   exePrim _p _ρvs = interpPrim
 
-  reveal ∷ P 'PlainP → 𝑃 PrinVal → 𝑃 PrinVal → MPCVal 'PlainP → IM Val
+  reveal ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P 'PlainP → 𝑃 PrinVal → 𝑃 PrinVal → MPCVal 'PlainP → m Val
   reveal p ρvs₁ ρvs₂ v̂ =
     let toValP = SSecVP (SecM ρvs₂) in
     case v̂ of

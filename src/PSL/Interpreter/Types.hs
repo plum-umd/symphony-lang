@@ -168,12 +168,12 @@ class
   Protocol p where
     type ProtocolVal p ∷ ★
 
-    typeOf       ∷ P p → ProtocolVal p                                 → BaseType
-    shareBaseVal ∷ P p → 𝑃 PrinVal     → PrinVal   → BaseVal           → IM (ProtocolVal p)
-    shareUnk     ∷ P p → 𝑃 PrinVal     → PrinVal   → BaseType          → IM (ProtocolVal p)
-    embedBaseVal ∷ P p → 𝑃 PrinVal     → BaseVal                       → IM (ProtocolVal p)
-    exePrim      ∷ P p → 𝑃 PrinVal     → Op        → 𝐿 (ProtocolVal p) → IM (ProtocolVal p)
-    reveal       ∷ P p → 𝑃 PrinVal     → 𝑃 PrinVal → MPCVal p          → IM Val
+    typeOf       ∷                                                                                      P p → ProtocolVal p                                 → BaseType
+    shareBaseVal ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P p → 𝑃 PrinVal     → PrinVal   → BaseVal           → m (ProtocolVal p)
+    shareUnk     ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P p → 𝑃 PrinVal     → PrinVal   → BaseType          → m (ProtocolVal p)
+    embedBaseVal ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P p → 𝑃 PrinVal     → BaseVal                       → m (ProtocolVal p)
+    exePrim      ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P p → 𝑃 PrinVal     → Op        → 𝐿 (ProtocolVal p) → m (ProtocolVal p)
+    reveal       ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P p → 𝑃 PrinVal     → 𝑃 PrinVal → MPCVal p          → m Val
 
 ----------------------
 --- EMP FFI Values ---

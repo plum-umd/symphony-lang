@@ -20,7 +20,7 @@ import qualified Data.Text as Text
 --- Serializing to EMP ---
 --------------------------
 
-serializeMode ∷ Mode → IM HS.Int
+serializeMode ∷ (Monad m, MonadReader ICxt m, MonadError IError m) ⇒ Mode → m HS.Int
 serializeMode = \case
   TopM     → return $ HS.fromIntegral 0
   SecM ρvs → case list ρvs of
@@ -29,7 +29,7 @@ serializeMode = \case
     (SinglePV "A") :& (SinglePV "B") :& Nil → return $ HS.fromIntegral 0
     m                                       → throwIErrorCxt TypeIError "[Yao] serializeMode: only parties A and B allowed" $ frhs [ ("m", pretty m) ]
 
-serializePrec ∷ IPrecision → IM HS.Int
+serializePrec ∷ (Monad m, MonadReader ICxt m, MonadError IError m) ⇒ IPrecision → m HS.Int
 serializePrec = \case
   FixedIPr 64 0 → return $ HS.fromIntegral 64
   pr → throwIErrorCxt NotImplementedIError "[Yao] serializePrec: precision pr not supported" $ frhs [ ("pr", pretty pr) ]
@@ -58,7 +58,7 @@ netIODestroy = netio_destroy
 
 foreign import ccall "empc.h setup_semi_honest_c" setup_semi_honest_c ∷ NetIO → HS.Int → IO ()
 
-initializeEMP ∷ IM ()
+initializeEMP ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ m ()
 initializeEMP = do
   lm    ← askL iCxtLocalModeL
   party ← serializeMode lm
@@ -69,7 +69,7 @@ initializeEMP = do
         port      = HS.fromIntegral 12345
         isAlice p = p ≡ HS.fromIntegral 1
 
-initializeIfNecessary ∷ IM ()
+initializeIfNecessary ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ m ()
 initializeIfNecessary = do
   initialized ← getL iStateYaoInitL
   if initialized
@@ -90,7 +90,7 @@ foreign import ccall "empc.h &bit_destroy" bit_destroy ∷ FinalizerPtr EMPBool
 foreign import ccall "empc.h integer_create" integer_create ∷ HS.Int → Int.Int64 → HS.Int → IO (Ptr EMPInt)
 foreign import ccall "empc.h &integer_destroy" integer_destroy ∷ FinalizerPtr EMPInt
 
-empShare ∷ 𝑃 PrinVal → 𝑃 PrinVal → BaseVal → IM EMPVal
+empShare ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ 𝑃 PrinVal → 𝑃 PrinVal → BaseVal → m EMPVal
 empShare _ρvsComputing ρvsSharing bv = do
   initializeIfNecessary
   party ← serializeMode (SecM ρvsSharing)
@@ -165,7 +165,7 @@ empIntegerCond eb₁ ez₂ ez₃ = do
 
 foreign import ccall "empc.h integer_reveal" integer_reveal ∷ (Ptr EMPInt) → HS.Int → IO Int.Int64
 
-empIntegerReveal ∷ ForeignPtr EMPInt → 𝑃 PrinVal → IM ℤ
+empIntegerReveal ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadIO m) ⇒ ForeignPtr EMPInt → 𝑃 PrinVal → m ℤ
 empIntegerReveal ez ρvs = do
   party ← serializeMode (SecM ρvs)
   map HS.fromIntegral $ io $ withForeignPtr ez $ \ ezp → integer_reveal ezp party

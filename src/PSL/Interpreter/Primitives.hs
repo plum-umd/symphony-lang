@@ -22,7 +22,7 @@ primType op τs = case (op, tohs τs) of
   (CondO, [𝔹T, ℤT pr₁, ℤT pr₂]) | pr₁ ≡ pr₂ → ℤT pr₁
   (CondO, [𝔹T, 𝔹T, 𝔹T]) → 𝔹T
 
-interpPrim ∷ (STACK) ⇒ Op → 𝐿 BaseVal → IM BaseVal
+interpPrim ∷ (Monad m, MonadReader ICxt m, MonadError IError m, STACK) ⇒ Op → 𝐿 BaseVal → m BaseVal
 interpPrim o vs = case (o,tohs vs) of
   (OrO     ,[BoolBV b₁, BoolBV b₂])                   → return $ BoolBV    $ b₁ ⩔ b₂
   (PlusO   ,[NatBV pr₁ n₁, NatBV pr₂ n₂]) | pr₁ ≡ pr₂ → return $ NatBV pr₁ $ trPrNat pr₁ $ n₁ + n₂

@@ -19,7 +19,7 @@ import qualified Prelude as HS
 --- Public Stuff ---
 --------------------
 
-introValP ∷ (STACK) ⇒ Val → IM ValP
+introValP ∷ (Monad m, MonadReader ICxt m, STACK) ⇒ Val → m ValP
 introValP v = do
   gm ← askL iCxtGlobalModeL
   return $ SSecVP gm v
@@ -102,42 +102,91 @@ sendValP ρvsRs ρvS ṽ = do
         v ← io $ recvVal ρvS
         return $ SSecVP (SecM ρvsRs) v
 
-viewPairValP ∷ (STACK) ⇒ ValP → FailT IM (ValP ∧ ValP)
-viewPairValP ṽ = do
+bindVarTo ∷ (STACK) ⇒ Var → ValP → IM a → IM a
+bindVarTo x ṽ = mapEnvL iCxtEnvL ((x ↦ ṽ) ⩌)
+
+viewBul ∷ (STACK) ⇒ ValP → FailT IM ()
+viewBul ṽ = do
+  v̑ ← lift $ unValP ṽ
+  case v̑ of
+    SSecVS BulV       → return ()
+    ShareVS _ _ BulMV → return ()
+    _                 → abort
+
+viewTup ∷ (STACK) ⇒ ValP → FailT IM (ValP ∧ ValP)
+viewTup ṽ = do
   v̑ ← lift $ unValP ṽ
   case v̑ of
     SSecVS (PairV ṽ₁ ṽ₂) → return $ ṽ₁ :* ṽ₂
     ShareVS φ ρvs (PairMV v̂₁ v̂₂) → return $ ShareVP φ ρvs v̂₁ :* ShareVP φ ρvs v̂₂
     _ → abort
 
-viewSumValP ∷ (STACK) ⇒ ValP → FailT IM (ValP ∧ ValP ∧ ValP)
-viewSumValP ṽ = do
+viewNil ∷ (STACK) ⇒ ValP → FailT IM ()
+viewNil ṽ = do
   v̑ ← lift $ unValP ṽ
   case v̑ of
-    SSecVS (LV ṽ₂) → do
-      ṽ₁ ← lift $ introValP $ BaseV $ BoolBV True
-      ṽ₃ ← lift $ introValP DefaultV
-      return $ ṽ₁ :* ṽ₂ :* ṽ₃
-    SSecVS (RV ṽ₃) → do
-      ṽ₁ ← lift $ introValP $ BaseV $ BoolBV False
-      ṽ₂ ← lift $ introValP DefaultV
-      return $ ṽ₁ :* ṽ₂ :* ṽ₃
-    ShareVS φ ρvs (SumMV pv₁ v̂₂ v̂₃) → return $ ShareVP φ ρvs (BaseMV pv₁) :* ShareVP φ ρvs v̂₂ :* ShareVP φ ρvs v̂₃
-    _ → abort
+    SSecVS NilV       → return ()
+    ShareVS _ _ NilMV → return ()
+    _                 → abort
 
-viewNilValP ∷ (STACK) ⇒ ValP → FailT IM ()
-viewNilValP ṽ = do
-  v̑ ← lift $ unValP ṽ
-  case v̑ of
-    SSecVS NilV → return ()
-    _ → abort
-
-viewConsValP ∷ (STACK) ⇒ ValP → FailT IM (ValP ∧ ValP)
-viewConsValP ṽ = do
+viewCons ∷ (STACK) ⇒ ValP → FailT IM (ValP ∧ ValP)
+viewCons ṽ = do
   v̑ ← lift $ unValP ṽ
   case v̑ of
     SSecVS (ConsV ṽ₁ ṽ₂) → return $ ṽ₁ :* ṽ₂
+    ShareVS φ ρvs (ConsMV v̂₁ v̂₂) → return $ ShareVP φ ρvs v̂₁ :* ShareVP φ ρvs v̂₂
     _ → abort
+
+bindPatValP ∷ (STACK) ⇒ Pat → ValP → FailT IM (IM ValP → IM ValP)
+bindPatValP ψ ṽ = case ψ of
+  VarP x → return $ bindVarTo x ṽ
+  BulP → do
+    viewBul ṽ
+    return id
+  TupP ψ₁ ψ₂ → do
+    ṽ₁ :* ṽ₂ ← viewTup ṽ
+    f₁ ← bindPatValP ψ₁ ṽ₁
+    f₂ ← bindPatValP ψ₂ ṽ₂
+    return $ compose [f₁, f₂]
+  LP ψ' → do
+    v̑ ← lift $ unValP ṽ
+    case v̑ of
+      SSecVS v → do
+        ṽ' ← abort𝑂 $ view lVL v
+        bindPatValP ψ' ṽ'
+      ShareVS φ ρvs (SumMV pv₁ v̂₂ _v̂₃) → do
+        ṽ₁ ← reValP $ reValS φ ρvs $ Inr $ BaseMV pv₁
+        ṽ₂ ← reValP $ reValS φ ρvs $ Inr v̂₂
+        f  ← bindPatValP ψ' ṽ₂
+        return $ \ xM → do
+          ṽb ← mapEnvL iCxtMPCPathConditionL (ṽ₁ :&) $ f xM
+          ṽd ← introValP DefaultV
+          muxValP ṽ₁ ṽb ṽd
+  RP ψ' → do
+    v̑ ← lift $ unValP ṽ
+    case v̑ of
+      SSecVS v → do
+        ṽ' ← abort𝑂 $ view rVL v
+        bindPatValP ψ' ṽ'
+      ShareVS φ ρvs (SumMV pv₁ _v̂₂ v̂₃) → do
+        ṽ₁ ← reValP $ reValS φ ρvs $ Inr $ BaseMV pv₁
+        ṽ₃ ← reValP $ reValS φ ρvs $ Inr v̂₃
+        f  ← bindPatValP ψ' ṽ₃
+        return $ \ xM → do
+          negṽ₁ ← notValP ṽ₁
+          ṽb ← mapEnvL iCxtMPCPathConditionL (negṽ₁ :&) $ f xM
+          ṽd ← introValP DefaultV
+          muxValP ṽ₁ ṽd ṽb
+  NilP → do
+    viewNil ṽ
+    return id
+  ConsP ψ₁ ψ₂ → do
+    ṽ₁ :* ṽ₂ ← viewCons ṽ
+    f₁ ← bindPatValP ψ₁ ṽ₁
+    f₂ ← bindPatValP ψ₂ ṽ₂
+    return $ compose [f₁, f₂]
+  WildP → return id
+  _ → throwIErrorCxt NotImplementedIError "bindPatValP: pattern ψ not implemented" $ frhs [ ("ψ", pretty ψ) ]
 
 notValP ∷ (STACK) ⇒ ValP → IM ValP
 notValP ṽ = primValP NotO $ frhs [ ṽ ]
@@ -188,7 +237,7 @@ elimLocV v = do
 --- Other ---
 -------------
 
-unValP ∷ (STACK) ⇒ ValP → IM ValS
+unValP ∷ (Monad m, MonadReader ICxt m, MonadError IError m, STACK) ⇒ ValP → m ValS
 unValP ṽ = do
   gm ← askL iCxtGlobalModeL
   case ṽ of
@@ -220,7 +269,7 @@ unValP ṽ = do
         ]
       return $ ShareVS φ ρvs v̂
 
-reValP ∷ (STACK) ⇒ ValS → IM ValP
+reValP ∷ (Monad m, MonadReader ICxt m, STACK) ⇒ ValS → m ValP
 reValP = \case
   SSecVS v → introValP v
   ISecVS b → return $ ISecVP b
@@ -239,7 +288,7 @@ reValP = \case
       ṽ₂ ← reValP $ ShareVS φ ρvs v̂₂
       return $ SSecVP (SecM ρvs) $ ConsV ṽ₁ ṽ₂
 
-unValS ∷ (STACK) ⇒ SProt p → 𝑃 PrinVal → ValS → IM (Val ∨ MPCVal p)
+unValS ∷ (Monad m, MonadReader ICxt m, MonadError IError m, STACK) ⇒ SProt p → 𝑃 PrinVal → ValS → m (Val ∨ MPCVal p)
 unValS φ ρvs = \case
   SSecVS v          → return $ Inl v
   ShareVS φ' ρvs' v̂ → case deq φ φ' of
@@ -254,7 +303,7 @@ reValS φ ρvs = \case
   Inl v → SSecVS v
   Inr v̂ → ShareVS φ ρvs v̂
 
-elimValS ∷ (STACK) ⇒ ValS → IM Val
+elimValS ∷ (Monad m, MonadReader ICxt m, MonadError IError m, STACK) ⇒ ValS → m Val
 elimValS = \case
   SSecVS v → return v
   v̑        → do
@@ -270,7 +319,7 @@ shareInfoFrValSs v̑s = foldFromOn None v̑s $ \ v̑ si → case (si, v̑) of
 shareOrEmbedValP ∷ (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → 𝑂 PrinVal → ValP → IM ValP
 shareOrEmbedValP p φ ρvs oρv ṽ = reValP *$ map (ShareVS φ ρvs) $ shareOrEmbed p φ ρvs oρv *$ unValS φ ρvs *$ unValP ṽ
 
-shareOrEmbed ∷ (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → 𝑂 PrinVal → (Val ∨ MPCVal p) → IM (MPCVal p)
+shareOrEmbed ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m, STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → 𝑂 PrinVal → (Val ∨ MPCVal p) → m (MPCVal p)
 shareOrEmbed p φ ρvs oρv vorv̂ = case vorv̂ of
   Inl v → case v of
     DefaultV → return DefaultMV
@@ -303,7 +352,7 @@ shareOrEmbed p φ ρvs oρv vorv̂ = case vorv̂ of
   where shareOrEmbedR = shareOrEmbed p φ ρvs oρv
         unValSR       = unValS φ ρvs
 
-shareUnknown ∷ (STACK, Protocol p) ⇒ P p → 𝑃 PrinVal → PrinVal → Type → IM (MPCVal p)
+shareUnknown ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m, STACK, Protocol p) ⇒ P p → 𝑃 PrinVal → PrinVal → Type → m (MPCVal p)
 shareUnknown p ρvs ρv τ = case τ of
   UnitT → return BulMV
   BaseT bτ → do
@@ -351,7 +400,8 @@ revealVal p φ ρvs ρvsRevealees v = case v of
       ]
   where revealValPR = revealValP p φ ρvs ρvsRevealees
 
-withShareInfo ∷ (STACK) ⇒ (𝐿 Val → IM a) → (∀ p. (Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → 𝐿 (MPCVal p) → IM a) → 𝐿 ValP → IM a
+withShareInfo ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m, STACK) ⇒
+                (𝐿 Val → m a) → (∀ p. (Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → 𝐿 (MPCVal p) → m a) → 𝐿 ValP → m a
 withShareInfo kVals kMPCVals ṽs = do
   v̑s ← mapM unValP ṽs
   let osi = shareInfoFrValSs v̑s
@@ -364,6 +414,8 @@ withShareInfo kVals kMPCVals ṽs = do
       vorv̂s ← mapM (unValS φ ρvs) v̑s
       v̂s ← mapM (shareOrEmbed p φ ρvs None) vorv̂s
       kMPCVals p φ ρvs v̂s
+
+
 
 primVals ∷ (STACK) ⇒ Op → 𝐿 Val → IM ValP
 primVals op vs = do
@@ -406,21 +458,29 @@ muxVal bv₁ v₂ v₃ = case (v₂, v₃) of
     muxTup ṽ₂ₗ ṽ₂ᵣ ṽ₃ ṽ₃ PairV
   (PairV ṽ₂ₗ ṽ₂ᵣ, PairV ṽ₃ₗ ṽ₃ᵣ) → muxTup ṽ₂ₗ ṽ₂ᵣ ṽ₃ₗ ṽ₃ᵣ PairV
   (DefaultV, LV ṽ₃) → do
-    ṽ₂ ← introValP DefaultV
-    muxSum False ṽ₂ True ṽ₃
+    ṽd ← introValP DefaultV
+    muxSum False ṽd ṽd True ṽ₃ ṽd
   (LV ṽ₂, DefaultV) → do
-    ṽ₃ ← introValP DefaultV
-    muxSum True ṽ₂ False ṽ₃
+    ṽd ← introValP DefaultV
+    muxSum True ṽ₂ ṽd False ṽd ṽd
   (DefaultV, RV ṽ₃) → do
-    ṽ₂ ← introValP DefaultV
-    muxSum False ṽ₂ False ṽ₃
+    ṽd ← introValP DefaultV
+    muxSum False ṽd ṽd False ṽd ṽ₃
   (RV ṽ₂, DefaultV) → do
-    ṽ₃ ← introValP DefaultV
-    muxSum False ṽ₂ False ṽ₃
-  (LV ṽ₂, LV ṽ₃) → muxSum True ṽ₂ True ṽ₃
-  (RV ṽ₂, RV ṽ₃) → muxSum False ṽ₂ False ṽ₃
-  (LV ṽ₂, RV ṽ₃) → muxSum True ṽ₂ False ṽ₃
-  (RV ṽ₂, LV ṽ₃) → muxSum False ṽ₂ True ṽ₃
+    ṽd ← introValP DefaultV
+    muxSum False ṽd ṽ₂ False ṽd ṽd
+  (LV ṽ₂, LV ṽ₃) → do
+    ṽd ← introValP DefaultV
+    muxSum True ṽ₂ ṽd True ṽ₃ ṽd
+  (RV ṽ₂, RV ṽ₃) → do
+    ṽd ← introValP DefaultV
+    muxSum False ṽd ṽ₂ False ṽd ṽ₃
+  (LV ṽ₂, RV ṽ₃) → do
+    ṽd ← introValP DefaultV
+    muxSum True ṽ₂ ṽd False ṽd ṽ₃
+  (RV ṽ₂, LV ṽ₃) → do
+    ṽd ← introValP DefaultV
+    muxSum False ṽd ṽ₂ True ṽ₃ ṽd
   (DefaultV, NilV) → return NilV
   (NilV, DefaultV) → return NilV
   (NilV, NilV) → return NilV
@@ -440,11 +500,16 @@ muxVal bv₁ v₂ v₃ = case (v₂, v₃) of
           ṽₗ ← muxValP ṽ₁ ṽ₂ₗ ṽ₃ₗ
           ṽᵣ ← muxValP ṽ₁ ṽ₂ᵣ ṽ₃ᵣ
           return $ constr ṽₗ ṽᵣ
-        muxSum tag₂ ṽ₂ tag₃ ṽ₃ = do
+        muxSum tag₂ ṽ₂ₗ ṽ₂ᵣ tag₃ ṽ₃ₗ ṽ₃ᵣ = do
           ṽ₁  ← introValP $ BaseV bv₁
           tag ← (interpPrim CondO $ frhs [ bv₁, BoolBV tag₂, BoolBV tag₃ ]) ≫= fromSome ∘ (view boolBVL)
-          ṽ'  ← muxValP ṽ₁ ṽ₂ ṽ₃
-          return $ if tag then LV ṽ' else RV ṽ'
+          if tag
+            then do
+            ṽ' ← muxValP ṽ₁ ṽ₂ₗ ṽ₃ₗ
+            return $ LV ṽ'
+            else do
+            ṽ' ← muxValP ṽ₁ ṽ₂ᵣ ṽ₃ᵣ
+            return $ RV ṽ'
 
 muxMPCVal ∷ ∀ (p ∷ Prot). (STACK, Protocol p) ⇒ P p → 𝑃 PrinVal → (ProtocolVal p) → MPCVal p → MPCVal p → IM (MPCVal p)
 muxMPCVal p ρvs pv₁ v̂₂ v̂₃ = case (v̂₂, v̂₃) of

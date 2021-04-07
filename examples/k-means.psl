@@ -40,6 +40,8 @@ def get-means assign = elim_nat k [ ]
     let k0 = len means0 in
     let kthSet = map
       (fun (pt, meanIdx) ->
+        trace meanIdx in
+        trace k0 in
         mux if meanIdx == k0 then just pt
         else nothing)
       assign in
@@ -71,13 +73,13 @@ def k-means assign0 =
   else k-means assign1
 
 def main () = par{A, B}
-  let ptsA0 = [ (par {A:int} 0) , (par {A:int} 0) , (par {A:int} 0) ;
-                (par {A:int} 1) , (par {A:int} 1) , (par {A:int} 1) ;
-                (par {A:int} 2) , (par {A:int} 2) , (par {A:int} 2) ] in
+  let ptsA0 = [ (par {A:int} 0) , (par {A:int} 0) , (par {A:int} 0)
+              ; (par {A:int} 1) , (par {A:int} 1) , (par {A:int} 1)
+              ; (par {A:int} 2) , (par {A:int} 2) , (par {A:int} 2) ] in
   let ptsA = map (fun x -> share {yao: A -> A, B} x) ptsA0 in
-  let ptsB0 = [ (par {B:int} 0) , (par {B:int} 0) , (par {B:int} 0) ;
-                (par {B:int} 1) , (par {B:int} 1) , (par {B:int} 1) ;
-                (par {B:int} 2) , (par {B:int} 2) , (par {B:int} 2) ] in
+  let ptsB0 = [ (par {B:int} 0) , (par {B:int} 0) , (par {B:int} 0)
+              ; (par {B:int} 1) , (par {B:int} 1) , (par {B:int} 1)
+              ; (par {B:int} 2) , (par {B:int} 2) , (par {B:int} 2) ] in
   let ptsB = map (fun x -> share {yao: B -> A, B} x) ptsB0 in
   let clusters = k-means (init-assign (append ptsA ptsB)) in
-  map (fun m -> reveal{yao:A, B -> A, B} m) (get-means clusters)
+  map (fun m -> reveal{yao:A,B -> A, B} m) (get-means clusters)

@@ -27,19 +27,19 @@ instance Protocol 'YaoNP where
   typeOf ∷ P 'YaoNP → Ckt → BaseType
   typeOf _p = cktType
 
-  shareBaseVal ∷ P 'YaoNP → 𝑃 PrinVal → PrinVal → BaseVal → IM Ckt
+  shareBaseVal ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P 'YaoNP → 𝑃 PrinVal → PrinVal → BaseVal → m Ckt
   shareBaseVal _p = shareBaseValCkt
 
-  shareUnk ∷ P 'YaoNP → 𝑃 PrinVal → PrinVal → BaseType → IM Ckt
+  shareUnk ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P 'YaoNP → 𝑃 PrinVal → PrinVal → BaseType → m Ckt
   shareUnk _p = shareUnkCkt
 
-  embedBaseVal ∷ P 'YaoNP → 𝑃 PrinVal → BaseVal → IM Ckt
+  embedBaseVal ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P 'YaoNP → 𝑃 PrinVal → BaseVal → m Ckt
   embedBaseVal _p = embedBaseValCkt
 
-  exePrim ∷ P 'YaoNP → 𝑃 PrinVal → Op → 𝐿 Ckt → IM Ckt
+  exePrim ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P 'YaoNP → 𝑃 PrinVal → Op → 𝐿 Ckt → m Ckt
   exePrim _p = exePrimCkt
 
-  reveal ∷ P 'YaoNP → 𝑃 PrinVal → 𝑃 PrinVal → MPCVal 'YaoNP → IM Val
+  reveal ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P 'YaoNP → 𝑃 PrinVal → 𝑃 PrinVal → MPCVal 'YaoNP → m Val
   reveal _p ρvs₁ ρvs₂ v̂ = do
     pptraceM v̂
     bristol ← bristolFrMPCVal v̂
