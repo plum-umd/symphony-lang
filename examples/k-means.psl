@@ -43,7 +43,9 @@ def get-means assign = elim_nat k [ ]
         mux if meanIdx == k0 then just pt
         else nothing)
       assign in
-    (scalar-div-tuples (osumSum origin plus-tuples kthSet) (osumLen kthSet))
+    (let len = osumLen kthSet in
+     mux if len == 0 then origin
+     else scalar-div-tuples (osumSum origin plus-tuples kthSet) len)
     ::means0)
 
 def k-means-iter assign0 =
