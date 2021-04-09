@@ -185,6 +185,32 @@ bindPatValP ψ ṽ = case ψ of
     f₁ ← bindPatValP ψ₁ ṽ₁
     f₂ ← bindPatValP ψ₂ ṽ₂
     return $ compose [f₁, f₂]
+  EmptyP → do
+    ρvs ← abort𝑂 $ view iSecVPL ṽ
+    guard $ count ρvs ≡ 0
+    return id
+  BundleP ρx ψ₁ ψ₂ → do
+    ρvs ← abort𝑂 $ view iSecVPL ṽ
+    ρ :* v :* ρvs' ← abort𝑂 $ dminView ρvs
+    ρv ← lift $ introValP $ PrinV $ ValPEV ρ
+    let f₁ = bindVarTo ρx ρv
+    f₂ ← bindPatValP ψ₁ $ SSecVP (SecM $ single ρ) v
+    f₃ ← bindPatValP ψ₂ $ ISecVP ρvs'
+    return $ f₃ ∘ f₂ ∘ f₁
+  EmptySetP → do
+    v ← lift $ elimValP ṽ
+    guard $ v ≡ PrinSetV pø
+    return id
+  SetP x ψ' → do
+    v ← lift $ elimValP ṽ
+    ρvs ← abort𝑂 $ view prinSetVL v
+    ρ :* ρs ← abort𝑂 $ pmin ρvs
+    ρv ← lift $ introValP $ PrinV $ ValPEV ρ
+    ρvs' ← lift $ introValP $ PrinSetV ρs
+    let f₁ = bindVarTo x ρv
+    f₂ ← bindPatValP ψ' ρvs'
+    return $ f₂ ∘ f₁
+  AscrP ψ' _τ → bindPatValP ψ' ṽ
   WildP → return id
   _ → throwIErrorCxt NotImplementedIError "bindPatValP: pattern ψ not implemented" $ frhs [ ("ψ", pretty ψ) ]
 

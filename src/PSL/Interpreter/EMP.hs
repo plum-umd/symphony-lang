@@ -105,12 +105,19 @@ empShare _ρvsComputing ρvsSharing bv = do
     FltBV pr f → throwIErrorCxt NotImplementedIError "[Yao] empShare: 𝔻 (Float) not implemented" empty𝐿
 
 foreign import ccall "empc.h bit_not" bit_not ∷ (Ptr EMPBool) → IO (Ptr EMPBool)
+foreign import ccall "empc.h bit_and" bit_and ∷ (Ptr EMPBool) → (Ptr EMPBool) → IO (Ptr EMPBool)
 foreign import ccall "empc.h bit_cond" bit_cond ∷ (Ptr EMPBool) → (Ptr EMPBool) → (Ptr EMPBool) → IO (Ptr EMPBool)
 
 empBitNot ∷ ForeignPtr EMPBool → IO (ForeignPtr EMPBool)
 empBitNot eb₁ = do
   withForeignPtr eb₁ $ \ ebp₁ →
     newForeignPtr bit_destroy *$ bit_not ebp₁
+
+empBitAnd ∷ ForeignPtr EMPBool → ForeignPtr EMPBool → IO (ForeignPtr EMPBool)
+empBitAnd eb₁ eb₂ = do
+  withForeignPtr eb₁ $ \ ebp₁ →
+    withForeignPtr eb₂ $ \ ebp₂ →
+    newForeignPtr bit_destroy *$ bit_and ebp₁ ebp₂
 
 empBitCond ∷ ForeignPtr EMPBool → ForeignPtr EMPBool → ForeignPtr EMPBool → IO (ForeignPtr EMPBool)
 empBitCond eb₁ eb₂ eb₃ = do
@@ -124,6 +131,7 @@ foreign import ccall "empc.h integer_sub" integer_sub ∷ (Ptr EMPInt) → (Ptr 
 foreign import ccall "empc.h integer_mult" integer_mult ∷ (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPInt)
 foreign import ccall "empc.h integer_div" integer_div ∷ (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPInt)
 foreign import ccall "empc.h integer_eq" integer_eq ∷ (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPBool)
+foreign import ccall "empc.h integer_lt" integer_lt ∷ (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPBool)
 foreign import ccall "empc.h integer_cond" integer_cond ∷ (Ptr EMPBool) → (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPInt)
 
 empIntegerAdd ∷ ForeignPtr EMPInt → ForeignPtr EMPInt → IO (ForeignPtr EMPInt)
@@ -156,6 +164,12 @@ empIntegerEq ez₁ ez₂ = do
     withForeignPtr ez₂ $ \ ezp₂ →
     newForeignPtr bit_destroy *$ integer_eq ezp₁ ezp₂
 
+empIntegerLt ∷ ForeignPtr EMPInt → ForeignPtr EMPInt → IO (ForeignPtr EMPBool)
+empIntegerLt ez₁ ez₂ = do
+  withForeignPtr ez₁ $ \ ezp₁ →
+    withForeignPtr ez₂ $ \ ezp₂ →
+    newForeignPtr bit_destroy *$ integer_lt ezp₁ ezp₂
+
 empIntegerCond ∷ ForeignPtr EMPBool → ForeignPtr EMPInt → ForeignPtr EMPInt → IO (ForeignPtr EMPInt)
 empIntegerCond eb₁ ez₂ ez₃ = do
   withForeignPtr eb₁ $ \ ebp₁ →
@@ -164,8 +178,14 @@ empIntegerCond eb₁ ez₂ ez₃ = do
     newForeignPtr integer_destroy *$ integer_cond ebp₁ ezp₂ ezp₃
 
 foreign import ccall "empc.h integer_reveal" integer_reveal ∷ (Ptr EMPInt) → HS.Int → IO Int.Int64
+foreign import ccall "empc.h bit_reveal" bit_reveal ∷ (Ptr EMPBool) → HS.Int → IO HS.Bool
 
 empIntegerReveal ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadIO m) ⇒ ForeignPtr EMPInt → 𝑃 PrinVal → m ℤ
 empIntegerReveal ez ρvs = do
   party ← serializeMode (SecM ρvs)
   map HS.fromIntegral $ io $ withForeignPtr ez $ \ ezp → integer_reveal ezp party
+
+empBitReveal ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadIO m) ⇒ ForeignPtr EMPBool → 𝑃 PrinVal → m 𝔹
+empBitReveal eb ρvs = do
+  party ← serializeMode (SecM ρvs)
+  io $ withForeignPtr eb $ \ ebp → bit_reveal ebp party

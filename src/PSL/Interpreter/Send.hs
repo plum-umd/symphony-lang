@@ -62,7 +62,8 @@ sendVal v = withSocketsDo $ do
           sock ← socket (addrFamily a) (addrSocketType a) (addrProtocol a)
           result ← E.try @E.IOException $ connect sock $ addrAddress a
           case result of
-            HS.Left _   → do
+            HS.Left whatever → do
+              traceM (show𝕊 whatever)
               close sock
               threadDelay (HS.fromIntegral 1000000)
               tryConnect a

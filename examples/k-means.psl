@@ -40,13 +40,13 @@ def get-means assign = elim_nat k [ ]
     let k0 = len means0 in
     let kthSet = map
       (fun (pt, meanIdx) ->
-        trace meanIdx in
-        trace k0 in
         mux if meanIdx == k0 then just pt
         else nothing)
       assign in
-    (scalar-div-tuples (osumSum origin plus-tuples kthSet) (osumLen kthSet))
-    ::means0)
+    let sum = osumSum origin plus-tuples kthSet in
+    let d = osumLen kthSet in
+    let blah = mux if d == 0 then origin else scalar-div-tuples sum d in
+    blah::means0)
 
 def k-means-iter assign0 =
   -- compute means:
