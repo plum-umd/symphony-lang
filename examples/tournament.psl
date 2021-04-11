@@ -9,20 +9,20 @@ def prinSetSize P =
 -- parsing issue, inlining this below doesn't work
 def emptyParSet = { }
 
-def mapPairs f P =
+def mapPairs f b P =
   case P
   { {}                   → emptyParSet
   ; { ρ₁ } ∪ { ρ₂ } ∪ P' →
-    let ρ'  = f ρ₁ ρ₂ in
-    let P'' = mapPairs f P' in
+    let ρ'  = f ρ₁ b@ρ₁ ρ₂ b@ρ₂ in
+    let P'' = mapPairs f b P' in
     { ρ' , P'' }
   }
 
 -- Oblivious!
-def exeMatch P b f ρ₁ ρ₂ =
+def exeMatch P f ρ₁ b₁ ρ₂ b₂ =
   par { ρ₁, ρ₂, P }
-    let x   = par { ρ₁, ρ₂ } share { yao, ℤ : ρ₁ → ρ₁, ρ₂ } b@ρ₁ in
-    let y   = par { ρ₁, ρ₂ } share { yao, ℤ : ρ₂ → ρ₁, ρ₂ } b@ρ₂ in
+    let x   = par { ρ₁, ρ₂ } share { yao, ℤ : ρ₁ → ρ₁, ρ₂ } b₁ in
+    let y   = par { ρ₁, ρ₂ } share { yao, ℤ : ρ₂ → ρ₁, ρ₂ } b₂ in
     let res = reveal { yao : ρ₁, ρ₂ → P } (par { ρ₁, ρ₂ } f x y) in
     if res then ρ₁ else ρ₂
 
@@ -33,7 +33,7 @@ def tournament A b f P =
     case P
     { { winner } ∪ {} → winner }
   else
-    tournament A b f (mapPairs (exeMatch A b f) P)
+    tournament A b f (mapPairs (exeMatch A f) b P)
 
 def millionaire x y = x > y
 

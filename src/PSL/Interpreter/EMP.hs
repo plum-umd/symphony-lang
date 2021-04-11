@@ -141,6 +141,7 @@ foreign import ccall "empc.h integer_add" integer_add ∷ (Ptr EMPInt) → (Ptr 
 foreign import ccall "empc.h integer_sub" integer_sub ∷ (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPInt)
 foreign import ccall "empc.h integer_mult" integer_mult ∷ (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPInt)
 foreign import ccall "empc.h integer_div" integer_div ∷ (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPInt)
+foreign import ccall "empc.h integer_mod" integer_mod ∷ (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPInt)
 foreign import ccall "empc.h integer_eq" integer_eq ∷ (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPBool)
 foreign import ccall "empc.h integer_lt" integer_lt ∷ (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPBool)
 foreign import ccall "empc.h integer_gt" integer_gt ∷ (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPBool)
@@ -169,6 +170,12 @@ empIntegerDiv ez₁ ez₂ = do
   withForeignPtr ez₁ $ \ ezp₁ →
     withForeignPtr ez₂ $ \ ezp₂ →
     newForeignPtr integer_destroy *$ integer_div ezp₁ ezp₂
+
+empIntegerMod ∷ ForeignPtr EMPInt → ForeignPtr EMPInt → IO (ForeignPtr EMPInt)
+empIntegerMod ez₁ ez₂ = do
+  withForeignPtr ez₁ $ \ ezp₁ →
+    withForeignPtr ez₂ $ \ ezp₂ →
+    newForeignPtr integer_destroy *$ integer_mod ezp₁ ezp₂
 
 empIntegerEq ∷ ForeignPtr EMPInt → ForeignPtr EMPInt → IO (ForeignPtr EMPBool)
 empIntegerEq ez₁ ez₂ = do
