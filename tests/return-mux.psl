@@ -3,11 +3,11 @@ principal A B
 def main • =
   par {A,B}
   proc
-  let x = share {yaoN:A → A,B} false
-  let y = (share {yaoN:B → A,B} 3, share {yaoN:B → A,B} 4)
-  let z = (share {yaoN:B → A,B} 4, share {yaoN:B → A,B} 1)
+  let x = share {yao, 𝔹 : A → A,B} false
+  let y = (share {yao, ℤ : B → A,B} 3, share {yao, ℤ : B → A,B} 4)
+  let z = (share {yao, ℤ : B → A,B} 4, share {yao, ℤ : B → A,B} 1)
   let sum =
-    mux if share {yaoN:A → A,B} false
+    mux if share {yao, 𝔹 : A → A,B} false
     then L 1
     else R 2
   do mux case sum
@@ -16,4 +16,4 @@ def main • =
        }
   in 0
 
-def expected = par {A,B} share {yaoN:A → A,B} 102
+def expected = par {A,B} share {yao, ℤ : A → A,B} 102

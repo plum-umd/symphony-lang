@@ -18,8 +18,8 @@ import qualified System.Process as Process
 getParty ∷ IM PrinVal
 getParty = do
   lm ← askL iCxtLocalModeL       -- Note: Local Mode, `lm`, is always either TopM or a singleton
-  ρvs ← fromSome $ view secML lm --   TopM is impossible, since we are in the YaoN protocol (TopM always executes plaintext protocol -- i.e. sequential mode)
-  fromSome $ view one𝑃L ρvs      --   ∴ `lm` is a singleton.
+  ρvs ← fromSomeCxt $ view secML lm --   TopM is impossible, since we are in the YaoN protocol (TopM always executes plaintext protocol -- i.e. sequential mode)
+  fromSomeCxt $ view one𝑃L ρvs      --   ∴ `lm` is a singleton.
 
 instance Protocol 'YaoNP where
   type ProtocolVal 'YaoNP = Ckt

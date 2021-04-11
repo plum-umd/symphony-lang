@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
-
 module PSL.Interpreter.Types where
 
 import UVMHS
@@ -8,8 +6,9 @@ import PSL.Syntax
 
 import qualified Prelude as HS
 
-import Foreign.ForeignPtr
-import GHC.Generics
+import Network.Socket (Socket, PortNumber)
+import Foreign.Ptr (Ptr, nullPtr)
+import Foreign.ForeignPtr (ForeignPtr)
 
 ------------
 -- VALUES --
@@ -33,8 +32,8 @@ data Val =
   | PrinSetV (𝑃 PrinVal)
   | LocV Mode ℤ64
   | ArrayV (𝑉 ValP)
-  | UnknownV Type
-  deriving (Eq,Ord,Show,Generic)
+  | UnknownV
+  deriving (Eq,Ord,Show)
 
 data BaseVal =
     BoolBV 𝔹
@@ -179,6 +178,9 @@ class
 --- EMP FFI Values ---
 ----------------------
 
+data NetIOStruct = NetIOStruct
+type NetIO = Ptr NetIOStruct -- Cannot be ForeignPtr because EMP holds an internal reference
+
 data EMPBool = EMPBool deriving (Eq,Ord,Show)
 data EMPInt  = EMPInt  deriving (Eq,Ord,Show)
 data EMPFlt  = EMPFlt  deriving (Eq,Ord,Show)
@@ -255,11 +257,13 @@ data ICxt = ICxt
   , iCxtDeclPrins ∷ Prin ⇰ PrinKind
   , iCxtEnv ∷ Env
   , iCxtGlobalMode ∷ Mode
+  , iCxtPortMap ∷ PrinVal ⇰ PortNumber
+  , iCxtListenSock ∷ 𝑂 Socket
   , iCxtMPCPathCondition ∷ 𝐿 ValP
   } deriving (Show)
 
 ξ₀ ∷ ICxt
-ξ₀ = ICxt θ₀ None dø dø TopM null
+ξ₀ = ICxt θ₀ None dø dø TopM dø None null
 
 -----------
 -- STATE --
@@ -272,11 +276,13 @@ data IState = IState
   , iStateNextLoc ∷ ℤ64
   , iStateNextWires ∷ (𝑃 PrinVal) ⇰ Wire
   , iStateYaoInit ∷ 𝔹
+  , iStateYaoParties ∷ 𝑃 PrinVal
+  , iStateYaoNetIO ∷ NetIO
   , iStateMPCCont ∷ 𝐿 (𝐿 ValP ∧ ValP)
   } deriving (Eq,Ord,Show)
 
 ω₀ ∷ IState
-ω₀ = IState wø (𝕫64 1) dø False null
+ω₀ = IState wø (𝕫64 1) dø False pø nullPtr null
 
 ------------
 -- OUTPUT --
@@ -327,12 +333,15 @@ data IError = IError
 -- ωtl ∈ tl-state
 data ITLState = ITLState
   { itlStateDeclPrins ∷ Prin ⇰ PrinKind
+  , itlStateNextPort ∷ PortNumber
+  , itlStatePortMap ∷ PrinVal ⇰ PortNumber
+  , itlStateListenSock ∷ 𝑂 Socket
   , itlStateEnv ∷ Env
   , itlStateExp ∷ IState
-  } deriving (Eq,Ord,Show)
+  } deriving (Eq,Show)
 
 ωtl₀ ∷ ITLState
-ωtl₀ = ITLState dø dø ω₀
+ωtl₀ = ITLState dø (HS.fromIntegral 12346) dø None dø ω₀
 
 ----------------------
 -- EXPRESSION MONAD --

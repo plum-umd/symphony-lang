@@ -43,7 +43,7 @@ def eq x y = x == y
 def plus m n = m + n
 
 def minus m n = m - n
-
+v
 def mult m n = m * n
 
 def div m n = m / n
@@ -153,7 +153,7 @@ def snd x = case x { (_, b) -> b }
 
 ---
 --- option library
---- 
+---
 
 def just x = L x
 
@@ -653,12 +653,12 @@ def preprocess-lists-n-pairs p t len zs=
   then []
   else
     let v = par {p} get-head-or-default-sum zs
-    in (share{bgw:p -> t} v) :: (preprocess-lists-n-pairs p t (len - 1) (par {p} tail zs))
+    in (share{ bgw, 𝟙 : p -> t } v) :: (preprocess-lists-n-pairs p t (len - 1) (par {p} tail zs))
 
 def preprocess-lists-n p t len zs =
   if len == 0
   then []
-  else (share{bgw:p -> t} (par {p} get-head-or-default zs)) :: (preprocess-lists-n p t (len - 1) (par {p} tail zs))
+  else (share{ bgw, 𝟙 : p -> t } (par {p} get-head-or-default zs)) :: (preprocess-lists-n p t (len - 1) (par {p} tail zs))
 
 def preprocess-lists-reveal-lengths p t xs =
   let l = par {p} length xs

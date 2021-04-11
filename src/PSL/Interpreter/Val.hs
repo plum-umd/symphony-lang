@@ -69,7 +69,7 @@ restrictValP ṽ = do
               ṽ₁' ← restrictValP ṽ₁
               ṽ₂' ← restrictValP ṽ₂
               return $ PairV ṽ₁' ṽ₂'
-            UnknownV _ → return v
+            UnknownV → return v
             DefaultV → return DefaultV
 
 modeFrValP ∷ (STACK) ⇒ ValP → Mode
@@ -78,11 +78,11 @@ modeFrValP = \case
   ISecVP b → SecM $ keys b
   ShareVP _ ρvs _ → SecM $ ρvs
 
-shareValP ∷ (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → PrinVal → ValP → IM ValP
-shareValP p φ ρvs ρv ṽ = shareOrEmbedValP p φ ρvs (Some ρv) ṽ
+shareValP ∷ (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → PrinVal → Type → ValP → IM ValP
+shareValP p φ ρvs ρv τ ṽ = shareOrEmbedValP p φ ρvs (Some ρv) (Some τ) ṽ
 
 embedValP ∷ (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → ValP → IM ValP
-embedValP p φ ρvs ṽ = shareOrEmbedValP p φ ρvs None ṽ
+embedValP p φ ρvs ṽ = shareOrEmbedValP p φ ρvs None None ṽ
 
 revealValP ∷ (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → 𝑃 PrinVal → ValP → IM ValP
 revealValP p φ ρvs ρvsRevealees ṽ = map (SSecVP (SecM ρvsRevealees)) $ revealValOrMPCVal p φ ρvs ρvsRevealees *$ unValS φ ρvs *$ unValP ṽ
@@ -96,10 +96,10 @@ sendValP ρvsRs ρvS ṽ = do
       TopM → return $ SSecVP (SecM ρvsRs) v
       SecM ρvsLM | ρvsRs ⊆ ρvsLM → return $ SSecVP (SecM ρvsRs) v
       SecM ρvsLM | ρvS ∈ ρvsLM  → do
-                     io $ eachWith (\ ρvR → sendVal v) $ ρvsRs ∖ (single𝑃 ρvS)
+                     eachWith (sendValNR v) $ ρvsRs ∖ (single𝑃 ρvS)
                      return $ SSecVP (SecM ρvsRs) v
       SecM _ρvsLM → do
-        v ← io $ recvVal ρvS
+        v ← recvValNR ρvS
         return $ SSecVP (SecM ρvsRs) v
 
 bindVarTo ∷ (STACK) ⇒ Var → ValP → IM a → IM a
@@ -223,21 +223,21 @@ primValP op = withShareInfo (primVals op) (primMPCVals op)
 muxValP ∷ (STACK) ⇒ ValP → ValP → ValP → IM ValP
 muxValP ṽ₁ ṽ₂ ṽ₃ = withShareInfo kMuxVals kMuxMPCVals $ frhs [ ṽ₁, ṽ₂, ṽ₃ ]
   where kMuxVals vs = do
-          v₁ :* v₂ :* v₃ ← fromSome $ view three𝐿L vs
+          v₁ :* v₂ :* v₃ ← fromSomeCxt $ view three𝐿L vs
           bv₁ ← error𝑂 (view baseVL v₁) $ throwIErrorCxt TypeIError "bad" empty𝐿
           introValP *$ muxVal bv₁ v₂ v₃
         kMuxMPCVals p φ ρvs v̂s = do
-          v̂₁ :* v̂₂ :* v̂₃ ← fromSome $ view three𝐿L v̂s
+          v̂₁ :* v̂₂ :* v̂₃ ← fromSomeCxt $ view three𝐿L v̂s
           pv₁ ← error𝑂 (view baseMVL v̂₁) $ throwIErrorCxt TypeIError "bad" empty𝐿
           reValP *$ map ((reValS φ ρvs) ∘ Inr) $ muxMPCVal p ρvs pv₁ v̂₂ v̂₃
 
 sumValP ∷ (STACK) ⇒ ValP → ValP → IM ValP
 sumValP ṽ₁ ṽ₂ = withShareInfo kSumVals kSumMPCVals $ frhs [ ṽ₁, ṽ₂ ]
   where kSumVals vs = do
-          v₁ :* v₂ ← fromSome $ view two𝐿L vs
+          v₁ :* v₂ ← fromSomeCxt $ view two𝐿L vs
           introValP *$ sumVal v₁ v₂
         kSumMPCVals p φ ρvs v̂s = do
-          v̂₁ :* v̂₂ ← fromSome $ view two𝐿L v̂s
+          v̂₁ :* v̂₂ ← fromSomeCxt $ view two𝐿L v̂s
           reValP *$ map ((reValS φ ρvs) ∘ Inr) $ sumMPCVal p ρvs v̂₁ v̂₂
 
 introLocV ∷ (STACK) ⇒ ℤ64 → IM Val
@@ -342,11 +342,11 @@ shareInfoFrValSs v̑s = foldFromOn None v̑s $ \ v̑ si → case (si, v̑) of
                                                       (None, ShareVS φ ρvs _) → Some $ (protFrSProt φ) :* ρvs
                                                       (Some _, _)             → si
 
-shareOrEmbedValP ∷ (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → 𝑂 PrinVal → ValP → IM ValP
-shareOrEmbedValP p φ ρvs oρv ṽ = reValP *$ map (ShareVS φ ρvs) $ shareOrEmbed p φ ρvs oρv *$ unValS φ ρvs *$ unValP ṽ
+shareOrEmbedValP ∷ (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → 𝑂 PrinVal → 𝑂 Type → ValP → IM ValP
+shareOrEmbedValP p φ ρvs oρv oτ ṽ = reValP *$ map (ShareVS φ ρvs) $ shareOrEmbed p φ ρvs oρv oτ *$ unValS φ ρvs *$ unValP ṽ
 
-shareOrEmbed ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m, STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → 𝑂 PrinVal → (Val ∨ MPCVal p) → m (MPCVal p)
-shareOrEmbed p φ ρvs oρv vorv̂ = case vorv̂ of
+shareOrEmbed ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m, STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → 𝑂 PrinVal → 𝑂 Type → (Val ∨ MPCVal p) → m (MPCVal p)
+shareOrEmbed p φ ρvs oρv oτ vorv̂ = case vorv̂ of
   Inl v → case v of
     DefaultV → return DefaultMV
     BulV     → return BulMV
@@ -354,23 +354,40 @@ shareOrEmbed p φ ρvs oρv vorv̂ = case vorv̂ of
       None    → embedBaseVal p ρvs bv
       Some ρv → shareBaseVal p ρvs ρv bv
     PairV ṽ₁ ṽ₂ → do
-      v̂₁ ← shareOrEmbedR *$ unValSR *$ unValP ṽ₁
-      v̂₂ ← shareOrEmbedR *$ unValSR *$ unValP ṽ₂
+      oτ₁ :* oτ₂ ← case oτ of
+        None             → return $ None :* None
+        Some (τ₁ :×: τ₂) → return $ Some τ₁ :* Some τ₂
+        Some τ           → throwIErrorCxt SyntaxIError "shareOrEmbedVal: type τ is inconsistent with PairV" $ frhs [ ("τ", pretty τ) ]
+      v̂₁ ← shareOrEmbedR oτ₁ *$ unValSR *$ unValP ṽ₁
+      v̂₂ ← shareOrEmbedR oτ₂ *$ unValSR *$ unValP ṽ₂
       return $ PairMV v̂₁ v̂₂
     LV ṽ → do
-      v̂  ← shareOrEmbedR *$ unValSR *$ unValP ṽ
+      oτ₁ ← case oτ of
+        None            → return $ None
+        Some (τ₁ :+: _) → return $ Some τ₁
+        Some τ          → throwIErrorCxt SyntaxIError "shareOrEmbedVal: type τ is inconsistent with LV" $ frhs [ ("τ", pretty τ) ]
+      v̂  ← shareOrEmbedR oτ₁ *$ unValSR *$ unValP ṽ
       tt ← embedBaseVal p ρvs $ BoolBV True
       return $ SumMV tt v̂ DefaultMV
     RV ṽ → do
-      v̂  ← shareOrEmbedR *$ unValSR *$ unValP ṽ
+      oτ₂ ← case oτ of
+        None            → return $ None
+        Some (_ :+: τ₂) → return $ Some τ₂
+        Some τ          → throwIErrorCxt SyntaxIError "shareOrEmbedVal: type τ is inconsistent with RV" $ frhs [ ("τ", pretty τ) ]
+      v̂  ← shareOrEmbedR oτ₂ *$ unValSR *$ unValP ṽ
       ff ← embedBaseVal p ρvs $ BoolBV False
       return $ SumMV ff DefaultMV v̂
     NilV → return NilMV
     ConsV ṽ₁ ṽ₂ → do
-      v̂₁ ← shareOrEmbedR *$ unValSR *$ unValP ṽ₁
-      v̂₂ ← shareOrEmbedR *$ unValSR *$ unValP ṽ₂
+      oτ₁ :* oτ₂ ← case oτ of
+        None           → return $ None :* None
+        Some (ListT τ) → return $ Some τ :* Some (ListT τ)
+        Some τ         → throwIErrorCxt SyntaxIError "shareOrEmbedVal: type τ is inconsistent with ConsV" $ frhs [ ("τ", pretty τ) ]
+      v̂₁ ← shareOrEmbedR oτ₁ *$ unValSR *$ unValP ṽ₁
+      v̂₂ ← shareOrEmbedR oτ₂ *$ unValSR *$ unValP ṽ₂
       return $ ConsMV v̂₁ v̂₂
-    UnknownV τ → do
+    UnknownV → do
+      τ  ← fromSomeCxt oτ
       ρv ← error𝑂 oρv $ throwIErrorCxt TypeIError "shareOrEmbedVal: unknown of type τ cannot be embedded" $ frhs [ ("τ", pretty τ) ]
       shareUnknown p ρvs ρv τ
     _ → throwIErrorCxt TypeIError "shareOrEmbedVal: value v cannot be shared or embedded" $ frhs [ ("v", pretty v) ]
@@ -421,6 +438,7 @@ revealVal p φ ρvs ρvsRevealees v = case v of
     ṽ₁ʳ ← revealValPR ṽ₁
     ṽ₂ʳ ← revealValPR ṽ₂
     return $ ConsV ṽ₁ʳ ṽ₂ʳ
+  UnknownV → reveal p ρvs ρvsRevealees DefaultMV
   _ → throwIErrorCxt NotImplementedIError "revealVal: revealing value v unimplemented" $ frhs
       [ ("v", pretty v)
       ]
@@ -438,10 +456,8 @@ withShareInfo kVals kMPCVals ṽs = do
     Some (prot :* ρvs) →
       withProt prot $ \ p φ → do
       vorv̂s ← mapM (unValS φ ρvs) v̑s
-      v̂s ← mapM (shareOrEmbed p φ ρvs None) vorv̂s
+      v̂s ← mapM (shareOrEmbed p φ ρvs None None) vorv̂s
       kMPCVals p φ ρvs v̂s
-
-
 
 primVals ∷ (STACK) ⇒ Op → 𝐿 Val → IM ValP
 primVals op vs = do
@@ -528,7 +544,7 @@ muxVal bv₁ v₂ v₃ = case (v₂, v₃) of
           return $ constr ṽₗ ṽᵣ
         muxSum tag₂ ṽ₂ₗ ṽ₂ᵣ tag₃ ṽ₃ₗ ṽ₃ᵣ = do
           ṽ₁  ← introValP $ BaseV bv₁
-          tag ← (interpPrim CondO $ frhs [ bv₁, BoolBV tag₂, BoolBV tag₃ ]) ≫= fromSome ∘ (view boolBVL)
+          tag ← (interpPrim CondO $ frhs [ bv₁, BoolBV tag₂, BoolBV tag₃ ]) ≫= fromSomeCxt ∘ (view boolBVL)
           if tag
             then do
             ṽ' ← muxValP ṽ₁ ṽ₂ₗ ṽ₃ₗ
@@ -606,7 +622,7 @@ sumVal v₁ v₂ = case (v₁, v₂) of
           ṽᵣ ← sumValP ṽ₁ᵣ ṽ₂ᵣ
           return $ constr ṽₗ ṽᵣ
         sumSum tag₁ ṽ₁ tag₂ ṽ₂ = do
-          tag ← (interpPrim PlusO $ frhs [ BoolBV tag₁, BoolBV tag₂ ]) ≫= fromSome ∘ (view boolBVL)
+          tag ← (interpPrim PlusO $ frhs [ BoolBV tag₁, BoolBV tag₂ ]) ≫= fromSomeCxt ∘ (view boolBVL)
           ṽ ← sumValP ṽ₁ ṽ₂
           return $ if tag then LV ṽ else RV ṽ
 

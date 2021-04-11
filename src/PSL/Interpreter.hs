@@ -17,6 +17,9 @@ import PSL.Interpreter.Val
 import PSL.Interpreter.Share
 import PSL.Interpreter.Lens
 import PSL.Interpreter.Error
+import PSL.Interpreter.Send
+
+import Network.Socket (Socket, PortNumber)
 
 import qualified Prelude as HS
 import qualified System.Console.GetOpt as O
@@ -100,6 +103,17 @@ interpApp ṽ₁ ṽ₂ = do
       [ ("v₁",pretty v₁)
       ]
 
+-----------
+--- PAR ---
+-----------
+
+interpPar ∷ 𝑃 PrinVal → IM ValP → IM ValP
+interpPar ρvs xM = do
+  restrictMode (SecM ρvs) $ do
+    gm ← askL iCxtGlobalModeL
+    lm ← askL iCxtLocalModeL
+    if gm ⊓ lm ≡ SecM pø then introValP UnknownV else xM
+
 -----------------
 -- EXPRESSIONS --
 -----------------
@@ -114,32 +128,41 @@ sequentialSwitch φ = do
 wrapInterp ∷ (STACK) ⇒ (ExpR → IM ValP) → Exp → IM ValP
 wrapInterp f e = localL iCxtSourceL (Some $ atag e) $ f $ extract e
 
-modeCheckShare ∷ 𝑃 PrinVal → 𝑃 PrinVal → IM ()
-modeCheckShare ρvsSharer ρvsSharees = do                           -- Formalism:
-  gm ← askL iCxtGlobalModeL                                        --   ρvsSharer = p, ρvsSharees = q, gm = m
-  let singleSharer    = count ρvsSharer ≡ 1                        --   |p| = 1
-  let shareesNonEmpty = ρvsSharees ≢ pø                            --   q ≠ ∅
-  let sharerAndShareesPresent = SecM (ρvsSharer ∪ ρvsSharees) ≡ gm --   p ∪ q = m
-  guardErr singleSharer $
-    throwIErrorCxt TypeIError "modeCheckShare: count ρvsSharer ≢ 1" $ frhs
-    [ ("ρvsSharer",pretty ρvsSharer)
+modeCheckSendOrShare ∷ 𝑃 PrinVal → 𝑃 PrinVal → ValP → IM ()
+modeCheckSendOrShare ρvsFr ρvsTo ṽ = do                   -- Formalism:
+  gm ← askL iCxtGlobalModeL                               --  ρvsV = p', ρvsFr = p, ρvsTo = q, gm = m
+  let ρvsV           = modeFrValP ṽ
+  let singleFr       = count ρvsFr ≡ 1           --  |p| = 1
+  let toNonEmpty     = ρvsTo ≢ pø                --  q ≠ ∅
+  let frAndToPresent = SecM (ρvsFr ∪ ρvsTo) ⊑ gm --  p ∪ q ⊆ m
+  let frHasV         = (SecM ρvsFr) ⊑ ρvsV       --  p ⊆ p'
+  guardErr singleFr $
+    throwIErrorCxt TypeIError "modeCheckSendOrShare: count ρvsFr ≢ 1" $ frhs
+    [ ("ρvsFr",pretty ρvsFr)
     ]
-  guardErr shareesNonEmpty $
-    throwIErrorCxt TypeIError "modeCheckShare: ρvsSharees ≡ pø" $ frhs
-    [ ("ρvsSharees",pretty ρvsSharees)
+  guardErr toNonEmpty $
+    throwIErrorCxt TypeIError "modeCheckSendOrShare: ρvsTo ≡ pø" $ frhs
+    [ ("ρvsTo",pretty ρvsTo)
     ]
-  guardErr sharerAndShareesPresent $
-    throwIErrorCxt TypeIError "modeCheckShare: SecM (ρvsSharer ∪ ρvsSharees) ≢ gm" $ frhs
-    [ ("ρvsSharer", pretty ρvsSharer)
-    , ("ρvsSharees", pretty ρvsSharees)
+  guardErr frAndToPresent $
+    throwIErrorCxt TypeIError "modeCheckSendOrShare: SecM (ρvsFr ∪ ρvsTo) ⋢ gm" $ frhs
+    [ ("ρvsFr", pretty ρvsFr)
+    , ("ρvsTo", pretty ρvsTo)
     , ("gm", pretty gm)
     ]
+  guardErr frHasV $
+    throwIErrorCxt TypeIError "modeCheckSendOrShare: (SecM ρvsFr) ⋢ ρvsV" $ frhs
+    [ ("ρvsFr", pretty ρvsFr)
+    , ("ρvsV", pretty ρvsV)
+    ]
 
-modeCheckReveal ∷ 𝑃 PrinVal → 𝑃 PrinVal → IM ()
-modeCheckReveal ρvsRevealers ρvsRevealees = do                               -- Formalism:
-  gm ← askL iCxtGlobalModeL                                                  --   ρvsRevealers = p, ρvsRevealees = q, gm = m
-  let revealeesNonEmpty = ρvsRevealees ≢ pø                                  --   q ≠ ∅
-  let revealersAndRevealeesPresent = SecM (ρvsRevealers ∪ ρvsRevealees) ≡ gm --   p ∪ q = m
+modeCheckReveal ∷ 𝑃 PrinVal → 𝑃 PrinVal → ValP → IM ()
+modeCheckReveal ρvsRevealers ρvsRevealees ṽ = do                             -- Formalism:
+  gm ← askL iCxtGlobalModeL                                                  --  ρvsV = p', ρvsRevealers = p, ρvsRevealees = q, gm = m
+  let ρvsV                         = modeFrValP ṽ
+  let revealeesNonEmpty            = ρvsRevealees ≢ pø                       --  q ≠ ∅
+  let revealersAndRevealeesPresent = SecM (ρvsRevealers ∪ ρvsRevealees) ⊑ gm --  p ∪ q ⊆ m
+  let onlyRevealersHaveV           = (SecM ρvsRevealers) ≡ ρvsV              --  p ≡ p'
   guardErr revealeesNonEmpty $
     throwIErrorCxt TypeIError "modeCheckReveal: ρvsRevealees ≡ pø" $ frhs
     [ ("ρvsRevealees",pretty ρvsRevealees)
@@ -150,16 +173,11 @@ modeCheckReveal ρvsRevealers ρvsRevealees = do                               -
     , ("ρvsRevealees",pretty ρvsRevealees)
     , ("gm", pretty gm)
     ]
-
-modeCheckSend ∷ 𝑃 PrinVal → 𝑃 PrinVal → IM ()
-modeCheckSend ρvsFr ρvsTo = do
-  gm ← askL iCxtGlobalModeL
-  let singleFr = count ρvsFr ≡ 1
-  let presentTo = (SecM ρvsTo) ⊑ gm
-  guardErr singleFr $
-    throwIErrorCxt TypeIError "modeCheckSend: count ρvsFr ≢ 1" $ frhs [ ("ρvsFr", pretty ρvsFr) ]
-  guardErr presentTo $
-    throwIErrorCxt TypeIError "modeCheckSend: (SecM ρvsTo) ⋢ gm" $ frhs [ ("ρvsTo", pretty ρvsTo), ("gm", pretty gm) ]
+  guardErr onlyRevealersHaveV $
+    throwIErrorCxt TypeIError "modeCheckReveal: (SecM ρvsRevealers) ≢ ρvsV" $ frhs
+    [ ("ρvsRevealers", pretty ρvsRevealers)
+    , ("ρvsV", pretty ρvsV)
+    ]
 
 interpExp ∷ (STACK) ⇒ Exp → IM ValP
 interpExp = wrapInterp $ \case
@@ -230,27 +248,18 @@ interpExp = wrapInterp $ \case
     ṽ₁ ← interpExp e₁
     ṽ₂ ← interpExp e₂
     interpApp ṽ₁ ṽ₂
-  ParE ρes oτ e → do
+  ParE ρes e → do
     ρvs ← prinExpValss *$ mapM interpPrinExp ρes
-    restrictMode (SecM ρvs) $ do
-      gm ← askL iCxtGlobalModeL
-      lm ← askL iCxtLocalModeL
-      if gm ⊓ lm ≡ SecM pø
-        then do
-        τ ← error𝑂 oτ (throwIErrorCxt NotImplementedIError "interpExp: ParE: mτ ≡ None" $ frhs
-                       [ ("oτ",pretty oτ)
-                       ])
-        introValP $ UnknownV τ
-      else interpExp e
-  ShareE prot ρes₁ ρes₂ e → do
+    interpPar ρvs $ interpExp e
+  ShareE prot τ ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
-    modeCheckShare ρvs₁ ρvs₂
-    ρv₁ ← fromSome $ view one𝑃L ρvs₁
+    ṽ ← interpExp e
+    modeCheckSendOrShare ρvs₁ ρvs₂ ṽ
+    ρv₁ ← fromSomeCxt $ view one𝑃L ρvs₁
     prot' ← sequentialSwitch prot
-    restrictMode (SecM ρvs₁) $ do
-      ṽ ← interpExp e
-      withProt prot' $ \ p φ → shareValP p φ ρvs₂ ρv₁ ṽ
+    restrictMode (SecM ρvs₁) $
+      withProt prot' $ \ p ψ → shareValP p ψ ρvs₂ ρv₁ τ ṽ
   AccessE e ρ → do
     ρv ← interpPrinExpSingle ρ
     ṽ ← interpExp e
@@ -286,18 +295,18 @@ interpExp = wrapInterp $ \case
   RevealE prot ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
-    modeCheckReveal ρvs₁ ρvs₂
+    ṽ ← interpExp e
+    modeCheckReveal ρvs₁ ρvs₂ ṽ
     prot' ← sequentialSwitch prot
-    restrictMode (SecM ρvs₁) $ do
-      ṽ ← interpExp e
+    restrictMode (SecM ρvs₁) $
       withProt prot' $ \ p φ → revealValP p φ ρvs₁ ρvs₂ ṽ
   SendE ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
-    modeCheckSend ρvs₁ ρvs₂
-    ρv₁ ← fromSome $ view one𝑃L ρvs₁
-    restrictMode (SecM ρvs₁) $ do
-      ṽ ← interpExp e
+    ṽ ← interpExp e
+    modeCheckSendOrShare ρvs₁ ρvs₂ ṽ
+    ρv₁ ← fromSomeCxt $ view one𝑃L ρvs₁
+    restrictMode (SecM ρvs₁) $
       sendValP ρvs₂ ρv₁ ṽ
   -- AscrE
   ToStringE e → do
@@ -479,10 +488,21 @@ interpExp = wrapInterp $ \case
 -- TOP LEVEL --
 ---------------
 
+tryListenSock ∷ PrinVal ⇰ PortNumber → Mode → IO (𝑂 Socket)
+tryListenSock portMap = \case
+  TopM     → return None
+  SecM ρvs → let ρv = fromSome $ view one𝑃L ρvs in
+    case portMap ⋕? ρv of
+      None      → return None
+      Some port → map Some $ listenSock port
+
 asTLM ∷ IM a → ITLM a
 asTLM xM = do
   vps ← askL iParamsVirtualPartyArgsL
   mkITLM $ \ θ ωtl → do
+    let portMap = itlStatePortMap ωtl
+    let sock = itlStateListenSock ωtl
+    sock' ← if isSome sock then return sock else tryListenSock portMap $ iParamsLocalMode θ
     let ds = itlStateDeclPrins ωtl
         -- princpal declarations as values
         γ' = dict $ mapOn (iter $ itlStateDeclPrins ωtl) $ \ (ρ :* κ) → case κ of
@@ -494,16 +514,23 @@ asTLM xM = do
         -- top-level defs
         γ = itlStateEnv ωtl
         ξ = compose
-              [ update iCxtEnvL (γ' ⩌ γ)
+              [ update iCxtParamsL θ
               , update iCxtDeclPrinsL ds
-              , update iCxtParamsL θ
+              , update iCxtEnvL (γ' ⩌ γ)
+              , update iCxtPortMapL portMap
+              , update iCxtListenSockL sock'
               ]
               ξ₀
         ω = itlStateExp ωtl
     rox ← runIM ξ ω xM
     return $ case rox of
       Inl r → Inl r
-      Inr (ω' :* o :* x) → Inr $ update itlStateExpL ω' ωtl :* o :* x
+      Inr (ω' :* o :* x) →
+        let ωtl' = compose [ update itlStateExpL ω'
+                           , update itlStateListenSockL sock'
+                           ]
+                           ωtl in
+        Inr $ ωtl' :* o :* x
 
 interpTL ∷ TL → ITLM ()
 interpTL tl = case extract tl of
@@ -519,7 +546,17 @@ interpTL tl = case extract tl of
     let kinds = dict $ mapOn (iter ps) $ \case
           SinglePD ρ → ρ ↦ SinglePK
           ArrayPD ρ n → ρ ↦ SetPK n
+    ports ← map (dict𝐼 ∘ mjoin𝐼) $ mapMOn (iter ps) $ \case
+      SinglePD ρ → do
+        port ← nextL itlStateNextPortL
+        return $ single𝐼 $ SinglePV ρ :* port
+      ArrayPD ρ n → do
+        let ρvs = elimℕ n (\ curr → AccessPV ρ curr)
+        mapMOn ρvs $ \ ρv → do
+          port ← nextL itlStateNextPortL
+          return $ ρv :* port
     modifyL itlStateDeclPrinsL (kinds ⩌)
+    modifyL itlStatePortMapL (ports ⩌)
   ImportTL path xρss → do
     xρvs ← assoc ^$ mapMOn xρss $ \ (x :* ρs) → do
       ρv ← asTLM $ prinExpValss *$ mapM interpPrinExp ρs
@@ -627,11 +664,19 @@ initializeIO os = exec
       Some seed → R.setStdGen $ R.mkStdGen $ HS.fromIntegral seed
   ]
 
+readPrinVal ∷ 𝕊 → 𝑂 PrinVal
+readPrinVal s = case list $ splitOn𝕊 "." s of
+  ρ :& Nil      → Some $ SinglePV ρ
+  ρ :& n :& Nil → Some $ AccessPV ρ (read𝕊 n)
+  _             → None
+
 initializeEnv ∷ Options → IParams
 initializeEnv os = flip compose θ₀
   [ case optParty os of
       None           → id
-      Some localMode → update iParamsLocalModeL $ SecM $ single $ SinglePV localMode
+      Some localMode → case readPrinVal localMode of
+        None    → id
+        Some ρv → update iParamsLocalModeL $ SecM $ single ρv
   ]
 
 interpretFile ∷ IParams → ITLState → 𝕊 → 𝕊 → IO (ITLState ∧ IOut)
@@ -733,6 +778,7 @@ pslMainExample = do
       let θ = update iParamsIsExampleL True $ initializeEnv os
       ωtl :* _ ← interpretFile θ ωtl₀ "lib:stdlib.psl" (optLibPath os ⧺ "/stdlib.psl")
       v ← fst ^$ interpretFileMain θ ωtl (concat ["example:",name,".psl"]) exampleRelativePath
+      -- TODO(ins): close listen socket inside of ωtl
       pprint $ ppHeader "RESULT"
       pprint v
 

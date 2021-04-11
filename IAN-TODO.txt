@@ -1,0 +1,18 @@
+TODO
+====
+
+1. Rip out all the Send stuff ... or at least stop using it in Yao
+  - Instead, do all coordination through EMP by using Mike's trick of just sharing and revealing with each other party
+2. (1) should be enough to handle tournament.psl -- test it!
+3. Implement Send, this should be a little easier because it doesn't require crypto... but be careful not to break EMP again
+4. Modify tournament.psl to restrict bundles
+5. GCD and PSI
+
+Notes
+=====
+
+1. Turns out this will not work, because EMP assumes A and B are only parties in the universe. It will send reveal as plaintext over the wire if it sees that both A and B are being revealed to. This is even a problem if you instead do: `reveal [A,B -> A] ; reveal [A,B -> B]` in sequence, since the plaintext can be recovered from the messages over the network.
+2. We'll have to find another way to handle tournament.psl -- maybe GMW? That's a proper multiparty protocol.
+3. Hopefully I can implement `send` in PSL once I figure out what is causing EMP to block
+   - Consider adding print statements to `reveal` in sh_gen.h and sh_eva.h to debug EMP hanging
+   - DavidH: add io->flush() to reveal? That might cause EMP to stop hanging.

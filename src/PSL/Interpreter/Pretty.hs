@@ -155,7 +155,7 @@ instance Pretty Val where
     ArrayV ṽs → ppArrayPSL ṽs
     PairV ṽ₁ ṽ₂ → ppInflF ppTight levelCOMMA (ppPun ",") (pretty ṽ₁) $ pretty ṽ₂
     DefaultV → ppPun "⊥"
-    UnknownV _τ → ppPun "?"
+    UnknownV → ppPun "?"
 
 instance Pretty BaseVal where
   pretty = \case

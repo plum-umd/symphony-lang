@@ -1,12 +1,12 @@
 principal A
 principal B
 
-def main () =
+def main • =
   par {A,B}
-    let a = share{yaoN: A -> this} (par {A} 1)
-    let b = share{yaoN: A -> this} (par {A} 2)
-    let c = par {A,B} 3
-    in reveal {yaoN:A,B → B} ([a;b;c],(a,b,c))
+    let a = share{yao, ℤ : A → this} 1
+    let b = share{yao, ℤ : A → this} 2
+    let c = 3
+    in reveal {yao : this → B} ([a;b;c],(a,b,c))
 
 def expected =
   par{B}

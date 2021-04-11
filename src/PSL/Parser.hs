@@ -200,7 +200,7 @@ pEffect = cpNewContext "effect" $ do
     [ do cpSyntaxVoid "inp"
          cpSyntaxVoid ":"
          ρs₁ ← pow ^$ pPrins
-         ρs₂O ← cpOptional $ do
+         ρs₂ ← cpOptional $ do
            cpSyntaxVoid ";"
            cpSyntaxVoid "rev"
            cpSyntaxVoid ":"
@@ -208,7 +208,7 @@ pEffect = cpNewContext "effect" $ do
          emO ← cpOptional $ do
           cpSyntaxVoid ";"
           pEMode
-         return (ρs₁,ifNone null ρs₂O,ifNone TopEM emO)
+         return (ρs₁,ifNone null ρs₂,ifNone TopEM emO)
     , do cpSyntaxVoid "rev"
          cpSyntaxVoid ":"
          ρs₂ ← pow ^$ pPrins
@@ -582,27 +582,26 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntaxVoid "@"
       τ ← pType
       return $ \ e → TAppE e τ
-  -- par {P[:τ]} e
+  -- par {P} e
   , fmixPrefix levelPAR $ do
       cpSyntaxVoid "par"
       cpSyntaxVoid "{"
       ρes ← pPrinExps
-      oτ ← cpOptional $ do
-        cpSyntaxVoid ":"
-        pType
       cpSyntaxVoid "}"
-      return $ ParE ρes oτ
-  -- share{φ:P→P} e
+      return $ ParE ρes
+  -- share{φ,τ:P→P} e
   , fmixPrefix levelAPP $ do
       cpSyntaxVoid "share"
       cpSyntaxVoid "{"
       φ ← pProt
+      cpSyntaxVoid ","
+      τ ← pType
       cpSyntaxVoid ":"
       ρes₁ ← pPrinExps
       concat [cpSyntaxVoid "→",cpSyntaxVoid "->"]
       ρes₂ ← pPrinExps
       cpSyntaxVoid "}"
-      return $ ShareE φ ρes₁ ρes₂
+      return $ ShareE φ τ ρes₁ ρes₂
   -- e@ρ
   , fmixPostfix levelACCESS $ do cpSyntaxVoid "@" ; ρe ← pPrinExp ; return $ \ e → AccessE e ρe
   -- ⟪⟫

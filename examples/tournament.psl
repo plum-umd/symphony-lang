@@ -1,0 +1,61 @@
+principal A[4]
+
+def prinSetSize P =
+  case P
+  { {}         → 0
+  ; { ρ } ∪ P' → 1 + prinSetSize P'
+  }
+
+-- parsing issue, inlining this below doesn't work
+def emptyParSet = { }
+
+def mapPairs f P =
+  case P
+  { {}                   → emptyParSet
+  ; { ρ₁ } ∪ { ρ₂ } ∪ P' →
+    let ρ'  = f ρ₁ ρ₂ in
+    let P'' = mapPairs f P' in
+    { ρ' , P'' }
+  }
+
+-- Oblivious!
+def exeMatch P b f ρ₁ ρ₂ =
+  par { ρ₁, ρ₂, P }
+    let x   = par { ρ₁, ρ₂ } share { yao, ℤ : ρ₁ → ρ₁, ρ₂ } b@ρ₁ in
+    let y   = par { ρ₁, ρ₂ } share { yao, ℤ : ρ₂ → ρ₁, ρ₂ } b@ρ₂ in
+    let res = reveal { yao : ρ₁, ρ₂ → P } (par { ρ₁, ρ₂ } f x y) in
+    if res then ρ₁ else ρ₂
+
+def tournament A b f P =
+  let sz = prinSetSize P in
+  -- Assume it is a power of 2
+  if sz == 1 then
+    case P
+    { { winner } ∪ {} → winner }
+  else
+    tournament A b f (mapPairs (exeMatch A b f) P)
+
+def millionaire x y = x > y
+
+--def closer n x y = (abs_val (x - n)) < (abs_val (y - n))
+
+def bundleInputs P =
+  case P
+  { {}         → ⟪ ⟫
+  ; { ρ } ∪ P' →
+    let i = par { ρ } read int from "mmm.txt" in
+    ⟪ ρ | i ⟫ ⧺ bundleInputs P'
+  }
+
+--Alternatively, you can also use `solo-f`:
+def solo-f P f = case P
+  { {}         → ⟪ ⟫
+  ; { ρ } ∪ P' → ⟪ ρ | par { ρ } f ρ ⟫ ⧺ solo-f P' f
+  }
+
+def bundleInputsHO P = solo-f P (fun _ → read int from "mmm.txt")
+
+def main • =
+  par { A }
+    let input = bundleInputsHO { A } in
+    tournament { A } input millionaire { A }
