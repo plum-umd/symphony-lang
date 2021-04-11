@@ -500,9 +500,7 @@ asTLM ∷ IM a → ITLM a
 asTLM xM = do
   vps ← askL iParamsVirtualPartyArgsL
   mkITLM $ \ θ ωtl → do
-    let portMap = itlStatePortMap ωtl
-    let sock = itlStateListenSock ωtl
-    sock' ← if isSome sock then return sock else tryListenSock portMap $ iParamsLocalMode θ
+    let prinIds = itlStatePrinIds ωtl
     let ds = itlStateDeclPrins ωtl
         -- princpal declarations as values
         γ' = dict $ mapOn (iter $ itlStateDeclPrins ωtl) $ \ (ρ :* κ) → case κ of
@@ -517,8 +515,7 @@ asTLM xM = do
               [ update iCxtParamsL θ
               , update iCxtDeclPrinsL ds
               , update iCxtEnvL (γ' ⩌ γ)
-              , update iCxtPortMapL portMap
-              , update iCxtListenSockL sock'
+              , update iCxtPrinIdsL prinIds
               ]
               ξ₀
         ω = itlStateExp ωtl
@@ -526,10 +523,7 @@ asTLM xM = do
     return $ case rox of
       Inl r → Inl r
       Inr (ω' :* o :* x) →
-        let ωtl' = compose [ update itlStateExpL ω'
-                           , update itlStateListenSockL sock'
-                           ]
-                           ωtl in
+        let ωtl' = update itlStateExpL ω' ωtl in
         Inr $ ωtl' :* o :* x
 
 interpTL ∷ TL → ITLM ()
@@ -546,17 +540,17 @@ interpTL tl = case extract tl of
     let kinds = dict $ mapOn (iter ps) $ \case
           SinglePD ρ → ρ ↦ SinglePK
           ArrayPD ρ n → ρ ↦ SetPK n
-    ports ← map (dict𝐼 ∘ mjoin𝐼) $ mapMOn (iter ps) $ \case
+    idm ← map (dict𝐼 ∘ mjoin𝐼) $ mapMOn (iter ps) $ \case
       SinglePD ρ → do
-        port ← nextL itlStateNextPortL
-        return $ single𝐼 $ SinglePV ρ :* port
+        ρid ← nextL itlStateNextIdL
+        return $ single𝐼 $ SinglePV ρ :* ρid
       ArrayPD ρ n → do
         let ρvs = elimℕ n (\ curr → AccessPV ρ curr)
         mapMOn ρvs $ \ ρv → do
-          port ← nextL itlStateNextPortL
-          return $ ρv :* port
+          ρid ← nextL itlStateNextIdL
+          return $ ρv :* ρid
     modifyL itlStateDeclPrinsL (kinds ⩌)
-    modifyL itlStatePortMapL (ports ⩌)
+    modifyL itlStatePrinIdsL (idm ⩌)
   ImportTL path xρss → do
     xρvs ← assoc ^$ mapMOn xρss $ \ (x :* ρs) → do
       ρv ← asTLM $ prinExpValss *$ mapM interpPrinExp ρs
@@ -692,7 +686,7 @@ interpretFileMain ∷ IParams → ITLState → 𝕊 → 𝕊 → IO (ValP ∧ �
 interpretFileMain θ ωtl name path = do
   ωtl' :* _ ← interpretFile θ ωtl name path
   let main = itlStateEnv ωtl' ⋕! var "main"
-  v ← evalITLMIO θ ωtl' name $ asTLM $ interpApp main $ SSecVP TopM BulV
+  ωtl'' :* _ :* v ← runITLMIO θ ωtl' name $ asTLM $ interpApp main $ SSecVP TopM BulV
   let expectedO = itlStateEnv ωtl' ⋕? var "expected"
   return $ v :* expectedO
 

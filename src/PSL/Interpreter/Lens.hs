@@ -1,9 +1,12 @@
 module PSL.Interpreter.Lens where
 
 import UVMHS
+import AddToUVMHS
 
 import PSL.Syntax
 import PSL.Interpreter.Types
+
+import Network.Socket (PortNumber)
 
 import qualified Prelude as HS
 
@@ -98,6 +101,14 @@ iCxtIsExampleL = iParamsIsExampleL ⊚ iCxtParamsL
 
 iCxtLocalModeL ∷ ICxt ⟢ Mode
 iCxtLocalModeL = iParamsLocalModeL ⊚ iCxtParamsL
+
+toPortMap ∷ PortNumber → (PrinVal ⇰ ℕ) → PrinVal ⇰ PortNumber
+toPortMap port idm = map (\ n → port + (HS.fromIntegral n)) idm
+
+getPortMap ∷ (Monad m, MonadReader ICxt m) ⇒ PortNumber → m (PrinVal ⇰ PortNumber)
+getPortMap port = do
+  idm ← askL iCxtPrinIdsL
+  return $ toPortMap port idm
 
 -----------
 -- STATE --

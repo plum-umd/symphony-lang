@@ -26,6 +26,11 @@ import Foreign.C.Error
 unixPathAddr ∷ PrinVal → PrinVal → HS.String
 unixPathAddr ρv₁ ρv₂ = Text.unpack $ concat ["/tmp/psl-", ppshow ρv₁, ppshow ρv₂]
 
+whoAmI ∷ (Monad m, MonadReader ICxt m, MonadError IError m) ⇒ m PrinVal
+whoAmI = do
+  lm ← askL iCxtLocalModeL
+  fromSomeCxt $ view (one𝑃L ⊚ secML) lm
+
 -- Example: serializeVal ConsV(0{A}, ConsV(1{A}, Nil{A})) = toJSON ConsV(?:ℤ{A}, ?:[ℤ]{A})
 serializeValNR ∷ Val → BS.ByteString
 serializeValNR v = BS.empty
@@ -51,6 +56,9 @@ deserializeValR s = DefaultV
 localhost ∷ HostName
 localhost = Text.unpack "127.0.0.1"
 
+portPSL ∷ PortNumber
+portPSL = HS.fromIntegral 49150
+
 getLHAddrInfo ∷ AddrInfo → PortNumber → IO AddrInfo
 getLHAddrInfo hints port = HS.head HS.<$> getAddrInfo (HS.Just hints) (HS.Just localhost) (HS.Just $ show port)
 
@@ -59,7 +67,7 @@ connectHints = defaultHints { addrSocketType = Stream } -- Use TCP
 
 sendVal ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadIO m) ⇒ (Val → BS.ByteString) → Val → PrinVal → m ()
 sendVal serialize v ρvR = do
-  portMap ← askL iCxtPortMapL
+  portMap ← getPortMap portPSL
   port    ← fromSomeCxt $ portMap ⋕? ρvR
   io $ withSocketsDo $ do
     addr    ← getLHAddrInfo connectHints port
@@ -80,16 +88,28 @@ sendVal serialize v ρvR = do
 
 sendValR ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadIO m) ⇒ Val → PrinVal → m ()
 sendValR v ρv = return ()
---  sendVal serializeValR
+
+sendEncValR ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadIO m) ⇒ Val → PrinVal → m ()
+sendEncValR v ρv = return ()
 
 sendValNR ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadIO m) ⇒ Val → PrinVal → m ()
 sendValNR = sendVal serializeValNR
 
-recvVal ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadIO m) ⇒ (BS.ByteString → Val) → PrinVal → m Val
+recvVal ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ (BS.ByteString → Val) → PrinVal → m Val
 recvVal deserialize ρvS = do
-  portMap      ← askL iCxtPortMapL
+
+  portMap      ← getPortMap portPSL
+
   portExpected ← fromSomeCxt $ portMap ⋕? ρvS
-  sock         ← fromSomeCxt *$ askL iCxtListenSockL
+  osock        ← getL iStateListenSockL
+  sock         ← case osock of
+                   None → do
+                     me     ← whoAmI
+                     myPort ← fromSomeCxt $ portMap ⋕? me
+                     sock   ← io $ listenSock myPort
+                     putL iStateListenSockL $ Some sock
+                     return sock
+                   Some sock → return sock
   vs           ← io $ withSocketsDo $ do
     pptraceM "Accepting..."
     (conn, addr) ← accept sock
@@ -109,10 +129,13 @@ recvVal deserialize ρvS = do
           else
             recvAllR conn (BS.append sofar msg)
 
-recvValR ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadIO m) ⇒ PrinVal → m Val
+recvValR ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ PrinVal → m Val
 recvValR = recvVal deserializeValR
 
-recvValNR ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadIO m) ⇒ PrinVal → m Val
+recvEncValR ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ PrinVal → m Val
+recvEncValR ρv = return UnknownV
+
+recvValNR ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ PrinVal → m Val
 recvValNR = recvVal deserializeValNR
 
 listenHints ∷ AddrInfo

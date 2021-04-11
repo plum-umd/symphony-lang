@@ -178,8 +178,16 @@ class
 --- EMP FFI Values ---
 ----------------------
 
-data NetIOStruct = NetIOStruct
+data NetIOStruct = NetIOStruct deriving (Eq,Ord,Show)
 type NetIO = Ptr NetIOStruct -- Cannot be ForeignPtr because EMP holds an internal reference
+
+data SemiHonestStruct = SemiHonestStruct deriving (Eq,Ord,Show)
+type SemiHonest = Ptr SemiHonestStruct
+
+data EMPSession = EMPSession
+  { channelES    ∷ NetIO
+  , semiHonestES ∷ SemiHonest
+  } deriving (Eq,Ord,Show)
 
 data EMPBool = EMPBool deriving (Eq,Ord,Show)
 data EMPInt  = EMPInt  deriving (Eq,Ord,Show)
@@ -257,13 +265,12 @@ data ICxt = ICxt
   , iCxtDeclPrins ∷ Prin ⇰ PrinKind
   , iCxtEnv ∷ Env
   , iCxtGlobalMode ∷ Mode
-  , iCxtPortMap ∷ PrinVal ⇰ PortNumber
-  , iCxtListenSock ∷ 𝑂 Socket
+  , iCxtPrinIds ∷ PrinVal ⇰ ℕ
   , iCxtMPCPathCondition ∷ 𝐿 ValP
   } deriving (Show)
 
 ξ₀ ∷ ICxt
-ξ₀ = ICxt θ₀ None dø dø TopM dø None null
+ξ₀ = ICxt θ₀ None dø dø TopM dø null
 
 -----------
 -- STATE --
@@ -274,15 +281,14 @@ data ICxt = ICxt
 data IState = IState
   { iStateStore ∷ Store
   , iStateNextLoc ∷ ℤ64
+  , iStateListenSock ∷ 𝑂 Socket
   , iStateNextWires ∷ (𝑃 PrinVal) ⇰ Wire
-  , iStateYaoInit ∷ 𝔹
-  , iStateYaoParties ∷ 𝑃 PrinVal
-  , iStateYaoNetIO ∷ NetIO
+  , iStateSessionsYao ∷ PrinVal ⇰ EMPSession
   , iStateMPCCont ∷ 𝐿 (𝐿 ValP ∧ ValP)
-  } deriving (Eq,Ord,Show)
+  } deriving (Eq,Show)
 
 ω₀ ∷ IState
-ω₀ = IState wø (𝕫64 1) dø False pø nullPtr null
+ω₀ = IState wø (𝕫64 1) None dø dø null
 
 ------------
 -- OUTPUT --
@@ -333,15 +339,14 @@ data IError = IError
 -- ωtl ∈ tl-state
 data ITLState = ITLState
   { itlStateDeclPrins ∷ Prin ⇰ PrinKind
-  , itlStateNextPort ∷ PortNumber
-  , itlStatePortMap ∷ PrinVal ⇰ PortNumber
-  , itlStateListenSock ∷ 𝑂 Socket
+  , itlStateNextId ∷ ℕ
+  , itlStatePrinIds ∷ PrinVal ⇰ ℕ
   , itlStateEnv ∷ Env
   , itlStateExp ∷ IState
   } deriving (Eq,Show)
 
 ωtl₀ ∷ ITLState
-ωtl₀ = ITLState dø (HS.fromIntegral 12346) dø None dø ω₀
+ωtl₀ = ITLState dø 0 dø dø ω₀
 
 ----------------------
 -- EXPRESSION MONAD --
