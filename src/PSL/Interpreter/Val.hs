@@ -29,6 +29,9 @@ elimValP ṽ = do
   v̑ ← unValP ṽ
   elimValS v̑
 
+
+--
+
 restrictValP ∷ (STACK) ⇒ ValP → IM ValP
 restrictValP ṽ = do
   gm ← askL iCxtGlobalModeL
@@ -367,7 +370,9 @@ shareOrEmbed p φ ρvs oρv oτ vorv̂ = case vorv̂ of
         Some (τ₁ :+: _) → return $ Some τ₁
         Some τ          → throwIErrorCxt SyntaxIError "shareOrEmbedVal: type τ is inconsistent with LV" $ frhs [ ("τ", pretty τ) ]
       v̂  ← shareOrEmbedR oτ₁ *$ unValSR *$ unValP ṽ
-      tt ← embedBaseVal p ρvs $ BoolBV True
+      tt ← case oρv of
+        None    → embedBaseVal p ρvs $ BoolBV True
+        Some ρv → shareBaseVal p ρv ρvs $ BoolBV True
       return $ SumMV tt v̂ DefaultMV
     RV ṽ → do
       oτ₂ ← case oτ of
@@ -375,7 +380,9 @@ shareOrEmbed p φ ρvs oρv oτ vorv̂ = case vorv̂ of
         Some (_ :+: τ₂) → return $ Some τ₂
         Some τ          → throwIErrorCxt SyntaxIError "shareOrEmbedVal: type τ is inconsistent with RV" $ frhs [ ("τ", pretty τ) ]
       v̂  ← shareOrEmbedR oτ₂ *$ unValSR *$ unValP ṽ
-      ff ← embedBaseVal p ρvs $ BoolBV False
+      ff ← case oρv of
+        None    → embedBaseVal p ρvs $ BoolBV False
+        Some ρv → shareBaseVal p ρv ρvs $ BoolBV False
       return $ SumMV ff DefaultMV v̂
     NilV → return NilMV
     ConsV ṽ₁ ṽ₂ → do
