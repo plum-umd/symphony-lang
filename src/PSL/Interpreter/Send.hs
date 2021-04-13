@@ -53,8 +53,11 @@ serializeValR v = BS.empty
 deserializeValR ∷ BS.ByteString → Val
 deserializeValR s = DefaultV
 
+localhost𝕊 ∷ 𝕊
+localhost𝕊 = "127.0.0.1"
+
 localhost ∷ HostName
-localhost = Text.unpack "127.0.0.1"
+localhost = Text.unpack localhost𝕊
 
 portPSL ∷ PortNumber
 portPSL = HS.fromIntegral 49150

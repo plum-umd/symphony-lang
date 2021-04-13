@@ -84,8 +84,8 @@ shareValP p φ ρvs ρv τ ṽ = shareOrEmbedValP p φ ρvs (Some ρv) (Some τ)
 embedValP ∷ (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → ValP → IM ValP
 embedValP p φ ρvs ṽ = shareOrEmbedValP p φ ρvs None None ṽ
 
-revealValP ∷ (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → 𝑃 PrinVal → ValP → IM ValP
-revealValP p φ ρvs ρvsRevealees ṽ = map (SSecVP (SecM ρvsRevealees)) $ revealValOrMPCVal p φ ρvs ρvsRevealees *$ unValS φ ρvs *$ unValP ṽ
+revealValP ∷ (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → PrinVal → ValP → IM ValP
+revealValP p φ ρvsFr ρvTo ṽ = map (SSecVP (SecM $ single𝑃 ρvTo)) $ revealValOrMPCVal p φ ρvsFr ρvTo *$ unValS φ ρvsFr *$ unValP ṽ
 
 sendValP ∷ (STACK) ⇒ 𝑃 PrinVal → PrinVal → ValP → IM ValP
 sendValP ρvsRs ρvS ṽ = do
@@ -352,7 +352,7 @@ shareOrEmbed p φ ρvs oρv oτ vorv̂ = case vorv̂ of
     BulV     → return BulMV
     BaseV bv → map BaseMV $ case oρv of
       None    → embedBaseVal p ρvs bv
-      Some ρv → shareBaseVal p ρvs ρv bv
+      Some ρv → shareBaseVal p ρv ρvs bv
     PairV ṽ₁ ṽ₂ → do
       oτ₁ :* oτ₂ ← case oτ of
         None             → return $ None :* None
@@ -399,27 +399,27 @@ shareUnknown ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState I
 shareUnknown p ρvs ρv τ = case τ of
   UnitT → return BulMV
   BaseT bτ → do
-    pv ← shareUnk p ρvs ρv bτ
+    pv ← shareUnk p ρv ρvs bτ
     return $ BaseMV pv
   τ₁ :×: τ₂ → do
     v̂₁ ← shareUnknownR τ₁
     v̂₂ ← shareUnknownR τ₂
     return $ PairMV v̂₁ v̂₂
   τ₁ :+: τ₂ → do
-    tag ← shareUnk p ρvs ρv 𝔹T
+    tag ← shareUnk p ρv ρvs 𝔹T
     v̂₁ ← shareUnknownR τ₁
     v̂₂ ← shareUnknownR τ₂
     return $ SumMV tag v̂₁ v̂₂
   _ → throwIErrorCxt TypeIError "shareUnknown: unknown of type τ cannot be shared" $ frhs [ ("τ", pretty τ) ]
   where shareUnknownR = shareUnknown p ρvs ρv
 
-revealValOrMPCVal ∷ (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → 𝑃 PrinVal → (Val ∨ MPCVal p) → IM Val
-revealValOrMPCVal p φ ρvs ρvsRevealees = \case
-  Inl v → revealVal p φ ρvs ρvsRevealees v
-  Inr v̂ → reveal p ρvs ρvsRevealees v̂
+revealValOrMPCVal ∷ (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → PrinVal → (Val ∨ MPCVal p) → IM Val
+revealValOrMPCVal p φ ρvsFr ρvTo = \case
+  Inl v → revealVal p φ ρvsFr ρvTo v
+  Inr v̂ → reveal p ρvsFr ρvTo v̂
 
-revealVal ∷ (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → 𝑃 PrinVal → Val → IM Val
-revealVal p φ ρvs ρvsRevealees v = case v of
+revealVal ∷ (STACK, Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → PrinVal → Val → IM Val
+revealVal p φ ρvsFr ρvTo v = case v of
   DefaultV  → return v
   BulV      → return v
   BaseV _bv → return v
@@ -438,11 +438,10 @@ revealVal p φ ρvs ρvsRevealees v = case v of
     ṽ₁ʳ ← revealValPR ṽ₁
     ṽ₂ʳ ← revealValPR ṽ₂
     return $ ConsV ṽ₁ʳ ṽ₂ʳ
-  UnknownV → reveal p ρvs ρvsRevealees DefaultMV
   _ → throwIErrorCxt NotImplementedIError "revealVal: revealing value v unimplemented" $ frhs
       [ ("v", pretty v)
       ]
-  where revealValPR = revealValP p φ ρvs ρvsRevealees
+  where revealValPR = revealValP p φ ρvsFr ρvTo
 
 withShareInfo ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m, STACK) ⇒
                 (𝐿 Val → m a) → (∀ p. (Protocol p) ⇒ P p → SProt p → 𝑃 PrinVal → 𝐿 (MPCVal p) → m a) → 𝐿 ValP → m a

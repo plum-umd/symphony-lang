@@ -168,11 +168,11 @@ class
     type ProtocolVal p ∷ ★
 
     typeOf       ∷                                                                                      P p → ProtocolVal p                                 → BaseType
-    shareBaseVal ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P p → 𝑃 PrinVal     → PrinVal   → BaseVal           → m (ProtocolVal p)
-    shareUnk     ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P p → 𝑃 PrinVal     → PrinVal   → BaseType          → m (ProtocolVal p)
+    shareBaseVal ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P p → PrinVal       → 𝑃 PrinVal → BaseVal           → m (ProtocolVal p)
+    shareUnk     ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P p → PrinVal       → 𝑃 PrinVal → BaseType          → m (ProtocolVal p)
     embedBaseVal ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P p → 𝑃 PrinVal     → BaseVal                       → m (ProtocolVal p)
     exePrim      ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P p → 𝑃 PrinVal     → Op        → 𝐿 (ProtocolVal p) → m (ProtocolVal p)
-    reveal       ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P p → 𝑃 PrinVal     → 𝑃 PrinVal → MPCVal p          → m Val
+    reveal       ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P p → 𝑃 PrinVal     → PrinVal   → MPCVal p          → m Val
 
 ----------------------
 --- EMP FFI Values ---

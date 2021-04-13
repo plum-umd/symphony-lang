@@ -132,10 +132,10 @@ modeCheckSendOrShare ∷ 𝑃 PrinVal → 𝑃 PrinVal → ValP → IM ()
 modeCheckSendOrShare ρvsFr ρvsTo ṽ = do                   -- Formalism:
   gm ← askL iCxtGlobalModeL                               --  ρvsV = p', ρvsFr = p, ρvsTo = q, gm = m
   let ρvsV           = modeFrValP ṽ
-  let singleFr       = count ρvsFr ≡ 1           --  |p| = 1
+  let singleFr       = count ρvsFr ≡ 1           --  |p| = 1 <-- TODO(ins): get rid of this
   let toNonEmpty     = ρvsTo ≢ pø                --  q ≠ ∅
   let frAndToPresent = SecM (ρvsFr ∪ ρvsTo) ⊑ gm --  p ∪ q ⊆ m
-  let frHasV         = (SecM ρvsFr) ⊑ ρvsV       --  p ⊆ p'
+  let frHasV         = (SecM ρvsFr) ⊑ ρvsV       --  p ⊆ p'  <-- TODO(ins): get rid of this
   guardErr singleFr $
     throwIErrorCxt TypeIError "modeCheckSendOrShare: count ρvsFr ≢ 1" $ frhs
     [ ("ρvsFr",pretty ρvsFr)
@@ -297,9 +297,10 @@ interpExp = wrapInterp $ \case
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂
     ṽ ← interpExp e
     modeCheckReveal ρvs₁ ρvs₂ ṽ
+    ρv₂ ← fromSomeCxt $ view one𝑃L ρvs₂
     prot' ← sequentialSwitch prot
     restrictMode (SecM ρvs₁) $
-      withProt prot' $ \ p φ → revealValP p φ ρvs₁ ρvs₂ ṽ
+      withProt prot' $ \ p φ → revealValP p φ ρvs₁ ρv₂ ṽ
   SendE ρes₁ ρes₂ e → do
     ρvs₁ ← prinExpValss *$ mapM interpPrinExp ρes₁
     ρvs₂ ← prinExpValss *$ mapM interpPrinExp ρes₂

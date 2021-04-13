@@ -46,17 +46,17 @@ mkCkt ρvs g = do
   let c = Ckt { inputsC = dø, gatesC = (output ↦ g), outputC = output }
   return c
 
-inputCkt ∷ (Monad m, MonadState IState m, STACK) ⇒ 𝑃 PrinVal → PrinVal → Input → m Ckt
-inputCkt ρvs ρv i = do
+inputCkt ∷ (Monad m, MonadState IState m, STACK) ⇒ PrinVal → 𝑃 PrinVal → Input → m Ckt
+inputCkt ρv ρvs i = do
   input ← nextWire ρvs
   let c = Ckt { inputsC = (ρv ↦ (input ↦ i)), gatesC = dø, outputC = input }
   return c
 
-shareBaseValCkt ∷ (Monad m, MonadState IState m, STACK) ⇒ 𝑃 PrinVal → PrinVal → BaseVal → m Ckt
-shareBaseValCkt ρvs ρv bv = inputCkt ρvs ρv (AvailableI bv)
+shareBaseValCkt ∷ (Monad m, MonadState IState m, STACK) ⇒ PrinVal → 𝑃 PrinVal → BaseVal → m Ckt
+shareBaseValCkt ρv ρvs bv = inputCkt ρv ρvs (AvailableI bv)
 
-shareUnkCkt ∷ (Monad m, MonadState IState m, STACK) ⇒ 𝑃 PrinVal → PrinVal → BaseType → m Ckt
-shareUnkCkt ρvs ρv bτ = inputCkt ρvs ρv (UnavailableI bτ)
+shareUnkCkt ∷ (Monad m, MonadState IState m, STACK) ⇒ PrinVal → 𝑃 PrinVal → BaseType → m Ckt
+shareUnkCkt ρv ρvs bτ = inputCkt ρv ρvs (UnavailableI bτ)
 
 embedBaseValCkt ∷ (Monad m, MonadState IState m, STACK) ⇒ 𝑃 PrinVal → BaseVal → m Ckt
 embedBaseValCkt ρvs bv = mkCkt ρvs (BaseG bv)
