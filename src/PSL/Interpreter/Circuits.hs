@@ -9,8 +9,21 @@ import PSL.Interpreter.Pretty ()
 import PSL.Interpreter.Lens
 import PSL.Interpreter.Primitives
 
-nextWire ∷ 𝑃 PrinVal → IM Wire
+nextWire ∷ (Monad m, MonadState IState m, STACK) ⇒ 𝑃 PrinVal → m Wire
 nextWire ρvs = nextL $ iStateNextWireL ρvs
+
+inputWireMap ∷ Ckt → (Wire ⇰ Input)
+inputWireMap = unionsUniq ∘ values ∘ inputsC
+
+getWire ∷ Ckt → Wire → Input ∨ Gate
+getWire ckt w = case (inputWireMap ckt) ⋕? w of
+  None → case (access gatesCL ckt) ⋕? w of
+    None → impossible
+    Some g → Inr g
+  Some i → Inl i
+
+getOutput ∷ Ckt → Input ∨ Gate
+getOutput ckt = getWire ckt $ outputC ckt
 
 inputType ∷ Input → BaseType
 inputType i = case i of
@@ -18,36 +31,39 @@ inputType i = case i of
   UnavailableI bτ → bτ
 
 wireType ∷ (STACK) ⇒ Ckt → Wire → BaseType
-wireType ckt w = case g of
-  BaseG bv      → typeOfBaseVal bv
-  InputG _ρv i  → inputType i
-  PrimG op ws   → primType op $ mapOn ws $ wireType ckt
-  where g = impFromSome $ (access gatesCL ckt) ⋕? w
+wireType ckt w = case getWire ckt w of
+  Inl i → inputType i
+  Inr g → case g of
+    BaseG bv      → typeOfBaseVal bv
+    PrimG op ws   → primType op $ mapOn ws $ wireType ckt
 
 cktType ∷ (STACK) ⇒ Ckt → BaseType
-cktType ckt = wireType ckt $ access outCL ckt
+cktType ckt = wireType ckt $ access outputCL ckt
 
-mkCkt ∷ (STACK) ⇒ 𝑃 PrinVal → Gate → IM Ckt
+mkCkt ∷ (Monad m, MonadState IState m, STACK) ⇒ 𝑃 PrinVal → Gate → m Ckt
 mkCkt ρvs g = do
   output ← nextWire ρvs
-  let c = Ckt { gatesC = (output ↦ g), outC = output }
+  let c = Ckt { inputsC = dø, gatesC = (output ↦ g), outputC = output }
   return c
 
-inputCkt ∷ (STACK) ⇒ 𝑃 PrinVal → PrinVal → Input → IM Ckt
-inputCkt ρvs ρv i = mkCkt ρvs (InputG ρv i)
+inputCkt ∷ (Monad m, MonadState IState m, STACK) ⇒ PrinVal → 𝑃 PrinVal → Input → m Ckt
+inputCkt ρv ρvs i = do
+  input ← nextWire ρvs
+  let c = Ckt { inputsC = (ρv ↦ (input ↦ i)), gatesC = dø, outputC = input }
+  return c
 
-shareBaseValCkt ∷ (STACK) ⇒ 𝑃 PrinVal → PrinVal → BaseVal → IM Ckt
-shareBaseValCkt ρvs ρv bv = inputCkt ρvs ρv (AvailableI bv)
+shareBaseValCkt ∷ (Monad m, MonadState IState m, STACK) ⇒ PrinVal → 𝑃 PrinVal → BaseVal → m Ckt
+shareBaseValCkt ρv ρvs bv = inputCkt ρv ρvs (AvailableI bv)
 
-shareUnkCkt ∷ (STACK) ⇒ 𝑃 PrinVal → PrinVal → BaseType → IM Ckt
-shareUnkCkt ρvs ρv bτ = inputCkt ρvs ρv (UnavailableI bτ)
+shareUnkCkt ∷ (Monad m, MonadState IState m, STACK) ⇒ PrinVal → 𝑃 PrinVal → BaseType → m Ckt
+shareUnkCkt ρv ρvs bτ = inputCkt ρv ρvs (UnavailableI bτ)
 
-embedBaseValCkt ∷ (STACK) ⇒ 𝑃 PrinVal → BaseVal → IM Ckt
+embedBaseValCkt ∷ (Monad m, MonadState IState m, STACK) ⇒ 𝑃 PrinVal → BaseVal → m Ckt
 embedBaseValCkt ρvs bv = mkCkt ρvs (BaseG bv)
 
-exePrimCkt ∷ (STACK) ⇒ 𝑃 PrinVal → Op → 𝐿 Ckt → IM Ckt
+exePrimCkt ∷ (Monad m, MonadState IState m, STACK) ⇒ 𝑃 PrinVal → Op → 𝐿 Ckt → m Ckt
 exePrimCkt ρvs op cs = do
   output ← nextWire ρvs
-  let gates' = foldOnFrom (mapOn cs gatesC) dø (⩌)
-  let args   = mapOn cs outC
-  return $ Ckt { gatesC = gates' ⩌ (output ↦ PrimG op args), outC = output }
+  let inputs' = unionsWith (⩌) $ (mapOn cs inputsC)
+  let gates'  = foldOnFrom (mapOn cs gatesC) dø (⩌)
+  return $ Ckt { inputsC = inputs', gatesC = gates' ⩌! (output ↦ (PrimG op $ mapOn cs outputC)), outputC = output }

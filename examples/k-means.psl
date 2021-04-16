@@ -1,0 +1,85 @@
+principal A B
+
+-- find k-means:
+
+def elim-option v vNothing vJust = mux case v
+  { R () -> vNothing
+  ; L x -> vJust x
+  }
+
+def elim-osum-list l acc0 f = elim-list l acc0
+  (fun x acc -> elim-option x acc (fun y -> f y acc))
+
+def osumSum z pls l = elim-osum-list l z pls
+
+def osumLen l = elim-osum-list l 0 (const (plus 1))
+
+-- k: the number of means
+def k = 3n
+
+def origin = (0, 0, 0)
+
+def plus-tuples (a0, b0, c0) (a1, b1, c1) = (a0 + a1, b0 + b1, c0 + c1)
+
+def minus-tuples (a0, b0, c0) (a1, b1, c1) = (a0 - a1, b0 - b1, c0 - c1)
+
+def scalar-div-tuples (a, b, c) denom = (a/denom, b/denom, c/denom)
+
+def magn (a, b, c) =
+  (square a) +
+  (square b) +
+  (square c)
+
+def eq-vals (_, b0) (_, b1) = b0 == b1
+
+def init-assign pts = elim-list pts [ ]
+  (fun pt init-assign -> (pt, (len init-assign) % k)::init-assign)
+
+def get-means assign = elim_nat k [ ]
+  (fun means0 ->
+    let k0 = len means0 in
+    let kthSet = map
+      (fun (pt, meanIdx) ->
+        mux if meanIdx == k0 then just pt
+        else nothing)
+      assign in
+    let sum = osumSum origin plus-tuples kthSet in
+    let d = osumLen kthSet in
+    let blah = mux if d == 0 then origin else scalar-div-tuples sum d in
+    blah::means0)
+
+def k-means-iter assign0 =
+  -- compute means:
+  let means = get-means assign0 in
+  let idxedMeans = elim-list means [ ]
+    (fun m idxMeans -> (m, len idxMeans)::idxMeans) in
+  let defaultMean = head _|_ means in
+  -- update the assignment:
+  map
+    (fun (pt, idx0) ->
+      let ptDiff = minus-tuples pt in
+      let (_, idx) = elim-list idxedMeans (defaultMean, 0n)
+        (fun (m, midx) (bestMean, bestIdx) ->
+          mux if ((square (magn (ptDiff m))) <
+                  (square (magn (ptDiff bestMean))) )
+          then (m, midx)
+          else (bestMean, bestIdx) ) in
+      (pt, idx))
+    assign0
+
+def k-means assign0 =
+  let assign1 = k-means-iter assign0 in
+  if reveal{yao:A,B -> A, B} eq-lists eq-vals assign0 assign1 then assign1
+  else k-means assign1
+
+def main () = par{A, B}
+  let ptsA0 = [ (par {A:int} 0) , (par {A:int} 0) , (par {A:int} 0)
+              ; (par {A:int} 1) , (par {A:int} 1) , (par {A:int} 1)
+              ; (par {A:int} 2) , (par {A:int} 2) , (par {A:int} 2) ] in
+  let ptsA = map (fun x -> share {yao: A -> A, B} x) ptsA0 in
+  let ptsB0 = [ (par {B:int} 0) , (par {B:int} 0) , (par {B:int} 0)
+              ; (par {B:int} 1) , (par {B:int} 1) , (par {B:int} 1)
+              ; (par {B:int} 2) , (par {B:int} 2) , (par {B:int} 2) ] in
+  let ptsB = map (fun x -> share {yao: B -> A, B} x) ptsB0 in
+  let clusters = k-means (init-assign (append ptsA ptsB)) in
+  map (fun m -> reveal{yao:A,B -> A, B} m) (get-means clusters)

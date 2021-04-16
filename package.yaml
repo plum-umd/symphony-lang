@@ -56,6 +56,7 @@ library:
     - src
   dependencies:
     - aeson
+    - network
     - base
     - process
     - bytestring
@@ -67,6 +68,8 @@ library:
     - bytestring
     - random
     - text
+  extra-libraries:
+    - empc
 
 executables:
   psl:

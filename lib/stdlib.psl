@@ -43,7 +43,7 @@ def eq x y = x == y
 def plus m n = m + n
 
 def minus m n = m - n
-
+v
 def mult m n = m * n
 
 def div m n = m / n
@@ -127,6 +127,10 @@ def babylonian_sqrt x = eliml_nat sqrt_steps
   1.0
   (fun s -> (s + x / s) / 2.0)
 
+def babylonian_sqrt_nat x = eliml_nat sqrt_steps
+  1
+  (fun s -> (s + x / s) / 2)
+
 ---
 --- unit library
 ---
@@ -146,6 +150,19 @@ def fst x = case x { (a, _) -> a }
 
 def snd : (a * b) -> a
 def snd x = case x { (_, b) -> b }
+
+---
+--- option library
+---
+
+def just x = L x
+
+def nothing = R ()
+
+def elim-option v vNothing vJust = case v
+  { R() -> vNothing
+  ; L x -> vJust x
+  }
 
 ---
 --- bundle library
@@ -317,6 +334,10 @@ def median lt default xs =
 -- TODO: rename these to [sum] and [sum-flt] ?
 def sum-gen v z = elim-list v z plus
 
+def sum-ints v = sum-gen v 0
+
+def sum-nats v = sum-gen v 0n
+
 def sum : list float -> float
 def sum = foldr (fun x y -> x + y) 0.0
 
@@ -411,7 +432,9 @@ def all_true l = elim-list l true and
 -- eq_lists l0 l1: test equaltity of l0 and l1, which contain lists of
 -- elements that can be tested for equality
 def eq_lists l0 l1 = all_true (zip-map eq l0 l1)
+-- TODO: refactor, using eq-lists
 
+def eq-lists test-eq l0 l1 = all_true (zip-map test-eq l0 l1)
 
 -- mux_ls: multiplex over a pair of lists:
 def mux_ls guard l0 l1 = zip-map (mux-wrap guard) l0 l1
@@ -453,6 +476,9 @@ def range m n =
     (elim_nat (n - m)
        [ 0n ]
        (fun rng -> snoc (len rng) rng) )
+
+-- range-nat n: list of numbers from 0 to n
+def range-nat n = elim_nat n [ ] (fun rng -> (len rng) :: rng)
 
 def reverse-help : list a -> list a -> list a
 def reverse-help xs acc =
@@ -627,12 +653,12 @@ def preprocess-lists-n-pairs p t len zs=
   then []
   else
     let v = par {p} get-head-or-default-sum zs
-    in (share{bgw:p -> t} v) :: (preprocess-lists-n-pairs p t (len - 1) (par {p} tail zs))
+    in (share{ bgw, 𝟙 : p -> t } v) :: (preprocess-lists-n-pairs p t (len - 1) (par {p} tail zs))
 
 def preprocess-lists-n p t len zs =
   if len == 0
   then []
-  else (share{bgw:p -> t} (par {p} get-head-or-default zs)) :: (preprocess-lists-n p t (len - 1) (par {p} tail zs))
+  else (share{ bgw, 𝟙 : p -> t } (par {p} get-head-or-default zs)) :: (preprocess-lists-n p t (len - 1) (par {p} tail zs))
 
 def preprocess-lists-reveal-lengths p t xs =
   let l = par {p} length xs

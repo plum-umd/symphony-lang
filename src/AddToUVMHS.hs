@@ -4,6 +4,8 @@ import UVMHS
 
 import qualified Prelude as HS
 
+import Network.Socket (PortNumber)
+
 -- ====== --
 -- AddBTD --
 -- ====== --
@@ -78,12 +80,18 @@ logBase = HS.logBase
 impLookup𝐷 ∷ Ord k ⇒ (k ⇰ v) → k → v
 impLookup𝐷 d k =
   case lookup𝐷 d k of
-    None   → undefined -- Impossible
+    None   → impossible
     Some v → v
 
-impFromSome ∷ 𝑂 a → a
-impFromSome = \case
-  None   → undefined
+(⩌!) ∷ Ord k ⇒ (k ⇰ v) → (k ⇰ v) → k ⇰ v
+d₁ ⩌! d₂ = unionWith (\ _ _ → impossible) d₁ d₂
+
+unionsUniq ∷ (Ord k, ToIter (k ⇰ v) t) => t -> k ⇰ v
+unionsUniq = unionsWith (\ _ _ → impossible)
+
+fromSome ∷ 𝑂 a → a
+fromSome = \case
+  None   → impossible
   Some v → v
 
 find𝐷 ∷ Eq v ⇒ k ⇰ v → v → 𝑂 k
@@ -91,6 +99,9 @@ find𝐷 d v = foldOnFrom d None $ \ (k :* v') ok →
   case ok of
     None   → if v ≡ v' then Some k else None
     Some _ → ok
+
+number𝐷 ∷ (Ord a) ⇒ ℕ → 𝑃 a → (a ⇰ ℕ)
+number𝐷 init p = let _ :* ds = foldmap init (\ k n → (n + 1) :* (k ↦ n)) p in unionsUniq ds
 
 mapM𝐷 ∷ (Ord k,Monad m) ⇒ (a → m b) → (k ⇰ a) → m (k ⇰ b)
 mapM𝐷 f d = mapM (mapM f) (iter d) ≫= return ∘ dict𝐼
@@ -102,6 +113,13 @@ one𝑃L ∷ (Ord a) ⇒ 𝑃 a ⌲ a
 one𝑃L = prism constr destr
   where constr x = single x
         destr  p = map fst $ pmin p
+
+one𝐿L ∷ 𝐿 a ⌲ a
+one𝐿L = prism constr destr
+  where constr x = frhs [ x ]
+        destr = \case
+          x :& Nil → Some x
+          _ → None
 
 two𝐿L ∷ 𝐿 a ⌲ a ∧ a
 two𝐿L = prism constr destr
@@ -122,3 +140,30 @@ repeat𝑉 z v = spvec𝐼 $ repeatI z $ \ z' → z' :* v
 
 instance (Pretty a) ⇒ Pretty (𝑉 a) where
   pretty = ppCollection (ppPun "[|") (ppPun "|]") (ppPun ";") ∘ map pretty ∘ iter
+
+impossible ∷ a
+impossible = assert False undefined
+
+foldmap ∷ (ToIter a t) ⇒ b → (a → b → b ∧ c) → t → b ∧ 𝐼 c
+foldmap init f xs = fold (init :* empty𝐼) thread xs
+  where thread x (acc :* r) = let (acc' :* x') = f x acc in acc' :* (snoc𝐼 r x')
+
+foldmapM ∷ (Monad m, ToIter a t) ⇒ b → (a → b → m (b ∧ c)) → t → m (b ∧ 𝐼 c)
+foldmapM init f xs = mfold (init :* empty𝐼) thread xs
+  where thread x (acc :* r) = do
+          (acc' :* x') ← f x acc
+          return $ acc' :* (snoc𝐼 r x')
+
+elimℕ ∷ ℕ → (ℕ → a) → 𝐼 a
+elimℕ n f = if n ≡ 0 then empty𝐼 else snoc𝐼 (elimℕ (n - 1) f) (f $ n - 1)
+
+instance Zero PortNumber where
+  zero = HS.fromIntegral 0
+instance Plus PortNumber where
+  pn₁ + pn₂ = pn₁ HS.+ pn₂
+instance Additive PortNumber
+instance One PortNumber where
+  one = HS.fromIntegral 1
+instance Times PortNumber where
+  pn₁ × pn₂ = pn₁ HS.* pn₂
+instance Multiplicative PortNumber

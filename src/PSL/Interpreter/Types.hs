@@ -4,6 +4,12 @@ import UVMHS
 import AddToUVMHS
 import PSL.Syntax
 
+import qualified Prelude as HS
+
+import Network.Socket (Socket, PortNumber)
+import Foreign.Ptr (Ptr, nullPtr)
+import Foreign.ForeignPtr (ForeignPtr)
+
 ------------
 -- VALUES --
 ------------
@@ -26,7 +32,7 @@ data Val =
   | PrinSetV (𝑃 PrinVal)
   | LocV Mode ℤ64
   | ArrayV (𝑉 ValP)
-  | UnknownV Type
+  | UnknownV
   deriving (Eq,Ord,Show)
 
 data BaseVal =
@@ -43,30 +49,113 @@ typeOfBaseVal = \case
   IntBV pr _i → ℤT pr
   FltBV pr _f → 𝔽T pr
 
+defaultBaseValOf ∷ BaseType → BaseVal
+defaultBaseValOf = \case
+  𝔹T → BoolBV False
+  ℕT pr → NatBV pr 0
+  ℤT pr → IntBV pr $ HS.fromIntegral 0
+  𝔽T pr → FltBV pr $ HS.fromIntegral 0
+
 -- Distributed Values
 -- ṽ ∈ dist-val
-data ValP =
-    SSecVP Mode Val                   -- Values
-  | ISecVP (PrinVal ⇰ Val)            -- Bundles
-  | ShareVP Prot (𝑃 PrinVal) MPCVal   -- MPC Values
-  deriving (Eq,Ord,Show)
+data ValP where
+  SSecVP  ∷ Mode → Val → ValP                                         -- Values
+  ISecVP  ∷ (PrinVal ⇰ Val) → ValP                                    -- Bundles
+  ShareVP ∷ ∀ p. (Protocol p) ⇒ SProt p → 𝑃 PrinVal → MPCVal p → ValP -- Shares
 
-data UnShare =
-    NotShared Val
-  | Shared Prot (𝑃 PrinVal) MPCVal
-  deriving (Eq,Ord,Show)
+instance Eq ValP where
+  ṽ₁ == ṽ₂ = case (ṽ₁, ṽ₂) of
+    (SSecVP m₁ v₁, SSecVP m₂ v₂) → m₁ ≡ m₂ ⩓ v₁ ≡ v₂
+    (ISecVP b₁, ISecVP b₂) → b₁ ≡ b₂
+    (ShareVP φ₁ ρvs₁ v̂₁, ShareVP φ₂ ρvs₂ v̂₂) →
+      case deq φ₁ φ₂ of
+        NoDEq  → False
+        YesDEq → ρvs₁ ≡ ρvs₂ ⩓ v̂₁ ≡ v̂₂
+    _ → False
+
+instance Ord ValP where
+  compare ṽ₁ ṽ₂ = case (ṽ₁, ṽ₂) of
+    (SSecVP m₁ v₁, SSecVP m₂ v₂) →
+      case compare m₁ m₂ of
+        LT → LT
+        GT → GT
+        EQ → compare v₁ v₂
+    (SSecVP _ _, _) → LT
+    (ISecVP _, SSecVP _ _) → GT
+    (ISecVP b₁, ISecVP b₂) → compare b₁ b₂
+    (ISecVP _, ShareVP _ _ _) → LT
+    (ShareVP φ₁ ρvs₁ v̂₁, ShareVP φ₂ ρvs₂ v̂₂) →
+      case dcmp φ₁ φ₂ of
+        LTDCmp → LT
+        GTDCmp → GT
+        EQDCmp →
+          case compare ρvs₁ ρvs₂ of
+            LT → LT
+            GT → GT
+            EQ → compare v̂₁ v̂₂
+    (ShareVP _ _ _, _) → GT
+
+deriving instance (Show ValP)
+
+data ValS where
+  SSecVS  ∷ Val → ValS                                                -- Values
+  ISecVS  ∷ (PrinVal ⇰ Val) → ValS                                    -- Bundles
+  ShareVS ∷ ∀ p. (Protocol p) ⇒ SProt p → 𝑃 PrinVal → MPCVal p → ValS -- Shares
+
+instance Eq ValS where
+  ṽ₁ == ṽ₂ = case (ṽ₁, ṽ₂) of
+    (SSecVS v₁, SSecVS v₂) → v₁ ≡ v₂
+    (ISecVS b₁, ISecVS b₂) → b₁ ≡ b₂
+    (ShareVS φ₁ ρvs₁ v̂₁, ShareVS φ₂ ρvs₂ v̂₂) →
+      case deq φ₁ φ₂ of
+        NoDEq  → False
+        YesDEq → ρvs₁ ≡ ρvs₂ ⩓ v̂₁ ≡ v̂₂
+    _ → False
+
+instance Ord ValS where
+  compare ṽ₁ ṽ₂ = case (ṽ₁, ṽ₂) of
+    (SSecVS v₁, SSecVS v₂) → compare v₁ v₂
+    (SSecVS _, _) → LT
+    (ISecVS _, SSecVS _) → GT
+    (ISecVS b₁, ISecVS b₂) → compare b₁ b₂
+    (ISecVS _, ShareVS _ _ _) → LT
+    (ShareVS φ₁ ρvs₁ v̂₁, ShareVS φ₂ ρvs₂ v̂₂) →
+      case dcmp φ₁ φ₂ of
+        LTDCmp → LT
+        GTDCmp → GT
+        EQDCmp →
+          case compare ρvs₁ ρvs₂ of
+            LT → LT
+            GT → GT
+            EQ → compare v̂₁ v̂₂
+    (ShareVS _ _ _, _) → GT
+
+deriving instance (Show ValS)
+
+data ShareInfo p = ShareInfo
+  { proxySI ∷ P p
+  , protSI  ∷ SProt p
+  , prinsSI ∷ 𝑃 PrinVal
+  }
+
+deriving instance (Eq (ShareInfo p))
+deriving instance (Ord (ShareInfo p))
+deriving instance (Show (ShareInfo p))
 
 -- MPC Values
 -- v̂ ∈ mpc-val
-data MPCVal =
-    DefaultMV
-  | BulMV
-  | BaseMV Share
-  | PairMV MPCVal MPCVal
-  | SumMV Share MPCVal MPCVal
-  | NilMV
-  | ConsMV MPCVal MPCVal
-  deriving (Eq,Ord,Show)
+data MPCVal p where
+  DefaultMV ∷ MPCVal p
+  BulMV     ∷ MPCVal p
+  BaseMV    ∷ (Protocol p) ⇒ (ProtocolVal p) → MPCVal p
+  PairMV    ∷ MPCVal p → MPCVal p → MPCVal p
+  SumMV     ∷ (Protocol p) ⇒ (ProtocolVal p) → MPCVal p → MPCVal p → MPCVal p
+  NilMV     ∷ MPCVal p
+  ConsMV    ∷ MPCVal p → MPCVal p → MPCVal p
+
+deriving instance (Eq (MPCVal p))
+deriving instance (Ord (MPCVal p))
+deriving instance (Show (MPCVal p))
 
 -- MPC Protocols
 class
@@ -78,52 +167,47 @@ class
   Protocol p where
     type ProtocolVal p ∷ ★
 
-    typeOf       ∷ P p → ProtocolVal p                                 → BaseType
-    shareBaseVal ∷ P p → 𝑃 PrinVal     → PrinVal   → BaseVal           → IM (ProtocolVal p)
-    shareUnk     ∷ P p → 𝑃 PrinVal     → PrinVal   → BaseType          → IM (ProtocolVal p)
-    embedBaseVal ∷ P p → 𝑃 PrinVal     → BaseVal                       → IM (ProtocolVal p)
-    exePrim      ∷ P p → 𝑃 PrinVal     → Op        → 𝐿 (ProtocolVal p) → IM (ProtocolVal p)
-    reveal       ∷ P p → 𝑃 PrinVal     → 𝑃 PrinVal → ProtocolVal p     → IM BaseVal
+    typeOf       ∷                                                                                      P p → ProtocolVal p                                 → BaseType
+    shareBaseVal ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P p → PrinVal       → 𝑃 PrinVal → BaseVal           → m (ProtocolVal p)
+    shareUnk     ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P p → PrinVal       → 𝑃 PrinVal → BaseType          → m (ProtocolVal p)
+    embedBaseVal ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P p → 𝑃 PrinVal     → BaseVal                       → m (ProtocolVal p)
+    exePrim      ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P p → 𝑃 PrinVal     → Op        → 𝐿 (ProtocolVal p) → m (ProtocolVal p)
+    reveal       ∷ (Monad m, MonadReader ICxt m, MonadError IError m, MonadState IState m, MonadIO m) ⇒ P p → 𝑃 PrinVal     → PrinVal   → MPCVal p          → m Val
 
--- Shares
--- sh ∈ share
-data Share where
-  Share ∷ ∀ p. (Protocol p) ⇒ SProt p → ProtocolVal p → Share
+----------------------
+--- EMP FFI Values ---
+----------------------
 
-instance Eq Share where
-  sh₁ == sh₂ = case (sh₁, sh₂) of
-    (Share (sp₁ ∷ SProt p₁) (pv₁ ∷ ProtocolVal p₁), Share (sp₂ ∷ SProt p₂) (pv₂ ∷ ProtocolVal p₂)) →
-      case deq sp₁ sp₂ of
-        NoDEq → False
-        YesDEq →
-          let pr₁ ∷ (SProt p₁, ProtocolVal p₁)
-              pr₁ = (sp₁, pv₁)
-              pr₂ ∷ (SProt p₁, ProtocolVal p₁)
-              pr₂ = (sp₂, pv₂)
-          in pr₁ ≡ pr₂
+data NetIOStruct = NetIOStruct deriving (Eq,Ord,Show)
+type NetIO = Ptr NetIOStruct -- Cannot be ForeignPtr because EMP holds an internal reference
 
-instance Ord Share where
-  compare sh₁ sh₂ = case (sh₁, sh₂) of
-    (Share (sp₁ ∷ SProt p₁) (pv₁ ∷ ProtocolVal p₁), Share (sp₂ ∷ SProt p₂) (pv₂ ∷ ProtocolVal p₂)) →
-      case dcmp sp₁ sp₂ of
-        LTDCmp → LT
-        GTDCmp → GT
-        EQDCmp →
-          let pr₁ ∷ (SProt p₁, ProtocolVal p₁)
-              pr₁ = (sp₁, pv₁)
-              pr₂ ∷ (SProt p₁, ProtocolVal p₁)
-              pr₂ = (sp₂, pv₂)
-          in compare pr₁ pr₂
+data SemiHonestStruct = SemiHonestStruct deriving (Eq,Ord,Show)
+type SemiHonest = Ptr SemiHonestStruct
 
-deriving instance Show Share
+data EMPSession = EMPSession
+  { channelES    ∷ NetIO
+  , semiHonestES ∷ SemiHonest
+  } deriving (Eq,Ord,Show)
+
+data EMPBool = EMPBool deriving (Eq,Ord,Show)
+data EMPInt  = EMPInt  deriving (Eq,Ord,Show)
+data EMPFlt  = EMPFlt  deriving (Eq,Ord,Show)
+
+data EMPVal =
+    BoolEV (ForeignPtr EMPBool)
+  | NatEV IPrecision (ForeignPtr EMPInt) -- Unfortunately, EMP doesn't support ℕ so we represent them as integers
+  | IntEV IPrecision (ForeignPtr EMPInt)
+  | FltEV FPrecision (ForeignPtr EMPFlt)
+  deriving (Eq,Ord,Show)
 
 --------------
 -- Circuits --
 --------------
 
 data Ckt = Ckt
-  { gatesC ∷ Wire ⇰ Gate
-  , outC   ∷ Wire
+  { inputsC  ∷ PrinVal ⇰ (Wire ⇰ Input)
+  , gatesC   ∷ Wire ⇰ Gate
+  , outputC  ∷ Wire
   } deriving (Eq,Ord,Show)
 
 data Input =
@@ -133,11 +217,10 @@ data Input =
 
 data Gate =
     BaseG BaseVal
-  | InputG PrinVal Input
   | PrimG Op (𝐿 Wire)
   deriving (Eq,Ord,Show)
 
-type Wire = ℕ64
+type Wire = ℕ
 
 -----------------
 -- ENVIRONMENT --
@@ -182,11 +265,12 @@ data ICxt = ICxt
   , iCxtDeclPrins ∷ Prin ⇰ PrinKind
   , iCxtEnv ∷ Env
   , iCxtGlobalMode ∷ Mode
-  , iCxtMPCPathCondition ∷ 𝐿 UnShare
+  , iCxtPrinIds ∷ PrinVal ⇰ ℕ
+  , iCxtMPCPathCondition ∷ 𝐿 ValP
   } deriving (Show)
 
 ξ₀ ∷ ICxt
-ξ₀ = ICxt θ₀ None dø dø TopM null
+ξ₀ = ICxt θ₀ None dø dø TopM dø null
 
 -----------
 -- STATE --
@@ -197,12 +281,14 @@ data ICxt = ICxt
 data IState = IState
   { iStateStore ∷ Store
   , iStateNextLoc ∷ ℤ64
+  , iStateListenSock ∷ 𝑂 Socket
   , iStateNextWires ∷ (𝑃 PrinVal) ⇰ Wire
-  , iStateMPCCont ∷ 𝐿 (𝐿 UnShare ∧ UnShare)
-  } deriving (Eq,Ord,Show)
+  , iStateSessionsYao ∷ PrinVal ⇰ EMPSession
+  , iStateMPCCont ∷ 𝐿 (𝐿 ValP ∧ ValP)
+  } deriving (Eq,Show)
 
 ω₀ ∷ IState
-ω₀ = IState wø (𝕫64 1) dø null
+ω₀ = IState wø (𝕫64 1) None dø dø null
 
 ------------
 -- OUTPUT --
@@ -253,12 +339,14 @@ data IError = IError
 -- ωtl ∈ tl-state
 data ITLState = ITLState
   { itlStateDeclPrins ∷ Prin ⇰ PrinKind
+  , itlStateNextId ∷ ℕ
+  , itlStatePrinIds ∷ PrinVal ⇰ ℕ
   , itlStateEnv ∷ Env
   , itlStateExp ∷ IState
-  } deriving (Eq,Ord,Show)
+  } deriving (Eq,Show)
 
 ωtl₀ ∷ ITLState
-ωtl₀ = ITLState dø dø ω₀
+ωtl₀ = ITLState dø 0 dø dø ω₀
 
 ----------------------
 -- EXPRESSION MONAD --

@@ -2,7 +2,7 @@ principal A B
 
 def main • =
   par {A,B}
-    let x = share{yao:A → A,B} (par {A:𝔹} true) in
-    let z = share{yao:A → A,B} (par {A:𝔹} false) in
-    let y = share{yao:B → A,B} (par {B:𝔹} false) in
-    reveal {yao:A,B → A,B} (mux if (x || false) then (true && y) else z)
+    let x = share{yaoN, bool:A → A,B} (par {A} true) in
+    let z = share{yaoN, bool:A → A,B} (par {A} false) in
+    let y = share{yaoN, bool:B → A,B} (par {B} false) in
+    reveal {yaoN:A,B → A,B} (mux if (x || false) then (true && y) else z)

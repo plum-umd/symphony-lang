@@ -1,0 +1,13 @@
+principal A B
+
+def hamming bs0 bs1 = sum-nats (map
+  (fun (b0, b1) -> mux if b0 == b1 then 0n else 1n)
+  (zip bs0 bs1))
+
+-- input lists must be of equal lengths:
+def main () = par {A, B}
+  let bitstringA0 = [ par {A:int} 1 ; par {A:int} 0 ; par {A:int} 1 ; par {A:int} 1 ] in
+  let bitstringA = map (fun x -> share {yao: A -> A, B} x) bitstringA0 in
+  let bitstringB0 = [ par {B:int} 1 ; par {B:int} 0 ; par {B:int} 1 ; par {B:int} 0 ] in
+  let bitstringB = map (fun x -> share {yao: B -> A, B} x) bitstringB0 in
+  reveal {yao: A,B -> A, B} (hamming bitstringA bitstringB)

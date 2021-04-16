@@ -1,0 +1,54 @@
+principal A B
+
+def main () = par{A, B}
+  let pA0 = [ (par {A:int} 1) , (par {A:int} 6)  ;
+              (par {A:int} 2) , (par {A:int} 7)  ;
+              (par {A:int} 3) , (par {A:int} 8)  ;
+              (par {A:int} 4) , (par {A:int} 9)  ;
+              (par {A:int} 5) , (par {A:int} 10) ] in
+  let pA = map (fun x -> share {yao: A -> A, B} x) pA0 in
+  let pB0 = [ (par {B:int} 2) , (par {B:int} 3) ;
+              (par {B:int} 3) , (par {B:int} 4) ;
+              (par {B:int} 4) , (par {B:int} 5) ;
+              (par {B:int} 5) , (par {B:int} 6) ;
+              (par {B:int} 6) , (par {B:int} 7) ] in
+  let pB = map (fun x -> share {yao: B -> A, B} x) pB0 in
+
+  -- compute facts about the union of DB's:
+  let unionDb = append pA pB in
+  let col2 = map (fun (a, x) -> x) unionDb in
+  let unionSum = sum-ints col2 in
+  let mean = unionSum / (length unionDb) in
+  let variance = elim-list col2
+    0
+    (fun x -> let d = x - mean in plus (d * d)) in
+
+  let joinDb = elim-list pA
+    [ ]
+    (fun (xa, ya) joinDb0 -> elim-list pB joinDb0
+      (fun (xb, yb) -> cons
+         (mux if xa == xb then L (xa, ya, yb)
+          else R ())
+      )) in
+
+  let joinNumElts = elim-list joinDb 0
+    (fun x sum -> mux case x
+      { L _ -> plus 1 sum
+      ; R _ -> sum
+      }) in
+  let joinSum = elim-list joinDb 0
+    (fun x ->
+      let addElt = mux case x
+        { L (x0, y0, z0) -> y0
+        ; R () -> 0
+        } in
+      plus addElt) in
+  let joinMean = joinSum / joinNumElts in
+  let joinVar = elim-list joinDb 0
+    (fun x var0 -> mux case x
+       { L (x0, y0, z0) -> let d = y0 - mean in plus (d * d) var0
+       ; R () -> var0
+       }
+    ) in
+
+  reveal {yao: A,B -> A,B} (variance, joinVar)

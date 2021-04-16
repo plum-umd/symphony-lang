@@ -4,13 +4,15 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 56864ceeb7051bde4c6ef65c9781ea737a834b900a5e37cabcaf9e887fc3f334
+-- hash: 589d5393e95b5a7a6cbc542a8ea7b72f7c79c999c46331142352b623456e7973
 
 name:           psl
 version:        0.1.0.0
 build-type:     Simple
 data-files:
     lib/stdlib.psl
+    examples/#basic-pair.psl#
+    examples/aaa.psl
     examples/atq-bgw-12.psl
     examples/atq-bgw-16.psl
     examples/atq-bgw-20.psl
@@ -31,11 +33,21 @@ data-files:
     examples/atq-spdz-40.psl
     examples/atq-spdz-8.psl
     examples/atq-spdz.psl
+    examples/basic-div.psl
     examples/basic-if.psl
+    examples/basic-oram-mono.psl
+    examples/basic-oram.psl
+    examples/basic-pair.psl
+    examples/basic-pair.psl~
     examples/basic-small-cir.psl
+    examples/basic-sum.psl
+    examples/basic-sum.psl~
     examples/basic.psl
     examples/basic2.psl
+    examples/bio-matching.psl
+    examples/bitwise.psl
     examples/cmp.psl
+    examples/db-analytics.psl
     examples/db-stats-10.psl
     examples/db-stats-11.psl
     examples/db-stats-12.psl
@@ -44,9 +56,14 @@ data-files:
     examples/db-stats-8.psl
     examples/db-stats-9.psl
     examples/db-stats.psl
+    examples/edit-distance.psl
+    examples/fss.psl
     examples/gcd-bgv.psl
     examples/gcd-gc.psl
+    examples/hamming.psl
+    examples/insertion-sort-2p.psl
     examples/insertion-sort.psl
+    examples/k-means.psl
     examples/karmarkar-iters-1.psl
     examples/karmarkar-iters-2.psl
     examples/karmarkar.psl
@@ -75,7 +92,10 @@ data-files:
     examples/quick-sort-spdz-8.psl
     examples/quick-sort-spdz-9.psl
     examples/quick-sort-spdz.psl
+    examples/retTen.psl
+    examples/send-list.psl
     examples/shareA.psl
+    examples/tournament.psl
     examples/trivial-oram-array.psl
     examples/trivial-oram-list.psl
     examples/two-party-median.psl
@@ -120,9 +140,14 @@ data-files:
     tests/uninspecting-par.psl
     tests/when.psl
     examples-input/A/atq-data.txt
+    examples-input/A/biomatching-input.txt
     examples-input/A/cmp-input.txt
     examples-input/A/db-stats-input.txt
+    examples-input/A/edit-dist-input.txt
     examples-input/A/euclid.txt
+    examples-input/A/gcd.txt
+    examples-input/A/hamming-input.txt
+    examples-input/A/k-means-input.txt
     examples-input/A/msort-input.txt
     examples-input/A/partial-diverge-in.txt
     examples-input/A/pfold.txt
@@ -131,9 +156,11 @@ data-files:
     examples-input/A/simple-read.txt
     examples-input/A_0/atq-data.txt
     examples-input/A_0/db-stats-input.txt
+    examples-input/A_0/mmm.txt
     examples-input/A_0/msort-dedup-in.txt
     examples-input/A_1/atq-data.txt
     examples-input/A_1/db-stats-input.txt
+    examples-input/A_1/mmm.txt
     examples-input/A_1/msort-dedup-in.txt
     examples-input/A_10/atq-data.txt
     examples-input/A_10/db-stats-input.txt
@@ -295,6 +322,7 @@ data-files:
     examples-input/A_199/msort-dedup-in.txt
     examples-input/A_2/atq-data.txt
     examples-input/A_2/db-stats-input.txt
+    examples-input/A_2/mmm.txt
     examples-input/A_2/msort-dedup-in.txt
     examples-input/A_20/atq-data.txt
     examples-input/A_20/db-stats-input.txt
@@ -428,6 +456,7 @@ data-files:
     examples-input/A_299/msort-dedup-in.txt
     examples-input/A_3/atq-data.txt
     examples-input/A_3/db-stats-input.txt
+    examples-input/A_3/mmm.txt
     examples-input/A_3/msort-dedup-in.txt
     examples-input/A_30/atq-data.txt
     examples-input/A_30/db-stats-input.txt
@@ -561,6 +590,7 @@ data-files:
     examples-input/A_399/msort-dedup-in.txt
     examples-input/A_4/atq-data.txt
     examples-input/A_4/db-stats-input.txt
+    examples-input/A_4/mmm.txt
     examples-input/A_4/msort-dedup-in.txt
     examples-input/A_40/atq-data.txt
     examples-input/A_40/db-stats-input.txt
@@ -694,6 +724,7 @@ data-files:
     examples-input/A_499/msort-dedup-in.txt
     examples-input/A_5/atq-data.txt
     examples-input/A_5/db-stats-input.txt
+    examples-input/A_5/mmm.txt
     examples-input/A_5/msort-dedup-in.txt
     examples-input/A_50/atq-data.txt
     examples-input/A_50/db-stats-input.txt
@@ -739,6 +770,7 @@ data-files:
     examples-input/A_59/msort-dedup-in.txt
     examples-input/A_6/atq-data.txt
     examples-input/A_6/db-stats-input.txt
+    examples-input/A_6/mmm.txt
     examples-input/A_6/msort-dedup-in.txt
     examples-input/A_60/atq-data.txt
     examples-input/A_60/db-stats-input.txt
@@ -772,6 +804,7 @@ data-files:
     examples-input/A_69/msort-dedup-in.txt
     examples-input/A_7/atq-data.txt
     examples-input/A_7/db-stats-input.txt
+    examples-input/A_7/mmm.txt
     examples-input/A_7/msort-dedup-in.txt
     examples-input/A_70/atq-data.txt
     examples-input/A_70/db-stats-input.txt
@@ -868,8 +901,13 @@ data-files:
     examples-input/B/atq-data.txt
     examples-input/B/atq-queries.txt
     examples-input/B/atq-targets.txt
+    examples-input/B/biomatching-input.txt
     examples-input/B/cmp-input.txt
+    examples-input/B/edit-dist-input.txt
     examples-input/B/euclid.txt
+    examples-input/B/gcd.txt
+    examples-input/B/hamming-input.txt
+    examples-input/B/k-means-input.txt
     examples-input/B/msort-input.txt
     examples-input/B/partial-diverge-in.txt
     examples-input/B/pfold.txt
@@ -1065,6 +1103,7 @@ library
       PSL.Interpreter
       PSL.Interpreter.Bristol
       PSL.Interpreter.Circuits
+      PSL.Interpreter.EMP
       PSL.Interpreter.Error
       PSL.Interpreter.Json
       PSL.Interpreter.Lens
@@ -1074,10 +1113,12 @@ library
       PSL.Interpreter.Primitives
       PSL.Interpreter.PrinExp
       PSL.Interpreter.ReadType
+      PSL.Interpreter.Send
       PSL.Interpreter.Share
       PSL.Interpreter.Truncating
       PSL.Interpreter.Types
       PSL.Interpreter.Val
+      PSL.Interpreter.Yao
       PSL.Interpreter.YaoN
       PSL.Parser
       PSL.Syntax
@@ -1088,12 +1129,15 @@ library
       src
   default-extensions: ConstraintKinds DataKinds ExplicitNamespaces FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase MonadComprehensions MultiParamTypeClasses NoImplicitPrelude OverloadedStrings PatternSynonyms PolyKinds QuantifiedConstraints RankNTypes RebindableSyntax ScopedTypeVariables StandaloneDeriving Strict StrictData TemplateHaskell TypeApplications TypeFamilies TypeOperators UndecidableInstances UndecidableSuperClasses UnicodeSyntax ViewPatterns
   ghc-options: -Wall -Wno-orphans -Wno-partial-type-signatures -j -optP-Wno-nonportable-include-path
+  extra-libraries:
+      empc
   build-depends:
       aeson
     , base
     , bytestring
     , directory
     , filepath
+    , network
     , process
     , random
     , text

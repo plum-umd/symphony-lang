@@ -155,7 +155,7 @@ instance Pretty Val where
     ArrayV ṽs → ppArrayPSL ṽs
     PairV ṽ₁ ṽ₂ → ppInflF ppTight levelCOMMA (ppPun ",") (pretty ṽ₁) $ pretty ṽ₂
     DefaultV → ppPun "⊥"
-    UnknownV _τ → ppPun "?"
+    UnknownV → ppPun "?"
 
 instance Pretty BaseVal where
   pretty = \case
@@ -202,16 +202,16 @@ instance Pretty ValP where
     None → case v₀ of
      SSecVP ρs v → ppPostF concat levelMODE (pretty ρs) (pretty v)
      ISecVP ρvs → ppISecPSL ρvs
-     ShareVP φ ρs mpcv →
+     ShareVP φ ρvs v̂ →
        ppPostF concat levelMODE
          (ppSetBotLevel $ concat
              [ ppPun "{"
              , pretty φ
              , ppPun ":"
-             , concat $ inbetween (ppPun ",") $ map pretty $ iter ρs
+             , concat $ inbetween (ppPun ",") $ map pretty $ iter ρvs
              , ppPun "}"
              ]) $
-         pretty mpcv
+         pretty v̂
 
 ppPreF ∷ (𝐼 Doc → Doc) → ℕ64 → Doc → Doc → Doc
 ppPreF f i oM xM = ppGA $ ppLevel i $ f $ map ppAlign $ iter [oM,xM]
@@ -236,18 +236,23 @@ instance Pretty (SProt p) where
     SSPDZP  → ppLit "SSPDZP"
     SAutoP  → ppLit "SAutoP"
 
-instance Pretty Share where
-  pretty (Share _sp pv) = pretty pv
-
-instance Pretty MPCVal where
+instance Protocol p ⇒ Pretty (MPCVal p) where
   pretty = \case
     DefaultMV → ppPun "⊥"
-    BaseMV sh  → pretty sh
+    BulMV → ppCon "•"
+    BaseMV pv → pretty pv
     PairMV v₁ v₂ → ppInflF ppTight levelCOMMA (ppPun ",") (pretty v₁) $ pretty v₂
-    SumMV sh v₁ v₂ → ppApp (ppCon "SUM") [pretty sh,pretty v₁,pretty v₂]
+    SumMV pv v₁ v₂ → ppApp (ppCon "SUM") [pretty pv,pretty v₁,pretty v₂]
     NilMV → ppCon "[]"
     ConsMV v₁ v₂ → ppInfr levelCONS (ppPun "∷") (pretty v₁) $ pretty v₂
-    BulMV → ppCon "•"
+
+instance Pretty EMPVal where
+  pretty =
+    \case
+    BoolEV _  → ppCon "𝔹"
+    NatEV p _ → concat [ppCon "ℕ",pretty p]
+    IntEV p _ → concat [ppCon "ℤ",pretty p]
+    FltEV p _ → concat [ppCon "𝔽",pretty p]
 
 makePrettyRecord ''Ckt
 makePrettySum ''Input

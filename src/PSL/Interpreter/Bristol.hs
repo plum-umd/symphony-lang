@@ -33,13 +33,16 @@ type WireMap = 𝐿 (ℕ ∧ (ℕ → BWire))
 -- Offsets for writing bristol
 type RWireMap = (Wire ⇰ ℕ) ∧ ℕ
 
-
 -- RWST
 
 data BCxt = BCxt
-  { bcGates ∷ Wire ⇰ Gate
+  { bcInputs ∷ PrinVal ⇰ (Wire ⇰ Input)
+  , bcGates ∷ Wire ⇰ Gate
   } deriving (Eq,Ord,Show)
 makeLenses ''BCxt
+
+instance Null BCxt where
+  null = BCxt null null
 
 data BState = BState
   { bsDone ∷ 𝑃 Wire
@@ -50,16 +53,25 @@ instance Null BState where
   null = BState null
 
 data BOut = BOut
-  { boMidCount ∷ ℕ
+  { boInput ∷ 𝐿 𝔹
+  , boInputOrders ∷ PrinVal ⇰ 𝐿 (Wire ∧ ℕ)
+  , boGateOrder ∷ 𝐿 (Wire ∧ ℕ)
+  , boMidCount ∷ ℕ
   , boCir ∷ 𝐿 BGate
   } deriving (Eq,Ord,Show)
 makeLenses ''BOut
 
 instance Null BOut where
-  null = BOut 0 null
+  null = BOut null null null 0 null
 
 instance Append BOut where
-  (⧺) (BOut oldCount oldGates) (BOut newCount newGates) = BOut (oldCount + newCount) $ oldGates ⧺ map (mapGate $ nudgeMid oldCount) newGates
+  (⧺) (BOut input1 inputOs1 gateOs1 oldCount oldGates) (BOut input2 inputOs2 gateOs2 newCount newGates) =
+    let input' = input1 ⧺ input2
+        inputOs' = unionWith (⧺) inputOs1 inputOs2
+        gateOs' = gateOs1 ⧺ gateOs2
+        count' = oldCount + newCount
+        gates' = oldGates ⧺ map (mapGate $ nudgeMid oldCount) newGates
+    in BOut input' inputOs' gateOs' count' gates'
 
 instance Monoid BOut
 
@@ -74,48 +86,17 @@ newtype BM a = BM { unBM ∷ RWST BCxt BOut BState IO a}
 
 --Bristol
 
--- Current party → All parties in order → the circuit
---   → Bristol File ∧ Current party's concatenated input
-toBristol ∷ 𝐿 PrinVal → Ckt → IM (𝕊 ∧ (𝐿 𝔹))
-toBristol ps ckt = do
-  BOut _ gates ← brisCkt ckt
-  io $ out "\n\nGates:\n"
-  io $ shout gates
-  let input = generateInput ckt
-  io $ out "\n\nInput:\n"
-  io $ shout input
-  let inputOrder = getPrinInputOrder ckt
-  io $ out "\n\nInput Order:\n"
-  io $ shout inputOrder
-  let inputOrder' = concat $ map (\p → inputOrder ⋕! p) ps
-  io $ out "\n\nInput Order':\n"
-  io $ shout inputOrder
-  let gateOrder = getGateInputOrder ckt
-  io $ out "\n\nGate Order:\n"
-  io $ shout gateOrder
-  let order = inputOrder' ⧺ gateOrder
-  io $ out "\n\nOrder:\n"
-  io $ shout order
-  let order' = list $ (filter (\o → not $ fst o == outC ckt) order)
-  io $ out "\n\nOrder':\n"
-  io $ shout order'
-  let outputOrder :& _ = list $ (filter (\o → fst o == outC ckt) order)
-  io $ out "\n\nOutput Order:\n"
-  io $ shout outputOrder
-  let inputSizes = map (\p → sum $ map snd $ inputOrder ⋕! p) ps
-  io $ out "\n\nInput Sizes:\n"
-  io $ shout inputSizes
-  let outputSize = getBitLength $ cktType ckt
-  io $ out "\n\nOutput Size:\n"
-  io $ shout outputSize
-  let rwm = makeReverseWireMap order' outputOrder (sum inputSizes) (count gates)
-  io $ out "\n\nReverse Wire Map:\n"
-  io $ shout rwm
-  let bristol = printBristol rwm inputSizes outputSize gates
-  return $ bristol :* input
+brisCkt ∷ Ckt → BM (Wire ∧ ℕ)
+brisCkt (Ckt inputs gates output) = do
+  bt ← local (BCxt inputs gates) $ brisCkt' output
+  return $ output :* bt
 
-brisCkt ∷ Ckt → IM BOut
-brisCkt (Ckt gates ot) = snd ∘ fst ^$ io $ runRWST (BCxt gates) null $ unBM $ addZero ≫ (generateGates ot)
+brisCkt' ∷ Wire → BM ℕ
+brisCkt' output = do
+  generateGates output
+  pushPrinInputData
+  pushGateInputOrder
+  getBitLength ^$ getWireType output
 
 addZero ∷ BM ()
 addZero = pushGates null 1 $ single $ XorBG (ConstBW False) (ConstBW False) ZeroBW
@@ -126,72 +107,81 @@ generateGates lw = do
   case done of
     True → skip
     False → do
-      gate ← lookupGate lw
-      case gate of
-        BaseG bv → do
+      gateO ← lookupGate lw
+      case gateO of
+        Some (BaseG bv) → do
           let gates = case bv of
                 BoolBV b → bitsToCir (𝕟64 1) b
                 NatBV _ n → bitsToCir (𝕟64 64) $ 𝕟64 n
-                -- TODO: How to get the bits from an integer?
-                IntBV _ i → bitsToCir (𝕟64 64) $ 𝕟64 42 --elim𝑂 (error "Int too big") id $ intO64 i
-                -- TODO: How to get the bits from a float?
-                FltBV _ _f → undefined
+                IntBV _ i → bitsToCir (𝕟64 64) $ elim𝑂 (error "Int too big") id $ intO64 i
+                FltBV _ f → bitsToCir (𝕟64 64) $ (coerce_UNSAFE f ∷ ℕ64)
           pushGates (single lw) 0 gates
-        InputG _ _ → markDone lw
-        PrimG op ws → do
+        Some (PrimG op ws) → do
           mapM generateGates ws
           t ← getWireType lw
           gates ← case op :* t of
-            PlusO :* ℤT _ → io $ parseCircuitFile "bristol/adder64.txt"
-            PlusO :* 𝔽T  _→ io $ parseCircuitFile "bristol/FP-add.txt"
-            MinusO :* ℤT _ → io $ parseCircuitFile "bristol/sub64.txt"
-            TimesO :* ℤT _ → io $ parseCircuitFile "bristol/mult64.txt"
-            TimesO :* 𝔽T _ → io $ parseCircuitFile "bristol/FP-mul.txt"
-            DivO :* ℤT _ → io $ parseCircuitFile "bristol/divide64.txt"
-            DivO :* 𝔽T _ → io $ parseCircuitFile "bristol/FP-div.txt"
-            SqrtO :* 𝔽T _ → io $ parseCircuitFile "bristol/FP-sqrt.txt"
-            LTO :* 𝔽T _ → io $ parseCircuitFile "bristol/FP-lt.txt"
-            FltO _ :* 𝔽T _ → io $ parseCircuitFile "bristol/FP-i2f.txt"
-            IntO _ :* ℤT _ → io $ parseCircuitFile "bristol/FP-f2i.txt"
+            PlusO :* ℤT _   → io $ parseCircuitFile "bristol/adder64.txt"
+            PlusO :* 𝔽T  _  → io $ parseCircuitFile "bristol/FP-add.txt"
+            MinusO :* ℤT _  → io $ parseCircuitFile "bristol/sub64.txt"
+            TimesO :* ℤT _  → io $ parseCircuitFile "bristol/mult64.txt"
+            TimesO :* 𝔽T _  → io $ parseCircuitFile "bristol/FP-mul.txt"
+            DivO :* ℤT _    → io $ parseCircuitFile "bristol/divide64.txt"
+            DivO :* 𝔽T _    → io $ parseCircuitFile "bristol/FP-div.txt"
+            SqrtO :* 𝔽T _   → io $ parseCircuitFile "bristol/FP-sqrt.txt"
+            LTO :* 𝔽T _     → io $ parseCircuitFile "bristol/FP-lt.txt"
+            FltO _ :* 𝔽T _  → io $ parseCircuitFile "bristol/FP-i2f.txt"
+            IntO _ :* ℤT _  → io $ parseCircuitFile "bristol/FP-f2i.txt"
             CeilO _ :* 𝔽T _ → io $ parseCircuitFile "bristol/FP-ceil.txt"
-            OrO :* 𝔹T → return orCir
-            AndO :* 𝔹T → return andCir
-            NotO :* 𝔹T → return $ invCir $ getBitLength t
-            CondO :* _ → return $ muxCir $ getBitLength t
-            EqO :* _ → return $ eqCir $ getBitLength t
+            OrO :* 𝔹T       → return orCir
+            AndO :* 𝔹T      → return andCir
+            NotO :* 𝔹T      → return $ invCir $ getBitLength t
+            CondO :* _      → return $ muxCir $ getBitLength t
+            EqO :* _        → return $ eqCir $ getBitLength t
           pushGates (ws ⧺ single lw) (count gates - getBitLength t) gates
+        None → markDone lw -- (Input)
       markDone lw
 
-generateInput ∷ Ckt → 𝐿 𝔹
-generateInput (Ckt gates _) = concat $ map
+directGates ∷ Wire → Wire → ℕ → 𝐿 BGate
+directGates win wout n = list $ map (\n' → XorBG (PlugBW win n') ZeroBW (PlugBW wout n')) $ frhs [0..(n-1)]
+
+generateInput ∷ PrinVal ⇰ (Wire ⇰ Input) → 𝐿 𝔹
+generateInput inputs = concat $ map
   (\case
-      _ :* (InputG _ (AvailableI bv)) → case bv of
+      AvailableI bv → case bv of
         BoolBV b → bitBlast (𝕟64 1) b
         NatBV _ n → bitBlast (𝕟64 64) $ 𝕟64 n
-        -- TODO: How to get the bits from an integer?
-        IntBV _ i → bitBlast (𝕟64 64) $ 𝕟64 42 --elim𝑂 (error "Int too big") id $ intO64 i
-        -- TODO: How to get the bits from a float?
-        FltBV _ _f → undefined
+        IntBV _ i → bitBlast (𝕟64 64) $ elim𝑂 (error "Int too big") id $ intO64 i
+        FltBV _ f → bitBlast (𝕟64 64) $ (coerce_UNSAFE f ∷ ℕ64)
       _ → null
-  ) $ iter gates
+  ) $ map snd $ concat $ map iter $ map snd $ iter inputs
 
-getPrinInputOrder ∷ Ckt → PrinVal ⇰ 𝐿 (Wire ∧ ℕ)
-getPrinInputOrder (Ckt gates _) = fold null
-  (\(w :* g) acc →
-     let m = case g of
-           (InputG p (AvailableI bv)) → Some (p ↦ single (w :* (getBitLength $ typeOfBaseVal bv)))
-           (InputG p (UnavailableI bt)) → Some (p ↦ single (w :* (getBitLength bt)))
-           _ → None
-     in case m of
-       Some il → unionWith (⧺) acc il
-       None → acc
-  ) $ iter gates
+pushPrinInputData ∷ BM ()
+pushPrinInputData = do
+  inputs ← askL bcInputsL
+  let input = generateInput inputs
+  let inputOrder = getPrinInputOrder inputs
+  tell $ BOut input inputOrder null 0 null
+
+getPrinInputOrder ∷ PrinVal ⇰ (Wire ⇰ Input) → PrinVal ⇰ 𝐿 (Wire ∧ ℕ)
+getPrinInputOrder inputs = map
+  (fold null
+    (\(w :* i) acc → case i of
+        AvailableI bv → (w :* (getBitLength $ typeOfBaseVal bv)) :& acc
+        UnavailableI bt → (w :* (getBitLength bt)) :& acc
+    )
+  ) inputs
+
+pushGateInputOrder ∷ BM ()
+pushGateInputOrder = do
+  inputs ← askL bcInputsL
+  gates ← askL bcGatesL
+  let gatesOrder = getGateInputOrder $ Ckt inputs gates null
+  tell $ BOut null null gatesOrder null null
 
 getGateInputOrder ∷ Ckt → 𝐿 (Wire ∧ ℕ)
-getGateInputOrder ckt@(Ckt gates _) = concat $ map
+getGateInputOrder ckt@(Ckt _ gates _) = list $ map
   (\case
-      _ :* (InputG _ _) → null
-      w :* _ → single $ w :* (getBitLength $ wireType ckt w)
+      w :* _ → w :* (getBitLength $ wireType ckt w)
   ) $ iter gates
 
 -- Util
@@ -203,13 +193,20 @@ markDone ∷ Wire → BM ()
 markDone lw = do
   modifyL bsDoneL (∪ (single lw))
 
-lookupGate ∷ Wire → BM Gate
-lookupGate wire = (⋕! wire) ^$ askL bcGatesL
+lookupGate ∷ Wire → BM (𝑂 Gate)
+lookupGate wire = (⋕? wire) ^$ askL bcGatesL
 
 getWireType ∷ Wire → BM BaseType
 getWireType lw = do
+  inputs ← askL bcInputsL
   gates ← askL bcGatesL
-  return $ cktType $ Ckt gates lw
+  return $ cktType $ Ckt inputs gates lw
+
+getBitLengthType ∷ Type → ℕ
+getBitLengthType = \case
+  t1 :+: t2 → 1 + (getBitLengthType t1) ⩏ (getBitLengthType t2)
+  t1 :×: t2 → getBitLengthType t1 + getBitLengthType t2
+  BaseT bt → getBitLength bt
 
 getBitLength ∷ BaseType → ℕ
 getBitLength = \case
@@ -223,10 +220,15 @@ get𝐿 0 (x :& _) = x
 get𝐿 n (_ :& xs) = get𝐿 (n - 1) xs
 get𝐿 _ _ = error "bad"
 
+find𝐿 ∷ (a → 𝔹) → 𝐿 a → a
+find𝐿 _ Nil = error "bad"
+find𝐿 f (x :& _) | f x = x
+find𝐿 f (_ :& xs) = find𝐿 f xs
+
 pushGates ∷ 𝐿 Wire → ℕ → 𝐿 BGate → BM ()
 pushGates pws c gates = do
   let f = fold id (\(i :* pw) acc → assignTempWire i pw ∘ acc) $ withIndex pws
-  tell $ BOut c $ map (mapGate f) gates
+  tell $ BOut null null null c $ map (mapGate f) gates
 
 nudgeMid ∷ ℕ → BWire → BWire
 nudgeMid offset = \case
@@ -249,6 +251,9 @@ mapGate f = \case
 
 bitBlast ∷ Bitty a ⇒ Eq a ⇒ ℕ64 → a → 𝐿 𝔹
 bitBlast s x = map (\i → bget i x) $ frhs [𝕟64 0..(s - (𝕟64 1))]
+
+unBitBlast ∷ Bitty a ⇒ Null a ⇒ 𝐿 𝔹 → a
+unBitBlast = (fold null (\(i :* b) acc → if b then bset i acc else acc)) ∘ withIndex
 
 -- Circuit Generation
 
@@ -347,7 +352,8 @@ makeWireMap ibls obl s =
 printBristol ∷ RWireMap → 𝐿 ℕ → ℕ → 𝐿 BGate → 𝕊
 printBristol rwm ins ot gates =
   let wgs = show𝕊 (count @ℕ gates) ⧺ " " ⧺ show𝕊 (count @ℕ gates + sum ins)
-      ins' = fold (show𝕊 $ count @ℕ ins) (\i acc → acc ⧺ " " ⧺ show𝕊 i) ins
+--      ins' = fold (show𝕊 $ count @ℕ ins) (\i acc → acc ⧺ " " ⧺ show𝕊 i) ins
+      ins' = (show𝕊 $ sum ins) ⧺ " 0"
       ot' = "1 " ⧺ show𝕊 ot
       gates' = concat $ map (printBGateLn rwm) gates
   in wgs ⧺ "\n" ⧺ ins' ⧺ "\n" ⧺ ot' ⧺ "\n\n" ⧺ gates'
@@ -370,10 +376,12 @@ printBWire (ps :* mid) = show𝕊 ∘ \case
   ConstBW False → 0
   TempBW _ _ → error "Bad"
 
-makeReverseWireMap ∷ 𝐿 (Wire ∧ ℕ) → (Wire ∧ ℕ) → ℕ → ℕ → RWireMap
-makeReverseWireMap ((w1 :* fbl) :& wbls) (ow :* obl) inputSize gatesLength =
+makeReverseWireMap ∷ 𝐿 (Wire ∧ ℕ) → 𝐿 (Wire ∧ ℕ) → ℕ → ℕ → RWireMap
+makeReverseWireMap ((w1 :* fbl) :& wbls) ((fow :* fobl) :& owbls) inputSize gatesLength =
   let ws :* bls = split wbls
+      ows :* obls = split owbls
       ps = dict𝐼 $ reverse $ fold (single $ w1 :* 0) (\(w :* bl) ((w' :* l) :& acc) → (w :* (bl + l)) :& (w' :* l) :& acc) $ zip ws $ fbl :& bls
       mid = sum $ fbl :& bls
-      o = (ow ↦ (inputSize + gatesLength - obl))
-  in (ps ⩌ o) :* mid
+      os = dict𝐼 $ reverse $ fold (single $ fow :* (inputSize + gatesLength - (sum obls + fobl))) (\(w :* bl) ((w' :* l) :& acc) → (w :* (bl + l)) :& (w' :* l) :& acc) $ zip ows $ fobl :& obls
+--      o = (ow ↦ (inputSize + gatesLength - obl))
+  in (ps ⩌ os) :* mid

@@ -1,0 +1,8 @@
+principal A B
+
+def main • =
+  par {A,B}
+    let x = share{yaoN, bool:A → A,B} (par {A} true) in
+    let z = share{yaoN, bool:A → A,B} (par {A} false) in
+    let y = share{yaoN, bool:B → A,B} (par {B} false) in
+    reveal {yaoN:A,B → A,B} (([x, y, z], [x, y, z]))

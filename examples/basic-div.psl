@@ -1,0 +1,6 @@
+principal A B
+
+def main () = par{A, B}
+  let x = share {yao: A -> A,B} (par {A:int} 10) in
+  let y = share {yao: B -> A,B} (par {B:int} 0) in
+  reveal {yao:A, B -> A, B} x / y

@@ -1,0 +1,30 @@
+TODO
+====
+
+1. PSI in PSL using Yao
+2. Figure out how to implement `send`
+3. Tournament in PSL (depends on (2))
+3. Benchmarks -- gate count (use DavidH fork of EMP), and end-to-end runtime, PSL vs. OblivC
+   - gcd
+   - hamming
+   - edit-distance
+   - bio-matching
+   - k-means
+   - db-analytics
+   - psi
+
+Notes
+=====
+
+2. Hopefully I can implement `send` in PSL once I figure out what is causing EMP to block
+   - Consider adding print statements to `reveal` in sh_gen.h and sh_eva.h to debug EMP hanging
+   - DavidH: add io->flush() to reveal? That might cause EMP to stop hanging.
+
+DONE
+====
+
+1. Modify tournament.psl to restrict bundles
+2. GCD in PSL using Yao
+3. Implement multi-session EMP
+   - Allows a party (`A` below) to be engaged in 2-party Yao w/ multiple parties (`B` and `C` below) at the same time
+   - Ex. `let x = share {yao:A→A,B} ... in let y = share {yao:A→A,C} ... in ...`

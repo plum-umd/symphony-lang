@@ -1,0 +1,5 @@
+principal A B
+
+def main () = par {A, B}
+  let a = send-ls {A} {A, B} (par {A:list int} [0 ; 1]) in
+  a

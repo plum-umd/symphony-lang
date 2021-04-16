@@ -2,7 +2,7 @@ principal A B C D E
 
 def main • =
   par {A,B,C,D,E}
-  send{C → D,E} (par {A,B,C} reveal{yaoN:A,B → A,B,C} (par {A,B} (share{yaoN:A → A,B} 3)))
+  send {C → D,E} (par {A,B,C} reveal {yao : A,B → A,B,C} (par {A,B} (share {yao, ℤ : A → A,B} 3)))
 
 def expected =
   par {D,E} 3
