@@ -113,7 +113,7 @@ generateGates lw = do
           let gates = case bv of
                 BoolBV b → bitsToCir (𝕟64 1) b
                 NatBV _ n → bitsToCir (𝕟64 64) $ 𝕟64 n
-                IntBV _ i → bitsToCir (𝕟64 64) $ elim𝑂 (error "Int too big") id $ intO64 i
+                IntBV _ i → bitsToCir (𝕟64 64) $ elim𝑂' $ intO64 i
                 FltBV _ f → bitsToCir (𝕟64 64) $ (coerce_UNSAFE f ∷ ℕ64)
           pushGates (single lw) 0 gates
         Some (PrimG op ws) → do
@@ -129,6 +129,13 @@ generateGates lw = do
             DivO :* 𝔽T _    → io $ parseCircuitFile "bristol/FP-div.txt"
             SqrtO :* 𝔽T _   → io $ parseCircuitFile "bristol/FP-sqrt.txt"
             LTO :* 𝔽T _     → io $ parseCircuitFile "bristol/FP-lt.txt"
+            LTO :* ℤT _     → (makeSignOut 2 64) ^$ io $ parseCircuitFile "bristol/sub64.txt"
+            GTO :* 𝔽T _     → swapIns ^$ io $ parseCircuitFile "bristol/FP-lt.txt"
+            GTO :* ℤT _     → swapIns ∘ (makeSignOut 2 64) ^$ io $ parseCircuitFile "bristol/sub64.txt"
+            LTEO :* 𝔽T _    → (invOutputBit 2) ∘ swapIns ^$ io $ parseCircuitFile "bristol/FP-lt.txt"
+            LTEO :* ℤT _     → (invOutputBit 2) ∘ swapIns ∘ (makeSignOut 2 64) ^$ io $ parseCircuitFile "bristol/sub64.txt"
+            GTEO :* 𝔽T _    → (invOutputBit 2) ^$ io $ parseCircuitFile "bristol/FP-lt.txt"
+            GTEO :* ℤT _     → (invOutputBit 2) ∘ (makeSignOut 2 64) ^$ io $ parseCircuitFile "bristol/sub64.txt"
             FltO _ :* 𝔽T _  → io $ parseCircuitFile "bristol/FP-i2f.txt"
             IntO _ :* ℤT _  → io $ parseCircuitFile "bristol/FP-f2i.txt"
             CeilO _ :* 𝔽T _ → io $ parseCircuitFile "bristol/FP-ceil.txt"
@@ -137,6 +144,7 @@ generateGates lw = do
             NotO :* 𝔹T      → return $ invCir $ getBitLength t
             CondO :* _      → return $ muxCir $ getBitLength t
             EqO :* _        → return $ eqCir $ getBitLength t
+            o :* t → error $ "unsupported operation " ⧺ show𝕊 o ⧺ " on type " ⧺ show𝕊 t ⧺ " in bristol circuit generation"
           pushGates (ws ⧺ single lw) (count gates - getBitLength t) gates
         None → markDone lw -- (Input)
       markDone lw
@@ -150,7 +158,7 @@ generateInput inputs = concat $ map
       AvailableI bv → case bv of
         BoolBV b → bitBlast (𝕟64 1) b
         NatBV _ n → bitBlast (𝕟64 64) $ 𝕟64 n
-        IntBV _ i → bitBlast (𝕟64 64) $ elim𝑂 (error "Int too big") id $ intO64 i
+        IntBV _ i → bitBlast (𝕟64 64) $ elim𝑂' $ intO64 i
         FltBV _ f → bitBlast (𝕟64 64) $ (coerce_UNSAFE f ∷ ℕ64)
       _ → null
   ) $ map snd $ concat $ map iter $ map snd $ iter inputs
@@ -215,6 +223,11 @@ getBitLength = \case
   ℤT _ → 64
   𝔽T _ → 64
 
+elim𝑂' ∷ 𝑂 a → a
+elim𝑂' = \case
+  Some a → a
+  None → error "elim𝑂'"
+
 get𝐿 ∷ ℕ → 𝐿 a → a
 get𝐿 0 (x :& _) = x
 get𝐿 n (_ :& xs) = get𝐿 (n - 1) xs
@@ -224,6 +237,9 @@ find𝐿 ∷ (a → 𝔹) → 𝐿 a → a
 find𝐿 _ Nil = error "bad"
 find𝐿 f (x :& _) | f x = x
 find𝐿 f (_ :& xs) = find𝐿 f xs
+
+numList ∷ ℕ → 𝐿 ℕ
+numList n = frhs [0..(n - 1)]
 
 pushGates ∷ 𝐿 Wire → ℕ → 𝐿 BGate → BM ()
 pushGates pws c gates = do
@@ -263,9 +279,9 @@ invCir bl = mapOn (frhs [0..(bl - 1)]) $ \i → InvBG (TempBW 0 i) (TempBW 1 i)
 muxCir ∷ ℕ → 𝐿 BGate
 muxCir bl =
   let g = InvBG (TempBW 0 0) (MidBW 0)
-      ands1 = fold null (\i acc → AndBG (TempBW 0 0) (TempBW 1 i) (MidBW $ 1 + i) :& acc) $ frhs [0..(bl - 1)]
-      ands2 = fold null (\i acc → AndBG (MidBW 0) (TempBW 2 i) (MidBW $ 1 + bl + i) :& acc) $ frhs [0..(bl - 1)]
-      xors = fold null (\i acc → XorBG (MidBW $ 1 + i) (MidBW $ 1 + bl + i) (TempBW 3 i) :& acc) $ frhs [0..(bl - 1)]
+      ands1 = fold null (\i acc → AndBG (TempBW 0 0) (TempBW 1 i) (MidBW $ 1 + i) :& acc) $ numList bl
+      ands2 = fold null (\i acc → AndBG (MidBW 0) (TempBW 2 i) (MidBW $ 1 + bl + i) :& acc) $ numList bl
+      xors = fold null (\i acc → XorBG (MidBW $ 1 + i) (MidBW $ 1 + bl + i) (TempBW 3 i) :& acc) $ numList bl
   in g :& ands1 ⧺ ands2 ⧺ xors
 
 eqCir ∷ ℕ → 𝐿 BGate
@@ -273,8 +289,8 @@ eqCir 0 = undefined
 eqCir 1 = frhs [XorBG (TempBW 0 0) (TempBW 1 0) (MidBW 0), InvBG (MidBW 0) (TempBW 2 0)]
 eqCir 2 = undefined
 eqCir bl =
-  let xors = fold null (\i acc → XorBG (TempBW 0 i) (TempBW 1 i) (MidBW i) :& acc) $ frhs [0..(bl - 1)]
-      invs = fold null (\i acc → InvBG (MidBW i) (MidBW $ i + bl) :& acc) $ frhs [0..(bl - 1)]
+  let xors = fold null (\i acc → XorBG (TempBW 0 i) (TempBW 1 i) (MidBW i) :& acc) $ numList bl
+      invs = fold null (\i acc → InvBG (MidBW i) (MidBW $ i + bl) :& acc) $ numList bl
       fand = AndBG (MidBW bl) (MidBW $ bl + 1) (MidBW $ bl + bl)
       ands = fold null (\i acc → acc ⧺ (single $ AndBG (MidBW $ bl + bl + i) (MidBW $ 1 + i + bl) (MidBW $ 1 + bl + bl + i))) $ frhs [0..(bl - 3)]
       land = AndBG (MidBW $ bl + bl - 1) (MidBW $ bl + bl + bl - 2) (TempBW 2 0)
@@ -290,6 +306,37 @@ orCir = frhs
   , AndBG (MidBW 0) (MidBW 1) (MidBW 2)
   , InvBG (MidBW 2) (TempBW 2 0)
   ]
+
+makeSignOut ∷ ℕ → ℕ → 𝐿 BGate → 𝐿 BGate
+makeSignOut oidx obl gates =
+  let start = count gates - obl
+  in map (mapGate
+           (\case
+               TempBW idx n | and $ frhs [oidx == idx, n == (obl - 1)] → TempBW idx 0
+               TempBW idx n | oidx == idx → MidBW $ start + n
+               w → w
+           )
+         ) gates
+
+invOutputBit ∷ ℕ → 𝐿 BGate → 𝐿 BGate
+invOutputBit oidx gates =
+  let gates' = map
+        (mapGate
+          (\case
+              TempBW idx _ | oidx == idx → MidBW $ count gates - 1
+              w → w
+          )
+        ) gates
+  in gates' ⧺ single (InvBG (MidBW $ count gates - 1) (TempBW oidx 0))
+
+swapIns ∷ 𝐿 BGate → 𝐿 BGate
+swapIns = map (mapGate
+               (\case
+                   TempBW 0 n → TempBW 1 n
+                   TempBW 1 n → TempBW 0 n
+                   w → w
+               )
+              )
 
 bitsToCir ∷ Bitty a ⇒ Eq a ⇒ ℕ64 → a → 𝐿 BGate
 bitsToCir s n = list $ map (\(i :* b) →
@@ -383,5 +430,4 @@ makeReverseWireMap ((w1 :* fbl) :& wbls) ((fow :* fobl) :& owbls) inputSize gate
       ps = dict𝐼 $ reverse $ fold (single $ w1 :* 0) (\(w :* bl) ((w' :* l) :& acc) → (w :* (bl + l)) :& (w' :* l) :& acc) $ zip ws $ fbl :& bls
       mid = sum $ fbl :& bls
       os = dict𝐼 $ reverse $ fold (single $ fow :* (inputSize + gatesLength - (sum obls + fobl))) (\(w :* bl) ((w' :* l) :& acc) → (w :* (bl + l)) :& (w' :* l) :& acc) $ zip ows $ fobl :& obls
---      o = (ow ↦ (inputSize + gatesLength - obl))
   in (ps ⩌ os) :* mid

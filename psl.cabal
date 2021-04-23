@@ -4,14 +4,13 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 589d5393e95b5a7a6cbc542a8ea7b72f7c79c999c46331142352b623456e7973
+-- hash: 728758dd51b5945cb7d9c86b3157e1a7f7dcd57bfb585ffc28c37a7cef9d63c1
 
 name:           psl
 version:        0.1.0.0
 build-type:     Simple
 data-files:
     lib/stdlib.psl
-    examples/#basic-pair.psl#
     examples/aaa.psl
     examples/atq-bgw-12.psl
     examples/atq-bgw-16.psl
@@ -35,6 +34,7 @@ data-files:
     examples/atq-spdz.psl
     examples/basic-div.psl
     examples/basic-if.psl
+    examples/basic-list.psl
     examples/basic-oram-mono.psl
     examples/basic-oram.psl
     examples/basic-pair.psl

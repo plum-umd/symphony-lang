@@ -65,7 +65,7 @@ instance Protocol 'YaoNP where
 
 toBristol ∷ (Monad m, MonadIO m) ⇒ 𝐿 PrinVal → MPCVal 'YaoNP → m (𝕊 ∧ (𝐿 𝔹) ∧ ℕ)
 toBristol ps v = do
-  ((_ :* (BOut input inputOrder gateOrder midCount gates)) :* (outputWires :* outputSizes)) ← mapSnd split ^$ io $ runRWST null null $ unBM $ addZero ≫ (brisMPCVal v)
+  ((_ :* (BOut input inputOrder gateOrder _midCount gates)) :* (outputWires :* outputSizes)) ← mapSnd split ^$ io $ runRWST null null $ unBM $ addZero ≫ (brisMPCVal v)
   
   io $ out "\n\nGates:\n"
   io $ shout gates
@@ -134,19 +134,22 @@ toBristol ps v = do
 
 brisMPCVal ∷ MPCVal 'YaoNP → BM (𝐿 (Wire ∧ ℕ))
 brisMPCVal = \case
-  DefaultMV → return null
-  BulMV → undefined
+  DefaultMV → error "Found DefaultMV when compiling bristol"
+  BulMV → error "Found BulMV when compiling brisol"
   BaseMV ckt → single ^$ brisCkt ckt
   PairMV v1 v2 → concat ^$ mapM brisMPCVal $ frhs [v1, v2]
   SumMV ckt v1 v2 → do
     g ← brisCkt ckt
-    content ← concat ^$ mapM brisMPCVal $ frhs [v1, v2]
-    return $ g :& content
+    --content ← concat ^$ mapM brisMPCVal $ frhs [v1, v2]
+    --return $ g :& content
+    --To implement, need to mux on g and pad for max length.
+    --Either need to add logical wires or map current outputs to mid first.
+    error "Revealing SumMV not implemented"
   NilMV → undefined
   ConsMV v1 v2 → undefined
 
-bitsToVal ∷ Type → 𝐿 𝔹 → Val
-bitsToVal t bits = case t of
+bitsToVal ∷ (Val → ValP) → Type → 𝐿 𝔹 → Val
+bitsToVal f t bits = case t of
   BaseT bt → BaseV $ case bt of
     𝔹T → BoolBV $ get𝐿 0 bits
     ℕT pr → NatBV pr $ nat $ unBitBlast @ℕ64 bits
@@ -155,5 +158,5 @@ bitsToVal t bits = case t of
   t1 :+: t2 →
     let b :& bits' = bits
     in case b of
-      True → LV undefined -- bitsToVal t1 $ firstN (getBitLengthType t1) bits'
-      False → RV undefined -- bitsToVal t2 $ firstN (getBitLengthType t2) bits'
+      True → LV $ f $ bitsToVal f t1 $ list $ firstN (getBitLengthType t1) bits'
+      False → RV $ f $ bitsToVal f t2 $ list $ firstN (getBitLengthType t2) bits'
