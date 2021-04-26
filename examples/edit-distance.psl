@@ -1,9 +1,9 @@
 principal A B
 
--- edit-dist: dynamic programming algorithm
+-- edit-dist: classical dynamic programming algorithm
 def edit-dist rowsWord colsWord =
   let (topFirst, topLast) = elim-list rowsWord
-    (map inc (reverse (range-nat (len colsWord))), 0n)
+    (map inc (range-nat (len colsWord)), 0n)
     (fun rowChar (prevSolnRow, prevLast) -> 
        let curLast = inc prevLast in
        let (curFirst, _) = elim-list (zip prevSolnRow colsWord)
@@ -11,10 +11,10 @@ def edit-dist rowsWord colsWord =
          (fun (prevRowCost, colChar) (curRow, diagCost) ->
            let prevColCost = head curLast curRow in
            let choice0 = min-muxable prevRowCost prevColCost in
-           let (choice1, addCost) = mux if (choice0 >= diagCost)
+           let (choice1, addCost) = mux if (choice0 > diagCost)
              then (diagCost, (mux if (rowChar == colChar) then 0n else 1n))
              else (choice0, 1n) in
-           (choice1::curRow, prevRowCost)) in
+           ((choice1 + addCost)::curRow, prevRowCost)) in
        (curFirst, curLast)) in
   head topLast topFirst 
 
@@ -25,4 +25,5 @@ def main () = par{A, B}
   let wordB = map (fun x -> share {yao: B -> A, B} x) 
       (send-ls {B} {A, B}
        (par {B} (read list int from "edit-dist-input.txt"))) in
+--  edit-dist wordA wordB
   reveal{A, B} edit-dist wordA wordB

@@ -4,12 +4,13 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 422540a368f80891e0f506478132612d1df79bf3d875e8f27f19f5eaed358d13
+-- hash: b2aeb6ecb0397269cb0086c2c9ae6f4654c0be25e304c5a1dd7814d5362403d7
 
 name:           psl
 version:        0.1.0.0
 build-type:     Simple
 data-files:
+    lib/#stdlib.psl#
     lib/stdlib.psl
     examples/aaa.psl
     examples/atq-bgw-12.psl
@@ -33,7 +34,11 @@ data-files:
     examples/atq-spdz-8.psl
     examples/atq-spdz.psl
     examples/basic-oram-mono.psl
+    examples/bio-matching.psl
+    examples/bio-matching.psl~
     examples/cmp.psl
+    examples/db-analytics.psl
+    examples/db-analytics.psl~
     examples/db-stats-10.psl
     examples/db-stats-11.psl
     examples/db-stats-12.psl
@@ -42,10 +47,16 @@ data-files:
     examples/db-stats-8.psl
     examples/db-stats-9.psl
     examples/db-stats.psl
+    examples/edit-distance.psl
+    examples/edit-distance.psl~
     examples/gcd-bgv.psl
     examples/gcd-gc.psl
+    examples/hamming.psl
+    examples/hamming.psl~
     examples/insertion-sort-2p.psl
     examples/insertion-sort.psl
+    examples/k-means.psl
+    examples/k-means.psl~
     examples/karmarkar-iters-1.psl
     examples/karmarkar-iters-2.psl
     examples/karmarkar.psl
@@ -125,9 +136,15 @@ data-files:
     tests/weird-mux-prin.psl
     tests/when.psl
     examples-input/A/atq-data.txt
+    examples-input/A/biomatching-input.txt
+    examples-input/A/biomatching-input.txt~
     examples-input/A/cmp-input.txt
     examples-input/A/db-stats-input.txt
+    examples-input/A/edit-dist-input.txt
+    examples-input/A/edit-dist-input.txt~
     examples-input/A/euclid.txt
+    examples-input/A/hamming-input.txt
+    examples-input/A/k-means-input.txt
     examples-input/A/msort-input.txt
     examples-input/A/partial-diverge-in.txt
     examples-input/A/pfold.txt
@@ -873,8 +890,14 @@ data-files:
     examples-input/B/atq-data.txt
     examples-input/B/atq-queries.txt
     examples-input/B/atq-targets.txt
+    examples-input/B/biomatching-input.txt
+    examples-input/B/biomatching-input.txt~
     examples-input/B/cmp-input.txt
+    examples-input/B/edit-dist-input.txt
     examples-input/B/euclid.txt
+    examples-input/B/hamming-input.txt
+    examples-input/B/hamming-input.txt~
+    examples-input/B/k-means-input.txt
     examples-input/B/msort-input.txt
     examples-input/B/partial-diverge-in.txt
     examples-input/B/pfold.txt
