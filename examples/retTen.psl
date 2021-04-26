@@ -1,0 +1,6 @@
+principal A B
+
+def main • =
+  par {B}
+  let x = par {A} 10 in
+  x

@@ -59,9 +59,3 @@ instance (Pretty a) ⇒ Pretty (AddBTD a) where
 
 logBase ∷ 𝔻 → 𝔻 → 𝔻
 logBase = HS.logBase
-
---TODO: Should really be defined on anything foldable, and use fold
-smush ∷ (Monad m) ⇒ 𝐿 (m a) → m (𝐿 a)
-smush = \case
-  Nil       → return Nil
-  xM :& xMs → do {x ← xM; xs ← smush xMs; return (x :& xs)}
