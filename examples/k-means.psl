@@ -5,7 +5,7 @@ principal A B
 -- library of option types as tagged pairs:
 def tagJust v = (true, v)
 
-def tagNothing v = (false, v)
+def tagNothing = (false, _|_)
 
 def elim-ooption v vNothing vJust = mux if (fst v)
   then vJust (snd v)

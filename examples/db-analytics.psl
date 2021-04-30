@@ -1,5 +1,14 @@
 principal A B
 
+-- library of option types as tagged pairs:
+def tagJust v = (true, v)
+
+def tagNothing = (false, _|_)
+
+def elim-ooption v vNothing vJust = mux if (fst v)
+  then vJust (snd v)
+  else vNothing
+
 def main () = par{A, B}
   let pA = map (fun x -> share {yao: A -> A, B} x) 
       (send-ls {A} {A, B}
@@ -21,28 +30,17 @@ def main () = par{A, B}
     [ ]
     (fun (xa, ya) joinDb0 -> elim-list pB joinDb0
       (fun (xb, yb) -> cons
-         (mux if xa == xb then L (xa, ya, yb)
-          else R ())
+         (mux if xa == xb then tagJust (xa, ya, yb)
+          else tagNothing)
       )) in
 
   let joinNumElts = elim-list joinDb 0
-    (fun x sum -> mux case x
-      { L _ -> plus 1 sum
-      ; R _ -> sum
-      }) in
+    (fun x sum -> elim-ooption x sum (const (plus 1 sum))) in
   let joinSum = elim-list joinDb 0
-    (fun x ->
-      let addElt = mux case x
-        { L (x0, y0, z0) -> y0
-        ; R () -> 0
-        } in
-      plus addElt) in
+    (fun x -> plus (elim-ooption x 0 (fun (x0, y0, z0) -> y0))) in
   let joinMean = joinSum / joinNumElts in
   let joinVar = elim-list joinDb 0
-    (fun x var0 -> mux case x
-       { L (x0, y0, z0) -> let d = y0 - mean in plus (d * d) var0
-       ; R () -> var0
-       }
-    ) in
+    (fun x var0 -> elim-ooption x var0
+      (fun (x0, y0, z0) -> let d = y0 - mean in plus (d * d) var0) ) in
 
   (variance, joinVar)
