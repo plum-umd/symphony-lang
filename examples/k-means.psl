@@ -2,10 +2,14 @@ principal A B
 
 -- find k-means:
 
-def elim-ooption v vNothing vJust = mux case v
-  { R () -> vNothing
-  ; L x -> vJust x
-  }
+-- library of option types as tagged pairs:
+def tagJust v = (true, v)
+
+def tagNothing v = (false, v)
+
+def elim-ooption v vNothing vJust = mux if (fst v)
+  then vJust (snd v)
+  else vNothing
 
 def elim-osum-list l acc0 f = elim-list l acc0
   (fun x acc -> elim-ooption x acc (fun y -> f y acc))
@@ -40,8 +44,8 @@ def get-means assign = elim_nat k [ ]
     let k0 = len means0 in
     let kthSet = map
       (fun (pt, meanIdx) ->
-        mux if meanIdx == k0 then just pt
-        else nothing)
+        mux if meanIdx == k0 then tagJust pt
+        else tagNothing pt)
       assign in
     (let len = osumLen kthSet in
      mux if len == 0 then origin
