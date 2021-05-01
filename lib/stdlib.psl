@@ -123,13 +123,49 @@ def abs-val-flt-shr a = max mux-wrap a (-1.0 * a)
 
 -- sqrt: implementation of the Babylonian method for computing sqrt
 def sqrt_steps = 5n -- a tunable magic constant
-def babylonian_sqrt x = eliml_nat sqrt_steps
-  1.0
-  (fun s -> (s + x / s) / 2.0)
+def babylonian-sqrt u sum div x =
+  let two = sum u u in
+  eliml_nat sqrt_steps u (fun s -> div (sum s (div x s)) two)
 
-def babylonian_sqrt_nat x = eliml_nat sqrt_steps
-  1
-  (fun s -> (s + x / s) / 2)
+def babylonian-sqrt-num u = babylonian-sqrt u plus div
+
+def babylonian-sqrt-nat = babylonian-sqrt-num 1n
+
+def babylonian-sqrt-flt = babylonian-sqrt-num 1.0
+
+-- TODO: define instances for float, fixed-point
+
+---
+--- fixed-point numerics LIBRARY, based on HyCC implementation
+---
+
+-- a fixed-point number is just a bitvector with frac-digs digits for
+-- representing the fraction.
+def frac-digs = 16n
+
+-- IAN: potentially replace these with more efficient implementations
+def left-shift n digs = eliml_nat digs n (mult 2)
+
+def right-shift n digs = eliml_nat digs n (flip div 2)
+
+def mk-fixed-pt i frac = (left-shift i frac-digs) + frac
+
+def fixed-pt-0 = mk-fixed-pt 0 0
+
+def fixed-pt-1 = mk-fixed-pt 1 0
+
+def plus-fixed-pt = plus
+
+def minus-fixed-pt = minus
+
+def mult-fixed-pt a b = right-shift (a * b) frac-digs
+
+def div-fixed-pt a b = (left-shift a frac-digs) / b
+
+def mult-inv-fixed-pt = div-fixed-pt fixed-pt-1 
+
+def sqrt-fixed-pt = babylonian-sqrt
+  fixed-pt-1 plus-fixed-pt div-fixed-pt
 
 ---
 --- unit library
@@ -302,6 +338,10 @@ def const-ls c n = elim_nat n [] (cons c)
 def zero-ls-flt = const-ls 0.0
 def one-ls-flt = const-ls 1.0
 
+def zero-ls-fixed-pt = const-ls fixed-pt-0
+
+def one-ls-fixed-pt = const-ls fixed-pt-1
+
 def max-vec-flt = const-ls max-flt
 
 def max-mat-flt m n = const-ls (max-vec-flt n) m
@@ -355,9 +395,16 @@ def stddev xs =
 
 
 -- l2norm z v: the L2 norm of a vector of floats
-def l2norm : point -> comp_shr
-def l2norm v = babylonian_sqrt (sum (map square v))
+def square-gen p x = p x x
 
+def l2norm : point -> comp_shr
+def l2norm z u s p d v = babylonian-sqrt u s d
+  (elim-list (map (square-gen p) v) z s)
+
+def l2norm-flt = l2norm 0.0 1.0 plus mult div
+
+def l2norm-fixed-pt = l2norm
+  fixed-pt-0 fixed-pt-1 plus-fixed-pt mult-fixed-pt div-fixed-pt
 
 def pair-swap swap b xs ys =
   let x0, x1 = xs
@@ -450,14 +497,26 @@ def mult-scalar-vec a = map (mult a)
 
 -- scalar_vec_div: divide a vector of reals by a constant
 def div-scalar-vec : real -> list real -> list real
-def div-scalar-vec v a = map (flip div a) v
+def div-scalar-vec d v a = map (flip d a) v
+
+def div-fixed-pt-scalar-vec = div-scalar-vec div-fixed-pt
+
+-- instantiate numeric operators to various concrete numeric types:
+def inst-num z f = f z plus mult
+
+def inst-flt = inst-num 0.0
+
+def inst-fixed-pt f = f fixed-pt-0 plus-fixed-pt mult-fixed-pt
 
 -- dot-prod z l0 l1: dot product of two lists of numerics with zero
 -- element z
-def dot-prod z l0 l1 = sum-gen (zip-map mult l0 l1) z
+def dot-prod z s p l0 l1 = elim-list (zip-map p l0 l1) z s
 
 -- dot-prod-flt: dot product over floats
-def dot-prod-flt = dot-prod 0.0
+def dot-prod-flt = inst-flt dot-prod
+
+-- dot-prod-fixed-pt: dot product of fixed point numerics
+def dot-prod-fixed-pt = inst-fixed-pt dot-prod
 
 
 def rangen-help : nat -> nat -> list nat
@@ -1088,20 +1147,23 @@ def transpose m = elim-list m
 
 
 -- mult-matrix-vec m v: multiply matrix m by vector v
-def mult-matrix-vec z m v = map (dot-prod z v) m
+def mult-matrix-vec z s p m v = map (dot-prod z s p v) m
 
 -- matrix_vec_mult: multiply matrix and vector of SPDZ shares
-def mult-matrix-vec-flt = mult-matrix-vec 0.0
+def mult-matrix-vec-flt = inst-flt mult-matrix-vec
+
+def mult-matrix-vec-fixed-pt = inst-fixed-pt mult-matrix-vec
 
 -- mult-matrices m0 m1: product of matrices m0 and m1 of numerics with
 -- zero element z
-def mult-matrices z m0 m1 =
+def mult-matrices z s p m0 m1 =
   let m1t = transpose m1 in
-  map (fun v -> map (dot-prod z v) m1t) m0
+  map (fun v -> map (dot-prod z s p v) m1t) m0
 
--- mult-matrices-flt: multiply matrices of SPDZ shares
-def mult-matrices-flt = mult-matrices 0.0
+-- mult-matrices-flt: multiply matrices of floats
+def mult-matrices-flt = inst-flt mult-matrices
 
+def mult-matrices-fixed-pt = inst-fixed-pt mult-matrices
 
 -- dimensions_of m: dimensions of matrix m
 def dimensions_of m = case m
@@ -1119,6 +1181,7 @@ def diagonal-matrix z v = elim-list v
 -- diagonal_matrix v: diagonal matrix of floats
 def diagonal-matrix-flt = diagonal-matrix 0.0
 
+def diagonal-matrix-fixed-pt = diagonal-matrix fixed-pt-0
 
 -- const-sq-mat c n: n x n matrix of constant c
 def const-sq-mat c n = elim_nat n
@@ -1128,7 +1191,11 @@ def const-sq-mat c n = elim_nat n
 -- zero-mat: matrix of zero flt's
 def zero-mat = const-sq-mat 0.0
 
+def zero-fixed-pt-mat = const-sq-mat fixed-pt-0
+
 def to_flt x = flt x
+
+def to-fixed-pt x = mk-fixed-pt x 0
 
 -- PKI library:
 def wrap-is-signed N x = is-signed { N } x 
