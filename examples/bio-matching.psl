@@ -1,12 +1,19 @@
 principal A B
 
+def dist a b = abs-val-int (a - b)
+
+-- omin l: minimum value in non-empty list l
+def omin l = elim-list l (head _|_ l) min-muxable
+
 def main () = par{A, B}
-  let pA = map (fun x -> share {yao: A -> A, B} x) 
+  let psA = map (fun x -> share {yao: A -> A, B} x) 
       (send-ls {A} {A, B}
        (par {A} (read list int from "biomatching-input.txt"))) in
-  let pB = map (fun x -> share {yao: B -> A, B} x) 
-      (send-ls {B} {A, B}
-       (par {B} (read list int from "biomatching-input.txt"))) in
-  reveal {A, B} (babylonian_sqrt_nat
-                 (sum-ints (map (fun (a, b) -> babylonian_sqrt_nat (a - b))
-                            (zip pA pB))))
+  let pB = share {yao: B -> A, B}
+    (par {B} (read int from "biomatching-input.txt")) in
+  reveal {A, B} (omin (map (dist pB) psA))
+
+
+  -- let pB = map (fun x -> share {yao: B -> A, B} x) 
+  --     (send-int {B} {A, B}
+  --      (par {B} (read int from "biomatching-input.txt"))) in
