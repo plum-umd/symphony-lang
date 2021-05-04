@@ -21,18 +21,15 @@ def osumLen l = elim-osum-list l 0 (const (plus 1))
 -- k: the number of means
 def k = 3n
 
-def origin = (0, 0, 0)
+def origin = 0
 
-def plus-tuples (a0, b0, c0) (a1, b1, c1) = (a0 + a1, b0 + b1, c0 + c1)
+def plus-tuples = plus
 
-def minus-tuples (a0, b0, c0) (a1, b1, c1) = (a0 - a1, b0 - b1, c0 - c1)
+def minus-tuples = minus
 
-def scalar-div-tuples (a, b, c) denom = (a/denom, b/denom, c/denom)
+def scalar-div-tuples = div
 
-def magn (a, b, c) =
-  (square a) +
-  (square b) +
-  (square c)
+def magn = square
 
 def eq-vals (_, b0) (_, b1) = b0 == b1
 
@@ -45,7 +42,7 @@ def get-means assign = elim_nat k [ ]
     let kthSet = map
       (fun (pt, meanIdx) ->
         mux if meanIdx == k0 then tagJust pt
-        else tagNothing pt)
+        else tagNothing)
       assign in
     (let len = osumLen kthSet in
      mux if len == 0 then origin
@@ -79,9 +76,9 @@ def k-means assign0 =
 def main () = par{A, B}
   let ptsA = map (fun x -> share {yao: A -> A, B} x) 
       (send-ls {A} {A, B}
-       (par {A} (read list (int * int * int) from "k-means-input.txt"))) in
+       (par {A} (read list int from "k-means-input.txt"))) in
   let ptsB = map (fun x -> share {yao: B -> A, B} x) 
       (send-ls {B} {A, B}
-       (par {B} (read list (int * int * int) from "k-means-input.txt"))) in
+       (par {B} (read list int from "k-means-input.txt"))) in
   let clusters = k-means (init-assign (append ptsA ptsB)) in
   map (fun m -> reveal{A, B} m) (get-means clusters)
