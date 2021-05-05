@@ -18,29 +18,35 @@ def main () = par{A, B}
        (par {B} (read list (int * int) from "biomatching-input.txt"))) in
 
   -- compute facts about the union of DB's:
-  let unionDb = append pA pB in
-  let col2 = map (fun (a, x) -> x) unionDb in
-  let unionSum = sum-ints col2 in
-  let mean = unionSum / (length unionDb) in
-  let variance = elim-list col2
-    0
-    (fun x -> let d = x - mean in plus (d * d)) in
+  let union-db = append pA pB in
+  let col2 = map snd union-db in
+  let union-num-elts = length union-db in
 
-  let joinDb = elim-list pA
-    [ ]
-    (fun (xa, ya) joinDb0 -> elim-list pB joinDb0
+  let union-mean = (sum-ints col2) / union-num-elts in
+  let union-variance = (elim-list col2 0
+    (fun x -> let d = x - union-mean in plus (d * d))) /
+    union-num-elts in
+
+  -- compute facts about the join of DB's:
+  let join-db = elim-list pA [ ]
+    (fun (xa, ya) join-db0 -> elim-list pB join-db0
       (fun (xb, yb) -> cons
          (mux if xa == xb then tagJust (xa, ya, yb)
           else tagNothing)
       )) in
 
-  let joinNumElts = elim-list joinDb 0
+  let join-num-elts = elim-list join-db 0
     (fun x sum -> elim-ooption x sum (const (plus 1 sum))) in
-  let joinSum = elim-list joinDb 0
-    (fun x -> plus (elim-ooption x 0 (fun (x0, y0, z0) -> y0))) in
-  let joinMean = joinSum / joinNumElts in
-  let joinVar = elim-list joinDb 0
-    (fun x var0 -> elim-ooption x var0
-      (fun (x0, y0, z0) -> let d = y0 - mean in plus (d * d) var0) ) in
+  let join-mean = (elim-list join-db 0
+    (fun x -> plus (elim-ooption x 0 (fun (x0, y0, z0) -> y0))) ) /
+    join-num-elts in
+  let join-variance = (elim-list join-db 0
+    (fun x -> plus (elim-ooption x 0
+      (fun (x0, y0, z0) -> let d = y0 - join-mean in (d * d)) ) ) ) /
+    join-num-elts in
 
-  (variance, joinVar)
+  -- TODO: reveal these
+  (reveal { A, B } union-mean,
+   reveal { A, B } union-variance,
+   reveal { A, B } join-mean,
+   reveal { A, B } join-variance)
