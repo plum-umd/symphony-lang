@@ -45,7 +45,6 @@ def main () = par{A, B}
       (fun (x0, y0, z0) -> let d = y0 - join-mean in (d * d)) ) ) ) /
     join-num-elts in
 
-  -- TODO: reveal these
   (reveal { A, B } union-mean,
    reveal { A, B } union-variance,
    reveal { A, B } join-mean,
