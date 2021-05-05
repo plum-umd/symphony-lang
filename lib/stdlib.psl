@@ -133,6 +133,8 @@ def babylonian-sqrt-num u = babylonian-sqrt u plus div
 
 def babylonian-sqrt-nat = babylonian-sqrt-num 1n
 
+def babylonian-sqrt-int = babylonian-sqrt-num 1
+
 def babylonian-sqrt-flt = babylonian-sqrt-num 1.0
 
 -- TODO: define instances for float, fixed-point
