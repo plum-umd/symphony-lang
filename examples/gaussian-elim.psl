@@ -1,0 +1,62 @@
+principal A B
+
+def dim = 2n
+def dim-int = 2
+
+def add-inv n = 0 - n
+
+def is-pivot (hd, tl) = not (hd == 0)
+
+def mux-ctr guard (hd-a, tl-a) (hd-b, tl-b) =
+  ((mux if guard then hd-a else hd-b), (mux_ls guard tl-a tl-b))
+
+def find-pivot pivot0 ctrs = elim-list ctrs
+  (pivot0, [ ])
+  (fun ctr (pivot, rest) ->
+    let cur-is-pivot = is-pivot ctr in
+    let pivot1 = mux-ctr cur-is-pivot ctr pivot in
+    let other = mux-ctr (not cur-is-pivot) pivot ctr in
+    (pivot1, other::rest) )
+
+def diff-ctrs (a-hd, a-tl) (b-hd, b-tl) =
+  let scale = div-fixed-pt a-hd b-hd in
+  let full-ctr = zip-map
+      (fun a-coeff b-coeff -> a-coeff - (mult-fixed-pt scale b-coeff))
+      a-tl b-tl in
+  (head _|_ full-ctr, tail full-ctr)
+
+def reduced-row-form ctrs = case ctrs
+  { [ ] -> [ ]
+  ; ctr0::rest0 ->
+      let (pivot, rest) = find-pivot ctr0 rest0 in
+      let (pivot-hd, pivot-tl) = pivot in
+      let red-ctr = map (flip div-fixed-pt pivot-hd) pivot-tl in
+      red-ctr::(reduced-row-form (map (flip diff-ctrs pivot) rest))
+  }
+
+def gaussian-elim ctrs =
+  -- put constraints in reduced-row-form and solve, using back substitution
+  elim-list (reduced-row-form ctrs)
+    [ mk-fixed-pt 1 0 ]
+    (fun ctr soln -> (add-inv (dot-prod-fixed-pt ctr soln))::soln)
+ 
+def chunk-ctrs dim coeffs = case coeffs
+  { [ ] -> [ ]
+  ; next::rest -> (next, take dim-int rest)::(chunk-ctrs dim (drop dim-int rest))
+  }
+
+def main () = par { A, B }
+  let ctrsA = map (fun x -> share {yao: A -> A, B} x)
+        (send-ls {A} {A, B} (par{A}
+          (chunk-ctrs dim
+            (map (fun (i, f) -> mk-fixed-pt i f)
+              (read list (int * int) from "gaussian-in.txt"))
+            ))) in
+  let ctrsB = map (fun x -> share {yao: B -> A, B} x)
+        (send-ls {B} {A, B} (par{B}
+          (chunk-ctrs dim
+            (map (fun (i, f) -> mk-fixed-pt i f)
+              (read list (int * int) from "gaussian-in.txt"))
+            ))) in
+  map (fun x -> reveal { A, B } x)
+    (gaussian-elim (append ctrsA ctrsB))
