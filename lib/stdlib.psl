@@ -271,14 +271,14 @@ def decons_ls l a0 f = case l
 def at : a -> nat -> list a -> a
 def at default ix xs = case xs
   { [] -> default
-  ; (x::xs') -> if ix == 0
+  ; (x::xs') -> if ix == 0n
                 then x
-                else at default (ix - 1) xs'
+                else at default (ix - 1n) xs'
   }
 
 
 def head : a -> list a -> a
-def head default = at default 0
+def head default = at default 0n
 
 
 -- Safe version of tail: If the list is empty, the tail of the list is the
