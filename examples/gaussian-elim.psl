@@ -58,5 +58,7 @@ def main () = par { A, B }
             (map (fun (i, f) -> mk-fixed-pt i f)
               (read list (int * int) from "gaussian-in.txt"))
             ))) in
-  map (fun x -> reveal { A, B } x)
+  map (fun x ->
+         let coeff = reveal { A, B } x in
+         (fixed-pt-int coeff, fixed-pt-frac coeff) )
     (gaussian-elim (append ctrsA ctrsB))
