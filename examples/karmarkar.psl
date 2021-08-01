@@ -201,7 +201,7 @@ def karmarkar_loop a c = proc
   --   12n * n * l in
   -- let max_iterations = num-iters c a in
   -- let upper-bound = num-iters (max-vec-flt n) (max-mat-flt m n) in
-  let num-iters = 10n in
+  let num-iters = 1n in
 
   elim_nat num-iters x (karmarkar_iteration a c)
 
@@ -220,7 +220,7 @@ def main () =
   let cost = par { Node_c }
     (map to-fixed-pt (read (list int) from "in.txt")) in
   let shrd-soln = par { Node_in, Node_c, Node_o } (map
-    (wrap-reveal { Node_o })
+    (fun x -> reveal {Node_o} x)
     -- Node_c reveals the structure of the list to out:
     (send-ls { Node_c } { Node_in, Node_c, Node_o }
       -- Node_in and Node_c compute the solution point:
@@ -234,5 +234,7 @@ def main () =
         (map (shr-w-comp { Node_c })
           (send-ls { Node_c } comps cost) ) ) ) ) in
   -- Node_in and Node_c forget the structure of the solution
-  par { Node_o } send-ls { Node_o } { Node_o } shrd-soln 
+  par { Node_o } map 
+    (fun x -> (fixed-pt-int x, fixed-pt-frac x))
+    (send-ls { Node_o } { Node_o } shrd-soln)
    

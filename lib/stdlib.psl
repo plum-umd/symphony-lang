@@ -154,6 +154,11 @@ def right-shift n digs = eliml_nat digs n (flip div 2)
 
 def mk-fixed-pt i frac = (left-shift i frac-digs) + frac
 
+def fixed-pt-int n = right-shift n frac-digs
+
+def fixed-pt-frac n = fixed-pt-int
+  (n - (left-shift (fixed-pt-int n) frac-digs))
+
 def fixed-pt-0 = mk-fixed-pt 0 0
 
 def fixed-pt-1 = mk-fixed-pt 1 0
@@ -271,14 +276,14 @@ def decons_ls l a0 f = case l
 def at : a -> nat -> list a -> a
 def at default ix xs = case xs
   { [] -> default
-  ; (x::xs') -> if ix == 0
+  ; (x::xs') -> if ix == 0n
                 then x
-                else at default (ix - 1) xs'
+                else at default (ix - 1n) xs'
   }
 
 
 def head : a -> list a -> a
-def head default = at default 0
+def head default = at default 0n
 
 
 -- Safe version of tail: If the list is empty, the tail of the list is the
