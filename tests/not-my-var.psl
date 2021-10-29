@@ -1,8 +1,0 @@
-principal A B
-
-def main • =
-  par {B}
-    let x = par {A} 1 
-    in x
-
-def expected = par { } •

@@ -1,7 +1,0 @@
-{
-  "commit": "master",
-  "urls": [
-    "git@gitlab.stealthsoftwareinc.com:stealth/hector-mockups.git",
-    "https://gitlab-ci-token:$CI_JOB_TOKEN@gitlab.stealthsoftwareinc.com/stealth/hector-mockups.git"
-  ]
-}

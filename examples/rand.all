@@ -1,0 +1,3 @@
+principal A B
+
+def main () = par {A,B} (rand {A,B} ℤ#8)

@@ -2,10 +2,9 @@ principal A B C
 
 def main • =
   let xy = ⟪ A | 1 ; B | 2 ⟫
-  -- solo-f {A,B} (λ ρ → xy.ρ + 1)
-  fold xy as ρ.x on 0 as i in 
-    let x′ = send {ρ -> C} x
-    in par {C} i + x′
+  fold xy as ρ.x on 0 as i in
+    par {ρ,C}
+      let x′ = send [ℤ : ρ → {C}] x
+      in par {C} i + x′
 
 def expected = par {C} 3
-

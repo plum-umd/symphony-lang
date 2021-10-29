@@ -1,30 +1,33 @@
-E          := PSL.mainDefault
-STACK_ARGS := --trace --ghci-options '-fexternal-interpreter -prof'
-STACK_ARGS := 
+E          := AllynMain.mainDefault
+NAME       := allyn
+STACK_ARGS := --extra-include-dirs=/usr/local/include --extra-lib-dirs=/usr/local/lib --trace --ghci-options '-fexternal-interpreter -prof'
+STACK_ARGS :=
 
 ARGS       :=
 
-FLAGS      := 
+FLAGS      :=
 
-psl: build
-	rm -f psl
-	ln -s `stack path --dist-dir`/build/psl/psl ./
+allyn: build
+	rm -f allyn
+	ln -s `stack path --dist-dir`/build/Allyn/allyn ./
 
-all-examples: psl
-	./psl example $(FLAGS) msort-dedup-small
-	./psl example $(FLAGS) qsort
-	./psl example $(FLAGS) gcd-gc
-	./psl example $(FLAGS) gcd-bgv
-	./psl example $(FLAGS) karmarkar
-	./psl example $(FLAGS) db-stats
-	# ./psl example $(FLAGS) atq
+all-examples: allyn
+	./allyn example $(FLAGS) msort-dedup-small
+	./allyn example $(FLAGS) qsort
+	./allyn example $(FLAGS) gcd-gc
+	./allyn example $(FLAGS) gcd-bgv
+	./allyn example $(FLAGS) karmarkar
+	./allyn example $(FLAGS) db-stats
 
 .stack-work:
 	stack setup
 
 .PHONY: build
 build: .stack-work
-	stack build
+	stack build --extra-include-dirs=/usr/local/include --extra-lib-dirs=/usr/local/lib
+
+build-profile: .stack-work
+	stack build --profile
 
 .PHONY: dev
 dev: .stack-work
@@ -64,7 +67,7 @@ clean:
 
 .PHONY:
 re:
-	touch src/PSL.hs
+	touch src/Allyn.hs
 
 .PHONY: hoogle
 hoogle:

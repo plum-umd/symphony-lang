@@ -1,8 +1,0 @@
-primitive PLUS : ℤ → ℤ → ℤ
-
-primitive MINUS : ℤ → ℤ → ℤ
-primitive TIMES : ℤ → ℤ → ℤ
-
-primitive EQ : ℤ → ℤ → 𝔹
-primitive LT : ℤ → ℤ → 𝔹
-primitive LTE : ℤ → ℤ → 𝔹

@@ -5,22 +5,19 @@
 
 packages:
 - completed:
-    cabal-file:
-      size: 4331
-      sha256: 18302d4b7270233651d7f412dd048deaefbdb1f8aadf842bc94ddaf311c5a4a6
     name: uvmhs
     version: 0.0.0.0
     git: https://github.com/uvm-plaid/uvmhs.git
     pantry-tree:
-      size: 135265
-      sha256: 3a1c045622cae511262f823b86963894026998784176d0d454ed5f3694688606
-    commit: 33afdd84494bb750cf55a130030a63f378875eba
+      size: 123066
+      sha256: 3df1ccce10300967e598699c81c377695e325d57e6ea3f9e8efaa9f584afc4c3
+    commit: 9987218dd3bbe678234d1ccf069941728f8920bb
   original:
     git: https://github.com/uvm-plaid/uvmhs.git
-    commit: 33afdd84494bb750cf55a130030a63f378875eba
+    commit: 9987218dd3bbe678234d1ccf069941728f8920bb
 snapshots:
 - completed:
-    size: 524996
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/14/27.yaml
-    sha256: 7ea31a280c56bf36ff591a7397cc384d0dff622e7f9e4225b47d8980f019a0f0
-  original: lts-14.27
+    size: 586041
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/11.yaml
+    sha256: ae30d25a4691c6bb32b5766c617dff24270b2b3576ebd6047d754418e9256389
+  original: lts-18.11

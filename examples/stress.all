@@ -1,0 +1,5 @@
+principal A
+
+def sum2 n acc = if n == 0n then acc else sum2 (n - 1n) (acc + 1)
+
+def main () = par {A} sum2 1000000n 0

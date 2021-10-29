@@ -1,0 +1,24 @@
+principal A B
+
+def hamming_arr bs0 bs1 len =
+  let hamming_rec = fun [hamming_rec] i acc ->
+    if i == len then
+      acc
+    else
+      let n = mux if bs0.i == bs1.i then 0n else 1n in hamming_rec (i + 1n) (acc + n)
+  in
+  hamming_rec 0n 0n
+
+def hamming_list bs0 bs1 acc = case (bs0, bs1)
+  { []     , []      → acc
+  ; h0 ∷ t0, h1 ∷ t1 → let n = mux if h0 == h1 then 0n#32 else 1n#32 in hamming_list t0 t1 (acc + n)
+  }
+
+def main () = par {A,B}
+  let inputA = par {A} snd (read (ℕ#32 × list[50000] ℤ#32) from "hamming-input-50000.txt") in
+  let inputB = par {B} snd (read (ℕ#32 × list[50000] ℤ#32) from "hamming-input-50000.txt") in
+
+  let strA = share [yao, list[50000] ℤ#32 : A → {A,B}] inputA in
+  let strB = share [yao, list[50000] ℤ#32 : B → {A,B}] inputB in
+
+  reveal [yao, ℕ#32 : {A,B} → A] (hamming_list strA strB 0n)

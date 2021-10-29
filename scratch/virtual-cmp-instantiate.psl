@@ -1,9 +1,0 @@
-principal C[10]
-principal E
-principal F
-
-import "virtual-cmp.psl" 
-  with V = {C} 
-       W = {E,F}
-
-def main = cmp

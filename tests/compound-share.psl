@@ -1,12 +1,11 @@
-principal A
-principal B
+principal A B
 
-def main () =
+def main • =
   par {A,B}
-    share {yao : A -> this} (par {A} (1, 2))
+    share [yao, ℤ × ℤ : A → this] (1, 2)
 
-def expected = 
+def expected =
   par {A,B}
-    ( (share {yao : A -> this} (par {A} 1))
-    , (share {yao : A -> this} (par {A} 2))
+    ( share [yao, ℤ : A → this] 1
+    , share [yao, ℤ : A → this] 2
     )

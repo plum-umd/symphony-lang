@@ -1,10 +1,10 @@
 principal A[2]
 
 def main • =
-  -- 4-bit naturals {0..15}
-  let x = share{bgv:A.1 → A} 1
-  let y = share{bgv:A.1 → A} 2
-  in
-  reveal{A} (x + y)
+  par A
+    let x = share [bgv, ℤ : A.0 → A] 1
+    let y = share [bgv, ℤ : A.1 → A] 2
+    in
+    reveal [bgv, ℤ : A → A.0] x + y
 
-def expected = par {A} 3
+def expected = par {A.0} 3

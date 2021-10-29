@@ -1,8 +1,0 @@
-principal A B
-
-def expected = (par {A} (1 , 2)) , (par {B} [3; 4; 5; 6])
-
-def main • =
-  let x = par {A} read int × int from "simple-read.txt"
-  let y = par {B} read list int  from "simple-read.txt"
-  in (x , y) , expected

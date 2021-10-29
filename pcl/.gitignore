@@ -1,7 +1,0 @@
-*.aux
-*.pdf
-*.log
-.texpadtmp/
-.ghc*
-dist/
-dist-newstyle/

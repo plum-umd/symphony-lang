@@ -1,0 +1,278 @@
+principal A B C
+
+-- Trivial ORAM is a 3-tuple of ⟨index, is_dummy, data⟩
+
+def tr_default = (0n, true, 0n)
+
+def tr_init n = array[n] tr_default
+
+def readable mem hand = ¬ mem ∧ hand
+
+def writable mem hand = mem ∧ ¬ hand
+
+def tr_rr oram idx =
+  let sz = nat (size oram) in
+  let tr_rr' = λ [tr_rr'] i acc →
+    if i == sz then
+      acc
+    else
+      let c                     = oram.i
+      let (c_idx, c_dummy  , _) = c
+      let (_    , acc_dummy, _) = acc
+      let (c', acc')            = mux if (readable c_dummy acc_dummy) ∧ (c_idx ≡ idx) then (acc, c) else (c, acc) in
+      oram.i ← c' ▶
+      tr_rr' (i + 1n) acc'
+  in
+
+  let (_, _, v) = tr_rr' 0n tr_default in
+  v
+
+def tr_w oram idx v =
+  let sz = nat (size oram) in
+  let tr_w' = λ [tr_w'] i acc →
+    if i == sz then
+      ()
+    else
+      let c                     = oram.i
+      let (c_idx, c_dummy  , _) = c
+      let (_    , acc_dummy, _) = acc
+      let (c', acc')            = mux if (writable c_dummy acc_dummy) then (acc, c) else (c, acc) in
+      oram.i ← c' ▶
+      tr_w' (i + 1n) acc'
+  in tr_w' 0n (idx, false, v)
+
+def tr_r oram idx =
+  let v = tr_rr oram idx in
+  tr_w oram idx v ▶
+  v
+
+-- Circuit ORAM
+
+def ck_init n m =
+  let r = array[n] ⊥ in
+  let ck_init' = λ [ck_init'] i →
+    if i == n then
+      ()
+    else
+      ()
+  in
+  ck_init' 0n ▶
+  r
+
+--NOTE(ins): The `depth[i]` in Circuit ORAM paper must contain not only
+--           the deepest level of blocks in level `i`, but also the _index_ for
+--           that block so that it can be read out later.
+--
+--           Then, that index is propagated all the way to the `target` array
+--           so that it can be read out when evicting.
+--
+--           See: https://github.com/samee/sqrtOram/blob/9865598228f66936a9759b2221a06b2b1b0263f9/oram/nonrecursive_oram.oc#L147
+
+--def deepest sz p =
+--  let r = array[sz] ⊥ in
+--  let deepest_rec = λ [deepest_rec] i acc →
+--    ...
+--  in
+--  let _ = deepest_rec 1n ... in
+--  r
+
+-- TODO
+
+-- Array Library
+
+def eq_array eq_e a1 a2 =
+  let sz1 = nat (size a1)
+  let sz2 = nat (size a2) in
+  if sz1 ≡ sz2 then
+    let eq_rec = λ [eq_rec] i acc →
+      if i ≡ sz1 then
+        acc
+      else
+        eq_rec (i + 1n) (acc ∧ (eq_e a1.i a2.i))
+    in eq_rec 0n true
+  else
+    false
+
+def app_array arrs =
+  let n = nat (size arrs) in
+  let len = λ [len] i acc →
+    if i == n then
+      acc
+    else
+      len (i + 1n) (acc + nat (size arrs.i))
+  in
+  let m = len 0n 0n in
+  let r = array[m] ⊥ in
+  let concat = λ [concat] i j offset →
+    if i == n then
+      ()
+    else
+      let c = nat (size arrs.i) in
+      if j == c then
+        concat (i + 1n) 0n (offset + c)
+      else
+        let a = arrs.i in
+        r.(offset + j) ← a.j ▶
+        concat i (j + 1n) offset
+  in
+  concat 0n 0n 0n ▶
+  r
+
+-- Sorting
+
+-- TODO
+
+-- Binary Search
+
+def cbs arr e =
+  let sz = nat (size arr) in
+  let bs_rec = λ [bs_rec] l r →
+    if l ≡ r then
+      if arr.l ≡ e then (true, l) else (false, 0n)
+    else
+      let m = (l + r) / 2n in
+      if e ≤ arr.m then
+        bs_rec l m
+      else
+        bs_rec (m + 1n) r
+  in bs_rec 0n (sz - 1n)
+
+-- TODO(ins): Should also assume ORAM size is public, and pass this as argument.
+--            Could be made to work with ORAM of private size, but would not be
+--            very efficient and I think the typical use-case assumes a public size.
+def obs oram e =
+  let sz = nat (size oram) in
+  let bs_rec = λ rec (l, r) →
+    mux if l ≡ r then
+      let e' = tr_r oram l in
+      mux if e ≡ e' then (true, l) else (false, 0n)
+    else
+      let m = (l + r) / 2n in
+      let e' = tr_r oram m in
+      mux if e ≤ e' then
+        rec (l, m)
+      else
+        rec (m + 1n, r)
+  in bnd_rec bs_rec (const (false, 0n)) 3n (0n, sz - 1n) -- TODO(ins): replace `3n` with `log_2(sz)`
+
+------------
+-- TESTS ---
+------------
+
+-- APPEND
+
+def test_append () =
+  -- IN: [1], [2; 2], and [3; 3; 3]
+  let a    = array[1n] 1n
+  let b    = array[2n] 2n
+  let c    = array[3n] 3n in
+
+  -- EXPECTED: [1; 2; 2; 3; 3; 3]
+  let r = array[6n] ⊥ in
+  r.0n ← 1n ▶
+  r.1n ← 2n ▶
+  r.2n ← 2n ▶
+  r.3n ← 3n ▶
+  r.4n ← 3n ▶
+  r.5n ← 3n ▶
+
+  -- [[1]; [2; 2]; [3; 3; 3]]
+  let arrs = array[3n] ⊥ in
+  arrs.0n ← a ▶
+  arrs.1n ← b ▶
+  arrs.2n ← c ▶
+
+  eq_array (λ e e' → e ≡ e') (app_array arrs) r
+
+-- ORAM
+
+def test_oram () =
+  let P = {A,B,C}
+  -- Create a new ORAM
+  let oram = tr_init 3n
+
+  -- A obliviously adds 10 at index 0, {B,C} cannot see the index or the value
+  let si1  = share [yao, ℕ : A -> P] (par {A} 0n)
+  let sa   = share [yao, ℕ : A -> P] (par {A} 10n) in
+  tr_w oram si1 sa ▶
+
+  -- B obliviously adds 20 at index 1, {A,C} cannot see the index or the value
+  let si2  = share [yao, ℕ : B -> P] (par {B} 1n)
+  let sb   = share [yao, ℕ : B -> P] (par {B} 20n) in
+  tr_w oram si2 sb ▶
+
+  -- C obliviously adds 30 at index 2, {A,B} cannot see the index or the value
+  let si3  = share [yao, ℕ : C -> P] (par {C} 2n)
+  let sc   = share [yao, ℕ : C -> P] (par {C} 30n) in
+  tr_w oram si3 sc ▶
+
+  let t1 = send [ℕ : A → P] (reveal [yao, ℕ : P → A] (tr_r oram si3)) ≡ 30n
+  let t2 = send [ℕ : A → P] (reveal [yao, ℕ : P → A] (tr_r oram si3)) ≡ 30n
+  let t3 = send [ℕ : A → P] (reveal [yao, ℕ : P → A] (tr_r oram si1)) ≡ 10n
+  let t4 = send [ℕ : A → P] (reveal [yao, ℕ : P → A] (tr_r oram si2)) ≡ 20n in
+  t1 ∧ t2 ∧ t3 ∧ t4
+
+-- BINARY SEARCH
+
+def found_at (f, i') i = f ∧ (i ≡ i')
+
+def not_found (f, _) = ¬ f
+
+def test_cbs_1 () =
+  let arr = array[3n] ⊥ in
+  arr.0n ← 2n ▶
+  arr.1n ← 7n ▶
+  arr.2n ← 43n ▶
+
+  let t1 = found_at (cbs arr 2n) 0n
+  let t2 = found_at (cbs arr 7n) 1n
+  let t3 = found_at (cbs arr 43n) 2n
+  let t4 = not_found (cbs arr 50n) in
+  t1 ∧ t2 ∧ t3 ∧ t4
+
+def test_cbs_2 () =
+  let arr = array[4n] ⊥ in
+  arr.0n ← 2n ▶
+  arr.1n ← 7n ▶
+  arr.2n ← 43n ▶
+  arr.3n ← 77n ▶
+
+  let t1 = found_at (cbs arr 2n) 0n
+  let t2 = found_at (cbs arr 7n) 1n
+  let t3 = found_at (cbs arr 43n) 2n
+  let t4 = found_at (cbs arr 77n) 3n
+  let t5 = not_found (cbs arr 50n) in
+  t1 ∧ t2 ∧ t3 ∧ t4 ∧ t5
+
+def test_obs () =
+  let oram = tr_init 3n in
+
+  -- A's value
+  let sai = share [yao, ℕ : A → {A,B,C}] (par {A} 0n)
+  let sav = share [yao, ℕ : A → {A,B,C}] (par {A} 2n) in
+  tr_w oram sai sav ▶
+
+  -- B's value
+  let sbi = share [yao, ℕ : B → {A,B,C}] (par {B} 1n)
+  let sbv = share [yao, ℕ : B → {A,B,C}] (par {B} 7n) in
+  tr_w oram sbi sbv ▶
+
+  -- C's value
+  let sci = share [yao, ℕ : C → {A,B,C}] (par {C} 2n)
+  let scv = share [yao, ℕ : C → {A,B,C}] (par {C} 43n) in
+  tr_w oram sci scv ▶
+
+  let t1 = found_at (send [𝔹 × ℕ : A → {A,B,C}] (reveal [yao, 𝔹 × ℕ : {A,B,C} → A] (obs oram 2n))) 0n
+  let t2 = found_at (send [𝔹 × ℕ : A → {A,B,C}] (reveal [yao, 𝔹 × ℕ : {A,B,C} → A] (obs oram 7n))) 1n
+  let t3 = found_at (send [𝔹 × ℕ : A → {A,B,C}] (reveal [yao, 𝔹 × ℕ : {A,B,C} → A] (obs oram 43n))) 2n
+  let t4 = not_found (send [𝔹 × ℕ : A → {A,B,C}] (reveal [yao, 𝔹 × ℕ : {A,B,C} → A] (obs oram 50n))) in
+  t1 ∧ t2 ∧ t3 ∧ t4
+
+def main () = par {A,B,C}
+  -- Tests
+  trace (test_append ()) in
+  trace (test_oram ()) in
+  trace (test_cbs_1 ()) in
+  trace (test_cbs_2 ()) in
+  trace (test_obs ()) in
+  ()

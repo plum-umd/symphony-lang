@@ -1,5 +1,0 @@
-principal A B C
-
-def main • =
-  let x = par {A,B} share{yao:A -> A,B} 0 in
-  par {A,B,C} (x + x)

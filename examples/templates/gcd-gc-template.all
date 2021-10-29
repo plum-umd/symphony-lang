@@ -1,0 +1,18 @@
+principal A B
+
+-- CCS21 BENCHMARK
+-- TESTED
+
+def sec gcd (a, b) =
+  mux if (a == 0#64) then b
+  else gcd (b % a, a)
+
+def main () = par {{A,B}}
+  let inputA = par {{A}} 2880067194370816120#64 in
+  let inputB = par {{B}} 4660046610375530309#64 in
+
+  let shareA = share [{0}, ℤ#64 : A → {{A,B}}] inputA in
+  let shareB = share [{0}, ℤ#64 : B → {{A,B}}] inputB in
+  let _      = par {{B}} flush [A] in
+
+  reveal [{0}, ℤ64 : {{A,B}} → A] (bnd_rec gcd (const 0#64) {1}n (int-minmax shareA shareB))

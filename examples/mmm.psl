@@ -2,33 +2,30 @@ principal A[4]
 
 def compete wealth ρ₁ ρ₂ =
   let res = par { ρ₁, ρ₂ }
-    let x = share { yao : ρ₁ → ρ₁, ρ₂ } wealth @ ρ₁ in
-    let y = share { yao : ρ₂ → ρ₁, ρ₂ } wealth @ ρ₂ in
+    let x = share { yao : ρ₁ → ρ₁, ρ₂ } wealth@ρ₁ in
+    let y = share { yao : ρ₂ → ρ₁, ρ₂ } wealth@ρ₂ in
     x > y
   in
   if reveal { A } res then ρ₁ else ρ₂
 
-def round P wealth = case P
+def round P wealth =
+  case P
   { { ρ₁ } ∪ { ρ₂ } ∪ P' →
-      let ρ'  = compete wealth ρ₁ ρ₂ in
-      let P'' = round P' wealth in
-      { ρ', P''}
-  ; _ → P
+    let ρ'  = compete wealth ρ₁ ρ₂ in
+    let P'' = round P' wealth in
+    { ρ', P'' }
+  ; _                    → P
   }
 
-def tournament P wealth = case P
-  { { winner } ∪ {} → winner
-  ; _ →
-    let winners = round P wealth in
+def tournament R wealth =
+  case R
+  { { winner } ⧺ {} → winner
+  ; _               →
+    let winners = round R wealth in
     tournament winners wealth
   }
 
-def bundleInputs P = case P
-  { {}         → ⟪⟫
-  ; { ρ } ∪ P' → ⟪ ρ | par { ρ } read ℤ from "mmm.txt" ⟫ ⧺ bundleInputs P'
-  }
-
-def main • =
+def main () =
   par { A }
     let wealth = bundleInputs { A } in
     tournament { A } wealth

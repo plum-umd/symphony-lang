@@ -1,7 +1,7 @@
 verbatim:
   cabal-version: 2.2
 
-name: psl
+name: allyn
 version: 0.1.0.0
 
 default-extensions:
@@ -44,6 +44,11 @@ ghc-options:
   - -Wno-partial-type-signatures
   - -j
   - -optP-Wno-nonportable-include-path
+  - -g
+  - -O2
+  - -optc-O3
+  - -fspecialise-aggressively
+  - -fexpose-all-unfoldings
 
 data-files:
   - lib/*
@@ -52,26 +57,44 @@ data-files:
   - examples-input/**/*
 
 library:
-  source-dirs: 
+  source-dirs:
     - src
   dependencies:
     - aeson
+    - network
     - base
+    - binary
+    - process
     - bytestring
     - directory
     - filepath
-    - random
+    - cryptonite
     - uvmhs
     - aeson
     - bytestring
-    - random
     - text
+    - vector
+  extra-libraries:
+    - empc
 
-executables:
-  psl:
-    source-dirs: main
-    main: MainPSL.hs
+tests:
+  allyn-test:
+    main: Main.hs
+    source-dirs:
+      - test
     dependencies:
       - base
-      - psl
+      - text
+      - hspec
+      - uvmhs
+      - allyn
+
+executables:
+  allyn:
+    source-dirs: main
+    main: Main.hs
+    dependencies:
+      - base
+      - cryptonite
+      - allyn
       - uvmhs
