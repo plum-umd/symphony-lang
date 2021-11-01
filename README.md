@@ -13,13 +13,6 @@ To build inside the virtual machine:
 
 - `make` (this will execute `stack build` using [Stack](https://docs.haskellstack.org/en/stable/README/), and symlink the executable to the project directory as `symphony`)
 
-
-- Install stack
-- Install ghcid (via `stack install ghcid`)
-- `make run` to run (using `stack ghci`)
-- `make dev` for interactive typechecking/running (using `ghcid`)
-- `make build` just to build (using `stack build`)
-
 # Running Examples
 
 - Build Symphony (see above)
