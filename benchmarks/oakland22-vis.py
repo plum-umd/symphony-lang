@@ -16,9 +16,9 @@ names = { 'hamming'       : 'Hamming Distance',
           'gcd-gc'        : 'Euclid\'s GCD Algorithm',
           'edit-distance' : 'Edit Distance' }
 
-styles = { ('allyn','LAN','plain')  : ('o', 'dashed', 'red', 'Symphony, Plain on LAN'),
-           ('allyn','LAN','yao')    : ('o', 'solid', 'purple', 'Symphony, Yao on LAN'),
-           ('allyn','WAN','yao')    : ('o', 'dotted', 'brown', 'Symphony, Yao on WAN'),
+styles = { ('symphony','LAN','plain')  : ('o', 'dashed', 'red', 'Symphony, Plain on LAN'),
+           ('symphony','LAN','yao')    : ('o', 'solid', 'purple', 'Symphony, Yao on LAN'),
+           ('symphony','WAN','yao')    : ('o', 'dotted', 'brown', 'Symphony, Yao on WAN'),
            ('oblivc','LAN','plain') : ('^', 'dashed', 'blue', 'OblivC, Plain on LAN'),
            ('oblivc','LAN','yao')   : ('^', 'solid', 'orange', 'OblivC, Yao on LAN'),
            ('oblivc','WAN','yao')   : ('^', 'dotted', 'green', 'OblivC, Yao on WAN') }

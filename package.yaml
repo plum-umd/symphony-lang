@@ -1,7 +1,7 @@
 verbatim:
   cabal-version: 2.2
 
-name: allyn
+name: symphony
 version: 0.1.0.0
 
 default-extensions:
@@ -78,7 +78,7 @@ library:
     - empc
 
 tests:
-  allyn-test:
+  symphony-test:
     main: Main.hs
     source-dirs:
       - test
@@ -87,14 +87,14 @@ tests:
       - text
       - hspec
       - uvmhs
-      - allyn
+      - symphony
 
 executables:
-  allyn:
+  symphony:
     source-dirs: main
     main: Main.hs
     dependencies:
       - base
       - cryptonite
-      - allyn
+      - symphony
       - uvmhs

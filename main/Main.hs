@@ -2,25 +2,25 @@ module Main where
 
 import UVMHS
 
-import Allyn.Config
-import Allyn.TypeChecker
-import Allyn.TypeChecker.Types
-import Allyn.Interpreter
-import Allyn.Interpreter.Types
-import Allyn.Interpreter.Seq.Types
-import Allyn.Interpreter.Dist.Types
+import Symphony.Config
+import Symphony.TypeChecker
+import Symphony.TypeChecker.Types
+import Symphony.Interpreter
+import Symphony.Interpreter.Types
+import Symphony.Interpreter.Seq.Types
+import Symphony.Interpreter.Dist.Types
 
 import qualified Prelude as HS
 import qualified Crypto.Random as R
 
-allynMainExample ∷ IO ()
-allynMainExample = do
-  os :* ts ← parseOptionsAllyn
+symphonyMainExample ∷ IO ()
+symphonyMainExample = do
+  os :* ts ← parseOptionsSymphony
   name ← case ts of
-    Nil      → failIO "ERROR: No file specified as target. Correct usage: allyn example [<arguments>] <name>"
+    Nil      → failIO "ERROR: No file specified as target. Correct usage: symphony example [<arguments>] <name>"
     t :& Nil → return t
-    _ → failIO "ERROR: Too many files specified as target. Correct usage: allyn example [<arguments>] <name>"
-  let exampleRelativePath = "examples/" ⧺ name ⧺ ".all"
+    _ → failIO "ERROR: Too many files specified as target. Correct usage: symphony example [<arguments>] <name>"
+  let exampleRelativePath = "examples/" ⧺ name ⧺ ".sym"
   exampleDataFilePath ← datapath exampleRelativePath
   exampleLocalExists ← pexists exampleRelativePath
   exampleDataFileExists ← pexists exampleDataFilePath
@@ -54,31 +54,31 @@ allynMainExample = do
     pprint $ ppHeader "RESULT"
     pprint v
 
-allynUsage ∷ 𝕊
-allynUsage = "USAGE: allyn [options] file..."
+symphonyUsage ∷ 𝕊
+symphonyUsage = "USAGE: symphony [options] file..."
 
-allynInfo ∷ 𝕊
-allynInfo =
+symphonyInfo ∷ 𝕊
+symphonyInfo =
   concat $ inbetween "\n"
   [ ""
-  , "allyn is the interpreter for the Allyn language."
+  , "symphony is the interpreter for the Symphony language."
   , "Developed by UMD as an extension of the PSL language,"
   , "created by the PANTHEON team as part of the IARPA HECTOR project."
   , ""
-  , allynUsage
+  , symphonyUsage
   ]
 
-allynMainInfo ∷ IO ()
-allynMainInfo = out allynInfo
+symphonyMainInfo ∷ IO ()
+symphonyMainInfo = out symphonyInfo
 
-allynMain ∷ IO ()
-allynMain = do
+symphonyMain ∷ IO ()
+symphonyMain = do
   map list iargs ≫= \case
-    a :& as | a ≡ "example" → ilocalArgs as allynMainExample
-    Nil             → ilocalArgs (list ["--version", "--help"]) allynMainInfo
-    as              → ilocalArgs as allynMainInfo
+    a :& as | a ≡ "example" → ilocalArgs as symphonyMainExample
+    Nil             → ilocalArgs (list ["--version", "--help"]) symphonyMainInfo
+    as              → ilocalArgs as symphonyMainInfo
 
 main ∷ IO ()
 main = do
   initUVMHS
-  allynMain
+  symphonyMain

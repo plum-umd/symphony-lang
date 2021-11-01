@@ -1,5 +1,5 @@
-E          := AllynMain.mainDefault
-NAME       := allyn
+E          := SymphonyMain.mainDefault
+NAME       := symphony
 STACK_ARGS := --extra-include-dirs=/usr/local/include --extra-lib-dirs=/usr/local/lib --trace --ghci-options '-fexternal-interpreter -prof'
 STACK_ARGS :=
 
@@ -7,17 +7,17 @@ ARGS       :=
 
 FLAGS      :=
 
-allyn: build
-	rm -f allyn
-	ln -s `stack path --dist-dir`/build/Allyn/allyn ./
+symphony: build
+	rm -f symphony
+	ln -s `stack path --dist-dir`/build/Symphony/symphony ./
 
-all-examples: allyn
-	./allyn example $(FLAGS) msort-dedup-small
-	./allyn example $(FLAGS) qsort
-	./allyn example $(FLAGS) gcd-gc
-	./allyn example $(FLAGS) gcd-bgv
-	./allyn example $(FLAGS) karmarkar
-	./allyn example $(FLAGS) db-stats
+all-examples: symphony
+	./symphony example $(FLAGS) msort-dedup-small
+	./symphony example $(FLAGS) qsort
+	./symphony example $(FLAGS) gcd-gc
+	./symphony example $(FLAGS) gcd-bgv
+	./symphony example $(FLAGS) karmarkar
+	./symphony example $(FLAGS) db-stats
 
 .stack-work:
 	stack setup
@@ -67,7 +67,7 @@ clean:
 
 .PHONY:
 re:
-	touch src/Allyn.hs
+	touch src/Symphony.hs
 
 .PHONY: hoogle
 hoogle:
