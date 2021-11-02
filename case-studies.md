@@ -24,9 +24,11 @@ Another tournament-style game, but where two players play a game of "marbles" fr
 help motivate the tournament structure by having some form of "tokens" that are modified over the course of the game. It isn't clear
 what the private values in this game should be, though.
 
-### Suggestions: Steve Lu
+### Leader Election Protocols
 
-1. *Leader Election Protocols* -- There has been an uptick of papers which do leader (/committee) election prior to performing MPC.
+**Suggested by Steve Lu**
+
+There has been an uptick of papers which do leader (/committee) election prior to performing MPC.
 The idea is that a smaller committee is chosen, and then the committee performs an MPC. This is done, for example, in some cryptocurrencies
 to validate blocks. From Steve:
 
@@ -44,7 +46,11 @@ that the parties are obeying the protocol. As such, we can perform leader electi
 In other words, `N` parties can all choose a local random number and then broadcast that number to all other parties. All the parties compute the
 sum modulo `N` and then the parties with the `K` highest values form the committee to perform a `K` party MPC (`K << N`).
 
-2. *Dynamic Participants* -- In the malicious setting, there are MPC protocols which are able to identify when an integrity violation has taken
+### Dynamic Participants
+
+**Suggested by Steve Lu**
+
+In the malicious setting, there are MPC protocols which are able to identify when an integrity violation has taken
 place. When this happens, some protocols choose to abort the computation altogether. This leads to a malicious adversary being able to cause "denial
 of service" attacks in which they cause an integrity violation purposefully to invalidate the MPC.
 
@@ -52,9 +58,11 @@ This suggestion isn't relevant to Symphony (currently) since (1) Symphony doesn'
 a way for parties to dynamically join / leave the distributed computation. Channels between parties are established at the beginning of the MPC and
 are assumed to be stable.
 
-### Suggestions: Brett Falk
+### Poker
 
-1. *Poker* -- `N` parties play poker by proceeding in rounds. Each round, they perform MPC to shuffle the deck of cards. Each party gets their hand
+**Suggested by Brett Falk**
+
+`N` parties play poker by proceeding in rounds. Each round, they perform MPC to shuffle the deck of cards. Each party gets their hand
 by having a subset of the deck revealed to them. They can choose to fold, in which case their cards may or may not be revealed to the other parties
 depending on the rules of the game.
 
@@ -62,7 +70,11 @@ This is an interesting case study, and we are close to being able to handle it, 
 We could add GMW, but I'm just not sure if I can get that done before the PLDI deadline. Second, it requires some interaction. There needs to be a
 "game loop" that prints the hand to the user, and takes an action (bet, fold) from standard input.
 
-2. *Other* -- Other suggestions Brett provided, but which aren't currently feasible. Putting them here for posterity.
+### Other
+
+**Suggested by Brett Falk**
+
+Other suggestions Brett provided, but which aren't currently feasible. Putting them here for posterity.
 
 >What about some form of a "virtual" database?  For example, for some kind of anomaly detection.
 >A long time ago, we talked to satellite operators, and they all wanted to know what type of errors ("anomalies")
