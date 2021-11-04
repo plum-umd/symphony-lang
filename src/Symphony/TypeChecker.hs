@@ -6,6 +6,11 @@ import AddToUVMHS
 import Symphony.Syntax
 import Symphony.TypeChecker.Types
 
+
+------------------
+--- Primitives ---
+------------------
+
 synVar ∷ Var → TM Type
 synVar x = do
   γ ← askL tCxtEnvL
@@ -15,6 +20,39 @@ synVar x = do
              [ ("x", pretty x)
              , ("dom(γ)", pretty $ keys γ)
              ]
+
+synBul ∷ TM Type
+synBul = return $ BaseT UnitT
+
+synBool ∷ 𝔹 → TM Type
+synBool _ = return $ BaseT 𝔹T
+
+synNat ∷ IPrecision → ℕ → TM Type
+synNat pr _ = return $ BaseT (ℕT pr)
+
+synInt ∷ IPrecision → ℤ → TM Type
+synInt pr _ = return $ BaseT (ℤT pr)
+
+synFlt ∷ FPrecision → 𝔻 → TM Type
+synFlt pr _ = return $ BaseT (𝔽T pr)
+
+synStr ∷ 𝕊 → TM Type
+synStr _ = return $ BaseT 𝕊T
+
+synExp ∷ ExpR → TM Type
+synExp e = case e of
+   -- Variables
+  VarE x → synVar x
+
+  -- Literals
+  BulE        → synBul
+  BoolE b     → synBool b
+  NatE pr n   → synNat pr n
+  IntE pr z   → synInt pr z
+  FltE pr d   → synFlt pr d
+  StrE s      → synStr s
+
+  _      → undefined
 
 synDecl ∷ Var → Type → TM a → TM a
 synDecl x τ = mapEnvL tCxtEnvL ((x ↦ τ) ⩌)
