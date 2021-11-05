@@ -1,0 +1,32 @@
+principal A B
+
+def secAdd v =
+  let sa  = share [yao, ℕ : A → {A,B}] v@A in
+  let sb  = share [yao, ℕ : B → {A,B}] v@B in
+  let sum = sa + sb in
+  let r   = reveal [yao, ℕ : {A,B} → A] sum in
+  r
+
+def plainAdd v =
+  let a   = send [ℕ : A → {A,B}] v@A in
+  let b   = send [ℕ : B → {A,B}] v@B in
+  let sum = a + b in
+  sum
+
+def main () = par {A,B}
+  let fa = send [𝔹 : A → {A,B}] (par {A} read 𝔹 from "flag-error-flag.txt") in
+  let fb = send [𝔹 : B → {A,B}] (par {B} read 𝔹 from "flag-error-flag.txt") in
+
+  let v = ⟪ A | par {A} read ℕ from "flag-error-val.txt" ⟫ ⧺ ⟪ B | par {B} read ℕ from "flag-error-val.txt" ⟫ in
+
+  let out =
+    if fa == fb then
+      if fa then
+        secAdd v
+      else
+        plainAdd v
+    else
+      •
+  in
+
+  out
