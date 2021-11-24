@@ -46,6 +46,7 @@ evalPrimClearBaseVal o vs = case (o,tohs vs) of
   (PlusO   ,[NatV p₁ n₁,NatV p₂ n₂])         |p₁≡p₂→ return $ NatV p₁ $ trPrNat p₁ $ n₁ + n₂
   (PlusO   ,[IntV p₁ i₁,IntV p₂ i₂])         |p₁≡p₂→ return $ IntV p₁ $ trPrInt p₁ $ i₁ + i₂
   (PlusO   ,[FltV p₁ f₁,FltV p₂ f₂])         |p₁≡p₂→ return $ FltV p₁ $ f₁ + f₂
+  (PlusO   ,[PrinSetV ρvs₁, PrinSetV ρvs₂])        → return $ PrinSetV $ PowPSV $ (elimPSV ρvs₁) ∪ (elimPSV ρvs₂)
   (MinusO  ,[NatV p₁ n₁,NatV p₂ n₂])         |p₁≡p₂→ return $ NatV p₁ $ trPrNat p₁ $ buPrNat p₁ n₁ - n₂
   (MinusO  ,[IntV p₁ i₁,IntV p₂ i₂])         |p₁≡p₂→ return $ IntV p₁ $ trPrInt p₁ $ i₁ - i₂
   (MinusO  ,[FltV p₁ f₁,FltV p₂ f₂])         |p₁≡p₂→ return $ FltV p₁ $ f₁ - f₂

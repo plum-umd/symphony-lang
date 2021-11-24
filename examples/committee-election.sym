@@ -1,0 +1,52 @@
+principal A B C D E
+
+def partySetSize P = case P
+  { {}           → 0n
+  ; { _ρ } \/ P' → 1n + (partySetSize P')
+  }
+
+def randomSend P n =
+  let sum_rec = λ [sum_rec] Q →
+    case Q
+    { {}          → 0n
+    ; { ρ } \/ Q' → send [ℕ : ρ → P] (par { ρ } rand { ρ } ℕ) + (sum_rec Q')
+    }
+  in
+  let sum = sum_rec P in
+  sum % n
+
+def randomSync P n = (rand P ℕ) % n
+
+def randomParty P Q =
+  let m = partySetSize Q in
+  let r = randomSend P m in
+  let choose = λ [choose] i Q1 Q2 →
+    case Q1
+    { {}           → ⊥ -- Impossible
+    ; { ρ } \/ Q1' →
+      if i < r then
+        choose (i + 1n) Q1' ({ ρ } + Q2)
+      else
+        (ρ, Q1' + Q2)
+    }
+  in choose 0n Q { }
+
+def elect P k =
+  let n = partySetSize P in
+  if k <= n then
+    let elect_rec = λ [elect_rec] i Q S →
+      if i < k then
+        let (ρ, Q') = randomParty P Q in
+        elect_rec (i + 1n) Q' ({ ρ } + S)
+      else
+        S
+    in elect_rec 0n P { }
+  else
+    •
+
+def main () =
+  let P = {A,B,C,D,E} in
+  par P
+    let k = 3n in
+    let C = elect P k in
+    •
