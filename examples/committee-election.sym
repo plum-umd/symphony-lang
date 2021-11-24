@@ -44,12 +44,6 @@ def elect P k =
   else
     •
 
-def delegate P C f =
-  let delegate_rec = λ [delegate_rec] Q →
-    case Q
-    { {}          → []
-    ; { ρ } \/ Q' → share [gmw, ℕ : ρ → C] (read
-
 def main () =
   let P = {A,B,C,D,E} in
   par P
