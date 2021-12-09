@@ -1,0 +1,72 @@
+principal A B C D E
+
+-- Library
+
+-- Is this right?
+-- ∀ A : ★, μ : 𝑃(ℙ) ⇒ 𝔹@μ μ→ A μ→ A μ→ A
+def cond-if g a b = if g then a else b
+
+
+-- Q: Can an A be a subtype of a share of A? Can any context that accepts a share of A also accept a cleartext A?
+--    It would be helpful if this were the case, because then we could give a type to `max` which says it takes a share
+--    but use it with cleartext things when necessary by appeals to subsumption.
+-- Is this right? Need to somehow establish ⊢μ ψ to typecheck successfully, does this mean we need polymorphic encryption tags?
+-- ∀ A : ☆, ψ : 𝔼, μ : 𝑃(ℙ) . [ ⊢μ ψ ] ⇒ 𝔹⸤ψ⸥@μ μ→ A⸤ψ⸥@μ μ→ A⸤ψ⸥@μ μ→ A⸤ψ⸥@μ
+def cond-mux g a b = mux if g then a else b
+
+def max cond a b = cond (a <= b) b a
+
+def foldr f acc xs = case xs
+  { []      → acc
+  ; x ∷ xs' → f x (foldr f acc xs')
+  }
+
+def solo-f P f = case P
+  { {}       → ⟪⟫
+  ; {ρ} ⊎ P' → ⟪ ρ | par {ρ} f ρ ⟫ ⧺ solo-f P' f
+  }
+
+def map-prins P f = case
+  { {}       → []
+  ; {ρ} ⊎ P' → f ρ ∷ map-prins P' f
+  }
+
+-- This should establish that it returns a single party in P, for `elect` to typecheck
+def randParty P =
+  let id = (rand P ℕ) % (size P) in
+  let rec randParty' i Q =
+    case Q
+    { {}       → ⊥  -- Impossible
+    ; {ρ} ⊎ Q' → if i < id then randParty' (i + 1n) Q' else ρ
+    }
+  in randParty' 0n P
+
+-- Application
+
+def bundleInputs P = solo-f P (λ _ → read ℕ)
+
+-- BUG/PROBLEM: Function doesn't terminate if `k` is greater than size of `P`
+-- Π (P : 𝑃(ℙ)@P) P→ ℕ@P P→ (R : 𝑃(ℙ)@P | R ⊆ P)
+def elect P k =
+  -- (C : 𝑃(ℙ)@P | C ⊆ P) P→ (R : 𝑃(ℙ)@P | R ⊆ P)
+  let rec elect' C =
+    if (size C) == k then C
+    else let ρ = randParty P in elect' ({p} ∪ C)
+  in elect' {}
+
+-- ∀ A,B : ★ ⇒ Π (P : 𝑃(ℙ)@P) P→ Π (C : 𝑃(ℙ)@P | C ⊆ P) P→ A⟪P⟫@P P→ ([A#C@C] C→ B#C@C) P→ B@P
+def delegate P C input sc =
+  let shareToC ρ =
+    let pInput = par {ρ} input@ρ in
+    par ({ρ} ∪ C) share [gmw : ρ → C] pInput
+  in
+  let shares = mapPrins P shareToC in
+  reveal [gmw : C → P] (par C (sc shares))
+
+def main () =
+  let P = {A,B,C,D,E} in
+  par P
+    let input = bundleInputs P in                         -- ℕ⟪P⟫@P
+    let C     = elect P 3n in                             -- (C : 𝑃(ℙ)@P | C ⊆ P)
+    delegate P C input (par C (foldr (max cond-mux) 0n))  -- ℕ@P
+    …
