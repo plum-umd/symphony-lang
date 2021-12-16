@@ -4,24 +4,19 @@ import UVMHS
 import AddToUVMHS
 
 import Symphony.Syntax
-import Symphony.TypeChecker.TLM
+import Symphony.TypeChecker.Error
+import Symphony.TypeChecker.TLM hiding (TLR)
 import Symphony.TypeChecker.EM
 
 ---------------
 -- Utilities --
 ---------------
 
-asTLE ∷ EE → TLE
-asTLE e = undefined
-
 asTLM ∷ EM a → TLM a
 asTLM eM = do
   γ ← getL ttlsEnvL
-  let θ = ER { terEnv = γ }
-  let r = runEM θ () eM
-  case r of
-    Inl ee            → throw $ asTLE ee
-    Inr (_ :* _ :* a) → return a
+  let r = ER { terSource = None, terEnv = γ }
+  evalEMErr r () eM
 
 ------------------
 -- TypeChecking --
@@ -35,7 +30,10 @@ synProg prog = do
     synApp τMain $ BaseT UnitT
 
 bindTL ∷ TL → TLM ()
-bindTL tl = todoError
+bindTL tl = localL ttlrSourceL (Some $ atag tl) $ bindTLR $ extract tl
+
+bindTLR ∷ TLR → TLM ()
+bindTLR tlr = todoError
 
 synVar ∷ Var → EM Type
 synVar x = do

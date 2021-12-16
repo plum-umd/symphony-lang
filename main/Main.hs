@@ -4,7 +4,7 @@ import UVMHS
 
 import Symphony.Config
 import Symphony.TypeChecker
-import Symphony.TypeChecker.Types
+import Symphony.TypeChecker.TLM
 import Symphony.Interpreter
 import Symphony.Interpreter.Types
 import Symphony.Interpreter.Seq.Types
@@ -38,7 +38,7 @@ symphonyMainExample = do
         None   → R.drgNew
         Some n → return $ R.drgNewSeed $ R.seedFromInteger $ HS.fromIntegral n
   let tls = tlsStd ⧺ tlsPrg
---  runTMIO null name $ wellTyped tls
+  _τ ← evalTLMIO null null name $ synProg tls
   if isSome (iParamsMe θ) then do
     let prog = do
           interpTLs tls

@@ -2,25 +2,19 @@ module Symphony.TypeChecker.EM.Types where
 
 import UVMHS
 
+import Symphony.TypeChecker.Error
 import Symphony.TypeChecker.Env
 
 data ER = ER
-  { terEnv ∷ Env
+  { terSource ∷ 𝑂 SrcCxt
+  , terEnv ∷ Env
   }
 
 type EW = ()
 
 type ES = ()
 
-data EEClass =
-    TypeError
-  | NotImplementedError
-  | InternalError
-  deriving (Eq, Ord, Show)
-
-data EE = EE
-  { teeClass ∷ EEClass
-  }
+type EE = Error
 
 newtype EM a = EM { unEM ∷ RWST ER EW ES (ErrorT EE ID) a }
   deriving

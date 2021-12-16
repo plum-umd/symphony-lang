@@ -3,26 +3,21 @@ module Symphony.TypeChecker.TLM.Types where
 import UVMHS
 
 import Symphony.TypeChecker.Env
+import Symphony.TypeChecker.Error
 
-type TLR = ()
+data TLR = TLR
+  { ttlrSource ∷ 𝑂 SrcCxt
+  }
 
 type TLW = ()
 
-data TLS = TTLS
+data TLS = TLS
   { ttlsEnv ∷ Env
   }
 
-data TLEClass =
-    TypeError
-  | NotImplementedError
-  | InternalError
-  deriving (Eq, Ord, Show)
+type TLE = Error
 
-data TLE = TTLE
-  { ttleClass ∷ TLEClass
-  }
-
-newtype TLM a = TTLM { unTTLM ∷ RWST TLR TLW TLS (ErrorT TLE ID) a }
+newtype TLM a = TTLM { unTLM ∷ RWST TLR TLW TLS (ErrorT TLE ID) a }
   deriving
     ( Functor
     , Return, Bind, Monad
@@ -32,4 +27,5 @@ newtype TLM a = TTLM { unTTLM ∷ RWST TLR TLW TLS (ErrorT TLE ID) a }
     , MonadError TLE
     )
 
+makeLenses ''TLR
 makeLenses ''TLS
