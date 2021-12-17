@@ -91,12 +91,7 @@ makePrettySum ''Constr
 -- Effect Mode --
 -----------------
 
-data EMode =
-    SecEM PrinSetExp
-  | TopEM
-  deriving (Eq, Ord, Show)
-makePrettySum ''EMode
-makePrisms ''EMode
+type EMode = AddTop PrinSetExp
 
 ------------
 -- Effect --
@@ -342,10 +337,10 @@ data Type =
   | Type :→: (Effect ∧ Type)                    --  τ →{η} τ                   /  τ ->{η} τ
   | (𝕏 ∧ Type ∧ 𝐿 Constr) :→†: (Effect ∧ Type)  --  (x : τ | c,…,c) →{η} τ     /  (x : τ | c,…,c) ->{η} τ
   | ForallT (𝐿 (TVar ∧ Kind)) (𝐿 Constr) Type   --  ∀ α:κ,…,α:κ | c,…,c. τ     /  forall α:κ,…,α:κ | c,…,c. τ
-  | SecT PrinSetExp Type                        --  τ{P}                       /  τ{P}
-  | SSecT PrinSetExp Type                       --  τ{ssec:P}                  /  τ{ssec:P}
-  | ISecT PrinSetExp Type                       --  τ{bundle:P}                /  τ{bundle:P}
-  | ShareT Prot PrinSetExp Type                 --  τ{φ:P}                     /  τ{φ:P}
+  | SecT EMode Type                             --  τ{P}                       /  τ{P}
+  | SSecT EMode Type                            --  τ{ssec:P}                  /  τ{ssec:P}
+  | ISecT EMode Type                            --  τ{bundle:P}                /  τ{bundle:P}
+  | ShareT Prot EMode Type                      --  τ{φ:P}                     /  τ{φ:P}
   deriving (Eq,Ord,Show)
 makePrettySum ''Type
 

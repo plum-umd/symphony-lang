@@ -2,12 +2,14 @@ module Symphony.TypeChecker.EM.Types where
 
 import UVMHS
 
+import Symphony.Syntax
 import Symphony.TypeChecker.Error
 import Symphony.TypeChecker.Env
 
 data ER = ER
   { terSource ∷ 𝑂 SrcCxt
-  , terEnv ∷ Env
+  , terMode   ∷ Mode
+  , terEnv    ∷ Env
   }
 
 type EW = ()

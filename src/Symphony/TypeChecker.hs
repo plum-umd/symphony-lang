@@ -8,19 +8,9 @@ import Symphony.TypeChecker.Error
 import Symphony.TypeChecker.TLM hiding (TLR)
 import Symphony.TypeChecker.EM
 
----------------
--- Utilities --
----------------
-
-asTLM ∷ EM a → TLM a
-asTLM eM = do
-  γ ← getL ttlsEnvL
-  let r = ER { terSource = None, terEnv = γ }
-  evalEMErr r () eM
-
-------------------
--- TypeChecking --
-------------------
+---------------------
+-- Checking for TL --
+---------------------
 
 synProg ∷ 𝐿 TL → TLM Type
 synProg prog = do
@@ -33,7 +23,29 @@ bindTL ∷ TL → TLM ()
 bindTL tl = localL ttlrSourceL (Some $ atag tl) $ bindTLR $ extract tl
 
 bindTLR ∷ TLR → TLM ()
-bindTLR tlr = todoError
+bindTLR tlr = case tlr of
+  DeclTL _brec x τ    → bindDecl x τ
+  DefnTL _brec x ψs e → bindDefn x ψs e
+  PrinTL ρds          → bindPrins ρds
+  ImportTL path       → todoError
+
+bindDecl ∷ 𝕏 → Type → TLM ()
+bindDecl = bindTypeTL
+
+bindDefn ∷ 𝕏 → 𝐿 Pat → Exp → TLM ()
+bindDefn x ψs e = asTLM $ do
+  τ ← synVar x
+  chkLam (Some x) ψs e τ
+
+bindPrins ∷ 𝐿 PrinDecl → TLM ()
+bindPrins ρds = eachOn ρds bindPrin
+  where bindPrin ρd = case ρd of
+          SinglePD ρ   → bindTypeTL (var ρ) $ BaseT ℙT
+          ArrayPD ρ _n → bindTypeTL (var ρ) $ BaseT ℙsT
+
+------------------------------
+-- Checking for Expressions --
+------------------------------
 
 synVar ∷ Var → EM Type
 synVar x = do
@@ -45,5 +57,47 @@ synVar x = do
              , ("Γ", pretty $ keys env)
              ]
 
+chkLam ∷ 𝑂 Var → 𝐿 Pat → Exp → Type → EM ()
+chkLam self𝑂 ψs e τ = todoError
+
 synApp ∷ Type → Type → EM Type
-synApp = undefined
+synApp τ₁ τ₂ = case τ₁ of
+  SecT loc (τ₁₁ :→: (η :* τ₁₂)) → do
+    m  ← askL terModeL
+    l₁ ← elabEMode $ effectMode η
+    l₂ ← elabEMode loc
+    guardErr (m ≡ l₁) $
+      typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+      [ ("m", pretty m)
+      , ("l", pretty l₁)
+      ]
+    return τ₂
+  _ → typeError "synApp: τ₁ ≢ (_ → _)@_" $ frhs
+      [ ("τ₁", pretty τ₁)
+      ]
+
+------------------------------------------------
+-- Static Evaluation of Principal Expressions --
+------------------------------------------------
+
+elabPrinExp ∷ PrinExp → EM PrinVal
+elabPrinExp ρe = todoError
+
+elabPrinSetExp ∷ PrinSetExp → EM (𝑃 PrinVal)
+elabPrinSetExp ρse = todoError
+
+elabEMode ∷ EMode → EM Mode
+elabEMode = mapM elabPrinSetExp
+
+---------------
+-- Utilities --
+---------------
+
+asTLM ∷ EM a → TLM a
+asTLM eM = do
+  γ ← getL ttlsEnvL
+  let r = ER { terSource = None, terMode = Top, terEnv = γ }
+  evalEMErr r () eM
+
+bindTypeTL ∷ 𝕏 → Type → TLM ()
+bindTypeTL x τ = modifyL ttlsEnvL ((x ↦ τ) ⩌)

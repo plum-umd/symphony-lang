@@ -47,3 +47,15 @@ todoError = throwErrorCxt NotImplementedError "TODO" empty𝐿
 -- IMPOSSIBLE
 impossibleError ∷ (Monad m, MonadReader c m, HasLens c (𝑂 SrcCxt), MonadError Error m, STACK) ⇒ m a
 impossibleError = throwErrorCxt InternalError "(apparently not) IMPOSSIBLE" empty𝐿
+
+-----------------
+-- Convenience --
+-----------------
+
+guardErr ∷ (Monad m, MonadError Error m, STACK) ⇒ Bool → m () → m ()
+guardErr g c = if g then skip else c
+
+fromSome ∷ (Monad m, MonadReader c m, HasLens c (𝑂 SrcCxt), MonadError Error m, STACK) ⇒ 𝑂 a → m a
+fromSome vO = case vO of
+  None   → impossibleError
+  Some v → return v

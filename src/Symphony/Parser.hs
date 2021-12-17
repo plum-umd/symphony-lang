@@ -171,9 +171,9 @@ pConstr = cpNewContext "constr" $ do
 pEMode ∷ CParser TokenBasic EMode
 pEMode = cpNewContext "effect-mode" $ concat
   [ do ρs ← pPrinSetExp
-       return $ SecEM ρs
+       return $ AddTop ρs
   , do concat [cpSyntaxVoid "⊤",cpSyntaxVoid "all"]
-       return TopEM
+       return Top
   ]
 
 pEffect ∷ CParser TokenBasic Effect
@@ -190,17 +190,17 @@ pEffect = cpNewContext "effect" $ do
          emO ← cpOptional $ do
           cpSyntaxVoid ";"
           pEMode
-         return (ρs₁,ifNone null ρs₂,ifNone TopEM emO)
+         return (ρs₁,ifNone null ρs₂,ifNone Top emO)
     , do cpSyntaxVoid "rev"
          cpSyntaxVoid ":"
          ρs₂ ← pPrinSetExp
          emO ← cpOptional $ do
           cpSyntaxVoid ";"
           pEMode
-         return (null,ρs₂,ifNone TopEM emO)
+         return (null,ρs₂,ifNone Top emO)
     , do em ← pEMode
          return (null,null,em)
-    , do return (null,null,TopEM)
+    , do return (null,null,Top)
     ]
   return $ Effect ρs₁ ρs₂ em
 
@@ -295,7 +295,7 @@ pType = cpNewContext "type" $ mixfix $ concat
         η ← pEffect
         cpSyntaxVoid "}"
         return η
-      let η₀ = Effect null null TopEM
+      let η₀ = Effect null null Top
       return $ \ τ₁ τ₂ → τ₁ :→: (ifNone η₀ ηO :* τ₂)
   -- (x : τ | c,…,c) →{η} τ
   , mixPrefix levelARROW $ do
@@ -313,7 +313,7 @@ pType = cpNewContext "type" $ mixfix $ concat
         η ← pEffect
         cpSyntaxVoid "}"
         return η
-      let η₀ = Effect null null TopEM
+      let η₀ = Effect null null Top
       return $ \ τ₂ → (x :* τ₁ :* cs) :→†: (ifNone η₀ ηO :* τ₂)
   -- ∀ α:κ,…,α:κ | c,…,c. τ
   , mixPrefix levelLAM $ do
@@ -332,13 +332,13 @@ pType = cpNewContext "type" $ mixfix $ concat
   , mixPostfix levelMODE $ do
       cpSyntaxVoid "@"
       ρse ← pPrinSetExp
-      return $ SecT ρse
+      return $ SecT $ AddTop ρse
   -- τ⟪ρse⟫
   , mixPostfix levelMODE $ do
       concat [cpSyntaxVoid "⟪",cpSyntaxVoid "<<"]
       ρes ← pPrinSetExp
       concat [cpSyntaxVoid "⟫",cpSyntaxVoid ">>"]
-      return $ ISecT ρes
+      return $ ISecT $ AddTop ρes
   -- τ[φ]@ρse
   , mixPostfix levelMODE $ do
       cpSyntaxVoid "["
@@ -346,7 +346,7 @@ pType = cpNewContext "type" $ mixfix $ concat
       cpSyntaxVoid "]"
       cpSyntaxVoid "@"
       ρes ← pPrinSetExp
-      return $ ShareT φ ρes
+      return $ ShareT φ $ AddTop ρes
   -- (τ)
   , mixTerminal $ do cpSyntaxVoid "(" ; τ ← pType ; cpSyntaxVoid ")" ; return τ
   ]
