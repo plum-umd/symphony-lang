@@ -14,8 +14,9 @@ spec ∷ Spec
 spec = do
   describe "synExp" $ do
     it "() : unit" $ do
-      x ← runTMIO UVM.null "" (synExp BulE)
-      x `shouldBe` BaseT UnitT
-    it "True : bool" $ do
-      x ← runTMIO UVM.null "" (synExp (BoolE True))
-      x `shouldBe` BaseT 𝔹T
+      x ← return $ runTMIO UVM.null "" (synExp BulE)
+      case x of
+      Inr x →  x `shouldBe` BaseT UnitT
+      Inl x →  x `shouldBe` BaseT UnitT
+     
+

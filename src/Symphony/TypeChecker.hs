@@ -59,7 +59,24 @@ synVar x = do
 
 
 synBul ∷ EM Type
-synBul = return $ BaseT UnitT
+synBul =  do
+  mode ← askL terMode
+  return $ SecT $ (BaseT $ UnitT) mode
+
+interpBool ∷ (STACK, Value v) ⇒ 𝔹 → IM v v
+interpBool b = introVal $ BaseV $ Clear $ BoolV b
+
+interpNat ∷ (STACK, Value v) ⇒ IPrecision → ℕ → IM v v
+interpNat pr n = introVal $ BaseV $ Clear $ NatV pr n
+
+interpInt ∷ (STACK, Value v) ⇒ IPrecision → ℤ → IM v v
+interpInt pr z = introVal $ BaseV $ Clear $ IntV pr z
+
+interpFlt ∷ (STACK, Value v) ⇒ FPrecision → 𝔻 → IM v v
+interpFlt pr d = introVal $ BaseV $ Clear $ FltV pr d
+
+interpStr ∷ (STACK, Value v) ⇒ 𝕊 → IM v v
+interpStr s = introVal $ BaseV $ Clear $ StrV s
 
 chkLam ∷ 𝑂 Var → 𝐿 Pat → Exp → Type → EM ()
 chkLam self𝑂 ψs e τ = todoError
@@ -85,7 +102,7 @@ synExp e = case e of
    -- Variables
   VarE x → synVar x
 
-  -- Literals
+  -- Literals--
   BulE        → synBul
   _      → undefined
 ------------------------------------------------
