@@ -57,6 +57,10 @@ synVar x = do
              , ("Γ", pretty $ keys env)
              ]
 
+
+synBul ∷ EM Type
+synBul = return $ BaseT UnitT
+
 chkLam ∷ 𝑂 Var → 𝐿 Pat → Exp → Type → EM ()
 chkLam self𝑂 ψs e τ = todoError
 
@@ -76,6 +80,14 @@ synApp τ₁ τ₂ = case τ₁ of
       [ ("τ₁", pretty τ₁)
       ]
 
+synExp ∷ ExpR → TM Type
+synExp e = case e of
+   -- Variables
+  VarE x → synVar x
+
+  -- Literals
+  BulE        → synBul
+  _      → undefined
 ------------------------------------------------
 -- Static Evaluation of Principal Expressions --
 ------------------------------------------------
