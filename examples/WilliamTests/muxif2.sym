@@ -1,0 +1,4 @@
+principal A B C
+
+def main : (unit@all -> int@{A})@all
+def main () = let x =  par {A, B, C } (share [yao, bool : A -> {A,B,C}] (par {A} true) )  in let y = (par {A, B, C } 2) in let z = (par {A, B, C } (share [yao, int : A -> {A,B,C}] (par {A} 2) )) in (par {A, B, C } (reveal [yao, int : {A,B,C} -> A] (mux if x then y else z)))

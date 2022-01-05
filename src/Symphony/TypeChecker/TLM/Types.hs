@@ -12,7 +12,8 @@ data TLR = TLR
 type TLW = ()
 
 data TLS = TLS
-  { ttlsEnv ∷ Env
+  { ttlsEnv ∷ Env,
+  ttlsPrins ∷ (𝑃 𝕏)
   }
 
 type TLE = Error

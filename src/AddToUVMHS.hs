@@ -257,3 +257,7 @@ writeℝMut = IOR.writeIORef ∘ unℝMut
 
 instance Pretty a ⇒ Pretty (ℝMut a) where
   pretty v = pretty $ io_UNSAFE $ readℝMut v
+
+instance Null SrcCxt where
+  null = (SrcCxt {srcCxtSourceName = "", srcCxtLocRange = locRange₀, srcCxtPrefix = null, srcCxtContext = null, srcCxtSuffix = null})
+

@@ -278,15 +278,22 @@ pType = cpNewContext "type" $ mixfix $ concat
       n ← natΩ ^$ cpInteger
       cpSyntaxVoid "]"
       return $ ListT n
-  -- ref τ
-  , mixPrefix levelAPP $ do cpSyntaxVoid "ref" ; return RefT
+  -- ref{P} τ
+  , mixPrefix levelAPP $ do
+      cpSyntaxVoid "ref"
+      cpSyntaxVoid "{"
+      ρs ← pEMode
+      cpSyntaxVoid "}"
+      return $ RefT (Some ρs)
   -- arr τ
   , mixPrefix levelAPP $ do
       cpSyntaxVoid "array"
       cpSyntaxVoid "["
+      ρs ← pEMode
+      cpSyntaxVoid ","
       n ← natΩ ^$ cpInteger
       cpSyntaxVoid "]"
-      return $ ArrT n
+      return $ ArrT (Some ρs) n
   -- τ →{η} τ
   , mixInfixR levelARROW $ do
       concat [cpSyntaxVoid "→",cpSyntaxVoid "->"]
@@ -318,21 +325,13 @@ pType = cpNewContext "type" $ mixfix $ concat
   -- ∀ α:κ,…,α:κ | c,…,c. τ
   , mixPrefix levelLAM $ do
       concat [cpSyntaxVoid "∀", cpSyntaxVoid "forall"]
-      ακs ← cpManySepBy (cpSyntaxVoid ",") $ do
-        α ← pTVar
-        cpSyntaxVoid ":"
-        κ ← pKind
-        return $ α :* κ
-      cs ← ifNone Nil ^$ cpOptional $ do
-        cpSyntaxVoid "|"
-        cpManySepBy (cpSyntaxVoid ",") pConstr
-      cpSyntaxVoid "."
-      return $ ForallT ακs cs
+      α ← pTVar
+      return $ ForallT α 
   -- τ@ρse
   , mixPostfix levelMODE $ do
       cpSyntaxVoid "@"
-      ρse ← pPrinSetExp
-      return $ SecT $ AddTop ρse
+      ρse ← pEMode
+      return $ SecT ρse
   -- τ⟪ρse⟫
   , mixPostfix levelMODE $ do
       concat [cpSyntaxVoid "⟪",cpSyntaxVoid "<<"]

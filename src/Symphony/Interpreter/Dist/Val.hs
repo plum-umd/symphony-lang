@@ -109,7 +109,7 @@ recvShareDist φ ρvFr ρvsTo τ = do
            let ṽM = recvShareDist φ ρvFr ρvsTo τ'
            ṽsˢ ← list ^$ exchange $ replicate n ṽM
            return $ ListV ṽsˢ
-         ArrT n τ' → do
+         ArrT _em n τ' → do
            let ṽM = recvShareDist φ ρvFr ρvsTo τ'
            ṽsˢ ← exchange $ replicate n ṽM
            a ← io $ vecIMut ṽsˢ

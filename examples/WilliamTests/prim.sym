@@ -1,0 +1,4 @@
+principal A B
+
+def main : (unit@all -> int@all)@all
+def main () = let a = 1 in let b = 2 in a + b

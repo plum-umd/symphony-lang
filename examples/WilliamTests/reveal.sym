@@ -1,0 +1,4 @@
+principal A B C
+
+def main : (unit@all -> int@{A})@all
+def main () = par {A, B, C } (reveal [yao, int : {A,B,C} -> A] (share [yao, int : A -> {A,B,C}] (par {A} 2) )) 

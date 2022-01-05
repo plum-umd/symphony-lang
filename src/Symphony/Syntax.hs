@@ -57,6 +57,7 @@ data PrinSetExp =
     VarPSE 𝕏
   | PowPSE (𝐿 PrinExp)
   | ThisPSE
+  | AnyPSE
   deriving (Eq, Ord, Show)
 
 instance Null PrinSetExp where
@@ -75,7 +76,19 @@ makePrettySum ''PrinDecl
 --- Mode ---
 ------------
 
+
+
 type Mode = AddTop (𝑃 PrinVal)
+
+data ModeAny = 
+    Any
+  | AddAny Mode
+  deriving (Eq, Ord, Show)
+
+instance Pretty ModeAny where
+  pretty = \case
+    Any → pretty "Any Mode"
+    AddAny m → pretty m
 
 ----------------
 -- Constraint --
@@ -332,17 +345,20 @@ data Type =
   | Type :+: Type                               --  τ + τ                      /  τ + τ
   | Type :×: Type                               --  τ × τ                      /  τ * τ
   | ListT ℕ Type                                --  list[n] τ                  /  list[n] τ
-  | RefT Type                                   --  ref τ                      /  ref τ
-  | ArrT ℕ Type                                 --  arr[n] τ                   /  arr[n] τ
+  | RefT (𝑂 EMode) Type                         --  ref{P} τ                   /  ref{P} τ
+  | ArrT (𝑂 EMode) ℕ Type                       --  arr[P,n] τ                 /  arr[P,n] τ
   | Type :→: (Effect ∧ Type)                    --  τ →{η} τ                   /  τ ->{η} τ
   | (𝕏 ∧ Type ∧ 𝐿 Constr) :→†: (Effect ∧ Type)  --  (x : τ | c,…,c) →{η} τ     /  (x : τ | c,…,c) ->{η} τ
-  | ForallT (𝐿 (TVar ∧ Kind)) (𝐿 Constr) Type   --  ∀ α:κ,…,α:κ | c,…,c. τ     /  forall α:κ,…,α:κ | c,…,c. τ
+  | ForallT TVar Type   --  ∀ α:κ,…,α:κ | c,…,c. τ     /  forall α:κ,…,α:κ | c,…,c. τ
   | SecT EMode Type                             --  τ{P}                       /  τ{P}
   | SSecT EMode Type                            --  τ{ssec:P}                  /  τ{ssec:P}
   | ISecT EMode Type                            --  τ{bundle:P}                /  τ{bundle:P}
   | ShareT Prot EMode Type                      --  τ{φ:P}                     /  τ{φ:P}
+  | RecT TVar Type
   deriving (Eq,Ord,Show)
 makePrettySum ''Type
+
+
 
 ---------
 -- Var --
@@ -476,9 +492,16 @@ data ExpR =
   | SeqE Exp Exp                                  -- e;e                     / e;e
 
   | DefaultE                                      -- _|_                     /  ⊥
+  
+  | FoldE Exp
+  | UnfoldE  Exp
+
   deriving (Eq,Ord,Show)
   -- [e₁;…;eₙ] ≜ e₁ ∷ ⋯ ∷ eₙ ∷ []
 makePrettySum ''ExpR
+
+nullExp :: ExpR -> Exp
+nullExp e = 𝐴 null e
 
 buildLambda ∷ SrcCxt → Var → 𝐿 Pat → Exp → Exp
 buildLambda c x ψs e

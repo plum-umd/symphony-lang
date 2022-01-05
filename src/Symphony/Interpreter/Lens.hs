@@ -46,11 +46,11 @@ listTL = prism constr destr
           ListT n τ → Some (n :* τ)
           _ → None
 
-arrTL ∷ Type ⌲ (ℕ ∧ Type)
+arrTL ∷ Type ⌲ (𝑂 EMode ∧ ℕ ∧ Type)
 arrTL = prism constr destr
-  where constr (n :* τ) = ArrT n τ
+  where constr (em :* n :* τ) = ArrT em n τ
         destr = \case
-          ArrT n τ → Some (n :* τ)
+          ArrT em n τ → Some (em :* n :* τ)
           _ → None
 
 --------------

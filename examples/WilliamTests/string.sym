@@ -1,0 +1,4 @@
+principal A B
+
+def main : (unit@all -> string@all)@all
+def main () = "Test"

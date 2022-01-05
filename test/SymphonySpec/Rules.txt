@@ -1,0 +1,135 @@
+Lemma: Every type returns well formed
+A join and meet of two well formed types will also be well formed
+
+T-Var (WF)
+gamma(x) = t
+|-m t' (can find this with an intersection of m and the located types of t)
+t <: t'
+--------
+gamma |- m x : t'
+
+
+T-Bul (WF)
+--------
+gamma |- m () : bul@m
+
+T-Bool (WF)
+--------
+gamma |- m b : bool@m
+
+T-Nat (WF)
+--------
+gamma |- m n : nat@m
+
+T-Int (WF)
+--------
+gamma |- m i : int@m
+
+T-Flt (WF)
+--------
+gamma |- m f : float@m
+
+T-String (WF)
+--------
+gamma |- m s : string@m
+
+T-PrinExp (Same as T-Var, but it should be ps:all)
+gamma(x) = t
+|-m t' (can find this with an intersection of m and the located types of t)
+t <: t'
+--------
+gamma |- m x : t'
+--------
+gamma |- m A : t'
+
+T-PrinSetExp (WF)
+forall A in M = {A ...} gamma |- m A : t
+
+prin@all <: t
+--------
+gamma |- m A : ps@m
+
+T-Op
+m <= m_i since it could be a subtype which means
+but it is guaranteed m_i >= m since it is well formed so m = m
+gamma |- m e1 : sigma1^phi@m
+gamma |- m e2 : sigma2^phi@m
+....
+gamma |- m en : sigman^pih@mn
+op [sigma1, sigma2 ... sigman] : sigma
+--------
+gamma|- m op [e1, e2, ..., en] : : sigma^phi@m
+
+T-Prod
+gamma |- m e1 : t1
+gamma |- m e2 : t2
+--------
+gamma |- m (e1, e2) : (t1 x t2) @m
+
+T-L (annotated gives t')
+gamma |- m e : t
+gamma |- m : t'
+t' is well formed in m
+--------
+gamma |- m (injl e) : (t x t') @m
+
+T-R (annotated gives t')
+gamma |- m e : t
+gamma |- m : t'
+t' is well formed in m
+--------
+gamma |- m (injr e) : (t' x t) @m
+
+T-Nil (annotated gives t)
+
+gamma |- m : t
+t = (list t') @m
+t is well formed in m
+--------
+gamma |- m (nil) : t
+
+
+
+T-Cons (t is the join of t' and t'')
+gamma |- m e1 : t where t' <: t
+gamma |- m e2 : list t'' @m' where t'' <: t and m' >= m
+--------
+gamma |- m (e1, e2) : (list t) @m
+
+T-If
+gamma |- m e : bool@m' where m' >= m
+gamma |- m e1 : t' where t' <: t
+gamma |- m e2 : t'' where t'' <: t
+--------
+gamma |- m (if e then e1 else e2) : t @m
+
+T-Case (t is the join of t', t'', .... t'n)
+gamma |- m e : t_e@m' where m' <= m
+gamma updated_1 |- m e1 : t' where t'  <: t
+gamma updated_2 |- m e2 : t'' where t'' <: t
+...
+gamma updated_n |- m en : t'n where t'n <: t
+--------
+gamma |- m case e [e1, e2, ..., en] : t
+
+T-Let (T-LetTy uses this rule but t1' is given)
+gamma |- m e1 : t1 <: t1' where t1' is wf
+[x |-> t1] gamma |- m e2 : t2 <: t2' where t2' is well formed
+ -----
+gamma |- m  let x = e1 in e2 : t2'
+
+T-Lam t is given to check that it is (t1 |-> m t2) also a pattern is given for the argument
+T-TLamE gives the type variable withotu a pattern
+{ z|- (t1 |-> m t2) @m, x |-> t1} U gamma |- m t2'
+t2' <: t2 and t2 is well formed
+----
+gamma |- m lambdazx.e :(t1^m |-> t2)@m
+
+T-App (T-TApp gives the type of the argument)
+
+gamma |-m e1: t 
+t <" (t1 |-> m t2) @m where (t1 |-> m t2) @m  is well formed
+gamma |-m e2 : t1' 
+t1' <: t1 where t1 is well formed
+----
+gamma |- m e1 e2 : t2

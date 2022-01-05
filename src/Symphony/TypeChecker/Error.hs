@@ -4,4 +4,5 @@ module Symphony.TypeChecker.Error
   ) where
 
 import Symphony.TypeChecker.Error.Types
+import Symphony.TypeChecker.Error.Instances ()
 import Symphony.TypeChecker.Error.Operations

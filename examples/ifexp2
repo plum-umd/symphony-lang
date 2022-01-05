@@ -1,0 +1,3 @@
+principal A B C
+
+def main () = let x =  (par {A, C} false) in let y = (par {A, C} •) in let z = (par {A} •) in (par {A}(if x then y else z))
