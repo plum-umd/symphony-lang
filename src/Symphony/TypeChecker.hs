@@ -92,7 +92,9 @@ synPrin ρe =
     ρτ ← (synPrinExp ρe) 
     case (subtype ρτ (BaseT ℙT)) of
       True → return (BaseT ℙT)
-      False → typeError
+      False → typeError "synPrin: τ₁ ≢ (_ → _)@_" $ frhs
+      [ ("τ₁", pretty ρτ )
+      ]
     
 
 --interpPrinSet ∷ (STACK, Value v) ⇒ PrinSetExp → IM v v
