@@ -88,8 +88,8 @@ synPrinExp ρe = case ρe of
 
 synPrin ∷ PrinExp → EM Type
 synPrin ρe =
-  let c = synPrinExp ρe
-  in do
+  let c = synPrinExp ρe in 
+    do
     ρτ ← c
     case (subtype ρτ (BaseT ℙT)) of
   True → return (BaseT ℙT)
