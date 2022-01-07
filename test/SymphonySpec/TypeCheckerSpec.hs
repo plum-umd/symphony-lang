@@ -8,15 +8,13 @@ import qualified UVMHS as UVM
 
 import Symphony.Syntax
 import Symphony.TypeChecker
-import Symphony.TypeChecker.Types
+import Symphony.TypeChecker.EM.Operations
+import Symphony.TypeChecker.EM.Types
+import Symphony.TypeChecker.Error
 
 spec ∷ Spec
 spec = do
   describe "synExp" $ do
-    it "() : unit" $ do
-      x ← return $ runTMIO UVM.null "" (synExp BulE)
-      case x of
-      Inr x →  x `shouldBe` BaseT UnitT
-      Inl x →  x `shouldBe` BaseT UnitT
-     
-
+    it "() : unit" $ let x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExp BulE))
+     in  case x of
+     UVM.Inr a -> a `shouldBe` ( (BaseT UnitT) :+: (BaseT UnitT))

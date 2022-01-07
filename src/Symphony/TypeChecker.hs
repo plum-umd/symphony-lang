@@ -59,7 +59,7 @@ synVar x = do
 
 
 synBul ∷ EM Type
-synBul =  $ return  $ BaseT $ UnitT
+synBul = $ return (SecT ThisPSE (BaseT UnitT))
 
 
 chkLam ∷ 𝑂 Var → 𝐿 Pat → Exp → Type → EM ()
@@ -94,12 +94,17 @@ synExp e = case e of
 ------------------------------------------------
 
 elabPrinExp ∷ PrinExp → EM PrinVal
-elabPrinExp ρe = todoError
+elabPrinExp ρe =\case
+  VarPE x       → return (SinglePV (𝕩name x))
+  AccessPE x n₁ → return (AccessPV (𝕩name x) n₁)
 
 elabPrinSetExp ∷ PrinSetExp → EM (𝑃 PrinVal)
 elabPrinSetExp ρse = todoError
 
 elabEMode ∷ EMode → EM Mode
+elabEMode = mapM elabPrinSetExp
+
+elabMode ∷ Mode → EMode
 elabEMode = mapM elabPrinSetExp
 
 
