@@ -17,4 +17,4 @@ spec = do
   describe "synExp" $ do
     it "() : unit" $ let x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExp BulE))
      in  case x of
-     UVM.Inr a -> a `shouldBe`  (SecT (AddTop ThisPSE) (BaseT UnitT))
+     UVM.Inr a -> a `shouldBe`  (SecT (UVM.AddTop ThisPSE) (BaseT UnitT))
