@@ -88,13 +88,12 @@ synPrinExp ρe = case ρe of
 
 synPrin ∷ PrinExp → EM Type
 synPrin ρe =
-  let c = (synPrinExp ρe) in 
-    (do
-    ρτ ← c
+   do
+    ρτ ← (synPrinExp ρe) 
     case (subtype ρτ (BaseT ℙT)) of
-  True → return (BaseT ℙT)
-  False → typeError
-    )
+      True → return (BaseT ℙT)
+      False → typeError
+    
 
 --interpPrinSet ∷ (STACK, Value v) ⇒ PrinSetExp → IM v v
 --interpPrinSet ρse =
