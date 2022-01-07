@@ -47,6 +47,10 @@ bindPrins ρds = eachOn ρds bindPrin
 -- Checking for Expressions --
 ------------------------------
 
+subtype :: Type → Type → 𝔹
+subtype tyS tyT = tyS == tyT
+
+
 synVar ∷ Var → EM Type
 synVar x = do
   env ← askL terEnvL
@@ -75,7 +79,28 @@ synFlt pr d = return (SecT (AddTop ThisPSE) (BaseT (𝔽T pr)))
 
 synStr ∷  𝕊 → EM Type
 synStr s = return (SecT (AddTop ThisPSE) (BaseT 𝕊T))
+interpPrinExp ∷ (STACK, Value v) ⇒ PrinExp → IM v PrinVal
 
+synPrinExp ∷ PrinExp → EM Type
+synPrinExp ρe = case ρe of
+  VarPE x       → synVar x
+  AccessPE x n₁ → synVar x
+
+synPrin ∷ PrinExp → EM Type
+synPrin ρe =
+  let c = synPrinExp ρe
+  in do
+    ρτ ← c
+    case (subtype ρτ (BaseT ℙT)) of
+  True → return (BaseT ℙT)
+  False → typeError
+
+--interpPrinSet ∷ (STACK, Value v) ⇒ PrinSetExp → IM v v
+--interpPrinSet ρse =
+ -- let c = interpPrinSetExp ρse
+  --in do
+   -- ρsτ ← c
+    --introVal $ BaseV $ Clear $ PrinSetV ρsv
 chkLam ∷ 𝑂 Var → 𝐿 Pat → Exp → Type → EM ()
 chkLam self𝑂 ψs e τ = todoError
 
