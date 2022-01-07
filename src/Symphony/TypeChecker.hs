@@ -65,13 +65,13 @@ synBool ∷ 𝔹 → EM Type
 synBool b = return (SecT (AddTop ThisPSE) (BaseT 𝔹T))
 
 synNat ∷ IPrecision → ℕ → EM Type
-synNat pr n = return (SecT (AddTop ThisPSE) (BaseT ℕT pr))
+synNat pr n = return (SecT (AddTop ThisPSE) (BaseT (ℕT pr)))
 
 synInt ∷ IPrecision → ℤ → EM Type
-synInt pr z = return (SecT (AddTop ThisPSE) (BaseT ℤT pr))
+synInt pr z = return (SecT (AddTop ThisPSE) (BaseT (ℤT pr)))
 
 synFlt ∷ FPrecision → 𝔻 → EM Type
-synFlt pr d = return (SecT (AddTop ThisPSE) (BaseT 𝔽T pr))
+synFlt pr d = return (SecT (AddTop ThisPSE) (BaseT (𝔽T pr)))
 
 synStr ∷  𝕊 → EM Type
 synStr s = return (SecT (AddTop ThisPSE) (BaseT 𝕊T))
