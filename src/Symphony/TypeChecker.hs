@@ -102,13 +102,20 @@ synExp e = case e of
 
   -- Literals--
   BulE        → synBul
+  BoolE b     → synBool b
+  NatE pr n   → synNat pr n
+  IntE pr z   → synInt pr z
+  FltE pr d   → synFlt pr d
+  StrE s      → synStr s
+  -- PrinSetE es → interpPrinSet es
+  -- PrimE op es → interpPrim op es
   _      → undefined
 ------------------------------------------------
 -- Static Evaluation of Principal Expressions --
 ------------------------------------------------
 
 elabPrinExp ∷ PrinExp → EM PrinVal
-elabPrinExp ρe = case of ρe
+elabPrinExp ρe = case  ρe of
   VarPE x       → return (SinglePV (𝕩name x))
   AccessPE x n₁ → return (AccessPV (𝕩name x) n₁)
 
