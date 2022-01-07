@@ -79,7 +79,7 @@ synFlt pr d = return (SecT (AddTop ThisPSE) (BaseT (𝔽T pr)))
 
 synStr ∷  𝕊 → EM Type
 synStr s = return (SecT (AddTop ThisPSE) (BaseT 𝕊T))
-interpPrinExp ∷ (STACK, Value v) ⇒ PrinExp → IM v PrinVal
+
 
 synPrinExp ∷ PrinExp → EM Type
 synPrinExp ρe = case ρe of
