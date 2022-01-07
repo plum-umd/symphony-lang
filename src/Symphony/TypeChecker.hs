@@ -71,7 +71,7 @@ synInt ∷ IPrecision → ℤ → EM Type
 synInt pr z = return (SecT (AddTop ThisPSE) (BaseT ℤT pr))
 
 synFlt ∷ FPrecision → 𝔻 → EM Type
-synFlt pr d = return (SecT (AddTop ThisPSE) (BaseT 𝔻T pr))
+synFlt pr d = return (SecT (AddTop ThisPSE) (BaseT 𝔽T pr))
 
 synStr ∷  𝕊 → EM Type
 synStr s = return (SecT (AddTop ThisPSE) (BaseT 𝕊T))
