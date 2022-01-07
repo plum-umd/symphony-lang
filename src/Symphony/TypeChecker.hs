@@ -59,8 +59,22 @@ synVar x = do
 
 
 synBul ∷ EM Type
-synBul = $ return (SecT ThisPSE (BaseT UnitT))
+synBul = return (SecT (AddTop ThisPSE) (BaseT UnitT))
 
+synBool ∷ 𝔹 → EM Type
+synBool b = return (SecT (AddTop ThisPSE) (BaseT 𝔹T))
+
+synNat ∷ IPrecision → ℕ → EM Type
+synNat pr n = return (SecT (AddTop ThisPSE) (BaseT ℕT pr))
+
+synInt ∷ IPrecision → ℤ → EM Type
+synInt pr z = return (SecT (AddTop ThisPSE) (BaseT ℤT pr))
+
+synFlt ∷ FPrecision → 𝔻 → EM Type
+synFlt pr d = return (SecT (AddTop ThisPSE) (BaseT 𝔻T pr))
+
+synStr ∷  𝕊 → EM Type
+synStr s = return (SecT (AddTop ThisPSE) (BaseT 𝕊T))
 
 chkLam ∷ 𝑂 Var → 𝐿 Pat → Exp → Type → EM ()
 chkLam self𝑂 ψs e τ = todoError
@@ -81,7 +95,7 @@ synApp τ₁ τ₂ = case τ₁ of
       [ ("τ₁", pretty τ₁)
       ]
 
-synExp ∷ ExpR → TM Type
+synExp ∷ ExpR → EM Type
 synExp e = case e of
    -- Variables
   VarE x → synVar x
@@ -94,7 +108,7 @@ synExp e = case e of
 ------------------------------------------------
 
 elabPrinExp ∷ PrinExp → EM PrinVal
-elabPrinExp ρe =\case
+elabPrinExp ρe = case of ρe
   VarPE x       → return (SinglePV (𝕩name x))
   AccessPE x n₁ → return (AccessPV (𝕩name x) n₁)
 
@@ -104,13 +118,8 @@ elabPrinSetExp ρse = todoError
 elabEMode ∷ EMode → EM Mode
 elabEMode = mapM elabPrinSetExp
 
-elabMode ∷ Mode → EMode
-elabEMode = mapM elabPrinSetExp
-
-
-elabPrinSetExp ∷ PrinSetExp → EM (𝑃 PrinVal)
-elabPrinSetExp ρse = todoError
-
+--elabMode ∷ Mode → EMode
+--elabMode = mapM elabPrinSetExp
 
 
 ---------------
