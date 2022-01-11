@@ -132,7 +132,7 @@ synExp e = case e of
   IntE pr z   → synInt pr z
   FltE pr d   → synFlt pr d
   StrE s      → synStr s
-  PrinSetE es → synPrinSet es
+  --PrinSetE es → synPrinSet es
   PrinE e → synPrin e
   -- PrimE op es → synPrim op es
   _      → undefined
