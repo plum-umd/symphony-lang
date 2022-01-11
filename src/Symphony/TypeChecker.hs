@@ -132,8 +132,8 @@ synExp e = case e of
   IntE pr z   → synInt pr z
   FltE pr d   → synFlt pr d
   StrE s      → synStr s
-  PrinSetE es → interpPrinSet es
-  PrimE op es → interpPrim op es
+  PrinSetE es → synPrinSet es
+  PrimE op es → synPrim op es
   _      → undefined
 ------------------------------------------------
 -- Static Evaluation of Principal Expressions --
