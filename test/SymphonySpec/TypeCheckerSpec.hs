@@ -11,7 +11,7 @@ import Symphony.TypeChecker
 import Symphony.TypeChecker.EM.Operations
 import Symphony.TypeChecker.EM.Types
 import Symphony.TypeChecker.Error
-import qualified Data.Map.Strict as Map
+
 
 spec ∷ Spec
 spec = do
