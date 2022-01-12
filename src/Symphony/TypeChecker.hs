@@ -91,7 +91,7 @@ checkPrin ρe =
    do
     ρτ ← (synPrinExp ρe) 
     case (subtype ρτ (SecT Top (BaseT ℙT))) of
-      _ → return (SecT Top (BaseT ℙT))
+      True → return (SecT Top (BaseT ℙT))
       False → todoError
     
 
