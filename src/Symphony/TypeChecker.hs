@@ -86,7 +86,7 @@ synPrinExp ρe = case ρe of
   VarPE x       → synVar x
   AccessPE x n₁ → synVar x
 
-checkPrin ∷ PrinExp → Type
+checkPrin ∷ PrinExp → EM Type
 checkPrin ρe =
    do
     ρτ ← (synPrinExp ρe) 
