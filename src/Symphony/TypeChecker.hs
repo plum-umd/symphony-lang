@@ -95,7 +95,7 @@ checkPrin ρe =
       False → todoError
     
 
-synPrinSet ∷ PrinSetExp → IM v v
+synPrinSet ∷ PrinSetExp → EM Type
 synPrinSetExp ρse =
   case ρse of
   VarPSE x   → do
