@@ -97,6 +97,7 @@ checkPrin ρe =
 
 synPrinSet ∷ PrinSetExp → IM v v
 synPrinSetExp ρse =
+  case ρse of
   VarPSE x   → do
     ρsτ ← synVar x
     case (subtype ρsτ (SecT Top (BaseT ℙsT))) of
@@ -105,8 +106,7 @@ synPrinSetExp ρse =
   PowPSE ρes → do
     _ ←  mapM checkPrin ρes
     return (SecT Top (BaseT ℙsT))
-  ThisPSE    → do
-    return (SecT Top (BaseT ℙsT))
+  ThisPSE    →  return (SecT Top (BaseT ℙsT))
 
 chkLam ∷ 𝑂 Var → 𝐿 Pat → Exp → Type → EM ()
 chkLam self𝑂 ψs e τ = todoError
