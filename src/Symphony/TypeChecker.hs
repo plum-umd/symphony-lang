@@ -90,7 +90,7 @@ checkPrin ∷ PrinExp → Type
 checkPrin ρe =
    do
     ρτ ← (synPrinExp ρe) 
-    case (subtype ρt (SecT Top (BaseT ℙT))) of
+    case (subtype ρτ (SecT Top (BaseT ℙT))) of
       True → return (SecT Top (BaseT ℙT))
       False → todoError
     
@@ -140,7 +140,7 @@ synExp e = case e of
   FltE pr d   → synFlt pr d
   StrE s      → synStr s
   PrinSetE es → synPrinSet es
-  PrinE e → synPrin e
+  PrinE e → checkPrin e
   -- PrimE op es → synPrim op es
   _      → undefined
 ------------------------------------------------
