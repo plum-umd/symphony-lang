@@ -86,21 +86,28 @@ synPrinExp ρe = case ρe of
   VarPE x       → synVar x
   AccessPE x n₁ → synVar x
 
-synPrin ∷ PrinExp → EM Type
-synPrin ρe =
+checkPrin ∷ PrinExp → Type
+checkPrin ρe =
    do
     ρτ ← (synPrinExp ρe) 
-    case (subtype ρτ (BaseT ℙT)) of
-      True → return (BaseT ℙT)
+    case (subtype ρt (SecT Top (BaseT ℙT))) of
+      True → return (SecT Top (BaseT ℙT))
       False → todoError
     
 
---interpPrinSet ∷ (STACK, Value v) ⇒ PrinSetExp → IM v v
---interpPrinSet ρse =
- -- let c = interpPrinSetExp ρse
-  --in do
-   -- ρsτ ← c
-    --introVal $ BaseV $ Clear $ PrinSetV ρsv
+synPrinSet ∷ PrinSetExp → IM v v
+synPrinSetExp ρse =
+  VarPSE x   → do
+    ρsτ ← synVar x
+    case (subtype ρsτ (SecT Top (BaseT ℙsT))) of
+      True → return (SecT Top (BaseT ℙsT))
+      False → todoError
+  PowPSE ρes → do
+    _ ←  mapM checkPrin ρes
+    return (SecT Top (BaseT ℙsT))
+  ThisPSE    → do
+    return (SecT Top (BaseT ℙsT))
+
 chkLam ∷ 𝑂 Var → 𝐿 Pat → Exp → Type → EM ()
 chkLam self𝑂 ψs e τ = todoError
 
@@ -132,7 +139,7 @@ synExp e = case e of
   IntE pr z   → synInt pr z
   FltE pr d   → synFlt pr d
   StrE s      → synStr s
-  --PrinSetE es → synPrinSet es
+  PrinSetE es → synPrinSet es
   PrinE e → synPrin e
   -- PrimE op es → synPrim op es
   _      → undefined
