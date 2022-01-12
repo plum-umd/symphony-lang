@@ -25,9 +25,8 @@ spec = do
     it "() : prinexp" $ let x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "A" , (SecT UVM.Top (BaseT ℙT))) ])) }) () (synExp (PrinE (VarPE (UVM.var "A")))))
      in  case x of
      UVM.Inr a -> a `shouldBe`  (SecT UVM.Top  (BaseT ℙT))
---    it "() : prinsetexp" $ let x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "A" , (SecT UVM.Top (BaseT ℙT))) ])) }) () (synExp (PrinSetE (PowPfprSE (UVM.single𝐿  (VarPE (UVM.var "A")) )) )))
- it "() : prinexp" $ let x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "A" , (SecT UVM.Top (BaseT ℙT))) ])) }) () (synExp (PrinSetE (VarPSE (UVM.var "A")))))
+    it "() : prinsetexp" $ let x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "A" , (SecT UVM.Top (BaseT ℙT))) ])) }) () (synExp (PrinSetE (VarPSE (UVM.var "A")))))
      in  case x of
      UVM.Inr a -> a `shouldBe`  (SecT UVM.Top  (BaseT ℙsT))
 
-     
+     --    it "() : prinsetexp" $ let x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "A" , (SecT UVM.Top (BaseT ℙT))) ])) }) () (synExp (PrinSetE (PowPfprSE (UVM.single𝐿  (VarPE (UVM.var "A")) )) )))
