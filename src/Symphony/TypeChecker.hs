@@ -96,7 +96,7 @@ checkPrin ρe =
     
 
 synPrinSet ∷ PrinSetExp → EM Type
-synPrinSetExp ρse =
+synPrinSet ρse =
   case ρse of
   VarPSE x   → do
     ρsτ ← synVar x
