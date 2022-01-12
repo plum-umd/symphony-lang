@@ -24,6 +24,6 @@ spec = do
      UVM.Inr a -> a `shouldBe`  (SecT (UVM.AddTop ThisPSE) (BaseT 𝔹T))
     it "() : prinexp" $ let x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "A" , (BaseT ℙT)) ])) }) () (synExp (PrinE (VarPE (UVM.var "A")))))
      in  case x of
-     UVM.Inr a -> a `shouldBe`  (BaseT ℙT)
+     UVM.Inr a -> a `shouldBe`  (SecT UVM.Top  (BaseT ℙT))
 
      
