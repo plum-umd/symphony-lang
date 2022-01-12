@@ -55,7 +55,7 @@ data PrinExp =
 
 data PrinSetExp =
     VarPSE 𝕏
-  | PowPSE (𝐿 PrinExp)
+  | PowPfprSE (UVM.𝐿 PrinExp)
   | ThisPSE
   deriving (Eq, Ord, Show)
 
