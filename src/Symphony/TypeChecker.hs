@@ -251,7 +251,7 @@ synApp τ₁ τ₂ = case τ₁ of
       ]
 
 synExp :: Exp → EM Type
-synExpr e = synExp $ extract e
+synExp e = synExp $ extract e
 
 synExpr ∷ ExpR → EM Type
 synExpr e = case e of
