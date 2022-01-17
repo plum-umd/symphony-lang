@@ -50,6 +50,8 @@ bindPrins ρds = eachOn ρds bindPrin
 subtype :: Type → Type → 𝔹
 subtype tyS tyT = tyS == tyT
 
+supertype :: Type → Type → 𝔹
+supertype tyT tyS = subType tyS tyT
 
 synVar ∷ Var → EM Type
 synVar x = do
@@ -108,6 +110,127 @@ synPrinSet ρse =
     return (SecT Top (BaseT ℙsT))
   ThisPSE    →  return (SecT Top (BaseT ℙsT))
 
+
+--synOp :: Op -> OpType
+--synOp op = (BaseOpT (Nat))
+-- Gets the operation, gets if the operation needs a specific type or any basic type, gets the type of first type
+-- checks if it is the basic ,type, goes through each thing in the list to get the supertype of every type 
+-- and that there is a supertype of every type in the list. Can do this by making accumulator first type of the list
+-- and true and checking that there exists a supertype for each in the fold
+--synPrim ∷ Op → 𝐿 Exp → IM v v
+--synPrim op es =
+  
+  -- arrity
+ --   if (getSize op) == (size es) then
+ --( 
+   -- true if empty
+     {-
+   if (isEmpty es) then
+     return (synRes op)
+  else 
+    
+    case (synOp op) of
+    -- Check first element is basetype and then make sure all elements are of a certain supertype
+    | AllOp → (let h = (fst es) in 
+      do 
+      accτ ←  (synExp es)
+      if  (isBase accτ) then 
+        (case (fold (snd es) (accτ, True) getSuperType2) of
+           (_, False) → todoError
+           _ → return (synRes op)
+        ) 
+        else 
+        todoError
+
+    -- Check that all elements are a subtype of the type it must be (or the type is a supertype of all)
+    |  accτ → 
+    (if (fold es True (supertype acct) ) then
+      return (synRes op)
+           else  todoError
+          
+      )
+ )
+  else
+    todoError
+
+
+getSuperType :: ExpR →  (Type, bool) →  (Type, bool)
+getSuperType e acc  =
+  case acc of
+    (_, False) → (accτ, False)
+    (accτ, _) →
+    let c = synExp e
+   in do
+    τ ← c
+    if subtype accτ τ then (τ, True)
+    else (if subtype τ accτ then (accτ, True) else  (accτ, False))
+---------------------------------
+--- Products, Sums, and Lists ---
+---------------------------------
+
+-- Gets the type of the first, gets type of the second, returns the pair located value
+synProd ∷  Exp → Exp → EM Type
+synProd eₗ eᵣ =
+  let cₗ = synExp eₗ
+      cᵣ = synExp eᵣ
+  in do
+    τₗ ← cₗ
+    τᵣ ← cᵣ
+    return (τₗ :×: τᵣ)
+
+synLAnno ∷ Exp → Type → EM Type
+synLAnno eₗ  =
+  case τ of
+  |   τₗ  :+: τᵣ →
+  let cₗ = synExp eₗ
+  in do
+
+    cτₗ  ← cₗ
+  if (subtype cₗ τₗ) then
+    return τ 
+  else
+    todoError
+  | _ → todoError
+
+synRAnn ∷ Exp → Type → EM Type
+synRAnno eₗ  =
+  case τ of
+  | τₗ  :+: τᵣ
+  let cᵣ = synExp eᵣ
+  in do
+    cτᵣ  ← cᵣ
+  if (subtype cᵣ τᵣ) then
+    return τ 
+  else
+    todoError
+  | _ → todoError
+
+synNilAnn ∷ (STACK, Value v) ⇒ EM Type
+synNilAnn =  case τ of
+  | ListT _ τₜ  → return τ
+  | _ → todoError
+-}
+synCons ∷ Exp → Exp → EM Type
+synCons eₕ eₜ =
+  let cₕ = synExp eₕ
+      cₜ = synExp eₜ
+  in do
+    τ  ← cₕ
+    τs ← cₜ
+    case τs of
+    | ListT n τₜ →     if subtype τₜ τ then (ListT n τ) else (if subtype τ τₜ then τs else  todoError)
+    | _ → todoError
+
+{-
+interpIf ∷ (STACK, Value v) ⇒ Exp → Exp → Exp → IM v v
+interpIf e₁ e₂ e₃ =
+  let c₁ = interpExp e₁
+      c₂ = interpExp e₂
+      c₃ = interpExp e₃
+  in do
+    b ← elimBool *$ elimClear *$ elimBase *$ elimVal *⋅ c₁
+    if b then c₂ else c₃
+-}
 chkLam ∷ 𝑂 Var → 𝐿 Pat → Exp → Type → EM ()
 chkLam self𝑂 ψs e τ = todoError
 
@@ -127,8 +250,11 @@ synApp τ₁ τ₂ = case τ₁ of
       [ ("τ₁", pretty τ₁)
       ]
 
-synExp ∷ ExpR → EM Type
-synExp e = case e of
+synExp :: Exp → EM Type
+synExpr e = synExp $ extract e
+
+synExpr ∷ ExpR → EM Type
+synExpr e = case e of
    -- Variables
   VarE x → synVar x
 
