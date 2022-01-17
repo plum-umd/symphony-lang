@@ -251,10 +251,10 @@ synApp τ₁ τ₂ = case τ₁ of
       ]
 
 synExp :: Exp → EM Type
-synExp e = synExp $ extract e
+synExp e = synExpR $ extract e
 
-synExpr ∷ ExpR → EM Type
-synExpr e = case e of
+synExpR ∷ ExpR → EM Type
+synExpR e = case e of
    -- Variables
   VarE x → synVar x
 
