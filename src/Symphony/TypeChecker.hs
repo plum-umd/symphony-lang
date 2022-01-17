@@ -51,7 +51,7 @@ subtype :: Type → Type → 𝔹
 subtype tyS tyT = tyS == tyT
 
 supertype :: Type → Type → 𝔹
-supertype tyT tyS = subType tyS tyT
+supertype tyT tyS = subtype tyS tyT
 
 synVar ∷ Var → EM Type
 synVar x = do
