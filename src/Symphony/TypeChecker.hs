@@ -218,7 +218,7 @@ synCons eₕ eₜ =
     τ  ← cₕ
     τs ← cₜ
     case τs of
-    | ListT n τₜ →     if subtype τₜ τ then (ListT n τ) else (if subtype τ τₜ then τs else  todoError)
+      ListT n τₜ →     if subtype τₜ τ then (ListT n τ) else (if subtype τ τₜ then τs else  todoError)
     | _ → todoError
 
 {-
