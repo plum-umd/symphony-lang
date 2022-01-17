@@ -345,7 +345,7 @@ data Type =
 makePrettySum ''Type
 
 data OpType =
-  | AllOpT
+    AllOpT
   | BaseOpT BaseType
 ---------
 -- Var --
