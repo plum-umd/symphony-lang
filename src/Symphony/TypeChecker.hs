@@ -219,7 +219,7 @@ synCons eₕ eₜ =
     τs ← cₜ
     case τs of
       ListT n τₜ →    (if subtype τₜ τ then (ListT n τ) else (if subtype τ τₜ then τs else  todoError))
-    | _ → todoError
+      _ → todoError
 
 {-
 interpIf ∷ (STACK, Value v) ⇒ Exp → Exp → Exp → IM v v
