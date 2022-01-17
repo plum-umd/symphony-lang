@@ -19,7 +19,7 @@ spec = do
     it "() : unit" $ let x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExpR BulE))
      in  case x of
      UVM.Inr a -> a `shouldBe`  (SecT (UVM.AddTop ThisPSE) (BaseT UnitT))
-    it "() : unit2" $ let x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExp (UVM.𝐴 UVM.None (ExpR BulE))))
+    it "() : unit2" $ let x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExp (UVM.𝐴 UVM.None (BulE))))
      in  case x of
      UVM.Inr a -> a `shouldBe`  (SecT (UVM.AddTop ThisPSE) (BaseT UnitT))
     it "() : bool" $ let x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExpR (BoolE True)))
