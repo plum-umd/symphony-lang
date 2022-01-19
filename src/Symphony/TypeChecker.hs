@@ -290,7 +290,7 @@ setToList :: (𝑃 a)  → (𝐿 a)
 setToList myset = list𝐼 (iter𝑃 myset)
 
 listToSet :: (𝐿 a)  → (𝑃 a)
-setToList mylist = list𝑃 (iter𝐼 mylist)
+listToSet mylist = list𝑃 (iter𝐼 mylist)
 
 elabPrinExp ∷ PrinExp → EM PrinVal
 elabPrinExp ρe = case  ρe of
@@ -310,7 +310,7 @@ elabEMode ∷ EMode → EM Mode
 elabEMode = mapM elabPrinSetExp
 
 elabPrinVal :: PrinVal → EM PrinExp
-elabPrinExp ρv = case  ρv of
+elabPrinVal ρv = case  ρv of
   (SinglePV ρ)    → return (VarPE (var ρ)) 
   (AccessPV ρ n₁) → return (AccessPE (var ρ) n₁)
 
