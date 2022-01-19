@@ -294,8 +294,8 @@ listToSet mylist = pow𝐼 (iter mylist)
 
 elabPrinExp ∷ PrinExp → EM PrinVal
 elabPrinExp ρe = case  ρe of
-  VarPE 𝕏       → return (SinglePV (𝕩name 𝕏))
-  AccessPE 𝕏 n₁ → return (AccessPV (𝕩name 𝕏) n₁)
+  VarPE x       → return (SinglePV (𝕩name x))
+  AccessPE x n₁ → return (AccessPV (𝕩name x) n₁)
 
 elabPrinSetExp ∷ PrinSetExp → EM (𝑃 PrinVal)
 elabPrinSetExp ρse = case  ρse of
