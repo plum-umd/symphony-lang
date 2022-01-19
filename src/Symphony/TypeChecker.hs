@@ -65,7 +65,11 @@ synVar x = do
 
 
 synBul ∷ EM Type
-synBul = return (SecT (AddTop ThisPSE) (BaseT UnitT))
+synBul = 
+  do
+  m ← askL terModeL
+  em ← elabMode m
+  return (SecT em (BaseT UnitT))
 
 synBool ∷ 𝔹 → EM Type
 synBool b = return (SecT (AddTop ThisPSE) (BaseT 𝔹T))
@@ -204,12 +208,15 @@ synRAnno eₗ  =
   else
     todoError
   | _ → todoError
+-}
 
+{- Todo: Check if m is a subset of the real mode-}
 synNilAnn ∷ (STACK, Value v) ⇒ EM Type
 synNilAnn =  case τ of
-  | ListT _ τₜ  → return τ
-  | _ → todoError
--}
+  SecT m (ListT _ τₜ)  → return τ
+  ShareT φ m (ListT _ τₜ)   → return τ
+   _ → todoError
+
 synCons ∷ Exp → Exp → EM Type
 synCons eₕ eₜ =
   let cₕ = synExp eₕ
@@ -218,7 +225,9 @@ synCons eₕ eₜ =
     τ  ← cₕ
     τs ← cₜ
     case τs of
-      ListT n τₜ → (if subtype τₜ τ then return  (ListT n τ) else (if subtype τ τₜ then (return τs) else todoError))
+      {- Check if m is a subset of actual m'? -}
+      SecT m' (ListT _ τₜ)  →(if subtype τₜ τ then return  (ListT n τ) else (if subtype τ τₜ then (return τs) else todoError))
+      ShareT φ m' (ListT _ τₜ)   → (if subtype τₜ τ then return  (ListT n τ) else (if subtype τ τₜ then (return τs) else todoError))
       _ → todoError
 
 {-
@@ -250,6 +259,9 @@ synApp τ₁ τ₂ = case τ₁ of
       [ ("τ₁", pretty τ₁)
       ]
 
+synAscr :: Exp → Type →  EM Type
+synAscr e τ = synExpR $ extract e
+
 synExp :: Exp → EM Type
 synExp e = synExpR $ extract e
 
@@ -267,26 +279,48 @@ synExpR e = case e of
   StrE s      → synStr s
   PrinSetE es → synPrinSet es
   PrinE e → checkPrin e
+
+  AscrE e τ → synAscr e τ
   -- PrimE op es → synPrim op es
   _      → undefined
 ------------------------------------------------
 -- Static Evaluation of Principal Expressions --
 ------------------------------------------------
+setToList :: (𝑃 a)  → (𝐿 a)
+setToList myset = list𝐼 (iter𝑃 myset)
+
+listToSet ::   (𝐿 a) → (𝑃 a) 
+setToList mylist = list𝑃 (iter𝐼 mylist)
 
 elabPrinExp ∷ PrinExp → EM PrinVal
 elabPrinExp ρe = case  ρe of
-  VarPE x       → return (SinglePV (𝕩name x))
-  AccessPE x n₁ → return (AccessPV (𝕩name x) n₁)
+  VarPE 𝕏       → return (SinglePV (𝕩name 𝕏))
+  AccessPE 𝕏 n₁ → return (AccessPV (𝕩name 𝕏) n₁)
 
 elabPrinSetExp ∷ PrinSetExp → EM (𝑃 PrinVal)
-elabPrinSetExp ρse = todoError
+elabPrinSetExp ρse = case  ρse of
+  PowPSE ρel → ket pvl = let ρvp = (listToSet ρvl)
+    ThisPSE -> do
+      m ← askL terModeL
+      return m  
+  _ → todoError
+
 
 elabEMode ∷ EMode → EM Mode
 elabEMode = mapM elabPrinSetExp
 
---elabMode ∷ Mode → EMode
---elabMode = mapM elabPrinSetExp
+elabPrinVal :: PrinVal → EM PrinExp
+elabPrinExp ρv = case  ρv of
+(SinglePV (𝕩name x))      → return  VarPE x 
+(AccessPV (𝕩name x) n₁) → return AccessPE x n₁
 
+-- turn powerset to list, map the list, convert to prinsetexp
+elabPrinValSet :: (𝑃 PrinVal)  → EM PrinSetExp
+elabPrinValSet ρvp = let ρvl = (setToList ρvp) in
+  let ρel = (mapM ρvl elabPrinVal) in (return PowPSE ρel)
+
+elabMode ∷ Mode → EM EMode
+elabMode = mapM elabPrinValSet
 
 ---------------
 -- Utilities --
