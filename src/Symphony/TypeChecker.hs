@@ -287,10 +287,10 @@ synExpR e = case e of
 -- Static Evaluation of Principal Expressions --
 ------------------------------------------------
 setToList :: (𝑃 a)  → (𝐿 a)
-setToList myset = list𝐼 (iter𝑃 myset)
+setToList myset = list𝐼 (iter myset)
 
 listToSet :: (𝐿 a)  → (𝑃 a)
-listToSet mylist = pow𝐼 (iter𝐼 mylist)
+listToSet mylist = pow𝐼 (iter mylist)
 
 elabPrinExp ∷ PrinExp → EM PrinVal
 elabPrinExp ρe = case  ρe of
