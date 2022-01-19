@@ -290,7 +290,7 @@ setToList :: (𝑃 a)  → (𝐿 a)
 setToList myset = list𝐼 (iter𝑃 myset)
 
 listToSet :: (𝐿 a)  → (𝑃 a)
-listToSet mylist = list𝑃 (iter𝐼 mylist)
+listToSet mylist = pow𝐼 (iter𝐼 mylist)
 
 elabPrinExp ∷ PrinExp → EM PrinVal
 elabPrinExp ρe = case  ρe of
@@ -300,9 +300,7 @@ elabPrinExp ρe = case  ρe of
 elabPrinSetExp ∷ PrinSetExp → EM (𝑃 PrinVal)
 elabPrinSetExp ρse = case  ρse of
   PowPSE ρel → let pvl = (mapM ρel elabPrinExp) in let ρvs = (listToSet ρvl) in PowPSV ρvs
-  ThisPSE → do
-      m ← askL terModeL
-      return m  
+ 
   _ → todoError
 
 
