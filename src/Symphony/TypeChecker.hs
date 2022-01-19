@@ -287,7 +287,7 @@ synExpR e = case e of
 -- Static Evaluation of Principal Expressions --
 ------------------------------------------------
 setToList :: (𝑃 a)  → (𝐿 a)
-setToList myset = list𝐼 (UVMS.Core.Data.List.iter𝑃 myset)
+setToList myset = list𝐼 (UVMS.iter𝑃 myset)
 
 listToSet :: (𝐿 a)  → (𝑃 a)
 listToSet mylist = pow𝐼 (iter𝐼 mylist)
