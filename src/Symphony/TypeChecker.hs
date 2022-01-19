@@ -301,7 +301,7 @@ elabPrinSetExp ∷ PrinSetExp → EM (𝑃 PrinVal)
 elabPrinSetExp ρse = case  ρse of
   PowPSE ρel → do
     pvl ← (mapM elabPrinExp ρel )
-    (let ρvs = (listToSet pvl) in (return (PowPSV ρvs)))
+    (let ρvs = (listToSet pvl) in (return pvs))
  
   x → todoError
 
