@@ -299,7 +299,7 @@ elabPrinExp ρe = case  ρe of
 
 elabPrinSetExp ∷ PrinSetExp → EM (𝑃 PrinVal)
 elabPrinSetExp ρse = case  ρse of
-  PowPSE ρel → let pvl = (mapM ρel elabPrinExp) in let ρvp = (listToSet ρvl)
+  PowPSE ρel → let pvl = (mapM ρel elabPrinExp) in let ρvs = (listToSet ρvl) in PowPSV ρvs
   ThisPSE → do
       m ← askL terModeL
       return m  
