@@ -211,8 +211,8 @@ synRAnno eₗ  =
 -}
 
 {- Todo: Check if m is a subset of the real mode-}
-synNilAnn ∷ (STACK, Value v) ⇒ EM Type
-synNilAnn =  case τ of
+synNilAnn ∷ Type → EM Type
+synNilAnn τ =  case τ of
   SecT m (ListT _ τₜ)  → return τ
   ShareT φ m (ListT _ τₜ)   → return τ
   x  → todoError
@@ -289,7 +289,7 @@ synExpR e = case e of
 setToList :: (𝑃 a)  → (𝐿 a)
 setToList myset = list𝐼 (iter𝑃 myset)
 
-listToSet ::   (𝐿 a) → (𝑃 a) 
+listToSet :: (𝐿 a)  → (𝑃 a)
 setToList mylist = list𝑃 (iter𝐼 mylist)
 
 elabPrinExp ∷ PrinExp → EM PrinVal
