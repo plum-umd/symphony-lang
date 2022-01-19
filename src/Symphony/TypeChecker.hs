@@ -215,7 +215,7 @@ synNilAnn ∷ (STACK, Value v) ⇒ EM Type
 synNilAnn =  case τ of
   SecT m (ListT _ τₜ)  → return τ
   ShareT φ m (ListT _ τₜ)   → return τ
-   _ → todoError
+  x  → todoError
 
 synCons ∷ Exp → Exp → EM Type
 synCons eₕ eₜ =
