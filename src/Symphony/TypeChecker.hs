@@ -299,7 +299,8 @@ elabPrinExp ρe = case  ρe of
 
 elabPrinSetExp ∷ PrinSetExp → EM (𝑃 PrinVal)
 elabPrinSetExp ρse = case  ρse of
-  PowPSE ρel → let pvl = (mapM elabPrinExp ρel ) in let ρvs = (listToSet pvl) in PowPSV ρvs
+  PowPSE ρel → do
+     pvl ← (mapM elabPrinExp ρel ) in let ρvs = (listToSet pvl) in (return (PowPSV ρvs))
  
   _ → todoError
 
@@ -314,8 +315,8 @@ elabPrinVal ρv = case  ρv of
 
 -- turn powerset to list, map the list, convert to prinsetexp
 elabPrinValSet :: (𝑃 PrinVal)  → EM PrinSetExp
-elabPrinValSet ρvp = let ρvl = (setToList ρvp) in
-  let ρel = (mapM elabPrinVal ρvl) in (return (PowPSE ρel))
+elabPrinValSet ρvp = let ρvl = (setToList ρvp) in do
+  ρel ← (mapM elabPrinVal ρvl) in (return (PowPSE ρel))
 
 elabMode ∷ Mode → EM EMode
 elabMode = mapM elabPrinValSet
