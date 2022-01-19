@@ -299,12 +299,11 @@ elabPrinExp ρe = case  ρe of
 
 elabPrinSetExp ∷ PrinSetExp → EM (𝑃 PrinVal)
 elabPrinSetExp ρse = case  ρse of
-  PowPSE ρel → (do
+  PowPSE ρel → do
     pvl ← (mapM elabPrinExp ρel )
     (let ρvs = (listToSet pvl) in (return (PowPSV ρvs)))
-  )
  
-  _ → todoError
+  x → todoError
 
 
 elabEMode ∷ EMode → EM Mode
