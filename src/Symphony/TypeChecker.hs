@@ -216,7 +216,7 @@ synNilAnn τ =  case τ of
   SecT m (ListT _ τₜ)  → return τ
   ShareT φ m (ListT _ τₜ)   → return τ
   x  → todoError
-
+{-}
 synCons ∷ Exp → Exp → EM Type
 synCons eₕ eₜ =
   let cₕ = synExp eₕ
@@ -229,7 +229,7 @@ synCons eₕ eₜ =
       SecT m' (ListT _ τₜ)  →(if subtype τₜ τ then return  (ListT n τ) else (if subtype τ τₜ then (return τs) else todoError))
       ShareT φ m' (ListT _ τₜ)   → (if subtype τₜ τ then return  (ListT n τ) else (if subtype τ τₜ then (return τs) else todoError))
       _ → todoError
-
+-}
 {-
 interpIf ∷ (STACK, Value v) ⇒ Exp → Exp → Exp → IM v v
 interpIf e₁ e₂ e₃ =
