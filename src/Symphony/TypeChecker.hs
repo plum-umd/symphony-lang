@@ -289,7 +289,7 @@ synExpR e = case e of
 setToList :: (𝑃 a)  → (𝐿 a)
 setToList myset = list𝐼 (iter myset)
 
-listToSet :: (Ord a) → (𝐿 a)  → (𝑃 a)
+listToSet :: (Ord a) ⇒ (𝐿 a)  → (𝑃 a)
 listToSet mylist = pow𝐼 (iter mylist)
 
 elabPrinExp ∷ PrinExp → EM PrinVal
