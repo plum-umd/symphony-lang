@@ -311,8 +311,8 @@ elabEMode = mapM elabPrinSetExp
 
 elabPrinVal :: PrinVal → EM PrinExp
 elabPrinExp ρv = case  ρv of
-  (SinglePV (𝕩name 𝕏))    → return (VarPE 𝕏) 
-  (AccessPV (𝕩name 𝕏) n₁) → return (AccessPE 𝕏 n₁)
+  (SinglePV ρ)    → return (VarPE (var ρ)) 
+  (AccessPV ρ n₁) → return (AccessPE (var ρ) n₁)
 
 -- turn powerset to list, map the list, convert to prinsetexp
 elabPrinValSet :: (𝑃 PrinVal)  → EM PrinSetExp
