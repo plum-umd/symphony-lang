@@ -316,7 +316,8 @@ elabPrinVal ρv = case  ρv of
 -- turn powerset to list, map the list, convert to prinsetexp
 elabPrinValSet :: (𝑃 PrinVal)  → EM PrinSetExp
 elabPrinValSet ρvp = let ρvl = (setToList ρvp) in do
-  ρel ← (mapM elabPrinVal ρvl) in (return (PowPSE ρel))
+  ρel ← (mapM elabPrinVal ρvl) 
+  (return (PowPSE ρel))
 
 elabMode ∷ Mode → EM EMode
 elabMode = mapM elabPrinValSet
