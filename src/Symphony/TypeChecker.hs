@@ -136,7 +136,7 @@ synStr ∷  𝕊 → EM Type
 synStr s = do
   m ← askL terModeL
   em ← elabMode m
-  return (SecT m (BaseT 𝕊T))
+  return (SecT em (BaseT 𝕊T))
 
 -- gamma(x) = t
 -- ------ T-PrinExp
