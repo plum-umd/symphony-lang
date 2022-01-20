@@ -58,10 +58,10 @@ subtype_loc loctyS loctyT = case loctyS of
 subtype :: Type → Type → 𝔹
 subtype tyS tyT = case tyS of
   SecT emS loctyS → case tyT of
-      SecT emT loctyT → (superemode emS emT) && (subtype_loc loctyS loctyT)
+      SecT emT loctyT → (superemode emS emT) ⩓ (subtype_loc loctyS loctyT)
       tyT → False
   ShareT pS emS loctyS  → case tyT of
-      ShareT pT emT loctyT → (superemode emS emT) && (pS == pT) && (subtype_loc loctyS loctyT)
+      ShareT pT emT loctyT → (superemode emS emT) ⩓ (pS == pT) ⩓ (subtype_loc loctyS loctyT)
       tyT  → False
 
 supertype :: Type → Type → 𝔹
