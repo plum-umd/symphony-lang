@@ -47,11 +47,38 @@ bindPrins ρds = eachOn ρds bindPrin
 -- Checking for Expressions --
 ------------------------------
 
+subtype_loc :: Type → Type → 𝔹
+subtype_loc loctyS loctyT = case loctyS of
+  -- sigma = bty 
+  -- -------Sub-Refl
+  -- sigma <: sigma 
+  BaseT bty → loctyS == loctyT
+
+
 subtype :: Type → Type → 𝔹
-subtype tyS tyT = tyS == tyT
+subtype tyS tyT = case tyS of
+  SecT emS loctyS → case tyT of
+      TSecT emT loctyT → (superemode emS emT) && (subtype_loc loctyS loctyT)
+      tyT → False
+  ShareT pS emS loctyS  → case tyT of
+      ShareT pT emT loctyT → (superemode emS emT) && (pS == pT) && (subtype_loc loctyS loctyT)
+      tyT  → False
 
 supertype :: Type → Type → 𝔹
 supertype tyT tyS = subtype tyS tyT
+
+superemode :: EMode → EMode → 𝔹
+superemode emT emS= do
+  mT ← elabEMode emT
+  mS ← elabEMode emS
+  (supermode mT mS)
+
+supermode :: Mode → Mode → 𝔹
+supermode mT mS = case mT of
+  Top → True
+  AddTop sT → case mS of
+      Top → False
+      AddTop sS  → (sT ⊇ sS)
 
 synVar ∷ Var → EM Type
 synVar x = do
@@ -63,35 +90,64 @@ synVar x = do
              , ("Γ", pretty $ keys env)
              ]
 
-
+-- ------ T-Bul
+-- gamma |- m () : bul@m
 synBul ∷ EM Type
-synBul = 
-  do
+synBul =  do
   m ← askL terModeL
   em ← elabMode m
   return (SecT em (BaseT UnitT))
 
+-- ------ T-Bool
+-- gamma |- m b : bool@m
 synBool ∷ 𝔹 → EM Type
-synBool b = return (SecT (AddTop ThisPSE) (BaseT 𝔹T))
+synBool b =  do
+  m ← askL terModeL
+  em ← elabMode m
+  return (SecT em (BaseT 𝔹T))
 
+-- ------ T-Nat
+-- gamma |- m n : nat@m
 synNat ∷ IPrecision → ℕ → EM Type
-synNat pr n = return (SecT (AddTop ThisPSE) (BaseT (ℕT pr)))
+synNat pr n = do
+  m ← askL terModeL
+  em ← elabMode m
+  return (SecT em (BaseT (ℕT pr)))
 
+-- ------ T-Int
+-- gamma |- m i : int@m
 synInt ∷ IPrecision → ℤ → EM Type
-synInt pr z = return (SecT (AddTop ThisPSE) (BaseT (ℤT pr)))
+synInt pr z = do
+  m ← askL terModeL
+  em ← elabMode m
+  return (SecT em (BaseT (ℤT pr)))
 
+-- ------ T-Float
+-- gamma |- m d : float@m
 synFlt ∷ FPrecision → 𝔻 → EM Type
-synFlt pr d = return (SecT (AddTop ThisPSE) (BaseT (𝔽T pr)))
+synFlt pr d = do
+  m ← askL terModeL
+  em ← elabMode m
+  return (SecT em (BaseT (𝔽T pr)))
 
+-- ------ T-String
+-- gamma |- m s : string@m
 synStr ∷  𝕊 → EM Type
-synStr s = return (SecT (AddTop ThisPSE) (BaseT 𝕊T))
+synStr s = do
+  m ← askL terModeL
+  em ← elabMode m
+  return (SecT m (BaseT 𝕊T))
 
-
+-- gamma(x) = t
+-- ------ T-PrinExp
+-- gamma |- m b : t
 synPrinExp ∷ PrinExp → EM Type
 synPrinExp ρe = case ρe of
   VarPE x       → synVar x
   AccessPE x n₁ → synVar x
 
+
+-- forall A in M = {A ...} gamma |- m A t t <: prin@all
 checkPrin ∷ PrinExp → EM Type
 checkPrin ρe =
    do
@@ -99,8 +155,10 @@ checkPrin ρe =
     case (subtype ρτ (SecT Top (BaseT ℙT))) of
       True → return (SecT Top (BaseT ℙT))
       False → todoError
-    
 
+-- forall A in M = {A ...} gamma |- m A t t <: prin@all   
+-- ------T-PrinSetExp
+-- gamma |- m A : ps@all
 synPrinSet ∷ PrinSetExp → EM Type
 synPrinSet ρse =
   case ρse of
