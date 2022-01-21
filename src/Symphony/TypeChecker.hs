@@ -159,7 +159,7 @@ checkPrin ∷ PrinExp → EM Type
 checkPrin ρe =
    do
     ρτ ← (synPrinExp ρe) 
-    subcond ← (subtype ρτ (SecT Top (BaseT ℙT)))
+    subcond ← (subtype (SecT Top (BaseT ℙT)) ρτ)
     case subcond of
       True → return (SecT Top (BaseT ℙT))
       False → todoError
