@@ -173,7 +173,7 @@ synPrinSet ρse =
   PowPSE ρes → do
     _ ←  mapM checkPrin ρes
     return (SecT Top (BaseT ℙsT))
-  ThisPSE    →  return (SecT Top (BaseT ℙsT))
+  x    →  todoError
 
 
 --synOp :: Op -> OpType
