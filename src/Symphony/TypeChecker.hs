@@ -47,31 +47,38 @@ bindPrins ρds = eachOn ρds bindPrin
 -- Checking for Expressions --
 ------------------------------
 
-subtype_loc :: Type → Type → 𝔹
+subtype_loc :: Type → Type → EM 𝔹
 subtype_loc loctyS loctyT = case loctyS of
   -- sigma = bty 
   -- -------Sub-Refl
   -- sigma <: sigma 
-  BaseT bty → loctyS == loctyT
+  BaseT bty → return (loctyS == loctyT)
+  x → return False
 
 
-subtype :: Type → Type → 𝔹
+subtype :: Type → Type → EM 𝔹
 subtype tyS tyT = case tyS of
   SecT emS loctyS → case tyT of
-      SecT emT loctyT → (superemode emS emT) ⩓ (subtype_loc loctyS loctyT)
-      tyT → False
+      SecT emT loctyT → do 
+        mcond ← (superemode emS emT)
+        loccond ← (subtype_loc loctyS loctyT)
+        return (mcond ⩓ loccond)
+      tyT → return False
   ShareT pS emS loctyS  → case tyT of
-      ShareT pT emT loctyT → (superemode emS emT) ⩓ (pS == pT) ⩓ (subtype_loc loctyS loctyT)
-      tyT  → False
+      ShareT pT emT loctyT → do 
+        mcond ← (superemode emS emT)
+        loccond ← (subtype_loc loctyS loctyT)
+        return (mcond ⩓ (pS == pT) ⩓ loccond)
+      tyT  → return False
 
-supertype :: Type → Type → 𝔹
+supertype :: Type → Type → EM 𝔹
 supertype tyT tyS = subtype tyS tyT
 
-superemode :: EMode → EMode → 𝔹
+superemode :: EMode → EMode → EM 𝔹
 superemode emT emS= do
   mT ← elabEMode emT
   mS ← elabEMode emS
-  (supermode mT mS)
+  return (supermode mT mS)
 
 supermode :: Mode → Mode → 𝔹
 supermode mT mS = case mT of
@@ -152,7 +159,8 @@ checkPrin ∷ PrinExp → EM Type
 checkPrin ρe =
    do
     ρτ ← (synPrinExp ρe) 
-    case (subtype ρτ (SecT Top (BaseT ℙT))) of
+    subcond ← (subtype ρτ (SecT Top (BaseT ℙT)))
+    case subcond of
       True → return (SecT Top (BaseT ℙT))
       False → todoError
 
@@ -162,11 +170,6 @@ checkPrin ρe =
 synPrinSet ∷ PrinSetExp → EM Type
 synPrinSet ρse =
   case ρse of
-  VarPSE x   → do
-    ρsτ ← synVar x
-    case (subtype ρsτ (SecT Top (BaseT ℙsT))) of
-      True → return (SecT Top (BaseT ℙsT))
-      False → todoError
   PowPSE ρes → do
     _ ←  mapM checkPrin ρes
     return (SecT Top (BaseT ℙsT))
