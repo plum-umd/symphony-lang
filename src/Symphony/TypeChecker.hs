@@ -53,10 +53,26 @@ subtype_loc loctyS loctyT = case loctyS of
   -- -------Sub-Refl
   -- sigma <: sigma 
   BaseT bty → return (loctyS == loctyT)
+
+  -- t1 <: t1' t2 <: t2'
+  -- -------Sub-Pair
+  -- t1 x t2 <: t1' x t2' 
+  (loctySₗ :×: loctySᵣ) → case loctyT of
+    (loctyTₗ :×: loctyTᵣ) → do 
+
+        loccondₗ ← (subtype_loc loctySₗ loctyTₗ)
+        loccondᵣ ← (subtype_loc loctySᵣ loctyTᵣ)
+        return (loccondₗ ⩓ loccondᵣ)
+    _ → return False
+    
+    return (loctyS == loctyT)
   x → return False
 
 
 subtype :: Type → Type → EM 𝔹
+  -- sigma <: sigma' m ⊇ m'
+  -- -------Sub-Loc
+  -- sigma@m <: sigma'@m' 
 subtype tyS tyT = case tyS of
   SecT emS loctyS → case tyT of
       SecT emT loctyT → do 
@@ -229,11 +245,12 @@ getSuperType e acc  =
     τ ← c
     if subtype accτ τ then (τ, True)
     else (if subtype τ accτ then (accτ, True) else  (accτ, False))
+    -}
 ---------------------------------
 --- Products, Sums, and Lists ---
 ---------------------------------
 
--- Gets the type of the first, gets type of the second, returns the pair located value
+--Gets the type of the first, gets type of the second, returns the pair located value
 synProd ∷  Exp → Exp → EM Type
 synProd eₗ eᵣ =
   let cₗ = synExp eₗ
@@ -241,8 +258,11 @@ synProd eₗ eᵣ =
   in do
     τₗ ← cₗ
     τᵣ ← cᵣ
-    return (τₗ :×: τᵣ)
+    m ← askL terModeL
+    em ← elabMode m
+    return (SecT em (τₗ :×: τᵣ))
 
+{-}
 synLAnno ∷ Exp → Type → EM Type
 synLAnno eₗ  =
   case τ of
