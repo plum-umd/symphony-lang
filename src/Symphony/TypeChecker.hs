@@ -85,7 +85,7 @@ subtype tyS tyT = case tyS of
         loccond ← (subtype_loc loctyS loctyT)
         return (mcond ⩓ (pS == pT) ⩓ loccond)
       tyT  → return False
-  x → False
+  x → return False
 
 supertype :: Type → Type → EM 𝔹
 supertype tyT tyS = subtype tyS tyT
@@ -107,13 +107,13 @@ inter_em :: EMode → EMode → EM EMode
 inter_em em em' = do
   m ← elabEMode em
   m' ← elabEMode em'
-  return (inter_m m m')
+  return (elabMode (inter_m m m'))
 
 inter_m :: Mode → Mode → Mode
 inter_m m m' = case m of
   Top → m'
   AddTop m → case m' of
-      Top → m
+      Top → (AddTop m)
       AddTop m'  →  (m ∩ m')
 
 locty_top :: Type  → Type  → EM Type 
