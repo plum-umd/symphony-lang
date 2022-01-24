@@ -139,13 +139,13 @@ locty_top locty locty' =
 
 ty_top :: Type  → Type  → EM Type 
 ty_top ty ty' = case ty of
-  SecT em loc_ty → case ty' of
+  SecT em loc_ty → (case ty' of
       SecT em' loc_ty' → do 
         em_inter ← (inter_em em em')
         loc_top ← (locty_top loc_ty loc_ty')
         return (SecT em_inter loc_top)
-      ty' → todoError
-  ShareT p em locty  → case ty' of
+      ty' → todoError)
+  ShareT p em locty  → (case ty' of
       ShareT p' em' locty' → 
         (if (p == p') 
           then (
@@ -156,7 +156,7 @@ ty_top ty ty' = case ty of
             )
             else todoError
         )
-  
+      )
       x  → todoError
 
 top_wf :: Type → Type → Mode → EM Type 
