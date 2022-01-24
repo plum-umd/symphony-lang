@@ -86,6 +86,7 @@ subtype tyS tyT = case tyS of
         loccond ← (subtype_loc loctyS loctyT)
         return (mcond ⩓ (pS == pT) ⩓ loccond)
       tyT  → return False
+  x → False
 
 supertype :: Type → Type → EM 𝔹
 supertype tyT tyS = subtype tyS tyT
@@ -102,7 +103,71 @@ supermode mT mS = case mT of
   AddTop sT → case mS of
       Top → False
       AddTop sS  → (sT ⊇ sS)
+ 
+inter_em :: EMode → EMode → EM EMode
+inter_em em em' = do
+  m ← elabEMode em
+  m' ← elabEMode em'
+  return (inter m m')
 
+inter_m :: Mode → Mode → Mode
+inter_m m m' = case m of
+  Top → m'
+  AddTop m → case m' of
+      Top → m
+      AddTop m'  →  (m ∩ m')
+
+locty_top :: Type  → Type  → EM Type 
+locty_top locty locty' =
+  case locty of
+  -- sigma = bty 
+  -- -------Sub-Refl
+  -- sigma <: sigma 
+  BaseT bty → if (locty == locty') then locty
+
+  -- t1 <: t1' t2 <: t2'
+  -- -------Sub-Pair
+  -- t1 x t2 <: t1' x t2' 
+  (tyₗ :×: tyᵣ) → case locty' of
+    (ty'ₗ :×: ty'ᵣ) → do 
+
+        top_tyₗ  ← (ty_top tyₗ ty'ₗ)
+        top_tyᵣ ← (ty_top tyᵣ ty'ᵣ)
+        return (top_tyₗ :×: top_tyᵣ)
+    x → todoError
+
+  x → todoError
+
+ty_top :: Type  → Type  → EM Type 
+ty_top ty ty' case ty of
+  SecT em loc_ty → case ty' of
+      SecT em' loc_ty' → do 
+        em_inter ← (inter_em em em')
+        loc_top ← (locty_top loc_ty loc_ty')
+        return (SecT em_inter loc_top)
+        ty' → todoError
+  ShareT p em locty  → case ty' of
+      ShareT p' em' locty' → do 
+        if (p == p') then (
+        em_inter ← (inter_em em em')
+        loc_top ← (locty_top loc_ty loc_ty')
+        return (ShareT p em_inter loc_top)
+        )
+        else todoError
+       ty' → todoError
+  x  → todoError
+
+top_wf :: Type → Type → Mode → EM Type 
+top_wf ty ty' m =
+  case (ty_top ty ty') of
+    SecT em loc_ty → case ty' of
+        em_inter ← (inter_em em (elabMode m))
+        return (SecT em_inter loc_ty)
+    ShareT p em locty  → case ty' of
+     em_inter ← (inter_em em (elabMode m))
+    return (ShareT p em_inter loc_ty)
+  x  → todoError
+-- make_wf :: 
 synVar ∷ Var → EM Type
 synVar x = do
   env ← askL terEnvL
