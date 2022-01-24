@@ -169,7 +169,7 @@ top_wf ty ty' m =
     ShareT p em locty  → do
         em_inter ← (inter_em em (elabMode m))
         return (ShareT p em_inter loc_ty)
-  x  → todoError
+    x  → todoError
 -- make_wf :: 
 synVar ∷ Var → EM Type
 synVar x = do
