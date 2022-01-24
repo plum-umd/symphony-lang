@@ -65,7 +65,6 @@ subtype_loc loctyS loctyT = case loctyS of
         return (loccondₗ ⩓ loccondᵣ)
     _ → return False
     
-    return (loctyS == loctyT)
   x → return False
 
 
