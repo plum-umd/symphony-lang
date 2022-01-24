@@ -163,10 +163,10 @@ ty_top ty ty' = case ty of
 top_wf :: Type → Type → Mode → EM Type 
 top_wf ty ty' m =
   case (ty_top ty ty') of
-    SecT em loc_ty → case ty' of
+    SecT em loc_ty → do
         em_inter ← (inter_em em (elabMode m))
         return (SecT em_inter loc_ty)
-    ShareT p em locty  → case ty' of
+    ShareT p em locty  → do
      em_inter ← (inter_em em (elabMode m))
     return (ShareT p em_inter loc_ty)
   x  → todoError
