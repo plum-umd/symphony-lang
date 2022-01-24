@@ -158,7 +158,7 @@ ty_top ty ty' = case ty of
         )
       x  → todoError
       )
-      x  → todoError
+  x  → todoError
 
 top_wf :: Type → Type → Mode → EM Type 
 top_wf ty ty' m =
