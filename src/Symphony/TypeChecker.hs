@@ -138,7 +138,7 @@ locty_top locty locty' =
   x → todoError
 
 ty_top :: Type  → Type  → EM Type 
-ty_top ty ty' case ty of
+ty_top ty ty' = case ty of
   SecT em loc_ty → case ty' of
       SecT em' loc_ty' → do 
         em_inter ← (inter_em em em')
