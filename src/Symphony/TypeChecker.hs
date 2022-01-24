@@ -122,7 +122,7 @@ locty_top locty locty' =
   -- sigma = bty 
   -- -------Sub-Refl
   -- sigma <: sigma 
-  BaseT bty → if (locty == locty') then locty
+  BaseT bty → if (locty == locty') then locty else todoError
 
   -- t1 <: t1' t2 <: t2'
   -- -------Sub-Pair
