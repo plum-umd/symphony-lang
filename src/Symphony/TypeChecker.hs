@@ -144,7 +144,7 @@ ty_top ty ty' = case ty of
         em_inter ← (inter_em em em')
         loc_top ← (locty_top loc_ty loc_ty')
         return (SecT em_inter loc_top)
-        ty' → todoError
+      ty' → todoError
   ShareT p em locty  → case ty' of
       ShareT p' em' locty' → do 
         if (p == p') then (
