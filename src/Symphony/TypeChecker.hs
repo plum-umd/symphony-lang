@@ -107,7 +107,7 @@ inter_em :: EMode → EMode → EM EMode
 inter_em em em' = do
   m ← elabEMode em
   m' ← elabEMode em'
-  return (inter m m')
+  return (inter_m m m')
 
 inter_m :: Mode → Mode → Mode
 inter_m m m' = case m of
@@ -151,7 +151,7 @@ ty_top ty ty' = case ty of
           then (
           do
             em_inter ← (inter_em em em')
-            loc_top ← (locty_top loc_ty loc_ty')
+            loc_top ← (locty_top locty locty')
             return (ShareT p em_inter loc_top)
             )
             else todoError
@@ -168,7 +168,7 @@ top_wf ty ty' m =
         return (SecT em_inter loc_ty)
     ShareT p em locty  → do
         em_inter ← (inter_em em (elabMode m))
-        return (ShareT p em_inter loc_ty)
+        return (ShareT p em_inter locty)
     x  → todoError
 -- make_wf :: 
 synVar ∷ Var → EM Type
