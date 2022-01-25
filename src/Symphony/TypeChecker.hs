@@ -107,7 +107,7 @@ inter_em :: EMode → EMode → EM EMode
 inter_em em em' = do
   m ← elabEMode em
   m' ← elabEMode em'
-  return (elabMode (inter_m m m'))
+  (elabMode (inter_m m m'))
 
 inter_m :: Mode → Mode → Mode
 inter_m m m' = case m of
