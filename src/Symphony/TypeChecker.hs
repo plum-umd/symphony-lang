@@ -393,7 +393,6 @@ synIf e₁ e₂ e₃ =
     τ₁  ← c₁
     τ₂ ← c₂
     τ₃ ← c₃
-  in do
     subcond ← (subtype (SecT Top (BaseT 𝔹T)) τ₁)
     if subcond then 
       m ← askL terModeL
