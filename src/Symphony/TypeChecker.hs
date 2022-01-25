@@ -383,16 +383,23 @@ synCons eₕ eₜ =
       ShareT φ m' (ListT _ τₜ)   → (if subtype τₜ τ then return  (ListT n τ) else (if subtype τ τₜ then (return τs) else todoError))
       _ → todoError
 -}
-{-
-interpIf ∷ (STACK, Value v) ⇒ Exp → Exp → Exp → IM v v
-interpIf e₁ e₂ e₃ =
-  let c₁ = interpExp e₁
-      c₂ = interpExp e₂
-      c₃ = interpExp e₃
+
+synIf :: Exp → Exp → Exp → EM Type
+synIf e₁ e₂ e₃ =
+  let c₁ = synExp e₁
+      c₂ = synExp e₂
+      c₃ = synExp e₃
   in do
-    b ← elimBool *$ elimClear *$ elimBase *$ elimVal *⋅ c₁
-    if b then c₂ else c₃
--}
+    τ₁  ← c₁
+    τ₂ ← c₂
+    τ₃ ← c₃
+  in do
+    subcond ← (subtype (SecT Top (BaseT 𝔹T)) τ₁)
+    if subcond then 
+      m ← askL terModeL
+      (top_wf τ₂ τ₃ m)
+    else todoError
+
 chkLam ∷ 𝑂 Var → 𝐿 Pat → Exp → Type → EM ()
 chkLam self𝑂 ψs e τ = todoError
 
