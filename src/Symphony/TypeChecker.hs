@@ -470,8 +470,8 @@ chkExp e τ = chkExpR $ extract e
 
 chkExpR :: ExpR → Type → EM ()  
 chkExpR e τ = case e of
-  LE eₗ        → checkL eₗ
-  RE eᵣ        → checkR eᵣ
+  LE eₗ        → checkL eₗ τ
+  RE eᵣ        → checkR eᵣ τ
 
   _ → ()
 
