@@ -166,10 +166,12 @@ top_wf ty ty' m =
   top_ty ← (ty_top ty ty')
   case top_ty of
     SecT em loc_ty → do
-        em_inter ← (inter_em em (elabMode m))
+        em'' ← (elabMode m)
+        em_inter ← (inter_em em em'')
         return (SecT em_inter loc_ty)
     ShareT p em locty  → do
-        em_inter ← (inter_em em (elabMode m))
+        em'' ← (elabMode m)
+        em_inter ← (inter_em em em'')
         return (ShareT p em_inter locty)
     x  → todoError
 -- make_wf :: 
