@@ -396,9 +396,7 @@ synIf e₁ e₂ e₃ =
     m ← askL terModeL
     em  ← elabMode m
     subcond ← (subtype τ₁ (SecT em (BaseT 𝔹T)) )
-    if subcond then do
-      (top_wf τ₂ τ₃ m)
-    else todoError
+    return (BaseT UnitT)
 
 chkLam ∷ 𝑂 Var → 𝐿 Pat → Exp → Type → EM ()
 chkLam self𝑂 ψs e τ = todoError
