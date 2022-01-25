@@ -461,15 +461,15 @@ synApp τ₁ τ₂ = case τ₁ of
 
 synAscr :: Exp → Type →  EM Type
 synAscr e τ = do 
-  _ ← (chkExp e)
+  _ ← (chkExp e τ)
   return τ
 
 
-chkExp :: Exp → EM ()
-chkExp e = chkExpR $ extract e
+chkExp :: Exp → Type → EM ()
+chkExp e τ = chkExpR $ extract e
 
-chkExpR :: ExpR → EM ()  
-chkExpR e = case e of
+chkExpR :: ExpR → Type → EM ()  
+chkExpR e τ = case e of
   LE eₗ        → checkL eₗ
   RE eᵣ        → checkR eᵣ
 
