@@ -179,11 +179,11 @@ wf_loctype sigma m =
     BaseT bt → return () 
     (loctyₗ :+: loctyᵣ) → do 
       _ ← (wf_type loctyₗ m)
-      _ ← (wf_type loctyr m)
+      _ ← (wf_type loctyᵣ m)
       return ()
     (loctyₗ :×: loctyᵣ)  → do
       _ ← (wf_type loctyₗ m)
-      _ ← (wf_type loctyr m)
+      _ ← (wf_type loctyᵣ m)
       return ()
     x  → do
       return ()
@@ -374,7 +374,7 @@ synProd eₗ eᵣ =
 
 
 checkL ∷ Exp → Type → EM Type
-checkL eₗ  =
+checkL eₗ τ  =
   case τ of
     (SecT em (τₗ  :+: τᵣ)) →
       let cₗ = synExp eₗ
@@ -387,7 +387,7 @@ checkL eₗ  =
     x → todoError
 
 checkR ∷ Exp → Type → EM Type
-checkR eᵣ  =
+checkR eᵣ τ  =
   case τ of
     (SecT em (τₗ  :+: τᵣ)) →
       let cᵣ = synExp eᵣ
@@ -466,7 +466,7 @@ synAscr e τ = do
 
 
 chkExp :: Exp → EM ()
-chkExp e = checkExpR $ extract e
+chkExp e = chkExpR $ extract e
 
 chkExpR :: ExpR → EM ()  
 chkExpR e = case e of
