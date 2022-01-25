@@ -373,7 +373,7 @@ synProd eₗ eᵣ =
     return (SecT em (τₗ :×: τᵣ))
 
 
-checkL ∷ Exp → Type → EM Type
+checkL ∷ Exp → Type → EM ()
 checkL eₗ τ  =
   case τ of
     (SecT em (τₗ  :+: τᵣ)) →
@@ -386,7 +386,7 @@ checkL eₗ τ  =
         (if subcond then return () else todoError)
     x → todoError
 
-checkR ∷ Exp → Type → EM Type
+checkR ∷ Exp → Type → EM ()
 checkR eᵣ τ  =
   case τ of
     (SecT em (τₗ  :+: τᵣ)) →
