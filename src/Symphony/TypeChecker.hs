@@ -395,7 +395,7 @@ synIf e₁ e₂ e₃ =
     τ₃ ← c₃
     m ← askL terModeL
     em  ← elabMode m
-    subcond ← (subtype (SecT em (BaseT 𝔹T)) τ₁)
+    subcond ← (subtype τ₁ (SecT em (BaseT 𝔹T)) )
     if subcond then do
       (top_wf τ₂ τ₃ m)
     else todoError
