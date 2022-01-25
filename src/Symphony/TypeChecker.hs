@@ -466,14 +466,14 @@ synAscr e τ = do
 
 
 chkExp :: Exp → Type → EM ()
-chkExp e τ = chkExpR $ extract e
+chkExp e τ = chkExpR (extract e) τ
 
 chkExpR :: ExpR → Type → EM ()  
 chkExpR e τ = case e of
   LE eₗ        → checkL eₗ τ
   RE eᵣ        → checkR eᵣ τ
 
-  _ → ()
+  _ → return ()
 
 
 synExp :: Exp → EM Type
