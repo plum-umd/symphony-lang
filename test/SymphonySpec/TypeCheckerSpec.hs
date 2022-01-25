@@ -39,7 +39,7 @@ spec = do
      in  case x of
      UVM.Inr a -> a `shouldBe`  (SecT UVM.Top  (BaseT ℙsT)) 
     it "() : prinset2exp" $  
-      let y = (UVM.SrcCxt {UVM.srcCxtSourceName = "", UVM.srcCxtLocRange = UVM.locRange₀, UVM.srcCxtPrefix = UVM.null, UVM.srcCxtContext = UVM.null, UVM.srcCxtSuffix = UVM.null}) in
+      let y = (UVM.SrcCxt {UVM.srcCxtSourceName = "", UVM.srcCxtLocRange = UVM.locRange₀, UVM.srcCxtPrefix = UVM.null, UVM.srcCxtContext = UVM.null, UVM.srcCxtSuffix = UVM.null})
           a =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "B")]) )) 
           b =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "C")]) )) 
           c = (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A")]) )) 
