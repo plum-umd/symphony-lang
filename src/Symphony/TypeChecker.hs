@@ -107,14 +107,15 @@ inter_em :: EMode → EMode → EM EMode
 inter_em em em' = do
   m ← elabEMode em
   m' ← elabEMode em'
-  return (elabMode (inter_m m m'))
+  inter_em ← (inter_m m m')
+  return (elabMode inter_em)
 
 inter_m :: Mode → Mode → Mode
 inter_m m m' = case m of
   Top → m'
   AddTop m → case m' of
       Top → (AddTop m)
-      AddTop m'  →  (m ∩ m')
+      AddTop m'  →  AddTop(m ∩ m')
 
 locty_top :: Type  → Type  → EM Type 
 locty_top locty locty' =
@@ -122,7 +123,7 @@ locty_top locty locty' =
   -- sigma = bty 
   -- -------Sub-Refl
   -- sigma <: sigma 
-  BaseT bty → if (locty == locty') then locty else todoError
+  BaseT bty → if (locty == locty') then (return locty) else todoError
 
   -- t1 <: t1' t2 <: t2'
   -- -------Sub-Pair
@@ -162,7 +163,9 @@ ty_top ty ty' = case ty of
 
 top_wf :: Type → Type → Mode → EM Type 
 top_wf ty ty' m =
-  case (ty_top ty ty') of
+  do 
+  top_ty ← (ty_top ty ty')
+  case top_ty of
     SecT em loc_ty → do
         em_inter ← (inter_em em (elabMode m))
         return (SecT em_inter loc_ty)
