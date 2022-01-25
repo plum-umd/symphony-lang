@@ -374,7 +374,7 @@ synProd eₗ eᵣ =
 
 
 checkL ∷ Exp → Type → EM Type
-synLAnno eₗ  =
+checkL eₗ  =
   case τ of
     (SecT em (τₗ  :+: τᵣ)) →
       let cₗ = synExp eₗ
@@ -464,7 +464,7 @@ synAscr e τ = do
   _ ← (chkExp e)
   return τ
 
-chkExp :: Exp → EM ()
+
 chkExp :: Exp → EM ()
 chkExp e = checkExpR $ extract e
 
