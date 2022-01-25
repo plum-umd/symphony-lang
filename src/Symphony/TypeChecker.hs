@@ -441,6 +441,7 @@ synExpR e = case e of
   PrinSetE es → synPrinSet es
   PrinE e → checkPrin e
 
+  ProdE eₗ eᵣ  → synProd eₗ eᵣ
   IfE e₁ e₂ e₃ → synIf e₁ e₂ e₃
   AscrE e τ → synAscr e τ
 
