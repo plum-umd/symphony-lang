@@ -73,7 +73,7 @@ spec = do
           expr =  (ProdE  (UVM.𝐴 y (VarE (UVM.var "A"))) (UVM.𝐴 y (VarE (UVM.var "B"))) )
           x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr)) 
       in case x of
-      UVM.Inr d -> d `shouldBe`  (SecT UVM.Top (SecT a  (BaseT UnitT)) :×: (SecT b  (BaseT UnitT)))
+      UVM.Inr d -> d `shouldBe`  (SecT UVM.Top ((SecT a  (BaseT UnitT)) :×: (SecT b  (BaseT UnitT))))
    {- it "() : nilexp" $  let x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "A" , (SecT UVM.Top (BaseT ℙT))) ])) }) () (synExpR (PrinSetE (PowPSE (UVM.single𝐿  (VarPE (UVM.var "A")) )) )))
      in  case x of
      UVM.Inr a -> a `shouldBe`  (SecT UVM.Top  (BaseT ℙsT))
