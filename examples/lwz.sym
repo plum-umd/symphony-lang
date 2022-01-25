@@ -1,0 +1,93 @@
+principal A B C
+
+def partySetSize P = case P
+  { {}           → 0n
+  ; { _ρ } \/ P' → 1n + (partySetSize P')
+  }
+
+def choose P = case P
+  { {}         → ⊥ -- Impossible
+  ; { p } \/ _ → p
+  }
+
+-- compute a list of all subsets of `P` of size `t < |P|`
+def subsets P t =
+  if t == 0n then
+    [{ }]
+  else
+    let m = partySetSize P in
+    if m == t then
+      [P]
+    else
+      case P
+      { {}          → ⊥ -- Impossible
+      ; { p } \/ P' →
+        let Cs1 = subsets P' (t - 1n) in
+        let Cs2 = subsets P' t in
+        append (map (λ C → C + { p }) Cs1) Cs2
+      }
+
+def rand_range P l h = ((rand P ℕ) % (h - l)) + l
+
+def shuffle C a = par C
+  let n = size a in
+  let shuffle_rec = λ [shuffle_rec] i →
+    if i < (n - 2n) then
+      let j = rand_range C i n in
+      let tmp = a.i in
+      let _ = a.i ← a.j in
+      let _ = a.j ← tmp in
+      shuffle_rec (i + 1n)
+    else
+      ()
+  in shuffle_rec 0n
+
+def lwz-shuffle P C a =
+  par P
+    let p = choose C in
+    let a = reveal [gmw, array[15] ℤ#64 : P → p] a in
+    let a = par C (share [gmw, array[15] ℤ#64 : p → C] a) in
+    let _ = shuffle C a in
+    let a = par C (reveal [gmw, array[15] ℤ#64 : C → p] a) in
+    let a = share [gmw, array[15] ℤ#64 : p → P] a in
+    a
+
+-- shuffle the vector `a` shared among `P` with corruption threshold `t < |P|`
+def lwz P t a =
+  -- compute all subsets of `C` of size `t`
+  let Cs = subsets P t in
+  -- shuffle `a` among each subset
+  foldl Cs a (lwz-shuffle P)
+
+def array_copy_at src dst idx =
+  let n = size src in
+  let copy_rec = λ [copy_rec] j →
+    if j < n then
+      let _ = dst.(idx + j) ← src.j in
+      copy_rec (j + 1n)
+    else
+      ()
+ in copy_rec 0n
+
+def array_concat arrs =
+  let len = foldl (map (λ a → size a) arrs) 0n plus in
+  let ret = array[len] ⊥ in
+  let idx = ref 0n in
+  let () = iter arrs (λ a →
+    let _ = array_copy_at a ret !idx in
+    let _ = idx := !idx + (size a) in
+    ()) in
+  ret
+
+def main () = par {A,B,C}
+  let inputA = par {A} snd (read (ℕ#32 × array[5] ℤ#64) from "lwz-input.txt") in
+  let inputB = par {B} snd (read (ℕ#32 × array[5] ℤ#64) from "lwz-input.txt") in
+  let inputC = par {C} snd (read (ℕ#32 × array[5] ℤ#64) from "lwz-input.txt") in
+
+  let P = {A,B,C} in
+  let shA = share [gmw, array[5] ℤ#64 : A → P] inputA in
+  let shB = share [gmw, array[5] ℤ#64 : B → P] inputB in
+  let shC = share [gmw, array[5] ℤ#64 : C → P] inputC in
+
+  let a = array_concat [shA ; shB ; shC] in
+  lwz P 2n a

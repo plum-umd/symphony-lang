@@ -132,6 +132,12 @@ commValSeq ρvFr ρvsTo ṽ _τ = do
            ṽₗˢ ← commValSeq ρvFr ρvsTo ṽₗ _τ
            ṽᵣˢ ← commValSeq ρvFr ρvsTo ṽᵣ _τ
            return $ ProdV ṽₗˢ ṽᵣˢ
+         LocV _m (Inr a) → do
+           a' ← generateM𝕍Mut (length𝕍Mut a) $ \ i → do
+             ṽᵢ ← io $ idx𝕍Mut i a
+             commValSeq ρvFr ρvsTo ṽᵢ _τ
+           m ← askL iCxtModeL
+           return $ LocV m (Inr a')
          _ → todoCxt
   introSeqValMode (AddTop ρvsTo) vˢ
 
@@ -152,6 +158,12 @@ revealValSeq φ ρvsFr ρvTo ṽ _τ = do
          ListV ṽs → do
            ṽsˢ ← mapM (\ ṽ' → revealValSeq φ ρvsFr ρvTo ṽ' _τ) ṽs
            return $ ListV ṽsˢ
+         LocV _m (Inr a) → do
+           a' ← generateM𝕍Mut (length𝕍Mut a) $ \ i → do
+             ṽᵢ ← io $ idx𝕍Mut i a
+             revealValSeq φ ρvsFr ρvTo ṽᵢ _τ
+           m ← askL iCxtModeL
+           return $ LocV m (Inr a')
          _ → todoCxt
   introSeqValMode (AddTop $ single𝑃 ρvTo) vʳ
 
