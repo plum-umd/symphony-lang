@@ -439,7 +439,9 @@ synExpR e = case e of
   PrinSetE es → synPrinSet es
   PrinE e → checkPrin e
 
+  IfE e₁ e₂ e₃ → synIf e₁ e₂ e₃
   AscrE e τ → synAscr e τ
+
   -- PrimE op es → synPrim op es
   _      → undefined
 ------------------------------------------------
