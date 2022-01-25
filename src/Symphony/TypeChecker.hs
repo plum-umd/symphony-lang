@@ -377,32 +377,32 @@ checkL ∷ Exp → Type → EM Type
 synLAnno eₗ  =
   case τ of
     (SecT em (τₗ  :+: τᵣ)) →
-    let cₗ = synExp eₗ
-    in do
-      cτₗ  ← cₗ
-      subcond  ← (subtype cτₗ τₗ)
-      m  ← askL terModeL
-      wfcond ← (wf_type τ m)
-      if subcond then
-        return ()
-      else
-        todoError
-    _ → todoError
+      let cₗ = synExp eₗ
+      in do
+        cτₗ  ← cₗ
+        subcond  ← (subtype cτₗ τₗ)
+        m  ← askL terModeL
+        wfcond ← (wf_type τ m)
+        if subcond then
+          return ()
+        else
+          todoError
+      _ → todoError
 
 checkR ∷ Exp → Type → EM Type
 checkR eᵣ  =
   case τ of
     (SecT em (τₗ  :+: τᵣ)) →
-    let cᵣ = synExp eᵣ
-    in do
-      cτᵣ  ← cᵣ
-      subcond  ← (subtype cτᵣ τᵣ)
-      m  ← askL terModeL
-      wfcond ← (wf_type τ m)
-      if subcond then
-        return ()
-      else
-        todoError
+      let cᵣ = synExp eᵣ
+      in do
+        cτᵣ  ← cᵣ
+        subcond  ← (subtype cτᵣ τᵣ)
+        m  ← askL terModeL
+        wfcond ← (wf_type τ m)
+        if subcond then
+          return ()
+        else
+          todoError
     _ → todoError
 
 {- Todo: Check if m is a subset of the real mode-}
