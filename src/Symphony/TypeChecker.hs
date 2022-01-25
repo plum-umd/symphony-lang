@@ -399,7 +399,7 @@ synIf e₁ e₂ e₃ =
     if subcond then do
       (top_wf τ₂ τ₃ m)
     else
-      return (BaseT UnitT)
+      todoError
 
 chkLam ∷ 𝑂 Var → 𝐿 Pat → Exp → Type → EM ()
 chkLam self𝑂 ψs e τ = todoError
