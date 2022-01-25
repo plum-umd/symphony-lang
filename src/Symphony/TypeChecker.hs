@@ -383,7 +383,7 @@ synLAnno eₗ  =
         subcond  ← (subtype cτₗ τₗ)
         m  ← askL terModeL
         wfcond ← (wf_type τ m)
-        (if subcond then return () else todoError
+        (if subcond then return () else todoError)
     x → todoError
 
 checkR ∷ Exp → Type → EM Type
