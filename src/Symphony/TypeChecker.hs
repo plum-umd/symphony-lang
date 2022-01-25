@@ -383,11 +383,8 @@ synLAnno eₗ  =
         subcond  ← (subtype cτₗ τₗ)
         m  ← askL terModeL
         wfcond ← (wf_type τ m)
-        if subcond then
-          return ()
-        else
-          todoError
-      _ → todoError
+        (if subcond then return () else todoError
+    x → todoError
 
 checkR ∷ Exp → Type → EM Type
 checkR eᵣ  =
@@ -403,7 +400,7 @@ checkR eᵣ  =
           return ()
         else
           todoError
-    _ → todoError
+    x → todoError
 
 {- Todo: Check if m is a subset of the real mode-}
 synNilAnn ∷ Type → EM Type
