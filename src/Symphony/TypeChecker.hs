@@ -54,6 +54,13 @@ subtype_loc loctyS loctyT = case loctyS of
   -- sigma <: sigma 
   BaseT bty → return (loctyS == loctyT)
 
+  (loctySₗ :+: loctySᵣ) → case loctyT of
+    (loctyTₗ :+: loctyTᵣ) → do 
+
+        loccondₗ ← (subtype_loc loctySₗ loctyTₗ)
+        loccondᵣ ← (subtype_loc loctySᵣ loctyTᵣ)
+        return (loccondₗ ⩓ loccondᵣ)
+    _ → return False
   -- t1 <: t1' t2 <: t2'
   -- -------Sub-Pair
   -- t1 x t2 <: t1' x t2' 
@@ -123,7 +130,12 @@ locty_top locty locty' =
   -- -------Sub-Refl
   -- sigma <: sigma 
   BaseT bty → if (locty == locty') then (return locty) else todoError
+  (tyₗ :+: tyᵣ) → case locty' of
+    (ty'ₗ :+: ty'ᵣ) → do 
 
+        top_tyₗ  ← (ty_top tyₗ ty'ₗ)
+        top_tyᵣ ← (ty_top tyᵣ ty'ᵣ)
+        return (top_tyₗ :+: top_tyᵣ)
   -- t1 <: t1' t2 <: t2'
   -- -------Sub-Pair
   -- t1 x t2 <: t1' x t2' 
@@ -133,6 +145,7 @@ locty_top locty locty' =
         top_tyₗ  ← (ty_top tyₗ ty'ₗ)
         top_tyᵣ ← (ty_top tyᵣ ty'ᵣ)
         return (top_tyₗ :×: top_tyᵣ)
+
     x → todoError
 
   x → todoError
@@ -159,6 +172,31 @@ ty_top ty ty' = case ty of
       x  → todoError
       )
   x  → todoError
+
+wf_loctype :: Type → Mode → EM ()
+wf_loctype sigma m =
+  case sigma of
+    BaseT bt → return () 
+    (loctyₗ :+: loctyᵣ) → do 
+      _ ← (wf_type loctyₗ m)
+      _ ← (wf_type loctyr m)
+      return ()
+    (loctyₗ :×: loctyᵣ)  → do
+      _ ← (wf_type loctyₗ m)
+      _ ← (wf_type loctyr m)
+      return ()
+    x  → do
+      return ()
+
+wf_type :: Type → Mode → EM ()
+wf_type ty m = 
+  case ty of 
+    SecT em' loc_ty → do
+      m' ← (elabEMode em')
+      if (supermode m m') then (return ()) else todoError
+    ShareT p em' locty → do
+      m' ← (elabEMode em')
+      if (supermode m m') then (return ()) else todoError
 
 top_wf :: Type → Type → Mode → EM Type 
 top_wf ty ty' m =
@@ -334,17 +372,19 @@ synProd eₗ eᵣ =
     em ← elabMode m
     return (SecT em (τₗ :×: τᵣ))
 
-{-}
-synLAnno ∷ Exp → Type → EM Type
+
+checkL ∷ Exp → Type → EM Type
 synLAnno eₗ  =
   case τ of
-  |   τₗ  :+: τᵣ →
+  |   (SecT em (τₗ  :+: τᵣ)) →
   let cₗ = synExp eₗ
   in do
-
     cτₗ  ← cₗ
-  if (subtype cₗ τₗ) then
-    return τ 
+    subcond  ← (subtype cτₗ τₗ)
+    m  ← askL terModeL
+    wfcond ← (wf_type τ m)
+  if subcond then
+    return ())
   else
     todoError
   | _ → todoError
@@ -355,13 +395,15 @@ synRAnno eₗ  =
   | τₗ  :+: τᵣ
   let cᵣ = synExp eᵣ
   in do
-    cτᵣ  ← cᵣ
-  if (subtype cᵣ τᵣ) then
-    return τ 
+    cτₗ  ← cₗ
+    subcond  ← (subtype cτₗ τₗ)
+    m  ← askL terModeL
+    wfcond ← (wf_type τ m)
+  if subcond then
+    return ())
   else
     todoError
   | _ → todoError
--}
 
 {- Todo: Check if m is a subset of the real mode-}
 synNilAnn ∷ Type → EM Type
@@ -421,10 +463,25 @@ synApp τ₁ τ₂ = case τ₁ of
       ]
 
 synAscr :: Exp → Type →  EM Type
-synAscr e τ = synExpR $ extract e
+synAscr e τ = do 
+  _ ← (chkExp e)
+  return τ
+
+chkExp :: Exp → EM ()
+chkExp :: Exp → EM ()
+chkExp e = checkExpR $ extract e
+
+chkExpR :: ExpR → EM ()  
+chkExpR e = case e of
+  LE eₗ        → checkL eₗ
+  RE eᵣ        → checkR eᵣ
+
+  _ → ()
+
 
 synExp :: Exp → EM Type
 synExp e = synExpR $ extract e
+
 
 synExpR ∷ ExpR → EM Type
 synExpR e = case e of
