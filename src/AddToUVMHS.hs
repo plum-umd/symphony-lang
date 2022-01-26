@@ -257,3 +257,9 @@ writeℝMut = IOR.writeIORef ∘ unℝMut
 
 instance Pretty a ⇒ Pretty (ℝMut a) where
   pretty v = pretty $ io_UNSAFE $ readℝMut v
+
+instance Null SrcCxt where
+  null = (UVM.SrcCxt {UVM.srcCxtSourceName = "", UVM.srcCxtLocRange = UVM.locRange₀, UVM.srcCxtPrefix = UVM.null, UVM.srcCxtContext = UVM.null, UVM.srcCxtSuffix = UVM.null})
+
+nullExp :: ExpR -> Exp
+nullExp e = 𝐴 null e

@@ -344,6 +344,7 @@ data Type =
   deriving (Eq,Ord,Show)
 makePrettySum ''Type
 
+
 data OpType =
     AllOpT
   | BaseOpT BaseType

@@ -186,7 +186,18 @@ wf_loctype sigma m =
       _ ← (wf_type loctyᵣ m)
       return ()
     x  → do
+      todoError
+
+wf_share_loctype :: Type → Mode → EM ()
+wf_loctype sigma m =
+  case sigma of
+    BaseT bt → return () 
+    (loctyₗ :+: loctyᵣ) → do 
+      _ ← (wf_type loctyₗ m)
+      _ ← (wf_type loctyᵣ m)
       return ()
+    x  → do
+      todoError
 
 wf_type :: Type → Mode → EM ()
 wf_type ty m = 
@@ -473,7 +484,15 @@ chkExpR e τ = case e of
   LE eₗ        → checkL eₗ τ
   RE eᵣ        → checkR eᵣ τ
 
-  _ → return ()
+  _ →     
+        do 
+        m  ← askL terModeL
+        wfcond ← (wf_type τ m)
+        subcond  ← (subtype cτᵣ τᵣ)
+        if subcond then
+          return ()
+        else
+          todoError
 
 
 synExp :: Exp → EM Type
