@@ -484,6 +484,9 @@ data ExpR =
   -- [e₁;…;eₙ] ≜ e₁ ∷ ⋯ ∷ eₙ ∷ []
 makePrettySum ''ExpR
 
+nullExp :: ExpR -> Exp
+nullExp e = 𝐴 null e
+
 buildLambda ∷ SrcCxt → Var → 𝐿 Pat → Exp → Exp
 buildLambda c x ψs e
   | ψs ≡ Nil = e
