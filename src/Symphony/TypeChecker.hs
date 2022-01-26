@@ -202,7 +202,7 @@ wf_share_loctype sigma m =
 wf_type :: Type → Mode → EM ()
 wf_type ty m = 
   case ty of 
-    SecT em' loc_ty → do
+    SecT em' locty → do
       wfcond ← (wf_loctype locty m)
       m' ← (elabEMode em')
       if (supermode m m') then (return ()) else todoError
