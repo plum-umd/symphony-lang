@@ -203,11 +203,11 @@ wf_type :: Type → Mode → EM ()
 wf_type ty m = 
   case ty of 
     SecT em' loc_ty → do
-      wfcond ← (wf_loctype loc_ty m)
+      wfcond ← (wf_loctype locty m)
       m' ← (elabEMode em')
       if (supermode m m') then (return ()) else todoError
     ShareT p em' locty → do
-      wfcond ← (wf_share_loctype loc_ty m)
+      wfcond ← (wf_share_loctype locty m)
       m' ← (elabEMode em')
       if (supermode m m') then (return ()) else todoError
 
@@ -490,7 +490,8 @@ chkExpR e τ = case e of
         do 
         m  ← askL terModeL
         wfcond ← (wf_type τ m)
-        subcond  ← (subtype cτᵣ τᵣ)
+        τ' ← synExpR e
+        subcond  ← (subtype τ τ')
         if subcond then
           return ()
         else
