@@ -189,7 +189,7 @@ wf_loctype sigma m =
       todoError
 
 wf_share_loctype :: Type → Mode → EM ()
-wf_loctype sigma m =
+wf_share_loctype sigma m =
   case sigma of
     BaseT bt → return () 
     (loctyₗ :+: loctyᵣ) → do 
@@ -203,9 +203,11 @@ wf_type :: Type → Mode → EM ()
 wf_type ty m = 
   case ty of 
     SecT em' loc_ty → do
+      wfcond ← (wf_loctype loc_ty m)
       m' ← (elabEMode em')
       if (supermode m m') then (return ()) else todoError
     ShareT p em' locty → do
+      wfcond ← (wf_share_loctype loc_ty m)
       m' ← (elabEMode em')
       if (supermode m m') then (return ()) else todoError
 
