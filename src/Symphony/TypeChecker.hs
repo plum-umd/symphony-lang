@@ -185,6 +185,8 @@ wf_loctype sigma m =
       _ ← (wf_type loctyₗ m)
       _ ← (wf_type loctyᵣ m)
       return ()
+    (ListT _ τₜ)  → do
+      _ ← (wf_type τₜ m)
     x  → do
       todoError
 
@@ -416,11 +418,13 @@ checkR eᵣ τ  =
     x → todoError
 
 {- Todo: Check if m is a subset of the real mode-}
-synNilAnn ∷ Type → EM Type
-synNilAnn τ =  case τ of
-  SecT m (ListT _ τₜ)  → return τ
-  ShareT φ m (ListT _ τₜ)   → return τ
-  x  → todoError
+checkNil ∷ Type → EM Type
+checkNil τ =  
+  do
+  wfcond ← (wf_type τ m)
+  case τ of
+    SecT m (ListT _ τₜ)  → return τ
+    x  → todoError
 {-}
 synCons ∷ Exp → Exp → EM Type
 synCons eₕ eₜ =
@@ -485,7 +489,7 @@ chkExpR :: ExpR → Type → EM ()
 chkExpR e τ = case e of
   LE eₗ        → checkL eₗ τ
   RE eᵣ        → checkR eᵣ τ
-
+  NilE        → checkNil τ
   _ →     
         do 
         m  ← askL terModeL
