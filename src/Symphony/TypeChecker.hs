@@ -545,6 +545,7 @@ synExpR e = case e of
   PrinE e → checkPrin e
 
   ProdE eₗ eᵣ  → synProd eₗ eᵣ
+  ConsE eₕ eₜ  → synCons eₕ eₜ
   IfE e₁ e₂ e₃ → synIf e₁ e₂ e₃
   
 
