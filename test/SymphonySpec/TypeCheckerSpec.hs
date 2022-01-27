@@ -127,8 +127,8 @@ spec = do
           t' = (SecT (UVM.Top) (BaseT UnitT))
           t = (SecT (UVM.Top) (ListT 1 t')) 
           expr2 =  (AscrE  (nullExp (NilE)) t )
-          expr1 =  (SecT (UVM.Top) (BaseT UnitT))
-          expr = (SecT (UVM.Top) (nullExp (ConsE expr1 expr2)))
+          expr1 =  BulE
+          expr =  (ConsE (nullExp expr1) (nullExp expr2))
           x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr)) 
       in case x of
         UVM.Inr a -> a `shouldBe`  t
