@@ -438,7 +438,7 @@ synCons eₕ eₜ =
       SecT em' (ListT _ τₜ)  →  do
         m ← askL terModeL
         m' ← elabEMode em' 
-        join_t ← (top_ty τ  τₜ )
+        join_t ← (top_wf τ  τₜ m)
         return SecT (inter_m m' m) join_t
     
   
