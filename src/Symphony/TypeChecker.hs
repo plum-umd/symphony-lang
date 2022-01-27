@@ -187,8 +187,8 @@ wf_loctype sigma m =
       return ()
     (ListT _ τₜ)  → do
       _ ← (wf_type τₜ m)
-    x  → do
-      todoError
+      return ()
+    x  → todoError
 
 wf_share_loctype :: Type → Mode → EM ()
 wf_share_loctype sigma m =
