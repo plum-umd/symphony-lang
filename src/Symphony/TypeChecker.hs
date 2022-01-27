@@ -418,13 +418,13 @@ checkR eᵣ τ  =
     x → todoError
 
 {- Todo: Check if m is a subset of the real mode-}
-checkNil ∷ Type → EM Type
+checkNil ∷ Type → EM ()
 checkNil τ =  
   do
     m  ← askL terModeL
     wfcond ← (wf_type τ m)
     case τ of
-      SecT m (ListT _ τₜ)  → return τ
+      SecT m (ListT _ τₜ)  → return ()
       x  → todoError
 {-}
 synCons ∷ Exp → Exp → EM Type
