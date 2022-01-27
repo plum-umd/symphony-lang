@@ -80,7 +80,7 @@ spec = do
           c = (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A")]) )) 
           expr =  (AscrE  (nullExp (BulE)) t )
           t = (SecT (UVM.Top) (BaseT UnitT))
-          x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr)) 
+          x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.Top)}) (synExpR expr)) 
       in case x of
         UVM.Inr a -> a `shouldBe`  t
     it "() : annotatednil2" $ 

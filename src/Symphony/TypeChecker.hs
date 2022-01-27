@@ -491,7 +491,7 @@ chkExpR e τ = case e of
         m  ← askL terModeL
         wfcond ← (wf_type τ m)
         τ' ← synExpR e
-        subcond  ← (subtype τ τ')
+        subcond  ← (subtype τ' t)
         if subcond then
           return ()
         else
