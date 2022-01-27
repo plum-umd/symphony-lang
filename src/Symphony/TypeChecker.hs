@@ -426,7 +426,7 @@ checkNil τ =
     case τ of
       SecT m (ListT _ τₜ)  → return ()
       x  → todoError
-{-}
+
 synCons ∷ Exp → Exp → EM Type
 synCons eₕ eₜ =
   let cₕ = synExp eₕ
@@ -435,11 +435,13 @@ synCons eₕ eₜ =
     τ  ← cₕ
     τs ← cₜ
     case τs of
-      {- Check if m is a subset of actual m'? -}
-      SecT m' (ListT _ τₜ)  →(if subtype τₜ τ then return  (ListT n τ) else (if subtype τ τₜ then (return τs) else todoError))
-      ShareT φ m' (ListT _ τₜ)   → (if subtype τₜ τ then return  (ListT n τ) else (if subtype τ τₜ then (return τs) else todoError))
-      _ → todoError
--}
+      SecT em' (ListT _ τₜ)  →  do
+        m' ← elabEMode em' 
+        join_t ← (top_wf τ  τₜ)
+        return SecT (inter_m m' m) join_t
+    
+  
+
 
 synIf :: Exp → Exp → Exp → EM Type
 synIf e₁ e₂ e₃ =
@@ -457,7 +459,7 @@ synIf e₁ e₂ e₃ =
       (top_wf τ₂ τ₃ m)
     else
       todoError
-
+{-
 synCond :: Exp → Exp → Exp → EM Type
 synCond e₁ e₂ e₃ =
   let c₁ = synExp e₁
@@ -475,7 +477,7 @@ synCond e₁ e₂ e₃ =
           (top_wf τ₂ τ₃ m)
         else
           todoError
-
+-}
 chkLam ∷ 𝑂 Var → 𝐿 Pat → Exp → Type → EM ()
 chkLam self𝑂 ψs e τ = todoError
 
@@ -542,6 +544,8 @@ synExpR e = case e of
 
   ProdE eₗ eᵣ  → synProd eₗ eᵣ
   IfE e₁ e₂ e₃ → synIf e₁ e₂ e₃
+  
+
   AscrE e τ → synAscr e τ
 
   -- PrimE op es → synPrim op es
