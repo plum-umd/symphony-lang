@@ -115,7 +115,7 @@ spec = do
           b =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "C")]) )) 
           c = (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A")]) )) 
           t' = (SecT (UVM.Top) (BaseT UnitT))
-          t = (SecT (UVM.Top) (ListT 1 Type)) 
+          t = (SecT (UVM.Top) (ListT 1 t')) 
           expr =  (AscrE  (nullExp (NilE)) t )
           x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr)) 
       in case x of
