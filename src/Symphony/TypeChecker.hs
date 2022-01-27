@@ -421,10 +421,11 @@ checkR eᵣ τ  =
 checkNil ∷ Type → EM Type
 checkNil τ =  
   do
-  wfcond ← (wf_type τ m)
-  case τ of
-    SecT m (ListT _ τₜ)  → return τ
-    x  → todoError
+    m  ← askL terModeL
+    wfcond ← (wf_type τ m)
+    case τ of
+      SecT m (ListT _ τₜ)  → return τ
+      x  → todoError
 {-}
 synCons ∷ Exp → Exp → EM Type
 synCons eₕ eₜ =
