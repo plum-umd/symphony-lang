@@ -458,6 +458,24 @@ synIf e₁ e₂ e₃ =
     else
       todoError
 
+synCond :: Exp → Exp → Exp → EM Type
+synCond e₁ e₂ e₃ =
+  let c₁ = synExp e₁
+      c₂ = synExp e₂
+      c₃ = synExp e₃
+  in do
+    τ₁  ← c₁
+    case τ₁ of
+       (SecT em' (τₗ  :+: τᵣ)) → do
+        τ₂ ← c₂
+        τ₃ ← c₃
+        m ← askL terModeL
+        m' ← elabEMode em'
+        if (supermode m' m) then do
+          (top_wf τ₂ τ₃ m)
+        else
+          todoError
+
 chkLam ∷ 𝑂 Var → 𝐿 Pat → Exp → Type → EM ()
 chkLam self𝑂 ψs e τ = todoError
 
