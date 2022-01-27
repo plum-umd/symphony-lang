@@ -75,8 +75,7 @@ spec = do
       in case x of
       UVM.Inr d -> d `shouldBe`  (SecT UVM.Top ((SecT a  (BaseT UnitT)) :×: (SecT b  (BaseT UnitT))))
     it "() : annotated" $ 
-      let y = UVM.null
-          a =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "B")]) )) 
+      let a =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "B")]) )) 
           b =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "C")]) )) 
           c = (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A")]) )) 
           expr =  (AscrE  (nullExp (BulE)) t )
