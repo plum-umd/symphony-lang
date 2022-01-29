@@ -103,6 +103,14 @@ instance Pretty EMPVal where
     IntEV p _ → concat [ppCon "ℤ",pretty p]
     FltEV p _ → concat [ppCon "𝔽",pretty p]
 
+----------------------
+--- GMW FFI Values ---
+----------------------
+
+type Semi64Val = ()
+
+type Semi64Protocol = ()
+
 --------------
 -- Circuits --
 --------------
@@ -186,11 +194,12 @@ data IState v = IState
   , iStateChannels    ∷ PrinVal ⇰ NetIO
   , iStateNextWires   ∷ (𝑃 PrinVal) ⇰ Wire
   , iStateSessionsYao ∷ PrinVal ⇰ EMPProtocol
+  , iStateSessionsGMW ∷ 𝑃 PrinVal ⇰ Semi64Protocol
   , iStateMPCCont     ∷ 𝐿 (𝐿 v ∧ v)
   }
 
 ω₀ ∷ R.ChaChaDRG → IState v
-ω₀ g = IState wø (𝕫64 1) g dø dø dø null
+ω₀ g = IState wø (𝕫64 1) g dø dø dø dø null
 
 ------------
 -- OUTPUT --

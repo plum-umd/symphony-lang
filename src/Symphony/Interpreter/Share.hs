@@ -10,6 +10,7 @@ import Symphony.Interpreter.Error
 
 import Symphony.Interpreter.Plain ()
 import Symphony.Interpreter.Yao ()
+import Symphony.Interpreter.GMW ()
 
 proxySProt ∷ SProt p → P p
 proxySProt = \case
@@ -30,7 +31,7 @@ withProt φ k = case φ of
   YaoNP     → todoCxt
   Yao2P     → k P SYao2P
   BGWP      → todoCxt
-  GMWP      → todoCxt
+  GMWP      → k P SGMWP
   BGVP      → todoCxt
   SPDZP     → todoCxt
   AutoP     → todoCxt

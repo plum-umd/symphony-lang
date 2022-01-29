@@ -1,3 +1,6 @@
 principal A B
 
-def main () = par {A,B} 10
+def main () = par {A,B}
+  let x = share[gmw, ℤ#32 : A → {A,B}] 5 in
+  let y = share[gmw, ℤ#32 : B → {A,B}] 7 in
+  reveal[gmw, ℤ#32 : {A,B} → A] x + y

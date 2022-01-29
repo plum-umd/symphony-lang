@@ -7,6 +7,7 @@ import Symphony.Syntax
 import Symphony.Interpreter.Types
 import Symphony.Interpreter.BaseVal
 import Symphony.Interpreter.Error
+import Symphony.Interpreter.Types (EMPVal)
 
 data DistVal =
     Known DistValR
@@ -58,7 +59,7 @@ class
   , Pretty (Share p)
   ) ⇒
   Protocol p where
-    type Share p ∷ ★
+    type Share p   ∷ ★
 
     share  ∷ P p → PrinVal → 𝑃 PrinVal → (ClearBaseVal ∨ BaseType) → IM DistVal (Share p)
     embed  ∷ P p → 𝑃 PrinVal → ClearBaseVal → IM DistVal (Share p)
