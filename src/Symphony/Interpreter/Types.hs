@@ -96,20 +96,30 @@ data EMPVal =
   deriving (Eq,Ord,Show)
 
 instance Pretty EMPVal where
-  pretty =
-    \case
+  pretty = \case
     BoolEV _  → ppCon "𝔹"
     NatEV p _ → concat [ppCon "ℕ",pretty p]
     IntEV p _ → concat [ppCon "ℤ",pretty p]
     FltEV p _ → concat [ppCon "𝔽",pretty p]
 
 ----------------------
---- GMW FFI Values ---
+--- MP-SPDZ FFI Values ---
 ----------------------
 
-type Semi64Val = ()
+data MPSPDZProtocolStruct = MPSPDZProtocolStruct deriving (Eq,Ord,Show)
+type MPSPDZProtocol = ForeignPtr MPSPDZProtocolStruct
 
-type Semi64Protocol = ()
+data MPSPDZInt = MPSPDZInt deriving (Eq,Ord,Show)
+
+data MPSPDZVal =
+    IntMPSPDZV (ForeignPtr MPSPDZInt)
+  | NatMPSPDZV (ForeignPtr MPSPDZInt)
+  deriving (Eq,Ord,Show)
+
+instance Pretty MPSPDZVal where
+  pretty = \case
+    IntMPSPDZV _ → ppCon "ℤ64"
+    NatMPSPDZV _ → ppCon "ℕ64"
 
 --------------
 -- Circuits --
@@ -188,14 +198,14 @@ data ICxt v = ICxt
 -- Interpreter State
 -- ω ∈ state
 data IState v = IState
-  { iStateStore       ∷ (Store v)
-  , iStateNextLoc     ∷ ℤ64
-  , iStateGen         ∷ R.ChaChaDRG
-  , iStateChannels    ∷ PrinVal ⇰ NetIO
-  , iStateNextWires   ∷ (𝑃 PrinVal) ⇰ Wire
-  , iStateSessionsYao ∷ PrinVal ⇰ EMPProtocol
-  , iStateSessionsGMW ∷ 𝑃 PrinVal ⇰ Semi64Protocol
-  , iStateMPCCont     ∷ 𝐿 (𝐿 v ∧ v)
+  { iStateStore        ∷ (Store v)
+  , iStateNextLoc      ∷ ℤ64
+  , iStateGen          ∷ R.ChaChaDRG
+  , iStateChannels     ∷ PrinVal ⇰ NetIO
+  , iStateNextWires    ∷ (𝑃 PrinVal) ⇰ Wire
+  , iStateSessionsYao  ∷ PrinVal ⇰ EMPProtocol
+  , iStateSessionsSPDZ ∷ 𝑃 PrinVal ⇰ MPSPDZProtocol
+  , iStateMPCCont      ∷ 𝐿 (𝐿 v ∧ v)
   }
 
 ω₀ ∷ R.ChaChaDRG → IState v
