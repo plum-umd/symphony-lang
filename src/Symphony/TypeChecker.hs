@@ -263,7 +263,7 @@ superlocty_wf sigma m =
       loctyₗ' ← (superty_wf loctyₗ m)
       loctyᵣ' ← (superty_wf loctyᵣ m)
       return (loctyₗ' :×: loctyᵣ')
-    (ListT _ τₜ)  → do
+    (ListT n τₜ)  → do
       τₜ' ← (superty_wf τₜ m)
       return (ListT n τₜ') 
     x  → todoError
@@ -286,7 +286,7 @@ superty_wf t m =
         em_inter ← (inter_em em em'')
         loc_superty ← (superlocty_wf loc_ty m)
         return (SecT em_inter loc_superty)
-    ShareT p em locty  → do
+    ShareT p em loc_ty  → do
         em'' ← (elabMode m)
         em_inter ← (inter_em em em'')
         loc_superty ← (share_superloctype_wf loc_ty m)
@@ -397,10 +397,10 @@ synPrim op es =
       τs ← (mapM synExp es)
       _ ← (mapM assertM m τs)
       ps ← (mapM extractProt τs)
-      if (andf ps (\p -> ((firstElem ps) == p))) then
+      if (andf ps (\p -> ((firstElem (iter ps)) == p))) then
         (let bt = (primType op τs) in
           if (firstElm ps) == None then 
-            (SectT em bt) else (ShareT (firstElem ps) em bt))
+            (SectT em bt) else (ShareT (firstElem (iter ps)) em bt))
       else
         todoError
 
