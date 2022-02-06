@@ -394,8 +394,8 @@ synPrim op es =
      do 
        m ← askL terModeL
        em ← elabMode m
-       bt ← (primType op (empty𝐼))
-       return (SecT em bt)
+       bt ← (primType op (empty𝐿 ))
+       return (SecT em (BaseType bt))
   else
     do 
       m ← askL terModeL
@@ -409,8 +409,8 @@ synPrim op es =
             do 
               bt ← (primType op τs)
               case pOption of
-                None → return (SecT em bt)
-                Some p → return (ShareT p em bt)
+                None → return (SecT em (BaseType bt))
+                Some p → return (ShareT p em (BaseType bt))
             
    
           else
