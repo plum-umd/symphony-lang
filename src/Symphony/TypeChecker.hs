@@ -617,6 +617,7 @@ synExpR e = case e of
   StrE s      → synStr s
   PrinSetE es → synPrinSet es
   PrinE e → checkPrin e
+  PrimE op es → synPrim op es
 
   ProdE eₗ eᵣ  → synProd eₗ eᵣ
   ConsE eₕ eₜ  → synCons eₕ eₜ
