@@ -404,7 +404,7 @@ synPrim op es =
       else
         todoError
 
-extractProt :: Type → EM (Maybe Prot)
+extractProt :: Type → EM (𝑂 Prot)
 extractProt τ =
  case τ of 
   (SecT _ _)  → Nothing
