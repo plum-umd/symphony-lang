@@ -502,7 +502,7 @@ synCons eₕ eₜ =
     
   
 
-{-
+
 synIf :: Exp → Exp → Exp → EM Type
 synIf e₁ e₂ e₃ =
   let c₁ = synExp e₁
@@ -519,7 +519,7 @@ synIf e₁ e₂ e₃ =
       (join_wf τ₂ τ₃ m)
     else
       todoError
--}
+{--}
 --synCase ∷ Exp → 𝐿 (Pat ∧ Exp) → EM Type
 --synCase e ψes =
 {-
