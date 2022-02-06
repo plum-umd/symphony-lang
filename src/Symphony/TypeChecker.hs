@@ -265,7 +265,7 @@ superlocty_wf sigma m =
       return (loctyₗ' :×: loctyᵣ')
     (ListT _ τₜ)  → do
       τₜ' ← (superty_wf τₜ m)
-      return (ListT _ τₜ') 
+      return (ListT n τₜ') 
     x  → todoError
 
 share_superloctype_wf :: Type → Mode → EM ()
@@ -407,8 +407,8 @@ synPrim op es =
 extractProt :: Type → EM (𝑂 Prot)
 extractProt τ =
  case τ of 
-  (SecT _ _)  → Nothing
-  (ShareT p _ _)  →  (Just p)
+  (SecT _ _)  → None
+  (ShareT p _ _)  →  Some p)
   _ → todoError
 
 assertM :: Mode → Type → EM ()
