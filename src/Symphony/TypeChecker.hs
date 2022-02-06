@@ -399,8 +399,8 @@ synPrim op es =
       ps ← (mapM extractProt τs)
       if (andf ps (\p -> ((firstElem (iter ps)) == p))) then
         (let bt = (primType op τs) in
-          if (firstElm ps) == None then 
-            (SectT em bt) else (ShareT (firstElem (iter ps)) em bt))
+          if (firstElem (iter ps)) == None then 
+            (SecT em bt) else (ShareT (firstElem (iter ps)) em bt))
       else
         todoError
 
@@ -608,7 +608,7 @@ synExpR e = case e of
   ProdE eₗ eᵣ  → synProd eₗ eᵣ
   ConsE eₕ eₜ  → synCons eₕ eₜ
   IfE e₁ e₂ e₃ → synIf e₁ e₂ e₃
-  CaseE e ψes  → synCase e ψes
+--CaseE e ψes  → synCase e ψes
 
   AscrE e τ → synAscr e τ
 
