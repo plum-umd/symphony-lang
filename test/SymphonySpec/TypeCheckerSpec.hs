@@ -76,7 +76,7 @@ spec = do
           t' = (SecT UVM.Top (BaseT 𝔹T ))
           t = (SecT UVM.Top (BaseT 𝔹T ))
           t'' = (SecT UVM.Top (BaseT 𝔹T ))
-          lexpr = (UVM.frhs [(UVM.𝐴 y (VarE (UVM.var "A"))), (UVM.𝐴 y (VarE (UVM.var "B"))])
+          lexpr = (UVM.frhs [(UVM.𝐴 y (VarE (UVM.var "A"))), (UVM.𝐴 y (VarE (UVM.var "B")))])
           expr =  (PrimE AndO lexpr )
           x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , t'), (UVM.var "A" , t), (UVM.var "B" , t') ])) }) () (synExpR expr)) 
       in case x of
