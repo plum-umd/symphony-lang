@@ -392,6 +392,8 @@ synPrim ∷ Op → 𝐿 Exp → EM Type
 synPrim op es =
   if (isEmpty es) then
      do 
+       m ← askL terModeL
+       em ← elabMode m
        bt ← (primType op (empty𝐼))
        return (SecT em bt)
   else
