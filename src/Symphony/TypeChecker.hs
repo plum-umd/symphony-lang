@@ -396,7 +396,7 @@ synPrim op es =
       em ← elabMode m
       τs ← (mapM synExp es)
       _ ← (mapM assertM m τs)
-      ps ← (mapM extract Prot τs)
+      ps ← (mapM extractProt τs)
       case ps of
         (pOption :& _) →
           if (andf ps (\p -> (pOption == p))) then
