@@ -391,7 +391,7 @@ synPrinSet ρse =
 synPrim ∷ Op → 𝐿 Exp → EM Type
 synPrim op es =
   if (isEmpty es) then
-    primType op (emptyL)
+    primType op (empty𝐼)
   else
     do 
       m ← askL terModeL
