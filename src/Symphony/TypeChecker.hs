@@ -404,10 +404,10 @@ synPrim op es =
             case pOption of
               None →(SecT em bt)
               Some p →(ShareT p em bt)
-        )
+            )
    
-      else
-        todoError
+          else
+            todoError
 
 extractProt :: Type → EM (𝑂 Prot)
 extractProt τ =
