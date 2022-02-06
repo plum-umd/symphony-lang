@@ -401,7 +401,7 @@ synPrim op es =
       m ← askL terModeL
       em ← elabMode m
       τs ← (mapM synExp es)
-      _ ← (mapM assertM m τs)
+      _ ← (mapM (assertM m) τs)
       ps ← (mapM extractProt τs)
       case ps of
         (pOption :& _) →
