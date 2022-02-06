@@ -391,7 +391,9 @@ synPrinSet ρse =
 synPrim ∷ Op → 𝐿 Exp → EM Type
 synPrim op es =
   if (isEmpty es) then
-    btprimType op (empty𝐼)
+     do 
+       bt ← (primType op (empty𝐼))
+       return (SecT em bt)
   else
     do 
       m ← askL terModeL
@@ -405,9 +407,9 @@ synPrim op es =
             do 
               bt ← (primType op τs)
               case pOption of
-                None →(SecT em bt)
-                Some p →(ShareT p em bt)
-            )
+                None → return (SecT em bt)
+                Some p → return (ShareT p em bt)
+            
    
           else
             todoError
