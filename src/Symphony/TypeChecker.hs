@@ -405,7 +405,7 @@ synPrim op es =
       ps ← (mapM extractProt τs)
       case ps of
         (pOption :& _) →
-          if (and matchL (map (\p -> (pOption == p)) τs)) then
+          if (and (map (\p -> (pOption == p)) τs)) then
             do 
               bt ← (primType op τs)
               case pOption of
