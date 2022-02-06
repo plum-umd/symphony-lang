@@ -519,8 +519,8 @@ synIf e₁ e₂ e₃ =
     else
       todoError
 
-synCase ∷ Exp → 𝐿 (Pat ∧ Exp) → EM Type
-synCase e ψes =
+--synCase ∷ Exp → 𝐿 (Pat ∧ Exp) → EM Type
+--synCase e ψes =
 {-
 synCond :: Exp → Exp → Exp → EM Type
 synCond e₁ e₂ e₃ =
