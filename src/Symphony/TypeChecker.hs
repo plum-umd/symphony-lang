@@ -397,7 +397,7 @@ synPrim op es =
       τs ← (mapM synExp es)
       _ ← (mapM assertM m τs)
       ps ← (mapM extractProt τs)
-      if (andf ps (\p -> ((firstElem ps) == p)) then
+      if (andf ps (\p -> ((firstElem ps) == p))) then
         (let bt = (primType op τs) in
           if (firstElm ps) == None then 
             (SectT em bt) else (ShareT (firstElem ps) em bt)
