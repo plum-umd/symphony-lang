@@ -254,7 +254,7 @@ join_wf ty ty' m =
 superlocty_wf :: Type  → EM Type 
 superlocty_wf sigma m = 
   case sigma of
-    BaseT bt → return bt 
+    BaseT bt → return sigma
     (loctyₗ :+: loctyᵣ) → do 
       loctyₗ' ← (superty_wf loctyₗ m)
       loctyᵣ' ← (superty_wf loctyᵣ m)
@@ -268,10 +268,10 @@ superlocty_wf sigma m =
       return (ListT n τₜ') 
     x  → todoError
 
-share_superloctype_wf :: Type → Mode → EM ()
+share_superloctype_wf :: Type → Mode → EM Type
 share_superloctype_wf sigma m =
   case sigma of
-    BaseT bt → return bt 
+    BaseT bt → return sigma
     (loctyₗ :+: loctyᵣ) → do 
       loctyₗ' ← (superty_wf loctyₗ m)
       loctyᵣ' ← (superty_wf loctyᵣ m)
@@ -298,7 +298,9 @@ synVar ∷ Var → EM Type
 synVar x = do
   env ← askL terEnvL
   case env ⋕? x of
-    Some τ → (superty_wf τ)
+    Some τ → do
+      m ← askL terModeL
+      (superty_wf τ m)
     None   → typeError "synVar: x ∉ Γ" $ frhs
              [ ("x", pretty x)
              , ("Γ", pretty $ keys env)
