@@ -1,0 +1,94 @@
+Way to turn set to list
+Other parameter in fold
+SecT vs ShareT (Cleartext vs plaintext)
+Getting tail of list
+
+T-Bul
+--------
+gamma |- m () : bul@m
+
+T-Bool
+--------
+gamma |- m b : bool@m
+
+T-Nat
+--------
+gamma |- m n : nat@m
+
+T-Int
+--------
+gamma |- m i : int@m
+
+T-Flt
+--------
+gamma |- m f : float@m
+
+T-String
+--------
+gamma |- m s : string@m
+
+T-PrinExp
+gamma(A) = t (should be prin@all)
+--------
+gamma |- m A : t
+
+T-PrinSetExp
+forall A in M = {A ...} gamma |- m A : prin@all
+--------
+gamma |- m A : ps@all
+
+T-Op
+m >= m_i
+gamma |- m e1 : sigma1^phi@m1
+gamma |- m e2 : sigma2^phi@m2
+....
+gamma |- m en : sigman^pih@mn
+op [sigma1, sigma2 ... sigman] : sigma
+--------
+gamma|- m op [e1, e2, ..., en] : : sigma^phi@m
+
+T-Prod
+gamma |- m e1 : t1
+gamma |- m e2 : t2
+--------
+gamma |- m (e1, e2) : (t1 x t2) @m
+
+T-L (annotated gives t')
+gamma |- m e : t
+gamma |- m : t'
+--------
+gamma |- m (injl e) : (t x t') @m
+
+T-R (annotated gives t')
+gamma |- m e : t
+gamma |- m : t'
+--------
+gamma |- m (injr e) : (t' x t) @m
+
+T-Nil (annotated gives t)
+
+gamma |- m : t
+--------
+gamma |- m (nil) : list t
+
+T-Cons (t can be the least common supertype)
+gamma |- m e1 : t where t' <= t
+gamma |- m e2 : list t'' @m where t'' <= t
+--------
+gamma |- m (e1, e2) : (list t) @m
+
+T-If
+gamma |- m e : bool@m' where m' <= m
+gamma |- m e1 : t' where t' <= t
+gamma |- m e2 : t'' where t'' <= t
+--------
+gamma |- m (if e then e1 else e2) : t @m
+
+T-Case (t can be the least common supertype)
+gamma |- m e : (t1 + t2)@m' where m' <= m
+gamma |- m e1 : t' where t' <= t
+gamma |- m e2 : t'' where t'' <= t
+...
+gamma |- m en : t'n where t'n <= t
+--------
+gamma |- m case e [e1, e2, ..., en] : t @m

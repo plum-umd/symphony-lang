@@ -47,6 +47,29 @@ bindPrins ρds = eachOn ρds bindPrin
 -- Checking for Expressions --
 ------------------------------
 
+primType ∷ Op → 𝐿 BaseType → m BaseType
+primType op τs = case (op, tohs τs) of
+  (NotO,   [             𝔹T     ])             → return 𝔹T
+  (AndO,   [     𝔹T,     𝔹T     ])             → return 𝔹T
+  (PlusO,  [     ℤT pr₁, ℤT pr₂ ]) | pr₁ ≡ pr₂ → return $ ℤT pr₁
+  (PlusO,  [     ℕT pr₁, ℕT pr₂ ]) | pr₁ ≡ pr₂ → return $ ℕT pr₁
+  (MinusO, [     ℤT pr₁, ℤT pr₂ ]) | pr₁ ≡ pr₂ → return $ ℤT pr₁
+  (TimesO, [     ℤT pr₁, ℤT pr₂ ]) | pr₁ ≡ pr₂ → return $ ℤT pr₁
+  (DivO,   [     ℤT pr₁, ℤT pr₂ ]) | pr₁ ≡ pr₂ → return $ ℤT pr₁
+  (ModO,   [     ℤT pr₁, ℤT pr₂ ]) | pr₁ ≡ pr₂ → return $ ℤT pr₁
+  (EqO,    [     ℤT pr₁, ℤT pr₂ ]) | pr₁ ≡ pr₂ → return 𝔹T
+  (LTO,    [     ℤT pr₁, ℤT pr₂ ]) | pr₁ ≡ pr₂ → return 𝔹T
+  (LTEO,   [     ℤT pr₁, ℤT pr₂ ]) | pr₁ ≡ pr₂ → return 𝔹T
+  (LTEO,   [     ℕT pr₁, ℕT pr₂ ]) | pr₁ ≡ pr₂ → return 𝔹T
+  (GTO,    [     ℤT pr₁, ℤT pr₂ ]) | pr₁ ≡ pr₂ → return 𝔹T
+  (GTO,    [     ℕT pr₁, ℕT pr₂ ]) | pr₁ ≡ pr₂ → return 𝔹T
+  (PlusO,  [     ℕT pr₁, ℕT pr₂ ]) | pr₁ ≡ pr₂ → return $ ℕT pr₁
+  (EqO,    [     ℕT pr₁, ℕT pr₂ ]) | pr₁ ≡ pr₂ → return 𝔹T
+  (CondO,  [ 𝔹T, 𝔹T,     𝔹T     ])             → return 𝔹T
+  (CondO,  [ 𝔹T, ℤT pr₁, ℤT pr₂ ]) | pr₁ ≡ pr₂ → return $ ℤT pr₁
+  (CondO,  [ 𝔹T, ℕT pr₁, ℕT pr₂ ]) | pr₁ ≡ pr₂ → return $ ℕT pr₁
+  _ → todoError
+
 subtype_loc :: Type → Type → EM 𝔹
 subtype_loc loctyS loctyT = case loctyS of
   -- sigma = bty 
@@ -123,8 +146,8 @@ inter_m m m' = case m of
       Top → (AddTop m)
       AddTop m'  →  AddTop(m ∩ m')
 
-locty_top :: Type  → Type  → EM Type 
-locty_top locty locty' =
+locty_join :: Type  → Type  → EM Type 
+locty_join locty locty' =
   case locty of
   -- sigma = bty 
   -- -------Sub-Refl
@@ -133,29 +156,29 @@ locty_top locty locty' =
   (tyₗ :+: tyᵣ) → case locty' of
     (ty'ₗ :+: ty'ᵣ) → do 
 
-        top_tyₗ  ← (ty_top tyₗ ty'ₗ)
-        top_tyᵣ ← (ty_top tyᵣ ty'ᵣ)
-        return (top_tyₗ :+: top_tyᵣ)
+        join_tyₗ  ← (ty_join tyₗ ty'ₗ)
+        join_tyᵣ ← (ty_join tyᵣ ty'ᵣ)
+        return (join_tyₗ :+: join_tyᵣ)
   -- t1 <: t1' t2 <: t2'
   -- -------Sub-Pair
   -- t1 x t2 <: t1' x t2' 
   (tyₗ :×: tyᵣ) → case locty' of
     (ty'ₗ :×: ty'ᵣ) → do 
 
-        top_tyₗ  ← (ty_top tyₗ ty'ₗ)
-        top_tyᵣ ← (ty_top tyᵣ ty'ᵣ)
-        return (top_tyₗ :×: top_tyᵣ)
+        join_tyₗ  ← (ty_join tyₗ ty'ₗ)
+        join_tyᵣ ← (ty_join tyᵣ ty'ᵣ)
+        return (join_tyₗ :×: join_tyᵣ)
 
     x → todoError
 
   x → todoError
 
-ty_top :: Type  → Type  → EM Type 
-ty_top ty ty' = case ty of
+ty_join :: Type  → Type  → EM Type 
+ty_join ty ty' = case ty of
   SecT em loc_ty → (case ty' of
       SecT em' loc_ty' → do 
         em_inter ← (inter_em em em')
-        loc_top ← (locty_top loc_ty loc_ty')
+        loc_top ← (locty_join loc_ty loc_ty')
         return (SecT em_inter loc_top)
       ty' → todoError)
   ShareT p em locty  → (case ty' of
@@ -164,7 +187,7 @@ ty_top ty ty' = case ty of
           then (
           do
             em_inter ← (inter_em em em')
-            loc_top ← (locty_top locty locty')
+            loc_top ← (locty_join locty locty')
             return (ShareT p em_inter loc_top)
             )
             else todoError
@@ -213,11 +236,11 @@ wf_type ty m =
       m' ← (elabEMode em')
       if (supermode m m') then (return ()) else todoError
 
-top_wf :: Type → Type → Mode → EM Type 
-top_wf ty ty' m =
+join_wf :: Type → Type → Mode → EM Type 
+join_wf ty ty' m =
   do 
-  top_ty ← (ty_top ty ty')
-  case top_ty of
+  join_ty ← (ty_join ty ty')
+  case join_ty of
     SecT em loc_ty → do
         em'' ← (elabMode m)
         em_inter ← (inter_em em em'')
@@ -227,12 +250,55 @@ top_wf ty ty' m =
         em_inter ← (inter_em em em'')
         return (ShareT p em_inter locty)
     x  → todoError
+
+superlocty_wf :: Type  → EM Type 
+superlocty_wf sigma m = 
+  case sigma of
+    BaseT bt → return bt 
+    (loctyₗ :+: loctyᵣ) → do 
+      loctyₗ' ← (superty_wf loctyₗ m)
+      loctyᵣ' ← (superty_wf loctyᵣ m)
+      return (loctyₗ' :+: loctyᵣ')
+    (loctyₗ :×: loctyᵣ)  → do
+      loctyₗ' ← (superty_wf loctyₗ m)
+      loctyᵣ' ← (superty_wf loctyᵣ m)
+      return (loctyₗ' :×: loctyᵣ')
+    (ListT _ τₜ)  → do
+      τₜ' ← (superty_wf τₜ m)
+      return (ListT _ τₜ') 
+    x  → todoError
+
+share_superloctype_wf :: Type → Mode → EM ()
+share_superloctype_wf sigma m =
+  case sigma of
+    BaseT bt → return bt 
+    (loctyₗ :+: loctyᵣ) → do 
+      loctyₗ' ← (superty_wf loctyₗ m)
+      loctyᵣ' ← (superty_wf loctyᵣ m)
+      return (loctyₗ' :+: loctyᵣ')
+    x  → todoError
+
+superty_wf :: Type  → Mode  → EM Type 
+superty_wf t m = 
+    case t of
+    SecT em loc_ty → do
+        em'' ← (elabMode m)
+        em_inter ← (inter_em em em'')
+        loc_superty ← (superlocty_wf loc_ty m)
+        return (SecT em_inter loc_superty)
+    ShareT p em locty  → do
+        em'' ← (elabMode m)
+        em_inter ← (inter_em em em'')
+        loc_superty ← (share_superloctype_wf loc_ty m)
+        return (ShareT p em_inter loc_superty)
+    x  → todoError
+
 -- make_wf :: 
 synVar ∷ Var → EM Type
 synVar x = do
   env ← askL terEnvL
   case env ⋕? x of
-    Some τ → return τ
+    Some τ → (superty_wf τ)
     None   → typeError "synVar: x ∉ Γ" $ frhs
              [ ("x", pretty x)
              , ("Γ", pretty $ keys env)
@@ -313,64 +379,54 @@ synPrinSet ρse =
   case ρse of
   PowPSE ρes → do
     _ ←  mapM checkPrin ρes
-    return (SecT Top (BaseT ℙsT))
+    m ← askL terModeL
+    em ← elabMode m
+    return (SecT em (BaseT ℙsT))
   x    →  todoError
 
 
---synOp :: Op -> OpType
---synOp op = (BaseOpT (Nat))
--- Gets the operation, gets if the operation needs a specific type or any basic type, gets the type of first type
--- checks if it is the basic ,type, goes through each thing in the list to get the supertype of every type 
--- and that there is a supertype of every type in the list. Can do this by making accumulator first type of the list
--- and true and checking that there exists a supertype for each in the fold
---synPrim ∷ Op → 𝐿 Exp → IM v v
---synPrim op es =
-  
-  -- arrity
- --   if (getSize op) == (size es) then
- --( 
-   -- true if empty
-     {-
-   if (isEmpty es) then
-     return (synRes op)
-  else 
-    
-    case (synOp op) of
-    -- Check first element is basetype and then make sure all elements are of a certain supertype
-    | AllOp → (let h = (fst es) in 
-      do 
-      accτ ←  (synExp es)
-      if  (isBase accτ) then 
-        (case (fold (snd es) (accτ, True) getSuperType2) of
-           (_, False) → todoError
-           _ → return (synRes op)
-        ) 
-        else 
-        todoError
 
-    -- Check that all elements are a subtype of the type it must be (or the type is a supertype of all)
-    |  accτ → 
-    (if (fold es True (supertype acct) ) then
-      return (synRes op)
-           else  todoError
-          
-      )
- )
+synPrim ∷ Op → 𝐿 Exp → EM Type
+synPrim op es =
+  if (isEmpty op) then
+    primType op es
   else
-    todoError
+    do 
+      m ← askL terModeL
+      em ← elabMode m
+      τs ← (mapM synExp es)
+      _ ← (mapM assertM m τs)
+      ps ← (mapM extractProt τs)
+      if (andf ps (\p -> ((firstElem ps) == p)) then
+        (let bt = (primType op τs) in
+          if (firstElm ps) == None then 
+            (SectT em bt) else (ShareT (firstElem ps) em bt)
 
 
-getSuperType :: ExpR →  (Type, bool) →  (Type, bool)
-getSuperType e acc  =
-  case acc of
-    (_, False) → (accτ, False)
-    (accτ, _) →
-    let c = synExp e
-   in do
-    τ ← c
-    if subtype accτ τ then (τ, True)
-    else (if subtype τ accτ then (accτ, True) else  (accτ, False))
-    -}
+extractProt :: Type → EM (Maybe Prot)
+extractProt τ =
+ case τ of 
+  (SecT _ _)  → Nothing
+  (ShareT p _ _)  →  (Just p)
+  _ → todoError
+
+assertM :: Mode → Type → EM ()
+assertM m τ =
+  case τ of 
+    (SecT em' _)  →  
+          m' ← elabEMode em'
+          if (m == m') then return () else todoError 
+    (ShareT _ em' _)  → 
+          m' ← elabEMode em'
+          if (m == m') then return () else todoError
+    _  → todoError
+
+extractBase :: Type → EM BaseType
+extractBase τ =
+   case τ of 
+   (SecT _ (BaseT bτ))  → bτ
+    (ShareT _ _ (BaseT bτ))  →  bτ
+    _ → todoError
 ---------------------------------
 --- Products, Sums, and Lists ---
 ---------------------------------
@@ -438,9 +494,9 @@ synCons eₕ eₜ =
       SecT em' (ListT n τₜ)  →  do
         m ← askL terModeL
         em ← elabMode m 
-        join_t ← (top_wf τ  τₜ m)
-        m'' ← (inter_em em' em)
-        return (SecT m'' (ListT n join_t))
+        join_t ← (join_wf τ  τₜ m)
+        em'' ← (inter_em em' em)
+        return (SecT em'' (ListT n join_t))
     
   
 
@@ -458,9 +514,12 @@ synIf e₁ e₂ e₃ =
     em  ← elabMode m
     subcond ← (subtype τ₁ (SecT em (BaseT 𝔹T)) )
     if subcond then do
-      (top_wf τ₂ τ₃ m)
+      (join_wf τ₂ τ₃ m)
     else
       todoError
+
+synCase ∷ Exp → 𝐿 (Pat ∧ Exp) → EM Type
+synCase e ψes =
 {-
 synCond :: Exp → Exp → Exp → EM Type
 synCond e₁ e₂ e₃ =
@@ -476,7 +535,7 @@ synCond e₁ e₂ e₃ =
         m ← askL terModeL
         m' ← elabEMode em'
         if (supermode m' m) then do
-          (top_wf τ₂ τ₃ m)
+          (join_wf τ₂ τ₃ m)
         else
           todoError
 -}
@@ -547,7 +606,7 @@ synExpR e = case e of
   ProdE eₗ eᵣ  → synProd eₗ eᵣ
   ConsE eₕ eₜ  → synCons eₕ eₜ
   IfE e₁ e₂ e₃ → synIf e₁ e₂ e₃
-  
+  CaseE e ψes  → synCase e ψes
 
   AscrE e τ → synAscr e τ
 
