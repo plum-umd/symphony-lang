@@ -403,11 +403,12 @@ synPrim op es =
       τs ← (mapM synExp es)
       _ ← (mapM (assertM m) τs)
       ps ← (mapM extractProt τs)
+      bs ← (mapM extractBase τs)
       case ps of
         (pOption :& _) →
-          if (and (map (\p -> (pOption == p)) τs)) then
+          if (and (map (\p -> (pOption == p)) ps)) then
             do 
-              bt ← (primType op τs)
+              bt ← (primType op bs)
               case pOption of
                 None → return (SecT em (BaseT bt))
                 Some p → return (ShareT p em (BaseT bt))
@@ -419,8 +420,8 @@ synPrim op es =
 extractProt :: Type → EM (𝑂 Prot)
 extractProt τ =
  case τ of 
-  (SecT _ _)  → None
-  (ShareT p _ _)  →  Some p
+  (SecT _ _)  → return None
+  (ShareT p _ _)  → return (Some p)
   _ → todoError
 
 assertM :: Mode → Type → EM ()
