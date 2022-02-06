@@ -402,6 +402,7 @@ synPrim op es =
           case(firstElem ps) of
             None →(SecT em bt)
             Some p →(ShareT p em bt)
+        )
    
       else
         todoError
