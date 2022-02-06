@@ -414,10 +414,10 @@ extractProt τ =
 assertM :: Mode → Type → EM ()
 assertM m τ =
   case τ of 
-    (SecT em' _)  →  
+    (SecT em' _)  →  do
           m' ← elabEMode em'
           if (m == m') then return () else todoError 
-    (ShareT _ em' _)  → 
+    (ShareT _ em' _)  → do
           m' ← elabEMode em'
           if (m == m') then return () else todoError
     _  → todoError
