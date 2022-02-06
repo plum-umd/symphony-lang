@@ -428,7 +428,7 @@ extractBase τ =
      (SecT _ (BaseT bτ))  → bτ
      (ShareT _ _ (BaseT bτ))  →  bτ
      _ → todoError
-     {-}
+     
 ---------------------------------
 --- Products, Sums, and Lists ---
 ---------------------------------
@@ -502,7 +502,7 @@ synCons eₕ eₜ =
     
   
 
-
+{-
 synIf :: Exp → Exp → Exp → EM Type
 synIf e₁ e₂ e₃ =
   let c₁ = synExp e₁
