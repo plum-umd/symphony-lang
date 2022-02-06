@@ -430,8 +430,8 @@ assertM m τ =
 extractBase :: Type → EM BaseType
 extractBase τ =
    case τ of 
-     (SecT _ (BaseT bτ))  → bτ
-     (ShareT _ _ (BaseT bτ))  →  bτ
+     (SecT _ (BaseT bτ))  → return bτ
+     (ShareT _ _ (BaseT bτ))  →  return bτ
      _ → todoError
      
 ---------------------------------
