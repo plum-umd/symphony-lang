@@ -428,8 +428,98 @@ extractBase τ =
      (SecT _ (BaseT bτ))  → bτ
      (ShareT _ _ (BaseT bτ))  →  bτ
      _ → todoError
+     {-}
+---------------------------------
+--- Products, Sums, and Lists ---
+---------------------------------
+
+--Gets the type of the first, gets type of the second, returns the pair located value
+synProd ∷  Exp → Exp → EM Type
+synProd eₗ eᵣ =
+  let cₗ = synExp eₗ
+      cᵣ = synExp eᵣ
+  in do
+    τₗ ← cₗ
+    τᵣ ← cᵣ
+    m ← askL terModeL
+    em ← elabMode m
+    return (SecT em (τₗ :×: τᵣ))
 
 
+checkL ∷ Exp → Type → EM ()
+checkL eₗ τ  =
+  case τ of
+    (SecT em (τₗ  :+: τᵣ)) →
+      let cₗ = synExp eₗ
+      in do
+        cτₗ  ← cₗ
+        subcond  ← (subtype cτₗ τₗ)
+        m  ← askL terModeL
+        wfcond ← (wf_type τ m)
+        (if subcond then return () else todoError)
+    x → todoError
+
+checkR ∷ Exp → Type → EM ()
+checkR eᵣ τ  =
+  case τ of
+    (SecT em (τₗ  :+: τᵣ)) →
+      let cᵣ = synExp eᵣ
+      in do
+        cτᵣ  ← cᵣ
+        subcond  ← (subtype cτᵣ τᵣ)
+        m  ← askL terModeL
+        wfcond ← (wf_type τ m)
+        if subcond then
+          return ()
+        else
+          todoError
+    x → todoError
+
+{- Todo: Check if m is a subset of the real mode-}
+checkNil ∷ Type → EM ()
+checkNil τ =  
+  do
+    m  ← askL terModeL
+    wfcond ← (wf_type τ m)
+    case τ of
+      SecT m (ListT _ τₜ)  → return ()
+      x  → todoError
+
+synCons ∷ Exp → Exp → EM Type
+synCons eₕ eₜ =
+  let cₕ = synExp eₕ
+      cₜ = synExp eₜ
+  in do
+    τ  ← cₕ
+    τs ← cₜ
+    case τs of
+      SecT em' (ListT n τₜ)  →  do
+        m ← askL terModeL
+        em ← elabMode m 
+        join_t ← (join_wf τ  τₜ m)
+        em'' ← (inter_em em' em)
+        return (SecT em'' (ListT n join_t))
+    
+  
+
+
+synIf :: Exp → Exp → Exp → EM Type
+synIf e₁ e₂ e₃ =
+  let c₁ = synExp e₁
+      c₂ = synExp e₂
+      c₃ = synExp e₃
+  in do
+    τ₁  ← c₁
+    τ₂ ← c₂
+    τ₃ ← c₃
+    m ← askL terModeL
+    em  ← elabMode m
+    subcond ← (subtype τ₁ (SecT em (BaseT 𝔹T)) )
+    if subcond then do
+      (join_wf τ₂ τ₃ m)
+    else
+      todoError
+-}
 --synCase ∷ Exp → 𝐿 (Pat ∧ Exp) → EM Type
 --synCase e ψes =
 {-
