@@ -396,9 +396,9 @@ synPrim op es =
       em ← elabMode m
       τs ← (mapM synExp es)
       _ ← (mapM assertM m τs)
-      ps ← (mapM extractProt τs)
-      case (isEmpty ps) of
-        (Some pOption) →
+      ps ← (mapM extract Prot τs)
+      case ps of
+        (pOption :& _) →
           if (andf ps (\p -> (pOption == p))) then
             (let bt = (primType op τs) in
             case pOption of
