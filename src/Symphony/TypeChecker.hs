@@ -251,7 +251,7 @@ join_wf ty ty' m =
         return (ShareT p em_inter locty)
     x  → todoError
 
-superlocty_wf :: Type  → EM Type 
+superlocty_wf :: Type  → Mode →  EM Type 
 superlocty_wf sigma m = 
   case sigma of
     BaseT bt → return sigma
@@ -391,7 +391,7 @@ synPrinSet ρse =
 synPrim ∷ Op → 𝐿 Exp → EM Type
 synPrim op es =
   if (isEmpty es) then
-    primType op (empty𝐼)
+    btprimType op (empty𝐼)
   else
     do 
       m ← askL terModeL
@@ -402,10 +402,11 @@ synPrim op es =
       case ps of
         (pOption :& _) →
           if (andf ps (\p -> (pOption == p))) then
-            (let bt = (primType op τs) in
-            case pOption of
-              None →(SecT em bt)
-              Some p →(ShareT p em bt)
+            do 
+              bt ← (primType op τs)
+              case pOption of
+                None →(SecT em bt)
+                Some p →(ShareT p em bt)
             )
    
           else
