@@ -401,7 +401,8 @@ synPrim op es =
         (let bt = (primType op τs) in
           if (firstElm ps) == None then 
             (SectT em bt) else (ShareT (firstElem ps) em bt)
-
+      else
+        todoError
 
 extractProt :: Type → EM (Maybe Prot)
 extractProt τ =
