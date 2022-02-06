@@ -399,8 +399,10 @@ synPrim op es =
       ps ← (mapM extractProt τs)
       if (andf ps (\p -> ((firstElem  ps) == p))) then
         (let bt = (primType op τs) in
-          if (firstElem ps) == None then 
-            (SecT em bt) else (ShareT (firstElem  ps) em bt))
+          case(firstElem ps) of
+            None →(SecT em bt)
+            Some p →(ShareT p em bt)
+   
       else
         todoError
 
