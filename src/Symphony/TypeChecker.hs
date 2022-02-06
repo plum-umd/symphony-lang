@@ -47,7 +47,7 @@ bindPrins ρds = eachOn ρds bindPrin
 -- Checking for Expressions --
 ------------------------------
 
-primType ∷ Op → 𝐿 BaseType → m BaseType
+primType ∷ Op → 𝐿 BaseType → EM BaseType
 primType op τs = case (op, tohs τs) of
   (NotO,   [             𝔹T     ])             → return 𝔹T
   (AndO,   [     𝔹T,     𝔹T     ])             → return 𝔹T
