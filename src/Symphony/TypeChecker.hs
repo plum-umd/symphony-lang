@@ -397,11 +397,13 @@ synPrim op es =
       τs ← (mapM synExp es)
       _ ← (mapM assertM m τs)
       ps ← (mapM extractProt τs)
-      if (andf ps (\p -> ((firstElem  ps) == p))) then
-        (let bt = (primType op τs) in
-          case(firstElem ps) of
-            None →(SecT em bt)
-            Some p →(ShareT p em bt)
+      case (firstElem ps) of
+        (Some pOption) →
+          if (andf ps (\p -> (pOption == p))) then
+            (let bt = (primType op τs) in
+            case pOption of
+              None →(SecT em bt)
+              Some p →(ShareT p em bt)
         )
    
       else
