@@ -648,6 +648,7 @@ synExpR e = case e of
   IfE e₁ e₂ e₃ → synIf e₁ e₂ e₃
 --CaseE e ψes  → synCase e ψes
 
+  LetE ψ e₁ e₂    → synLet ψ e₁ e₂
   AscrE e τ → synAscr e τ
 
   -- PrimE op es → synPrim op es
