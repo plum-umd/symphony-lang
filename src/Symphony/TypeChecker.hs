@@ -47,6 +47,7 @@ bindPrins ρds = eachOn ρds bindPrin
 -- Checking for Expressions --
 ------------------------------
 
+
 primType ∷ Op → 𝐿 BaseType → EM BaseType
 primType op τs = case (op, tohs τs) of
   (NotO,   [             𝔹T     ])             → return 𝔹T
@@ -554,6 +555,29 @@ synCond e₁ e₂ e₃ =
         else
           todoError
 -}
+
+
+synLet ∷ Pat → Exp → Exp → EM Type 
+synLet ψ e₁ e₂ =
+  let c₁ = synExp e₁
+      c₂ = synExp e₂
+  in do
+    τ₁ ← c₁
+    f  ← bindVal τ₁ ψ
+    f c₂
+
+bindVal ∷ Type → Pat → (EM (EM Type → EM Type))
+bindVal τ ψ = do
+ matchVal t ψ
+
+matchVal ∷ ⇒ Type → Pat → EM (EM Type → EM Type)
+matchVal τ ψ= case ψ of 
+  VarP x → return (bindTypeE  x τ)
+  {-BulP → do
+    v ← lift $ elimVal ṽ
+    abort𝑂 $ view (bulVL ⊚ clearL ⊚ baseVL) v
+    return id-}
+    
 chkLam ∷ 𝑂 Var → 𝐿 Pat → Exp → Type → EM ()
 chkLam self𝑂 ψs e τ = todoError
 
@@ -680,3 +704,7 @@ asTLM eM = do
 
 bindTypeTL ∷ 𝕏 → Type → TLM ()
 bindTypeTL x τ = modifyL ttlsEnvL ((x ↦ τ) ⩌)
+
+
+bindTypeE ∷ Var → Type → EM Type → EM Type
+bindTypeE x τ = mapEnvL terEnvL ((x ↦ τ) ⩌)
