@@ -576,7 +576,7 @@ matchVal τ ψ= case ψ of
   BulP → case τ of
     (SecT _ (BaseT (UnitT) )) → return (\x -> x)
     (ShareT _ _ (BaseT (UnitT) )) → return (\x -> x)
-    _ → todoError
+
 chkLam ∷ 𝑂 Var → 𝐿 Pat → Exp → Type → EM ()
 chkLam self𝑂 ψs e τ = todoError
 
