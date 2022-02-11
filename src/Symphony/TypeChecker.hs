@@ -600,12 +600,12 @@ matchVal τ ψ= case ψ of
         (mr (ml x)) ))
     _ → todoError
   LP ψₗ  → case τ of
-    (SecT em (τₗ  :+: τᵣ)) → return (matchVal τₗ ψₗ)
-    (ShareT _ _ (τₗ  :+: τᵣ)) → return (matchVal τₗ ψₗ)
+    (SecT em (τₗ  :+: τᵣ)) → (matchVal τₗ ψₗ)
+    (ShareT _ _ (τₗ  :+: τᵣ)) → (matchVal τₗ ψₗ)
     _ → todoError
   RP ψᵣ → case τ of
-    (SecT em (τₗ  :+: τᵣ)) → return (matchVal τᵣ ψᵣ)
-    (ShareT _ _ (τₗ  :+: τᵣ)) →return (matchVal τᵣ ψᵣ)
+    (SecT em (τₗ  :+: τᵣ)) → (matchVal τᵣ ψᵣ)
+    (ShareT _ _ (τₗ  :+: τᵣ)) → (matchVal τᵣ ψᵣ)
     _ → todoError
   NilP → case τ of
     (SecT m (ListT _ τₜ)) → return (\x -> x)
