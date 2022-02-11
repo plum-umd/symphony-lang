@@ -567,8 +567,8 @@ synLet ψ e₁ e₂ =
     f c₂
 
 bindVal ∷ Type → Pat → (EM (EM Type → EM Type))
-bindVal τ ψ = do
- matchVal t ψ
+bindVal τ ψ = matchVal t ψ
+ 
 
 matchVal ∷  Type → Pat → EM (EM Type → EM Type)
 matchVal τ ψ= case ψ of 
