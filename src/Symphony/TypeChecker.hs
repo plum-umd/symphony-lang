@@ -580,20 +580,20 @@ matchVal τ ψ= case ψ of
   EPrinSetP  → case τ of
     (SecT em (BaseT ℙsT)) → return (\x -> x)
     _ → todoError
-  NEPrinSetP 𝕏 Pat   → case τ of
+  NEPrinSetP x ψ   → case τ of
     (SecT em (BaseT ℙsT ))  → 
-      return (\x -> ( 
+      return (\y -> ( 
         do
-        mh ← (matchVal  (SecT em (BaseT ℙT )) ψ) 
+        mh ← (bindTypeE  x (SecT em (BaseT ℙT ))) 
         mt ← (matchVal  (SecT em (BaseT ℙsT )) ψₜ)
-        res ←  (mh x)
+        res ←  (mh y)
         (mt res ) ))
     (ShareT p em (BaseT ℙsT ))  → 
       return (\x -> ( 
         do
         mh ←  (matchVal  (ShareT p em (BaseT ℙT )) ψ) 
         mt ←  (matchVal  (ShareT p em (BaseT ℙsT )) ψₜ)
-        res ←  (mh x)
+        res ←  (mh y)
         (mt res) ))
   ProdP ψₗ ψᵣ  →     case τ of
     (SecT em (τₗ :×: τᵣ)) →
@@ -608,7 +608,7 @@ matchVal τ ψ= case ψ of
     (SecT em (τₗ  :+: τᵣ)) → return (matchVal τₗ ψₗ)
     (ShareT _ _ (τₗ  :+: τᵣ)) → return (matchVal τₗ ψₗ)
     _ → todoError
-  RP Pat → case τ of
+  RP ψᵣ → case τ of
     (SecT em (τₗ  :+: τᵣ)) → return (matchVal τᵣ ψᵣ)
     (ShareT _ _ (τₗ  :+: τᵣ)) →return (matchVal τᵣ ψᵣ)
     _ → todoError
@@ -622,7 +622,7 @@ matchVal τ ψ= case ψ of
         mh ←  (matchVal τₜ ψ) 
         mt ←  (matchVal τ ψₜ)
         res ←  (mh x)
-         (mt res) ))
+        (mt res) ))
     _ → todoError
   WildP → return (\x -> x)
   
