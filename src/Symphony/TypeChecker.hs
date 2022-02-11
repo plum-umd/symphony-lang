@@ -585,20 +585,19 @@ matchVal τ ψ= case ψ of
       return (\y -> ( 
         do
         mt ← (matchVal  (SecT em (BaseT ℙsT )) ψ)
-        (mt ((bindTypeE  x (SecT em (BaseT ℙT ))) y)) ))
+        (mt (return (bindTypeE  x (SecT em (BaseT ℙT ))) y)) ))
     (ShareT p em (BaseT ℙsT ))  → 
       return (\y -> ( 
         do
         mt ←  (matchVal  (ShareT p em (BaseT ℙsT )) ψ)
-        (mt (bindTypeE  x (ShareT p em (BaseT ℙT )))) ))
+        (mt (return (bindTypeE  x (ShareT p em (BaseT ℙT ))) y) ) ))
   ProdP ψₗ ψᵣ  →     case τ of
     (SecT em (τₗ :×: τᵣ)) →
       return (\x -> ( 
         do
         ml ←  (matchVal τₗ ψₗ) 
         mr ←  (matchVal τᵣ ψᵣ)
-        res ←  (ml x)
-        (mr res) ))
+        (mr (ml x)) ))
     _ → todoError
   LP ψₗ  → case τ of
     (SecT em (τₗ  :+: τᵣ)) → return (matchVal τₗ ψₗ)
@@ -617,8 +616,7 @@ matchVal τ ψ= case ψ of
         do
         mh ←  (matchVal τₜ ψ) 
         mt ←  (matchVal τ ψₜ)
-        res ←  (mh x)
-        (mt res) ))
+        (mt (mh x)) ))
     _ → todoError
   WildP → return (\x -> x)
   
