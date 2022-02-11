@@ -577,7 +577,56 @@ matchVal τ ψ= case ψ of
     (SecT _ (BaseT (UnitT) )) → return (\x -> x)
     (ShareT _ _ (BaseT (UnitT) )) → return (\x -> x)
     _ → todoError
-    
+  EPrinSetP  → case τ of
+    (SecT em (BaseT ℙsT)) → return (\x -> x)
+    _ → todoError
+  NEPrinSetP 𝕏 Pat   → case τ of
+    (SecT em (BaseT ℙsT ))  → 
+      return (\x -> ( 
+        do
+        mh ← (matchVal  (SecT em (BaseT ℙT )) ψ) 
+        mt ← (matchVal  (SecT em (BaseT ℙsT )) ψₜ)
+        res ←  (mh x)
+        (mt res ) ))
+    (ShareT p em (BaseT ℙsT ))  → 
+      return (\x -> ( 
+        do
+        mh ←  (matchVal  (ShareT p em (BaseT ℙT )) ψ) 
+        mt ←  (matchVal  (ShareT p em (BaseT ℙsT )) ψₜ)
+        res ←  (mh x)
+        (mt res) ))
+  ProdP ψₗ ψᵣ  →     case τ of
+    (SecT em (τₗ :×: τᵣ)) →
+      return (\x -> ( 
+        do
+        ml ←  (matchVal τₗ ψₗ) 
+        mr ←  (matchVal τᵣ ψᵣ)
+        res ←  (ml x)
+        (mr res) ))
+    _ → todoError
+  LP ψₗ  → case τ of
+    (SecT em (τₗ  :+: τᵣ)) → return (matchVal τₗ ψₗ)
+    (ShareT _ _ (τₗ  :+: τᵣ)) → return (matchVal τₗ ψₗ)
+    _ → todoError
+  RP Pat → case τ of
+    (SecT em (τₗ  :+: τᵣ)) → return (matchVal τᵣ ψᵣ)
+    (ShareT _ _ (τₗ  :+: τᵣ)) →return (matchVal τᵣ ψᵣ)
+    _ → todoError
+  NilP → case τ of
+    (SecT m (ListT _ τₜ)) → return (\x -> x)
+    _ → todoError
+  ConsP ψ ψₜ → case τ of
+    (SecT m (ListT n τₜ)) → 
+      return (\x -> ( 
+        do
+        mh ←  (matchVal τₜ ψ) 
+        mt ←  (matchVal τ ψₜ)
+        res ←  (mh x)
+         (mt res) ))
+    _ → todoError
+  WildP → return (\x -> x)
+  
+
 chkLam ∷ 𝑂 Var → 𝐿 Pat → Exp → Type → EM ()
 chkLam self𝑂 ψs e τ = todoError
 
