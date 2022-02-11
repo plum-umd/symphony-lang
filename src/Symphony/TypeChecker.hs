@@ -570,7 +570,7 @@ bindVal ∷ Type → Pat → (EM (EM Type → EM Type))
 bindVal τ ψ = do
  matchVal t ψ
 
-matchVal ∷ ⇒ Type → Pat → EM (EM Type → EM Type)
+matchVal ∷  Type → Pat → EM (EM Type → EM Type)
 matchVal τ ψ= case ψ of 
   VarP x → return (bindTypeE  x τ)
   {-BulP → do
