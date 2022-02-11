@@ -573,11 +573,10 @@ bindVal τ ψ = matchVal τ ψ
 matchVal ∷  Type → Pat → EM (EM Type → EM Type)
 matchVal τ ψ= case ψ of 
   VarP x → return (bindTypeE  x τ)
-  {-BulP → do
-    v ← lift $ elimVal ṽ
-    abort𝑂 $ view (bulVL ⊚ clearL ⊚ baseVL) v
-    return id-}
-    
+  BulP → case τ of
+    (SecT _ (BaseType (UnitT) )) → return (bindTypeE  x τ)
+    (ShareT _ _ (BaseType (UnitT) )) → return (bindTypeE  x τ)
+    _ → todoError
 chkLam ∷ 𝑂 Var → 𝐿 Pat → Exp → Type → EM ()
 chkLam self𝑂 ψs e τ = todoError
 
