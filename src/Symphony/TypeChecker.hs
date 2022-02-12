@@ -544,8 +544,8 @@ synCase e ψes =
 joinList :: 𝐿 Type → EM Type
 joinList τs =
   case τs of 
-    Nil	  → todoError
-    τ :& τs  → (mfold τ join_ty τs)
+    Nil → todoError
+    τ :& τs → (mfold τ join_ty τs)
 
 synLet ∷ Pat → Exp → Exp → EM Type 
 synLet ψ e₁ e₂ =
@@ -574,10 +574,14 @@ matchVal τ ψ= case ψ of
           if (m == m') then return (\x -> x) else todoError 
     _ → todoError
   EPrinSetP  → case τ of
-    (SecT em' (BaseT ℙsT)),  (ShareT p em' (BaseT ℙsT ))  → do
+    (SecT em' (BaseT ℙsT)) → do
           m ← askL terModeL
           m' ← elabEMode em'
-          if (m == m') then return (\x -> x) else todoError 
+          if (m == m') then return (\x -> x) else todoError
+    (ShareT p em' (BaseT ℙsT ))  → do 
+          m ← askL terModeL
+          m' ← elabEMode em'
+          if (m == m') then return (\x -> x) else todoError
     _ → todoError
   NEPrinSetP x ψ   → case τ of
     (SecT em' (BaseT ℙsT ))  →  do
@@ -614,16 +618,29 @@ matchVal τ ψ= case ψ of
           todoError
     _ → todoError
   LP ψₗ  → case τ of
-    (SecT em' (τₗ  :+: τᵣ), (ShareT _ em' (τₗ  :+: τᵣ))→ do
+    (SecT em' (τₗ  :+: τᵣ) → do
         m ← askL terModeL
         m' ← elabEMode em'
         if (m == m') then
           (matchVal τₗ ψₗ)
         else
           todoError
-
+    (ShareT _ em' (τₗ  :+: τᵣ)) → do
+        m ← askL terModeL
+        m' ← elabEMode em'
+        if (m == m') then
+          (matchVal τₗ ψₗ)
+        else
+          todoError
   RP ψᵣ → case τ of
-    (SecT em' (τₗ  :+: τᵣ)),  (ShareT _ em' (τₗ  :+: τᵣ)) → do
+    (SecT em' (τₗ  :+: τᵣ)) → do
+        m ← askL terModeL
+        m' ← elabEMode em'
+        if (m == m') then
+           (matchVal τᵣ ψᵣ)
+        else
+          todoError
+    (ShareT _ em' (τₗ  :+: τᵣ)) → do
         m ← askL terModeL
         m' ← elabEMode em'
         if (m == m') then
