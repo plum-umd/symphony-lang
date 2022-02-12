@@ -529,7 +529,7 @@ synIf e₁ e₂ e₃ =
     em  ← elabMode m
     subcond ← (subtype τ₁ (SecT em (BaseT 𝔹T)) )
     if subcond then do
-      (ty_join τ₂ τ₃ m)
+      (ty_join τ₂ τ₃)
     else
       todoError
 
@@ -538,7 +538,7 @@ synCase e ψes =
   let c = synExp e
   in do
     τ  ← c
-    τs ← mapM (synPatMatch τ)
+    τs ← mapM (synPatMatch τ) ψes
     (joinList τs)
 -- Assumes non empty list of well-formed types
 joinList :: 𝐿 Type → EM Type
