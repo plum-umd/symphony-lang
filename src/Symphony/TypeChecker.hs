@@ -387,8 +387,6 @@ synPrinSet ρse =
     return (SecT em (BaseT ℙsT))
   x    →  todoError
 
-
-
 synPrim ∷ Op → 𝐿 Exp → EM Type
 synPrim op es =
   if (isEmpty es) then
@@ -574,49 +572,109 @@ matchVal ∷  Type → Pat → EM (EM Type → EM Type)
 matchVal τ ψ= case ψ of 
   VarP x → return (bindTypeE  x τ)
   BulP → case τ of
-    (SecT _ (BaseT (UnitT) )) → return (\x -> x)
-    (ShareT _ _ (BaseT (UnitT) )) → return (\x -> x)
+    (SecT em' (BaseT (UnitT) )) →  do
+          m ← askL terModeL
+          m' ← elabEMode em'
+          if (m == m') then return (\x -> x) else todoError 
+    (ShareT _ em' (BaseT (UnitT) )) →  do
+          m ← askL terModeL
+          m' ← elabEMode em'
+          if (m == m') then return (\x -> x) else todoError 
     _ → todoError
   EPrinSetP  → case τ of
-    (SecT em (BaseT ℙsT)) → return (\x -> x)
+    (SecT em' (BaseT ℙsT)) → do
+          m ← askL terModeL
+          m' ← elabEMode em'
+          if (m == m') then return (\x -> x) else todoError 
+    (ShareT p em (BaseT ℙsT ))  → do
+          m ← askL terModeLs
+          m' ← elabEMode em'
+          if (m == m') then return (\x -> x) else todoError 
     _ → todoError
   NEPrinSetP x ψ   → case τ of
-    (SecT em (BaseT ℙsT ))  → 
-      return (\y -> ( 
-        do
-        mt ← (matchVal  (SecT em (BaseT ℙsT )) ψ)
-        (mt  ((bindTypeE  x (SecT em (BaseT ℙT ))) y)) ))
-    (ShareT p em (BaseT ℙsT ))  → 
-      return (\y -> ( 
-        do
-        mt ←  (matchVal  (ShareT p em (BaseT ℙsT )) ψ)
-        (mt ((bindTypeE  x (ShareT p em (BaseT ℙT ))) y) ) ))
+    (SecT em' (BaseT ℙsT ))  →  do
+          m ← askL terModeL
+          m' ← elabEMode em'
+          if (m == m') then
+            return (\y -> ( 
+            do
+            mt ← (matchVal  (SecT em (BaseT ℙsT )) ψ)
+            (mt  ((bindTypeE  x (SecT em (BaseT ℙT ))) y)) ))
+          else
+            todoError
+    (ShareT p em' (BaseT ℙsT ))  → do
+          m ← askL terModeL
+          m' ← elabEMode em'
+          if (m == m') then
+            return (\y -> ( 
+            do
+            mt ←  (matchVal  (ShareT p em (BaseT ℙsT )) ψ)
+            (mt ((bindTypeE  x (ShareT p em (BaseT ℙT ))) y) ) ))
+          else
+            todoError
   ProdP ψₗ ψᵣ  →     case τ of
-    (SecT em (τₗ :×: τᵣ)) →
-      return (\x -> ( 
-        do
-        ml ←  (matchVal τₗ ψₗ) 
-        mr ←  (matchVal τᵣ ψᵣ)
-        (mr (ml x)) ))
+    (SecT em' (τₗ :×: τᵣ)) → do
+        m ← askL terModeL
+        m' ← elabEMode em'
+        if (m == m') then
+          return (\x -> ( 
+          do
+          ml ←  (matchVal τₗ ψₗ) 
+          mr ←  (matchVal τᵣ ψᵣ)
+          (mr (ml x)) ))
+        else
+          todoError
     _ → todoError
   LP ψₗ  → case τ of
-    (SecT em (τₗ  :+: τᵣ)) → (matchVal τₗ ψₗ)
-    (ShareT _ _ (τₗ  :+: τᵣ)) → (matchVal τₗ ψₗ)
+    (SecT em' (τₗ  :+: τᵣ)) → do
+        m ← askL terModeL
+        m' ← elabEMode em'
+        if (m == m') then
+          (matchVal τₗ ψₗ)
+        else
+          todoError
+    (ShareT _ em' (τₗ  :+: τᵣ)) → do
+        m ← askL terModeL
+        m' ← elabEMode em'
+        if (m == m') then
+          (matchVal τₗ ψₗ)
+        else
+          todoError
     _ → todoError
   RP ψᵣ → case τ of
-    (SecT em (τₗ  :+: τᵣ)) → (matchVal τᵣ ψᵣ)
-    (ShareT _ _ (τₗ  :+: τᵣ)) → (matchVal τᵣ ψᵣ)
+    (SecT em' (τₗ  :+: τᵣ)) → do
+        m ← askL terModeL
+        m' ← elabEMode em'
+        if (m == m') then
+           (matchVal τᵣ ψᵣ)
+        else
+          todoError
+    (ShareT _ em' (τₗ  :+: τᵣ)) → do
+        m ← askL terModeL
+        m' ← elabEMode em'
+        if (m == m') then
+           (matchVal τᵣ ψᵣ)
+        else
+          todoError
     _ → todoError
   NilP → case τ of
-    (SecT m (ListT _ τₜ)) → return (\x -> x)
+    (SecT em' (ListT _ τₜ)) → do
+          m ← askL terModeLs
+          m' ← elabEMode em'
+          if (m == m') then return (\x -> x) else todoError 
     _ → todoError
   ConsP ψ ψₜ → case τ of
-    (SecT m (ListT n τₜ)) → 
-      return (\x -> ( 
-        do
-        mh ←  (matchVal τₜ ψ) 
-        mt ←  (matchVal τ ψₜ)
-        (mt (mh x)) ))
+    (SecT em' (ListT n τₜ)) → do
+          m ← askL terModeLs
+          m' ← elabEMode em'
+          if (m == m')
+            return (\x -> ( 
+            do
+            mh ←  (matchVal τₜ ψ) 
+            mt ←  (matchVal τ ψₜ)
+            (mt (mh x)) ))
+          else
+            todoError
     _ → todoError
   WildP → return (\x -> x)
   
