@@ -555,7 +555,7 @@ synLet ψ e₁ e₂ =
     synPatMatch τ₁ (ψ, e₂)
 
 synPatMatch ∷ Type → (Pat ∧ Exp) → EM Type 
-synpatMatch τ₁ (ψ, e₂) =
+synPatMatch τ₁ (ψ, e₂) =
   let c₂ = synExp e₂
   in do
     f  ← bindVal τ₁ ψ
