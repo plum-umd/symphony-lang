@@ -586,8 +586,8 @@ matchVal τ ψ= case ψ of
           m ← askL terModeL
           m' ← elabEMode em'
           if (m == m') then return (\x -> x) else todoError 
-    (ShareT p em (BaseT ℙsT ))  → do
-          m ← askL terModeLs
+    (ShareT p em' (BaseT ℙsT ))  → do
+          m ← askL terModeL
           m' ← elabEMode em'
           if (m == m') then return (\x -> x) else todoError 
     _ → todoError
