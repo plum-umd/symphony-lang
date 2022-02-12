@@ -301,6 +301,7 @@ synVar x = do
   case env ⋕? x of
     Some τ → do
       m ← askL terModeL
+      -- T-Var: gets the well formed supertype if there is one, if not error
       (superty_wf τ m)
     None   → typeError "synVar: x ∉ Γ" $ frhs
              [ ("x", pretty x)
@@ -508,7 +509,7 @@ synCons eₕ eₜ =
       SecT em' (ListT n τₜ)  →  do
         m ← askL terModeL
         em ← elabMode m 
-        join_t ← (join_wf τ  τₜ m)
+        join_t ← (join_ty τ  τₜ m)
         em'' ← (inter_em em' em)
         return (SecT em'' (ListT n join_t))
     
@@ -528,65 +529,52 @@ synIf e₁ e₂ e₃ =
     em  ← elabMode m
     subcond ← (subtype τ₁ (SecT em (BaseT 𝔹T)) )
     if subcond then do
-      (join_wf τ₂ τ₃ m)
+      (join_ty τ₂ τ₃ m)
     else
       todoError
-{--}
---synCase ∷ Exp → 𝐿 (Pat ∧ Exp) → EM Type
---synCase e ψes =
-{-
-synCond :: Exp → Exp → Exp → EM Type
-synCond e₁ e₂ e₃ =
-  let c₁ = synExp e₁
-      c₂ = synExp e₂
-      c₃ = synExp e₃
-  in do
-    τ₁  ← c₁
-    case τ₁ of
-       (SecT em' (τₗ  :+: τᵣ)) → do
-        τ₂ ← c₂
-        τ₃ ← c₃
-        m ← askL terModeL
-        m' ← elabEMode em'
-        if (supermode m' m) then do
-          (join_wf τ₂ τ₃ m)
-        else
-          todoError
--}
 
+synCase ∷ Exp → 𝐿 (Pat ∧ Exp) → EM Type
+synCase e ψes =
+  let c = synExp e
+  in do
+    τ  ← c
+    τs ← mapM (synPatMatch τ)
+    (joinList τs)
+-- Assumes non empty list of well-formed types
+joinList :: 𝐿 Type → EM Type
+joinList τs =
+  case τs of 
+    Nil	 = todoError
+    τ :& τs = (mfold τ join_ty τs)
 
 synLet ∷ Pat → Exp → Exp → EM Type 
 synLet ψ e₁ e₂ =
   let c₁ = synExp e₁
-      c₂ = synExp e₂
   in do
     τ₁ ← c₁
+    synPatMatch τ₁ (ψ, e₂)
+
+synPatMatch ∷ Type → (Pat ∧ Exp) → EM Type 
+synpatMatch τ₁ (ψ, e₂) =
+  let c₂ = synExp e₂
+  in do
     f  ← bindVal τ₁ ψ
     f c₂
 
 bindVal ∷ Type → Pat → (EM (EM Type → EM Type))
 bindVal τ ψ = matchVal τ ψ
  
-
 matchVal ∷  Type → Pat → EM (EM Type → EM Type)
 matchVal τ ψ= case ψ of 
   VarP x → return (bindTypeE  x τ)
   BulP → case τ of
-    (SecT em' (BaseT (UnitT) )) →  do
-          m ← askL terModeL
-          m' ← elabEMode em'
-          if (m == m') then return (\x -> x) else todoError 
-    (ShareT _ em' (BaseT (UnitT) )) →  do
+    (SecT em' (BaseT (UnitT) )), (ShareT _ em' (BaseT (UnitT) )) →  do
           m ← askL terModeL
           m' ← elabEMode em'
           if (m == m') then return (\x -> x) else todoError 
     _ → todoError
   EPrinSetP  → case τ of
-    (SecT em' (BaseT ℙsT)) → do
-          m ← askL terModeL
-          m' ← elabEMode em'
-          if (m == m') then return (\x -> x) else todoError 
-    (ShareT p em' (BaseT ℙsT ))  → do
+    (SecT em' (BaseT ℙsT)),  (ShareT p em' (BaseT ℙsT ))  → do
           m ← askL terModeL
           m' ← elabEMode em'
           if (m == m') then return (\x -> x) else todoError 
@@ -626,30 +614,16 @@ matchVal τ ψ= case ψ of
           todoError
     _ → todoError
   LP ψₗ  → case τ of
-    (SecT em' (τₗ  :+: τᵣ)) → do
+    (SecT em' (τₗ  :+: τᵣ), (ShareT _ em' (τₗ  :+: τᵣ))→ do
         m ← askL terModeL
         m' ← elabEMode em'
         if (m == m') then
           (matchVal τₗ ψₗ)
         else
           todoError
-    (ShareT _ em' (τₗ  :+: τᵣ)) → do
-        m ← askL terModeL
-        m' ← elabEMode em'
-        if (m == m') then
-          (matchVal τₗ ψₗ)
-        else
-          todoError
-    _ → todoError
+
   RP ψᵣ → case τ of
-    (SecT em' (τₗ  :+: τᵣ)) → do
-        m ← askL terModeL
-        m' ← elabEMode em'
-        if (m == m') then
-           (matchVal τᵣ ψᵣ)
-        else
-          todoError
-    (ShareT _ em' (τₗ  :+: τᵣ)) → do
+    (SecT em' (τₗ  :+: τᵣ)),  (ShareT _ em' (τₗ  :+: τᵣ)) → do
         m ← askL terModeL
         m' ← elabEMode em'
         if (m == m') then
@@ -677,7 +651,6 @@ matchVal τ ψ= case ψ of
             todoError
     _ → todoError
   WildP → return (\x -> x)
-  
 
 chkLam ∷ 𝑂 Var → 𝐿 Pat → Exp → Type → EM ()
 chkLam self𝑂 ψs e τ = todoError
