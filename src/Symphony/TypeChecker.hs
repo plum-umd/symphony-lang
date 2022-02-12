@@ -568,7 +568,11 @@ matchVal ∷  Type → Pat → EM (EM Type → EM Type)
 matchVal τ ψ= case ψ of 
   VarP x → return (bindTypeE  x τ)
   BulP → case τ of
-    (SecT em' (BaseT (UnitT) )), (ShareT _ em' (BaseT (UnitT) )) →  do
+    (SecT em' (BaseT (UnitT) )) →  do
+          m ← askL terModeL
+          m' ← elabEMode em'
+          if (m == m') then return (\x -> x) else todoError
+    (ShareT _ em' (BaseT (UnitT) )) →  do
           m ← askL terModeL
           m' ← elabEMode em'
           if (m == m') then return (\x -> x) else todoError 
