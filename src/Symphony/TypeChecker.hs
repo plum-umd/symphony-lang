@@ -544,8 +544,8 @@ synCase e ψes =
 joinList :: 𝐿 Type → EM Type
 joinList τs =
   case τs of 
-    Nil	 = todoError
-    τ :& τs = (mfold τ join_ty τs)
+    Nil	  → todoError
+    τ :& τs  → (mfold τ join_ty τs)
 
 synLet ∷ Pat → Exp → Exp → EM Type 
 synLet ψ e₁ e₂ =
