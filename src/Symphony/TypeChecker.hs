@@ -509,7 +509,7 @@ synCons eₕ eₜ =
       SecT em' (ListT n τₜ)  →  do
         m ← askL terModeL
         em ← elabMode m 
-        join_t ← (join_ty τ  τₜ m)
+        join_t ← (ty_join τ  τₜ)
         em'' ← (inter_em em' em)
         return (SecT em'' (ListT n join_t))
     
@@ -529,7 +529,7 @@ synIf e₁ e₂ e₃ =
     em  ← elabMode m
     subcond ← (subtype τ₁ (SecT em (BaseT 𝔹T)) )
     if subcond then do
-      (join_ty τ₂ τ₃ m)
+      (ty_join τ₂ τ₃ m)
     else
       todoError
 
@@ -545,7 +545,7 @@ joinList :: 𝐿 Type → EM Type
 joinList τs =
   case τs of 
     Nil → todoError
-    τ :& τs → (mfold τ join_ty τs)
+    τ :& τs → (mfold τ ty_join τs)
 
 synLet ∷ Pat → Exp → Exp → EM Type 
 synLet ψ e₁ e₂ =
