@@ -598,8 +598,8 @@ matchVal τ ψ= case ψ of
           if (m == m') then
             return (\y -> ( 
             do
-            mt ← (matchVal  (SecT em (BaseT ℙsT )) ψ)
-            (mt  ((bindTypeE  x (SecT em (BaseT ℙT ))) y)) ))
+            mt ← (matchVal  (SecT em' (BaseT ℙsT )) ψ)
+            (mt  ((bindTypeE  x (SecT em' (BaseT ℙT ))) y)) ))
           else
             todoError
     (ShareT p em' (BaseT ℙsT ))  → do
@@ -608,8 +608,8 @@ matchVal τ ψ= case ψ of
           if (m == m') then
             return (\y -> ( 
             do
-            mt ←  (matchVal  (ShareT p em (BaseT ℙsT )) ψ)
-            (mt ((bindTypeE  x (ShareT p em (BaseT ℙT ))) y) ) ))
+            mt ←  (matchVal  (ShareT p em' (BaseT ℙsT )) ψ)
+            (mt ((bindTypeE  x (ShareT p em' (BaseT ℙT ))) y) ) ))
           else
             todoError
   ProdP ψₗ ψᵣ  →     case τ of
@@ -659,13 +659,13 @@ matchVal τ ψ= case ψ of
     _ → todoError
   NilP → case τ of
     (SecT em' (ListT _ τₜ)) → do
-          m ← askL terModeLs
+          m ← askL terModeL
           m' ← elabEMode em'
           if (m == m') then return (\x -> x) else todoError 
     _ → todoError
   ConsP ψ ψₜ → case τ of
     (SecT em' (ListT n τₜ)) → do
-          m ← askL terModeLs
+          m ← askL terModeL
           m' ← elabEMode em'
           if (m == m') then
             return (\x -> ( 
