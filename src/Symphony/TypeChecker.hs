@@ -667,7 +667,7 @@ matchVal τ ψ= case ψ of
     (SecT em' (ListT n τₜ)) → do
           m ← askL terModeLs
           m' ← elabEMode em'
-          if (m == m')
+          if (m == m') then
             return (\x -> ( 
             do
             mh ←  (matchVal τₜ ψ) 
