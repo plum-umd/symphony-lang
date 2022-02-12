@@ -622,7 +622,7 @@ matchVal τ ψ= case ψ of
           todoError
     _ → todoError
   LP ψₗ  → case τ of
-    (SecT em' (τₗ  :+: τᵣ) → do
+    (SecT em' (τₗ  :+: τᵣ)) → do
         m ← askL terModeL
         m' ← elabEMode em'
         if (m == m') then
