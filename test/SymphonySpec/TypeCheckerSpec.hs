@@ -175,6 +175,19 @@ spec = do
           x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr)) 
       in case x of
         UVM.Inr a -> a `shouldBe`  t
+        CaseE Exp (𝐿 (Pat ∧ Exp))  
+    it "() : caseexp" $  
+      let y = (UVM.SrcCxt {UVM.srcCxtSourceName = "", UVM.srcCxtLocRange = UVM.locRange₀, UVM.srcCxtPrefix = UVM.null, UVM.srcCxtContext = UVM.null, UVM.srcCxtSuffix = UVM.null})
+          a =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "B")]) )) 
+          b =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "C")]) )) 
+          c = (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A")]) )) 
+          exprL = ( (LP (VarP (UVM.var "X"))) :&  (nullExp (VarE (UVM.var "A"))) )
+          exprR = ((RP (VarP (UVM.var "X"))) :&  (nullExp (VarE (UVM.var "B"))))
+          expr =  (CaseE (nullExp (VarE (UVM.var "D"))) (UVM.frhs [exprL, exprR] ) )
+          guardt = (SecT UVM.Top ((SecT a (BaseT UnitT )) :+: (SecT a (BaseT UnitT ))))  
+          x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , guardt), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr)) 
+      in case x of
+      UVM.Inr a -> a `shouldBe`  (SecT c  (BaseT UnitT))
    {- it "() : nilexp" $  let x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "A" , (SecT UVM.Top (BaseT ℙT))) ])) }) () (synExpR (PrinSetE (PowPSE (UVM.single𝐿  (VarPE (UVM.var "A")) )) )))
      in  case x of
      UVM.Inr a -> a `shouldBe`  (SecT UVM.Top  (BaseT ℙsT))
