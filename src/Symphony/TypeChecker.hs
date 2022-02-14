@@ -314,7 +314,7 @@ synLam self𝑂 ψs e = do
   let c = synExp e
       c' = case self𝑂 of
                 None      → c
-                Some self → bindTo self c'
+                Some self → bindTo self c
                 in
                 (fold c' ($) ψs)
 
