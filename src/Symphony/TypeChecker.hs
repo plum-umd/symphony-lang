@@ -316,7 +316,7 @@ synLam self𝑂 ψs e = do
                 None      → c
                 Some self → bindTo self c'
                 in
-                (fold ψs c' ($))
+                (fold c' ($) ψs)
 
 -------------------
 --- Type Annotations ---
