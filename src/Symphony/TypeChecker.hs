@@ -311,7 +311,7 @@ synLet ψ e₁ e₂ =
 
 synLam ∷ 𝑂 Var → 𝐿 Pat → Exp → EM Type
 synLam self𝑂 ψs e = do
-  let c = synExp e₁
+  let c = synExp e
       c' = case self𝑂 of
                 None      → c
                 Some self → bindTo self c'
