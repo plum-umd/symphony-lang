@@ -373,7 +373,7 @@ synExpR e = case e of
 
   ProdE eₗ eᵣ  → synProd eₗ eᵣ
   ConsE eₕ eₜ  → synCons eₕ eₜ
-  IfE e₁ e₂ e₃ → synIf e₁ e₂ 
+  IfE e₁ e₂ e₃ → synIf e₁ e₂ e₃
   CaseE e ψes  → synCase e ψes
 
   LetE ψ e₁ e₂    → synLet ψ e₁ e₂  
