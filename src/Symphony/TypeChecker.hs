@@ -367,45 +367,7 @@ synExpR e = case e of
 
   -- PrimE op es → synPrim op es
   _      → undefined
-------------------------------------------------
--- Static Evaluation of Principal Expressions --
-------------------------------------------------
-setToList :: (𝑃 a)  → (𝐿 a)
-setToList myset = list𝐼 (iter myset)
 
-listToSet :: (Ord a) ⇒ (𝐿 a)  → (𝑃 a)
-listToSet mylist = pow𝐼 (iter mylist)
-
-elabPrinExp ∷ PrinExp → EM PrinVal
-elabPrinExp ρe = case  ρe of
-  VarPE x       → return (SinglePV (𝕩name x))
-  AccessPE x n₁ → return (AccessPV (𝕩name x) n₁)
-
-elabPrinSetExp ∷ PrinSetExp → EM (𝑃 PrinVal)
-elabPrinSetExp ρse = case  ρse of
-  PowPSE ρel → do
-    pvl ← (mapM elabPrinExp ρel )
-    (let ρvs = (listToSet pvl) in (return ρvs))
- 
-  x → todoError
-
-
-elabEMode ∷ EMode → EM Mode
-elabEMode = mapM elabPrinSetExp
-
-elabPrinVal :: PrinVal → EM PrinExp
-elabPrinVal ρv = case  ρv of
-  (SinglePV ρ)    → return (VarPE (var ρ)) 
-  (AccessPV ρ n₁) → return (AccessPE (var ρ) n₁)
-
--- turn powerset to list, map the list, convert to prinsetexp
-elabPrinValSet :: (𝑃 PrinVal)  → EM PrinSetExp
-elabPrinValSet ρvp = let ρvl = (setToList ρvp) in do
-  ρel ← (mapM elabPrinVal ρvl) 
-  (return (PowPSE ρel))
-
-elabMode ∷ Mode → EM EMode
-elabMode = mapM elabPrinValSet
 
 ---------------
 -- Utilities --
