@@ -290,6 +290,16 @@ synCase e ψes =
     τs ← mapM (synBind τ) ψes
     (joinList τs)
 
+synBind ∷ Type → (Pat ∧ Exp) → EM Type 
+synBind τ₁ (ψ :* e₂) =
+  let c₂ = synExp e₂
+  in do
+    f  ← bindType τ₁ ψ
+    f c₂
+-----------------
+--- Functions ---
+-----------------
+
 synLet ∷ Pat → Exp → Exp → EM Type 
 synLet ψ e₁ e₂ =
   let c₁ = synExp e₁
@@ -297,12 +307,16 @@ synLet ψ e₁ e₂ =
     τ₁ ← c₁
     synBind τ₁ (ψ :* e₂)
 
-synBind ∷ Type → (Pat ∧ Exp) → EM Type 
-synBind τ₁ (ψ :* e₂) =
-  let c₂ = synExp e₂
-  in do
-    f  ← bindType τ₁ ψ
-    f c₂
+
+
+synLam ∷ 𝑂 Var → 𝐿 Pat → Exp → EM Type
+synLam self𝑂 ψs e = do
+  let c = synExp e₁
+      c' = case self𝑂 of
+                None      → c
+                Some self → bindTo self c'
+                in
+                (fold ψs c' ($))
 
 -------------------
 --- Type Annotations ---
@@ -359,10 +373,12 @@ synExpR e = case e of
 
   ProdE eₗ eᵣ  → synProd eₗ eᵣ
   ConsE eₕ eₜ  → synCons eₕ eₜ
-  IfE e₁ e₂ e₃ → synIf e₁ e₂ e₃
+  IfE e₁ e₂ e₃ → synIf e₁ e₂ 
   CaseE e ψes  → synCase e ψes
 
-  LetE ψ e₁ e₂    → synLet ψ e₁ e₂
+  LetE ψ e₁ e₂    → synLet ψ e₁ e₂  
+  LamE self𝑂 ψs e → synLam self𝑂 ψs e
+  
   AscrE e τ → synAscr e τ
 
   -- PrimE op es → synPrim op es
