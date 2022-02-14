@@ -4,6 +4,9 @@ import UVMHS
 import AddToUVMHS
 
 import Symphony.Syntax
+import Symphony.TypeChecker.Error
+import Symphony.TypeChecker.TLM hiding (TLR)
+import Symphony.TypeChecker.EM
 
 
 -----------------
