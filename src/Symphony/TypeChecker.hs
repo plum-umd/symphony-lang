@@ -373,8 +373,8 @@ synWrite e₁ e₂ =
             (SecT loc' (BaseT 𝕊T))  → do
                                       l₂ ← elabEMode loc'
                                       guardErr (m ≡ l₂) $
-                                      typeError "synWRite: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
-                                      [ ("m", pretty m), ("l", pretty l₂)]
+                                        typeError "synWRite: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+                                          [ ("m", pretty m), ("l", pretty l₂)]
                                       return τ
             _ →  typeError "synWrite: ; e not a string" (frhs [("e", pretty e)])
       _ →  typeError "synWrite: ; e not a basetype" (frhs [("e", pretty e)])
