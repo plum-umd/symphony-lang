@@ -336,7 +336,7 @@ synRead τ e =
       [ ("m", pretty m)
       ]
     case τ' of
-      (SecT loc (BaseT 𝕊T))  → return τ
+      _  → return τ
       _ →  typeError "synRead: ; e not a string" (frhs [("e", pretty e)])
    
 {-
