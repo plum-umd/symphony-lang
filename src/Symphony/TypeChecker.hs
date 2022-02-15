@@ -370,23 +370,22 @@ chkExp e τ = chkExpR (extract e) τ
 
 chkExpR :: ExpR → Type → EM ()  
 chkExpR e τ = 
-  
   do 
     m  ← askL terModeL
     wfcond ← (wf_type τ m)
-  case e of
-    LE eₗ        → checkL eₗ τ
-    RE eᵣ        → checkR eᵣ τ
-    NilE        → checkNil τ
-  --  LamE self𝑂 ψs e → checkLam self𝑂 ψs e τ
-    _ →     
-        do 
-          τ' ← synExpR e
-          subcond  ← (subtype τ' τ)
-          if subcond then
-            return ()
-          else
-            todoError
+    case e of
+      LE eₗ        → checkL eₗ τ
+      RE eᵣ        → checkR eᵣ τ
+      NilE        → checkNil τ
+      --  LamE self𝑂 ψs e → checkLam self𝑂 ψs e τ
+      _ →     
+          do 
+            τ' ← synExpR e
+            subcond  ← (subtype τ' τ)
+            if subcond then
+              return ()
+            else
+              todoError
 
 
 synExp :: Exp → EM Type
