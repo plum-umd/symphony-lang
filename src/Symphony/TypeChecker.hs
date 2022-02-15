@@ -339,7 +339,7 @@ synRead τ e =
       (SecT loc (BaseT 𝕊T))  →  
         do
           l ← elabEMode loc
-          guardErr (m ≡ l₁) $
+          guardErr (m ≡ l) $
             typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
               [ ("m", pretty m)
                 , ("l", pretty l)
