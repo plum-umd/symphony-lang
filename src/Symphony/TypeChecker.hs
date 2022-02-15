@@ -380,13 +380,13 @@ chkExpR e τ =
     NilE        → checkNil τ
   --  LamE self𝑂 ψs e → checkLam self𝑂 ψs e τ
     _ →     
-    do 
-        τ' ← synExpR e
-        subcond  ← (subtype τ' τ)
-        if subcond then
-          return ()
-        else
-          todoError
+        do 
+          τ' ← synExpR e
+          subcond  ← (subtype τ' τ)
+          if subcond then
+            return ()
+          else
+            todoError
 
 
 synExp :: Exp → EM Type
