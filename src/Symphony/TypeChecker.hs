@@ -355,8 +355,8 @@ synWrite e₁ e₂ =
       c₂ = synExp e₂
   in do
     m ← askL terModeL
-    τ ← c
-    τ' ← c
+    τ ← c₁
+    τ' ← c₂
     guardErr ((map psize m) == (AddTop 1)) $
       typeError "synWrite: ⊢ₘ ; |m| ≢  1" $ frhs
       [ ("m", pretty m)
@@ -376,8 +376,8 @@ synWrite e₁ e₂ =
                                         typeError "synWRite: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
                                           [ ("m", pretty m), ("l", pretty l₂)]
                                       return τ
-            _ →  typeError "synWrite: ; e not a string" (frhs [("e", pretty e)])
-      _ →  typeError "synWrite: ; e not a basetype" (frhs [("e", pretty e)])
+            _ →  typeError "synWrite: ; e not a string" (frhs [("e", pretty e₂)])
+      _ →  typeError "synWrite: ; e not a basetype" (frhs [("e", pretty e₁)])
     
 
 -------------------
