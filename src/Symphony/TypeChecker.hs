@@ -331,7 +331,7 @@ synRead τ e =
     m ← askL terModeL
     wfcond ← (wf_type τ m)
     τ' ← c
-    guardErr (not ((map psize m) == (AddTop 1))) $
+    guardErr (True) $
       typeError "synRead: ⊢ₘ ; |m| ≢  1" $ frhs
       [ ("m", pretty m)
       ]
