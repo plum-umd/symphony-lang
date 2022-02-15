@@ -219,8 +219,6 @@ checkL eₗ τ  =
       in do
         cτₗ  ← cₗ
         subcond  ← (subtype cτₗ τₗ)
-        m  ← askL terModeL
-        wfcond ← (wf_type τ m)
         (if subcond then return () else todoError)
     x → todoError
 
@@ -233,7 +231,6 @@ checkR eᵣ τ  =
         cτᵣ  ← cᵣ
         subcond  ← (subtype cτᵣ τᵣ)
         m  ← askL terModeL
-        wfcond ← (wf_type τ m)
         if subcond then
           return ()
         else
@@ -243,12 +240,9 @@ checkR eᵣ τ  =
 {- Todo: Check if m is a subset of the real mode-}
 checkNil ∷ Type → EM ()
 checkNil τ =  
-  do
-    m  ← askL terModeL
-    wfcond ← (wf_type τ m)
-    case τ of
-      SecT m (ListT _ τₜ)  → return ()
-      x  → todoError
+  case τ of
+    SecT m (ListT _ τₜ)  → return ()
+    x  → todoError
 
 synCons ∷ Exp → Exp → EM Type
 synCons eₕ eₜ =
@@ -308,16 +302,57 @@ synLet ψ e₁ e₂ =
     synBind τ₁ (ψ :* e₂)
 
 
+{-}
+checkLam ∷ 𝑂 Var → 𝐿 Pat → Exp →  Type → EM Type
+synLam self𝑂 ψs e = 
+  case τ of
+    SecT m (Type :→: (Effect ∧ Type) )  → return ()
+    x  → todoError
+  case self𝑂 of
+      None      → 
+                    let c = synExp e
+                        c' =  case self𝑂 of
+                              None      → c
+                              Some self → bindTo self c
+                    in
+                    (fold c' ($) ψs)
+      Some self → bindTo self c
+  -}
 
-synLam ∷ 𝑂 Var → 𝐿 Pat → Exp → EM Type
-synLam self𝑂 ψs e = do
+
+----------------------
+--- Read and Write ---
+----------------------
+
+synRead ∷ Type → Exp → EM Type
+synRead τ e =
   let c = synExp e
-      c' = case self𝑂 of
-                None      → c
-                Some self → bindTo self c
-                in
-                (fold c' ($) ψs)
-
+  in do
+    wfcond ← (wf_type τ m)
+    τ' ← c
+    m ← askL terModeL
+    guardErr (map psize != (AddTop 1)) $
+      typeError "synRead: ⊢ₘ ; |m| ≢  1" $ frhs
+      [ ("m", pretty m)
+      ]
+    case τ' of
+      (SecT loc (BaseT 𝕊T))  return τ
+      _ → 
+          typeError "synRead: ; e not a string" $ frhs []
+   
+{-
+synWrite ∷  Exp → Exp → EM Type
+synWrite e₁ e₂ =
+  let c₁ = synExp e₁
+      c₂ = synExp e₂
+  in do
+    fn   ← elimStr *$ elimClear *$ elimBase *$ elimVal *⋅ c₂
+    ρ    ← singletonMode
+    path ← outputPath ρ fn
+    s    ← serializeVal *⋅ c₁
+    io $ fwrite path s
+    interpBul
+-}
 -------------------
 --- Type Annotations ---
 -------------------
@@ -335,14 +370,18 @@ chkExp :: Exp → Type → EM ()
 chkExp e τ = chkExpR (extract e) τ
 
 chkExpR :: ExpR → Type → EM ()  
-chkExpR e τ = case e of
-  LE eₗ        → checkL eₗ τ
-  RE eᵣ        → checkR eᵣ τ
-  NilE        → checkNil τ
-  _ →     
-        do 
-        m  ← askL terModeL
-        wfcond ← (wf_type τ m)
+chkExpR e τ = 
+  
+  do 
+    m  ← askL terModeL
+    wfcond ← (wf_type τ m)
+  case e of
+    LE eₗ        → checkL eₗ τ
+    RE eᵣ        → checkR eᵣ τ
+    NilE        → checkNil τ
+    LamE self𝑂 ψs e → checkLam self𝑂 ψs e τ
+    _ →     
+    do 
         τ' ← synExpR e
         subcond  ← (subtype τ' τ)
         if subcond then
@@ -367,8 +406,8 @@ synExpR e = case e of
   IntE pr z   → synInt pr z
   FltE pr d   → synFlt pr d
   StrE s      → synStr s
-  PrinSetE es → synPrinSet es
   PrinE e → checkPrin e
+  PrinSetE es → synPrinSet es
   PrimE op es → synPrim op es
 
   ProdE eₗ eᵣ  → synProd eₗ eᵣ
@@ -377,8 +416,11 @@ synExpR e = case e of
   CaseE e ψes  → synCase e ψes
 
   LetE ψ e₁ e₂    → synLet ψ e₁ e₂  
-  LamE self𝑂 ψs e → synLam self𝑂 ψs e
   
+    -- Read and Write
+  ReadE τ e    → synRead τ e
+  WriteE e₁ e₂ → synWrite e₁ e₂
+
   AscrE e τ → synAscr e τ
 
   -- PrimE op es → synPrim op es
