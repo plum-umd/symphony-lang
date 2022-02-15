@@ -331,12 +331,12 @@ synRead τ e =
     m ← askL terModeL
     wfcond ← (wf_type τ m)
     τ' ← c
-    guardErr (True) $
+    guardErr ((map psize m) == (AddTop 1)) $
       typeError "synRead: ⊢ₘ ; |m| ≢  1" $ frhs
       [ ("m", pretty m)
       ]
     case τ' of
-      _  → return τ
+      (SecT loc (BaseT 𝕊T))  → return τ
       _ →  typeError "synRead: ; e not a string" (frhs [("e", pretty e)])
    
 {-
