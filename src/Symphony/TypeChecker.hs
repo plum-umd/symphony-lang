@@ -336,21 +336,35 @@ synRead τ e =
       [ ("m", pretty m)
       ]
     case τ' of
-      (SecT loc (BaseT 𝕊T))  → return τ
+      (SecT loc (BaseT 𝕊T))  →  
+        do
+          l ← elabEMode loc
+          guardErr (m ≡ l₁) $
+            typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+              [ ("m", pretty m)
+                , ("l", pretty l)
+              ]
+          return τ
       _ →  typeError "synRead: ; e not a string" (frhs [("e", pretty e)])
    
+
 {-
 synWrite ∷  Exp → Exp → EM Type
 synWrite e₁ e₂ =
   let c₁ = synExp e₁
       c₂ = synExp e₂
   in do
-    fn   ← elimStr *$ elimClear *$ elimBase *$ elimVal *⋅ c₂
-    ρ    ← singletonMode
-    path ← outputPath ρ fn
-    s    ← serializeVal *⋅ c₁
-    io $ fwrite path s
-    interpBul
+    m ← askL terModeL
+    τ ← c
+    τ' ← c
+    guardErr ((map psize m) == (AddTop 1)) $
+      typeError "synRead: ⊢ₘ ; |m| ≢  1" $ frhs
+      [ ("m", pretty m)
+      ]
+    case τ of
+    case τ' of
+      (SecT loc (BaseT 𝕊T))  → return τ
+      _ →  typeError "synRead: ; e not a string" (frhs [("e", pretty e)])
 -}
 -------------------
 --- Type Annotations ---
