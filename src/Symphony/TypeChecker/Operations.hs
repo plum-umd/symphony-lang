@@ -58,7 +58,7 @@ extractBase :: Type → EM BaseType
 extractBase τ =
    case τ of 
      (SecT _ (BaseT bτ))  → return bτ
-     (Sect _ _ (ShareT _ _ (BaseT bτ)))  →  return bτ
+     (SecT _ _ (ShareT _ _ (BaseT bτ)))  →  return bτ
      _ → todoError
 
 -----------------
