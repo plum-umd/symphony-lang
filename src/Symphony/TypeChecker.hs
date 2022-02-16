@@ -186,10 +186,11 @@ synPrim op es =
         if (isEmpty ps) then 
           return (SecT em (BaseT bt))
         else
-          (p :& _) → if (and (map (\p -> (pOption == p)) ps)) then
-            return (SecT em (ShareT p em (BaseT bt))) 
-          else
-            todoError
+          case ps of
+            (p :& _) → if (and (map (\p -> (pOption == p)) ps)) then
+              return (SecT em (ShareT p em (BaseT bt))) 
+            else
+              todoError
     
      
 ---------------------------------
