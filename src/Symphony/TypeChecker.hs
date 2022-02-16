@@ -186,8 +186,8 @@ synPrim op es =
         if (isEmpty ps) then 
           return (SecT em (BaseT bt))
         else
-          case ps of
-            (p :& _) → if (and (map (\p' -> (p == p')) ps)) then
+          case (firstElem ps) of
+            p → if (and (map (\p' -> (p == p')) ps)) then
               return (SecT em (ShareT p em (BaseT bt))) 
             else
               todoError
