@@ -145,9 +145,9 @@ inter_em loc loc' = do
 inter_m :: Mode → Mode → Mode
 inter_m l l' = case l of
   Top → l'
-  AddTop m → case l' of
-      Top → (AddTop l)
-      AddTop m'  →  AddTop(l ∩ l')
+  AddTop ps → case l' of
+      Top → (AddTop ps')
+      AddTop m'  →  AddTop(ps ∩ ps')
 
 
 
@@ -298,7 +298,7 @@ share_superloctype_wf sigma m =
             loc_superty ← (share_superloctype_wf loc_ty m)
             return (ShareT p loc loc_superty)
         else
-          return ()
+          return todoError
     (loctyₗ :+: loctyᵣ) → do 
       loctyₗ' ← (superty_wf loctyₗ m)
       loctyᵣ' ← (superty_wf loctyᵣ m)
@@ -310,7 +310,7 @@ superty_wf :: Type  → Mode  → EM Type
 superty_wf t m = 
     case t of
     SecT loc loc_ty → do
-        l ← (elabMode loc)
+        l ← (elabEMode loc)
         m_inter ← (inter_m m l)
         l_inter ← (elabMode m_inter)
         loc_superty ← (superlocty_wf loc_ty m)
