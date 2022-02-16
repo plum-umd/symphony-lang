@@ -261,5 +261,3 @@ instance Pretty a ⇒ Pretty (ℝMut a) where
 instance Null SrcCxt where
   null = (SrcCxt {srcCxtSourceName = "", srcCxtLocRange = locRange₀, srcCxtPrefix = null, srcCxtContext = null, srcCxtSuffix = null})
 
-firstElem ∷ (ToIter a t) ⇒ t → 𝑂 a
-firstElem xs = run𝐼On (iter xs) id None $ \ x _ _ → Some x
