@@ -42,7 +42,7 @@ extractProt :: Type → EM (𝑂 Prot)
 extractProt τ =
  case τ of 
   (SecT _ _)  → return None
-  (SecT _  (ShareT p _ _))   → return (Some p)
+  (SecT _  (ShareT p _ _))   → todoError
   _ → todoError
 
 assertM :: Mode → Type → EM ()
