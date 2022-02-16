@@ -298,7 +298,7 @@ share_superloctype_wf sigma m =
             loc_superty ← (share_superloctype_wf loc_ty m)
             return (ShareT p loc loc_superty)
         else
-          return todoError
+          todoError
     (loctyₗ :+: loctyᵣ) → do 
       loctyₗ' ← (superty_wf loctyₗ m)
       loctyᵣ' ← (superty_wf loctyᵣ m)
