@@ -401,7 +401,7 @@ matchType τ ψ= case ψ of
         else
           todoError
   RP ψᵣ → case τ of
-    (SecT em' (τₗ  :+: τᵣ)) → do
+    (SecT loc (τₗ  :+: τᵣ)) → do
         m ← askL terModeL
         l ← elabEMode loc
         if (m == l) then
