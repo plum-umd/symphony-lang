@@ -146,8 +146,8 @@ inter_m :: Mode → Mode → Mode
 inter_m l l' = case l of
   Top → l'
   AddTop ps → case l' of
-      Top → (AddTop ps')
-      AddTop m'  →  AddTop(ps ∩ ps')
+      Top → (AddTop ps)
+      AddTop ps'  →  AddTop(ps ∩ ps')
 
 
 
