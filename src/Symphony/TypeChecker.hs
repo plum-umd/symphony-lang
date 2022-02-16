@@ -187,10 +187,11 @@ synPrim op es =
           return (SecT em (BaseT bt))
         else
           case ps  of
-            (p :& _) → if (and (map (\p' -> (p == p')) ps)) then
-              return (SecT em (ShareT p em (BaseT bt))) 
-            else
-              todoError
+            (p :& _) → 
+              if (and (map (\p' -> (p == p')) ps)) then
+                return (SecT em (ShareT p em (BaseT bt))) 
+              else
+                return (SecT em (ShareT p em (BaseT bt))) 
     
      
 ---------------------------------
