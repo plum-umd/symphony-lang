@@ -182,15 +182,7 @@ synPrim op es =
       pos ← (mapM extractProt τs)
       bs ← (mapM extractBase τs)
       bt ← (primType op bs)
-      let ps = list𝐼 (filterMap (\x -> x)  pos) in
-        if (isEmpty ps) then 
-          return (SecT em (BaseT bt))
-        else
-          case ps  of
-            (p :& _) → if (and (map (\p' -> (p == p')) ps)) then
-              return (SecT em (ShareT p em (BaseT bt))) 
-            else
-              todoError
+  
     
      
 ---------------------------------
