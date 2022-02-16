@@ -42,18 +42,15 @@ extractProt :: Type → EM (𝑂 Prot)
 extractProt τ =
  case τ of 
   (SecT _ _)  → return None
-  (ShareT p _ _)  → return (Some p)
+  (SecT _  (ShareT p _ _))   → return (Some p)
   _ → todoError
 
 assertM :: Mode → Type → EM ()
 assertM m τ =
   case τ of 
-    (SecT em' _)  →  do
-          m' ← elabEMode em'
-          if (m == m') then return () else todoError 
-    (ShareT _ em' _)  → do
-          m' ← elabEMode em'
-          if (m == m') then return () else todoError
+    (SecT loc _)  →  do
+          l ← elabEMode loc
+          if (m == l) then return () else todoError 
     _  → todoError
 
 -- Extracts basetype
@@ -61,7 +58,7 @@ extractBase :: Type → EM BaseType
 extractBase τ =
    case τ of 
      (SecT _ (BaseT bτ))  → return bτ
-     (ShareT _ _ (BaseT bτ))  →  return bτ
+     (Sect _ _ (ShareT _ _ (BaseT bτ)))  →  return bτ
      _ → todoError
 
 -----------------
@@ -75,6 +72,13 @@ subtype_loc loctyS loctyT = case loctyS of
   -- -------Sub-Refl
   -- sigma <: sigma 
   BaseT bty → return (loctyS == loctyT)
+  ShareT pS loc loctyS  → case loctyT of
+      ShareT pT loc' loctyT → do 
+        l ← (elabEMode loc)
+        l' ← (elabEMode loc')
+        loccond ← (subtype_loc loctyS loctyT)
+        return ((l == l') ⩓ (pS == pT) ⩓ loccond)
+      _  → return False
 
   (loctySₗ :+: loctySᵣ) → case loctyT of
     (loctyTₗ :+: loctyTᵣ) → do 
@@ -94,7 +98,7 @@ subtype_loc loctyS loctyT = case loctyS of
         return (loccondₗ ⩓ loccondᵣ)
     _ → return False
     
-  x → return False
+  _ → return False
 
 -- Check if tyS <: tyT
 subtype :: Type → Type → EM 𝔹
@@ -102,56 +106,48 @@ subtype :: Type → Type → EM 𝔹
   -- -------Sub-Loc
   -- sigma@m <: sigma'@m' 
 subtype tyS tyT = case tyS of
-  SecT emS loctyS → case tyT of
-      SecT emT loctyT → do 
-        mcond ← (superemode emS emT)
+  SecT locS loctyS → case tyT of
+      SecT locT loctyT → do 
+        mcond ← (superemode locS locT)
         loccond ← (subtype_loc loctyS loctyT)
         return (mcond ⩓ loccond)
-      tyT → return False
-  ShareT pS emS loctyS  → case tyT of
-      ShareT pT emT loctyT → do 
-        mcond ← (superemode emS emT)
-        loccond ← (subtype_loc loctyS loctyT)
-        return (mcond ⩓ (pS == pT) ⩓ loccond)
-      tyT  → return False
-  x → return False
+      _ → return False
+  _ → return False
 
 
 -- Check if tyT >: tyS
 supertype :: Type → Type → EM 𝔹
 supertype tyT tyS = subtype tyS tyT
 
-
-
 -- Checks if emT ⊇ emS
 superemode :: EMode → EMode → EM 𝔹
-superemode emT emS= do
-  mT ← elabEMode emT
-  mS ← elabEMode emS
-  return (supermode mT mS)
+superemode locT locS= do
+  lT ← elabEMode locT
+  lS ← elabEMode locS
+  return (supermode lT lS)
 
 -- Checks if mT ⊇ mS
 supermode :: Mode → Mode → 𝔹
-supermode mT mS = case mT of
+supermode locT locS = case locT of
   Top → True
-  AddTop sT → case mS of
+  AddTop psT → case locS of
       Top → False
-      AddTop sS  → (sT ⊇ sS)
+      AddTop sS  → (psT ⊇ psS)
 
  -- Returns em ∩ em'
 inter_em :: EMode → EMode → EM EMode
-inter_em em em' = do
-  m ← elabEMode em
-  m' ← elabEMode em'
-  (elabMode (inter_m m m'))
+inter_em loc loc' = do
+  l ← elabEMode loc
+  l' ← elabEMode loc'
+  (elabMode (inter_m l l'))
  
 -- Returns m ∩ m'
 inter_m :: Mode → Mode → Mode
-inter_m m m' = case m of
-  Top → m'
-  AddTop m → case m' of
-      Top → (AddTop m)
-      AddTop m'  →  AddTop(m ∩ m')
+inter_m l l' = case l of
+  Top → l'
+  AddTop m → case l' of
+      Top → (AddTop l)
+      AddTop m'  →  AddTop(l ∩ l')
 
 
 
@@ -167,6 +163,21 @@ locty_join locty locty' =
   -- -------Sub-Refl
   -- sigma <: sigma 
   BaseT bty → if (locty == locty') then (return locty) else todoError
+  ShareT p loc locty  → (case ty' of
+    ShareT p' locl' locty' → 
+      do 
+        l ← (elabEMode loc)
+        l' ← (elabEMode loc')
+        if ((p == p') ⩓ (l == l'))
+          then (
+            do
+              loc_top ← (locty_join locty locty')
+              return (ShareT p loc loc_top)
+          )
+        else todoError
+      
+    _  → todoError
+    )
   (tyₗ :+: tyᵣ) → case locty' of
     (ty'ₗ :+: ty'ᵣ) → do 
 
@@ -183,32 +194,20 @@ locty_join locty locty' =
         join_tyᵣ ← (ty_join tyᵣ ty'ᵣ)
         return (join_tyₗ :×: join_tyᵣ)
 
-    x → todoError
+    _ → todoError
 
-  x → todoError
+  _ → todoError
 
 -- Finds join of two types
 ty_join :: Type  → Type  → EM Type 
 ty_join ty ty' = case ty of
-  SecT em loc_ty → (case ty' of
-      SecT em' loc_ty' → do 
-        em_inter ← (inter_em em em')
+  SecT loc loc_ty → (case ty' of
+      SecT loc' loc_ty' → do 
+        loc_inter ← (inter_em loc loc')
         loc_top ← (locty_join loc_ty loc_ty')
-        return (SecT em_inter loc_top)
+        return (SecT loc_inter loc_top)
       ty' → todoError)
-  ShareT p em locty  → (case ty' of
-      ShareT p' em' locty' → 
-        (if (p == p') 
-          then (
-          do
-            em_inter ← (inter_em em em')
-            loc_top ← (locty_join locty locty')
-            return (ShareT p em_inter loc_top)
-            )
-            else todoError
-        )
-      x  → todoError
-      )
+
   x  → todoError
 
 -- Assumes non empty list of well-formed types
@@ -227,6 +226,11 @@ wf_loctype :: Type → Mode → EM ()
 wf_loctype sigma m =
   case sigma of
     BaseT bt → return () 
+    ShareT p loc locty → do
+      _ ← (wf_share_loctype locty m)
+      l ← (elabEMode loc)
+      -- WF-Enc
+      if (m == l) then (return ()) else todoError
     (loctyₗ :+: loctyᵣ) → do 
       _ ← (wf_type loctyₗ m)
       _ ← (wf_type loctyᵣ m)
@@ -238,7 +242,7 @@ wf_loctype sigma m =
     (ListT _ τₜ)  → do
       _ ← (wf_type τₜ m)
       return ()
-    x  → todoError
+    _  → todoError
 
 
 -- Rules to see if some located value is well-formed
@@ -250,7 +254,7 @@ wf_share_loctype sigma m =
       _ ← (wf_type loctyₗ m)
       _ ← (wf_type loctyᵣ m)
       return ()
-    x  → do
+    _  → do
       todoError
 
 
@@ -262,10 +266,7 @@ wf_type ty m =
       wfcond ← (wf_loctype locty m)
       m' ← (elabEMode em')
       if (supermode m m') then (return ()) else todoError
-    ShareT p em' locty → do
-      wfcond ← (wf_share_loctype locty m)
-      m' ← (elabEMode em')
-      if (supermode m m') then (return ()) else todoError
+
 
 -- Rules to get the least super supertype of loctype sigma that is well formed
 superlocty_wf :: Type  → Mode →  EM Type 
@@ -290,27 +291,31 @@ share_superloctype_wf :: Type → Mode → EM Type
 share_superloctype_wf sigma m =
   case sigma of
     BaseT bt → return sigma
+    ShareT p loc loc_ty  → do
+        l ← (elabEMode loc)
+        if (l == m) then
+          do 
+            loc_superty ← (share_superloctype_wf loc_ty m)
+            return (ShareT p em_inter loc_superty)
+        else
+          return ()
     (loctyₗ :+: loctyᵣ) → do 
       loctyₗ' ← (superty_wf loctyₗ m)
       loctyᵣ' ← (superty_wf loctyᵣ m)
       return (loctyₗ' :+: loctyᵣ')
-    x  → todoError
+    _  → todoError
 
 -- Rules to get the least super supertype of type t that is well formed
 superty_wf :: Type  → Mode  → EM Type 
 superty_wf t m = 
     case t of
-    SecT em loc_ty → do
-        em'' ← (elabMode m)
-        em_inter ← (inter_em em em'')
+    SecT loc loc_ty → do
+        l ← (elabMode loc)
+        m_inter ← (inter_m m l)
+        l_inter ← (elabMode m_inter)
         loc_superty ← (superlocty_wf loc_ty m)
-        return (SecT em_inter loc_superty)
-    ShareT p em loc_ty  → do
-        em'' ← (elabMode m)
-        em_inter ← (inter_em em em'')
-        loc_superty ← (share_superloctype_wf loc_ty m)
-        return (ShareT p em_inter loc_superty)
-    x  → todoError
+        return (SecT l_inter loc_superty)
+    _  → todoError
 
 
 -----------------
@@ -322,53 +327,53 @@ bindTo x τ = mapEnvL terEnvL ((x ↦ τ) ⩌)
 
 bindType ∷ Type → Pat → (EM (EM Type → EM Type))
 bindType τ ψ = matchType τ ψ
- 
+-- assume type is well formed
 matchType ∷  Type → Pat → EM (EM Type → EM Type)
 matchType τ ψ= case ψ of 
   VarP x → return (bindTo  x τ)
   BulP → case τ of
-    (SecT em' (BaseT (UnitT) )) →  do
+    (SecT loc (BaseT (UnitT) )) →  do
           m ← askL terModeL
-          m' ← elabEMode em'
-          if (m == m') then return (\x -> x) else todoError
-    (ShareT _ em' (BaseT (UnitT) )) →  do
+          l ← elabEMode loc
+          if (m == l) then return (\x -> x) else todoError
+    (SecT loc (ShareT _ _ (BaseT (UnitT) ))) →  do
           m ← askL terModeL
-          m' ← elabEMode em'
-          if (m == m') then return (\x -> x) else todoError 
+          l ← elabEMode loc
+          if (m == l) then return (\x -> x) else todoError 
     _ → todoError
   EPrinSetP  → case τ of
-    (SecT em' (BaseT ℙsT)) → do
+    (SecT loc (BaseT ℙsT)) → do
           m ← askL terModeL
-          m' ← elabEMode em'
-          if (m == m') then return (\x -> x) else todoError
-    (ShareT p em' (BaseT ℙsT ))  → do 
+          l ← elabEMode loc
+          if (m == l) then return (\x -> x) else todoError
+    (SecT loc (ShareT _ _ (BaseT  ℙsT )))   → do 
           m ← askL terModeL
-          m' ← elabEMode em'
-          if (m == m') then return (\x -> x) else todoError
+          l ← elabEMode loc
+          if (m == l) then return (\x -> x) else todoError
     _ → todoError
   NEPrinSetP x ψ   → case τ of
-    (SecT em' (BaseT ℙsT ))  →  do
+    (SecT loc (BaseT ℙsT ))  →  do
           m ← askL terModeL
-          m' ← elabEMode em'
-          if (m == m') then
+          l ← elabEMode loc
+          if (m == l) then
             return (\y -> ( 
             do
-            mt ← (bindType  (SecT em' (BaseT ℙsT )) ψ)
-            (mt  ((bindTo  x (SecT em' (BaseT ℙT ))) y)) ))
+            mt ← (bindType  (SecT loc (BaseT ℙsT )) ψ)
+            (mt  ((bindTo  x (SecT loc (BaseT ℙT ))) y)) ))
           else
             todoError
-    (ShareT p em' (BaseT ℙsT ))  → do
+    (SecT loc (ShareT p loc' (BaseT  ℙsT )))  → do
           m ← askL terModeL
-          m' ← elabEMode em'
+          l ← elabEMode loc
           if (m == m') then
             return (\y -> ( 
             do
-            mt ←  (bindType (ShareT p em' (BaseT ℙsT )) ψ)
-            (mt ((bindTo  x (ShareT p em' (BaseT ℙT ))) y) ) ))
+            mt ←  (bindType (SecT loc (ShareT p loc' (BaseT ℙsT ))) ψ)
+            (mt ((bindTo  x (SecT loc (ShareT p loc' (BaseT ℙT )))) y) ) ))
           else
             todoError
   ProdP ψₗ ψᵣ  →     case τ of
-    (SecT em' (τₗ :×: τᵣ)) → do
+    (SecT loc (τₗ :×: τᵣ)) → do
         m ← askL terModeL
         m' ← elabEMode em'
         if (m == m') then
@@ -381,47 +386,47 @@ matchType τ ψ= case ψ of
           todoError
     _ → todoError
   LP ψₗ  → case τ of
-    (SecT em' (τₗ  :+: τᵣ)) → do
+    (SecT loc (τₗ  :+: τᵣ)) → do
         m ← askL terModeL
-        m' ← elabEMode em'
-        if (m == m') then
+        l ← elabEMode loc
+        if (m == l) then
           (bindType τₗ ψₗ)
         else
           todoError
-    (ShareT _ em' (τₗ  :+: τᵣ)) → do
+    (SecT loc (ShareT _ _ (τₗ  :+: τᵣ))) → do
         m ← askL terModeL
-        m' ← elabEMode em'
-        if (m == m') then
+        l ← elabEMode loc
+        if (m == l) then
           (bindType τₗ ψₗ)
         else
           todoError
   RP ψᵣ → case τ of
     (SecT em' (τₗ  :+: τᵣ)) → do
         m ← askL terModeL
-        m' ← elabEMode em'
-        if (m == m') then
+        l ← elabEMode loc
+        if (m == l) then
            (bindType τᵣ ψᵣ)
         else
           todoError
-    (ShareT _ em' (τₗ  :+: τᵣ)) → do
+    (SecT loc (ShareT _ _ (τₗ  :+: τᵣ))) → do
         m ← askL terModeL
-        m' ← elabEMode em'
-        if (m == m') then
+        l ← elabEMode loc
+        if (m == l) then
            (bindType τᵣ ψᵣ)
         else
           todoError
     _ → todoError
   NilP → case τ of
-    (SecT em' (ListT _ τₜ)) → do
+    (SecT loc (ListT _ τₜ)) → do
           m ← askL terModeL
-          m' ← elabEMode em'
-          if (m == m') then return (\x -> x) else todoError 
+          l ← elabEMode loc
+          if (m == l ) then return (\x -> x) else todoError 
     _ → todoError
   ConsP ψ ψₜ → case τ of
-    (SecT em' (ListT n τₜ)) → do
+    (SecT loc (ListT n τₜ)) → do
           m ← askL terModeL
-          m' ← elabEMode em'
-          if (m == m') then
+          l ← elabEMode loc
+          if (m == l) then
             return (\x -> ( 
             do
             mh ←  (bindType τₜ ψ) 
