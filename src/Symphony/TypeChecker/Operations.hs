@@ -273,11 +273,14 @@ superlocty_wf :: Type  → Mode →  EM Type
 superlocty_wf sigma m = 
   case sigma of
     BaseT bt → return sigma
-    ShareT p loc locty → do
-      locty' ← (share_superloctype_wf locty m)
-      l ← (elabEMode loc)
-      -- WF-Enc
-      if (m == l) then todoError else todoError
+    ShareT p loc loc_ty  → do
+        l ← (elabEMode loc)
+        if (l == m) then
+          do 
+            loc_superty ← (share_superloctype_wf loc_ty m)
+            return (ShareT p loc loc_superty)
+        else
+          todoError
     (loctyₗ :+: loctyᵣ) → do 
       loctyₗ' ← (superty_wf loctyₗ m)
       loctyᵣ' ← (superty_wf loctyᵣ m)
@@ -296,14 +299,6 @@ share_superloctype_wf :: Type → Mode → EM Type
 share_superloctype_wf sigma m =
   case sigma of
     BaseT bt → return sigma
-    ShareT p loc loc_ty  → do
-        l ← (elabEMode loc)
-        if (l == m) then
-          do 
-            loc_superty ← (share_superloctype_wf loc_ty m)
-            return (ShareT p loc loc_superty)
-        else
-          todoError
     (loctyₗ :+: loctyᵣ) → do 
       loctyₗ' ← (superty_wf loctyₗ m)
       loctyᵣ' ← (superty_wf loctyᵣ m)
