@@ -58,7 +58,7 @@ extractBase :: Type → EM BaseType
 extractBase τ =
    case τ of 
      (SecT _ (BaseT bτ))  → return bτ
-     (SecT _ _ (ShareT _ _ (BaseT bτ)))  →  return bτ
+     (SecT _ (ShareT _ _ (BaseT bτ)))  →  return bτ
      _ → todoError
 
 -----------------
@@ -132,7 +132,7 @@ supermode locT locS = case locT of
   Top → True
   AddTop psT → case locS of
       Top → False
-      AddTop sS  → (psT ⊇ psS)
+      AddTop psS  → (psT ⊇ psS)
 
  -- Returns em ∩ em'
 inter_em :: EMode → EMode → EM EMode
@@ -163,8 +163,8 @@ locty_join locty locty' =
   -- -------Sub-Refl
   -- sigma <: sigma 
   BaseT bty → if (locty == locty') then (return locty) else todoError
-  ShareT p loc locty  → (case ty' of
-    ShareT p' locl' locty' → 
+  ShareT p loc locty  → (case locty' of
+    ShareT p' loc' locty' → 
       do 
         l ← (elabEMode loc)
         l' ← (elabEMode loc')
@@ -296,7 +296,7 @@ share_superloctype_wf sigma m =
         if (l == m) then
           do 
             loc_superty ← (share_superloctype_wf loc_ty m)
-            return (ShareT p em_inter loc_superty)
+            return (ShareT p loc loc_superty)
         else
           return ()
     (loctyₗ :+: loctyᵣ) → do 
@@ -365,7 +365,7 @@ matchType τ ψ= case ψ of
     (SecT loc (ShareT p loc' (BaseT  ℙsT )))  → do
           m ← askL terModeL
           l ← elabEMode loc
-          if (m == m') then
+          if (m == l) then
             return (\y -> ( 
             do
             mt ←  (bindType (SecT loc (ShareT p loc' (BaseT ℙsT ))) ψ)
@@ -375,8 +375,8 @@ matchType τ ψ= case ψ of
   ProdP ψₗ ψᵣ  →     case τ of
     (SecT loc (τₗ :×: τᵣ)) → do
         m ← askL terModeL
-        m' ← elabEMode em'
-        if (m == m') then
+        l ← elabEMode loc
+        if (m == l) then
           return (\x -> ( 
           do
           ml ←  (bindType τₗ ψₗ) 
