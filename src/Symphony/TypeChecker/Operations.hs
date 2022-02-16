@@ -311,8 +311,7 @@ superty_wf t m =
     case t of
     SecT loc loc_ty → do
         l ← (elabEMode loc)
-        m_inter ← (inter_m m l)
-        l_inter ← (elabMode m_inter)
+        l_inter ← (elabMode (inter_m m l))
         loc_superty ← (superlocty_wf loc_ty m)
         return (SecT l_inter loc_superty)
     _  → todoError
