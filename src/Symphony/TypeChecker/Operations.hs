@@ -42,7 +42,7 @@ extractProt :: Type → EM (𝑂 Prot)
 extractProt τ =
  case τ of 
   (SecT _ _)  → return None
-  (SecT _  (ShareT p _ _))   → todoError
+  (SecT _  (ShareT p _ _))   → return (Some p)
   _ → todoError
 
 assertM :: Mode → Type → EM ()
@@ -277,7 +277,7 @@ superlocty_wf sigma m =
       locty' ← (share_superloctype_wf locty m)
       l ← (elabEMode loc)
       -- WF-Enc
-      if (m == l) then (return (ShareT p loc locty')) else todoError
+      if (m == l) then todoError else todoError
     (loctyₗ :+: loctyᵣ) → do 
       loctyₗ' ← (superty_wf loctyₗ m)
       loctyᵣ' ← (superty_wf loctyᵣ m)
