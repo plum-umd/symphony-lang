@@ -163,7 +163,7 @@ synPrinSet ρse =
     m ← askL terModeL
     em ← elabMode m
     return (SecT em (BaseT ℙsT))
-  x    →  todoError
+  _    →  todoError
 
 synPrim ∷ Op → 𝐿 Exp → EM Type
 synPrim op es =
@@ -179,20 +179,18 @@ synPrim op es =
       em ← elabMode m
       τs ← (mapM synExp es)
       _ ← (mapM (assertM m) τs)
-      ps ← (mapM extractProt τs)
+      pos ← (mapM extractProt τs)
       bs ← (mapM extractBase τs)
-      case ps of
-        (pOption :& _) →
-          if (and (map (\p -> (pOption == p)) ps)) then
-            do 
-              bt ← (primType op bs)
-              case pOption of
-                None → return (SecT em (BaseT bt))
-                Some p → return (ShareT p em (BaseT bt))
-            
-   
+      bt ← (primType op bs)
+      let ps = filterMap (\x -> x)  pos in
+        if (isEmpty ps) then 
+          return (SecT em (BaseT bt))
+        else
+          (p :& _) → if (and (map (\p -> (pOption == p)) ps)) then
+            return (SecT em (ShareT p em (BaseT bt))) 
           else
             todoError
+    
      
 ---------------------------------
 --- Products, Sums, and Lists ---
