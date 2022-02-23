@@ -302,22 +302,20 @@ synLet ψ e₁ e₂ =
     synBind τ₁ (ψ :* e₂)
 
 
-{-}
-checkLam ∷ 𝑂 Var → 𝐿 Pat → Exp →  Type → EM Type
-synLam self𝑂 ψs e = 
+# type is well formed
+checkLam ∷ 𝑂 Var → 𝐿 Pat → Exp →  Type → EM ()
+checkLam self𝑂 ψs e τ = 
   case τ of
-    SecT m (Type :→: (Effect ∧ Type) )  → return ()
+    SecT loc (τ₁₁ :→: (η :* τ₁₂))   → 
+      case self𝑂 of
+      None      →  
+                  do
+                    m ← askL terModeL
+                    _ ←  assertM m τ
+                    
+      Some self → checkLam None ψs e (SecT loc (τ₁₁ :→: (η :* τ₁₂)))
     x  → todoError
-  case self𝑂 of
-      None      → 
-                    let c = synExp e
-                        c' =  case self𝑂 of
-                              None      → c
-                              Some self → bindTo self c
-                    in
-                    (fold c' ($) ψs)
-      Some self → bindTo self c
-  -}
+  
 
 
 ----------------------
@@ -340,7 +338,7 @@ synRead τ e =
         do
           l ← elabEMode loc
           guardErr (m ≡ l) $
-            typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+            typeError "synRead: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
               [ ("m", pretty m)
                 , ("l", pretty l)
               ]

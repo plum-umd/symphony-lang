@@ -321,13 +321,13 @@ superty_wf t m =
 --- Bind Typing ---
 -----------------
 
-bindTo ∷ Var → Type → EM Type → EM Type
+bindTo ∷ Var → Type → EM a → EM a
 bindTo x τ = mapEnvL terEnvL ((x ↦ τ) ⩌)
 
-bindType ∷ Type → Pat → (EM (EM Type → EM Type))
+bindType ∷ Type → Pat → (EM (EM a → EM a))
 bindType τ ψ = matchType τ ψ
 -- assume type is well formed
-matchType ∷  Type → Pat → EM (EM Type → EM Type)
+matchType ∷  Type → Pat → EM (EM a → EM a)
 matchType τ ψ= case ψ of 
   VarP x → return (bindTo  x τ)
   BulP → case τ of
