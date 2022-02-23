@@ -302,8 +302,8 @@ synLet ψ e₁ e₂ =
     synBind τ₁ (ψ :* e₂)
 
 
-# type is well formed
-checkLam ∷ 𝑂 Var → 𝐿 Pat → Exp →  Type → EM ()
+-- type is well formed
+{-checkLam ∷ 𝑂 Var → 𝐿 Pat → Exp →  Type → EM ()
 checkLam self𝑂 ψs e τ = 
   case τ of
     SecT loc (τ₁₁ :→: (η :* τ₁₂))   → 
@@ -316,7 +316,7 @@ checkLam self𝑂 ψs e τ =
       Some self → checkLam None ψs e (SecT loc (τ₁₁ :→: (η :* τ₁₂)))
     x  → todoError
   
-
+-}
 
 ----------------------
 --- Read and Write ---
