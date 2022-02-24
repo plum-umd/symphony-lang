@@ -325,7 +325,9 @@ checkLam self𝑂 ψs e τ =
                           return ()
                         else
                           todoError
-                      ψ :& ψs → (bindType τ₁₁ ψ) (checkLam None ψs e τ₁₂)
+                      ψ :& ψs → do
+                        bind ←  (bindType τ₁₁ ψ) 
+                        bind (checkLam None ψs e τ₁₂)
   
                     
       Some self → (bindTo self τ) (checkLam None ψs e τ)
