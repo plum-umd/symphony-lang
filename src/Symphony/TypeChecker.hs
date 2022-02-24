@@ -303,20 +303,35 @@ synLet ψ e₁ e₂ =
 
 
 -- type is well formed
-{-checkLam ∷ 𝑂 Var → 𝐿 Pat → Exp →  Type → EM ()
+checkLam ∷ 𝑂 Var → 𝐿 Pat → Exp →  Type → EM ()
 checkLam self𝑂 ψs e τ = 
   case τ of
     SecT loc (τ₁₁ :→: (η :* τ₁₂))   → 
       case self𝑂 of
       None      →  
                   do
-                    m ← askL terModeL
-                    _ ←  assertM m τ
+                    m  ← askL terModeL
+                    l₂ ← elabEMode loc
+                    guardErr (m ≡ l₂) $
+                      typeError "synLam: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+                      [ ("m", pretty m),
+                        ("l", pretty l₂)
+                      ]
+                    case ψs of
+                      Nil	 → do
+                        τ₁₂' ← (synExp e)
+                        subcond  ← (subtype τ₁₂' τ₁₂)
+                        if subcond then
+                          return ()
+                        else
+                          todoError
+                      ψ :& ψs → (bindType τ₁₁ ψ) (checkLam None ψs e τ₁₂)
+  
                     
-      Some self → checkLam None ψs e (SecT loc (τ₁₁ :→: (η :* τ₁₂)))
+      Some self → (bindTo self τ) (checkLam None ψs e τ)
     x  → todoError
   
--}
+
 
 ----------------------
 --- Read and Write ---
