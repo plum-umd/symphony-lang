@@ -446,11 +446,11 @@ synRef e =
 
 synRefRead ∷ Exp → EM Type
 synRefRead e =
-  let c₁ = interpExp e
+  let c = synpExp e
   in do
     τ ← c
     case τ of
-      (SecT l (RefT τ'))  → do
+      (SecT loc (RefT τ'))  → do
         m  ← askL terModeL
         l ← elabEMode loc
         --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
