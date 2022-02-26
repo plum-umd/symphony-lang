@@ -216,10 +216,10 @@ locty_meet locty locty' =
         return (meet_tyₗ :×: meet_tyᵣ)
 
     _ → todoError
-  (ListT _ τₜ)  →  case loctyT of
+  (ListT _ τₜ)  →  case locty' of
     (ListT _ τₜ') → (ty_meet τₜ τₜ')
     _ → return False
-  (τ₁₁ :→: (η :* τ₁₂)) → case loctyT of
+  (τ₁₁ :→: (η :* τ₁₂)) → case locty' of
     (τ₁₁' :→: (η' :* τ₁₂')) → do 
         l ← elabEMode $ effectMode η
         l' ← elabEMode $ effectMode η'
@@ -286,10 +286,10 @@ locty_join locty locty' =
         return (join_tyₗ :×: join_tyᵣ)
 
     _ → todoError
-  (ListT _ τₜ)  →  case loctyT of
+  (ListT _ τₜ)  →  case locty' of
     (ListT _ τₜ') → (ty_join τₜ τₜ')
     _ → return False
-  (τ₁₁ :→: (η :* τ₁₂)) → case loctyT of
+  (τ₁₁ :→: (η :* τ₁₂)) → case locty' of
     (τ₁₁' :→: (η' :* τ₁₂')) → do 
         l ← elabEMode $ effectMode η
         l' ← elabEMode $ effectMode η'
@@ -350,8 +350,8 @@ wf_loctype sigma m =
     (τ₁₁ :→: (η :* τ₁₂)) → do
       m  ← askL terModeL
       l ← elabEMode $ effectMode η
-      _ ← (wf_type loctyₗ τ₁₁)
-      _ ← (wf_type loctyᵣ τ₁₂)
+      _ ← (wf_type τ₁₁ m)
+      _ ← (wf_type τ₁₂ m)
       guardErr (m ≡ l) $
         typeError "Not well formed m != l" $ frhs
         [ ("m", pretty m)
@@ -409,8 +409,7 @@ superlocty_wf sigma m =
       τₜ' ← (superty_wf τₜ m)
       return (ListT n τₜ') 
     (τ₁₁ :→: (η :* τ₁₂)) → do
-      m  ← askL terModeL
-      l₁ ← elabEMode $ effectMode η
+      l ← elabEMode $ effectMode η
       l_inter ← (elabMode (inter_m m l))
       τ₁₁' ← (superty_wf τ₁₁ m)
       τ₁₂' ← (superty_wf τ₁₂ m)
