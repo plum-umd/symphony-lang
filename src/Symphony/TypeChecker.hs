@@ -486,7 +486,8 @@ synExpR e = case e of
   CaseE e ψes  → synCase e ψes
 
   LetE ψ e₁ e₂    → synLet ψ e₁ e₂  
-  
+  AppE e₁ e₂      → synApp e₁ e₂
+
   -- Read and Write
   ReadE τ e    → synRead τ e
   WriteE e₁ e₂ → synWrite e₁ e₂
