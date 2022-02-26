@@ -307,6 +307,7 @@ checkLam ∷ 𝑂 Var → 𝐿 Pat → Exp →  Type → EM ()
 checkLam self𝑂 ψs e τ = 
   case τ of
     SecT loc (τ₁₁ :→: (η :* τ₁₂))   → 
+      todoError
       case self𝑂 of
       None      →  
                   do
