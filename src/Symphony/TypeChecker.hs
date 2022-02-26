@@ -344,25 +344,25 @@ synApp e₁ e₂ =
     τ₁ ← c₁
     τ₂ ← c₂
     case τ₁ of
-    SecT loc (τ₁₁ :→: (η :* τ₁₂)) → do
-      m  ← askL terModeL
-      l₁ ← elabEMode $ effectMode η
-      l₂ ← elabEMode loc
-      subcond  ←  (subtype τ₂ τ₁₂)
-      guardErr (m ≡ l₁) $
-        typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
-        [ ("m", pretty m)
-        , ("l", pretty l₁)
-        ]
-      guardErr (m ≡ l₂) $
-        typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
-        [ ("m", pretty m)
-        , ("l", pretty l₁)
-        ]
-      return τ₂
-    _ → typeError "synApp: τ₁ ≢ (_ → _)@_" $ frhs
-        [ ("τ₁", pretty τ₁)
-        ]
+      SecT loc (τ₁₁ :→: (η :* τ₁₂)) → do
+        m  ← askL terModeL
+        l₁ ← elabEMode $ effectMode η
+        l₂ ← elabEMode loc
+        subcond  ←  (subtype τ₂ τ₁₂)
+        guardErr (m ≡ l₁) $
+          typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+          [ ("m", pretty m)
+          , ("l", pretty l₁)
+          ]
+        guardErr (m ≡ l₂) $
+          typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+          [ ("m", pretty m)
+          , ("l", pretty l₁)
+          ]
+        return τ₂
+      _ → typeError "synApp: τ₁ ≢ (_ → _)@_" $ frhs
+          [ ("τ₁", pretty τ₁)
+          ]
 
 ----------------------
 --- Read and Write ---
