@@ -218,7 +218,7 @@ locty_meet locty locty' =
     _ → todoError
   (ListT _ τₜ)  →  case locty' of
     (ListT _ τₜ') → (ty_meet τₜ τₜ')
-    _ → return False
+    _ → todoError
   (τ₁₁ :→: (η :* τ₁₂)) → case locty' of
     (τ₁₁' :→: (η' :* τ₁₂')) → do 
         l ← elabEMode $ effectMode η
@@ -288,7 +288,7 @@ locty_join locty locty' =
     _ → todoError
   (ListT _ τₜ)  →  case locty' of
     (ListT _ τₜ') → (ty_join τₜ τₜ')
-    _ → return False
+    _ → todoError
   (τ₁₁ :→: (η :* τ₁₂)) → case locty' of
     (τ₁₁' :→: (η' :* τ₁₂')) → do 
         l ← elabEMode $ effectMode η
