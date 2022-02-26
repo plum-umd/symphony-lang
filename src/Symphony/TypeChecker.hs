@@ -473,8 +473,8 @@ synRefWrite e₁ e₂ =
     τ₁  ← c₁
     τ₂ ← c₂
     case τ₁ of
-      (SecT loc (RefT τ₂'))  →  do
-        join_t ← (ty_join  τ₁ τ₂')
+      (SecT loc (RefT τ₁'))  →  do
+        join_t ← (ty_join  τ₁' τ₂)
         return join_t
 -------------------
 --- Expressions ---
