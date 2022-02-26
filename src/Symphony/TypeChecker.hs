@@ -467,7 +467,6 @@ synRefWrite e₁ e₂ =
   let c₁ = synExp e₁
       c₂ = synExp e₂
   in do
-  in do
     τ₁  ← c₁
     τ₂ ← c₂
     case τ₁ of
