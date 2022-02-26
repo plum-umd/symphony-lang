@@ -260,7 +260,8 @@ spec = do
           t = SecT UVM.Top (τ₁₁ :→: (η UVM.:* τ₁₂)) 
           f = UVM.var "f"
           xvar = (UVM.var "x")
-          lst = (UVM.frhs [(VarP xvar)] )
+          yvar = (UVM.var "y")
+          lst = (UVM.frhs [(VarP xvar), (VarP yvar)] )
           expr =  (AscrE  (nullExp (LamE (UVM.Some f) lst (nullExp (VarE xvar)))) t )
           x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
