@@ -285,7 +285,26 @@ spec = do
       in case x of
         UVM.Inr a -> a `shouldBe`  t
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
-        
+    it "() : app" $
+      let a =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "B")]) ))
+          b =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "C")]) ))
+          c = (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A")]) ))
+         
+          τ₁₁ =(SecT (UVM.Top) (BaseT UnitT))
+          τ₁₂ =(SecT (UVM.Top) (BaseT UnitT))
+          η =  Effect {effectInput = UVM.null, effectReveal = UVM.null,  effectMode = UVM.Top}
+          t' = SecT UVM.Top (τ₁₁ :→: (η UVM.:* τ₁₂)) 
+          t = SecT UVM.Top (τ₁₁ :→: (η UVM.:* t')) 
+          f = UVM.var "f"
+          xvar = (UVM.var "x")
+          yvar = (UVM.var "y")
+          lst = (UVM.frhs [(VarP xvar), (VarP yvar)] )
+          lamexpr =  (AscrE  (nullExp (LamE (UVM.Some f) lst (nullExp (VarE xvar)))) t )
+          expr = (AppE (nullExp lamexpr) (nullExp BulE))
+          x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+      in case x of
+        UVM.Inr a -> a `shouldBe`  t
+        UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
     it "() + () error" $
       let e = PrimE PlusO $ UVM.frhs $ [(nullExp BulE), (nullExp BulE)] in
       let x = evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExpR e) in
