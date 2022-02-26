@@ -413,7 +413,7 @@ superlocty_wf sigma m =
       l_inter ← (elabMode (inter_m m l))
       τ₁₁' ← (superty_wf τ₁₁ m)
       τ₁₂' ← (superty_wf τ₁₂ m)
-      return (τ₁₁' :→:  ( Effect {effectInput = effectInput η, effectReveal = effectReveal η,  effectMode = l_inter}) * τ₁₂'))
+      return (τ₁₁' :→:  (( Effect {effectInput = effectInput η, effectReveal = effectReveal η,  effectMode = l_inter}) * τ₁₂'))
     x  → todoError
 
 -- Rules to get the least super supertype of located type that a share can take sigma that is well formed
