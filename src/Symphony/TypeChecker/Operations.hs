@@ -233,7 +233,7 @@ locty_meet locty locty' =
               return (join_τ₁₁ :→: (η :* meet_τ₁₂))
           )
         else todoError
-  (RefT _ τ)  →  if (locty == locty') then (return locty) else todoError
+  (RefT τ)  →  if (locty == locty') then (return locty) else todoError
   _ → todoError
 
 -- Finds join of two types
@@ -419,9 +419,9 @@ superlocty_wf sigma m =
       τ₁₁' ← (superty_wf τ₁₁ m)
       τ₁₂' ← (superty_wf τ₁₂ m)
       return (τ₁₁' :→:  (( Effect {effectInput = effectInput η, effectReveal = effectReveal η,  effectMode = l_inter}) :* τ₁₂'))
-    (RefT τ')  → do
-      τ'' ← (superty_wf τ m)
-      return (RefT τ'')
+    (RefT τ)  → do
+      τ' ← (superty_wf τ m)
+      return (RefT τ')
     x  → todoError
 
 -- Rules to get the least super supertype of located type that a share can take sigma that is well formed
