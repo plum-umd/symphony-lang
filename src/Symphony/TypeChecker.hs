@@ -442,7 +442,9 @@ synRef e =
   let c = synExp e
   in do
   τ ← c
-  return (RefT τ)
+  m  ← askL terModeL
+  em ← elabMode m
+  return (SectT em (RefT τ))
 
 synRefRead ∷ Exp → EM Type
 synRefRead e =
