@@ -461,7 +461,7 @@ synRefRead e =
           [ ("m", pretty m)
           , ("l", pretty l)
           ]
-    return τ
+    return τ'
 
 
 synRefWrite ∷ Exp → Exp → EM Type
