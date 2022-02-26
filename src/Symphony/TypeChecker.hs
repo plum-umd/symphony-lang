@@ -444,7 +444,7 @@ synRef e =
   τ ← c
   m  ← askL terModeL
   em ← elabMode m
-  return (SectT em (RefT τ))
+  return (SecT em (RefT τ))
 
 synRefRead ∷ Exp → EM Type
 synRefRead e =
