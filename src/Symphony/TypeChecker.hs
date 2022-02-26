@@ -462,7 +462,7 @@ synRefRead e =
           , ("l", pretty l)
           ]
         return τ'
-    _  → todoError
+      _  → todoError
 
 
 synRefWrite ∷ Exp → Exp → EM Type
