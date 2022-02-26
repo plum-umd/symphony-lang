@@ -308,28 +308,7 @@ checkLam self𝑂 ψs e τ =
   case τ of
     SecT loc (τ₁₁ :→: (η :* τ₁₂))   → 
       todoError
-      case self𝑂 of
-      None      →  
-                  do
-                    m  ← askL terModeL
-                    l₂ ← elabEMode loc
-                    guardErr (m ≡ l₂) $
-                      typeError "synLam: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
-                      [ ("m", pretty m),
-                        ("l", pretty l₂)
-                      ]
-                    case ψs of
-                      Nil	 → do
-                        τ₁₂' ← (synExp e)
-                        subcond  ← (subtype τ₁₂' τ₁₂)
-                        if subcond then
-                          return ()
-                        else
-                          todoError
-                      ψ :& ψs → do
-                        bind ←  (bindType τ₁₁ ψ) 
-                        bind (checkLam None ψs e τ₁₂)
-  
+     
                     
       Some self → (bindTo self τ) (checkLam None ψs e τ)
     x  → todoError
