@@ -310,7 +310,7 @@ checkLam self𝑂 ψs e τ =
       todoError
      
                     
-      Some self → (bindTo self τ) (checkLam None ψs e τ)
+      
     x  → todoError
   
 
