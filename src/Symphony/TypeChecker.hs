@@ -532,6 +532,12 @@ synExpR e = case e of
   ReadE τ e    → synRead τ e
   WriteE e₁ e₂ → synWrite e₁ e₂
 
+  
+  -- References
+  RefE e          → synRef e
+  RefReadE e      → synRefRead e
+  RefWriteE e₁ e₂ → synRefWrite e₁ e₂
+
   AscrE e τ → synAscr e τ
   _      → undefined
 
