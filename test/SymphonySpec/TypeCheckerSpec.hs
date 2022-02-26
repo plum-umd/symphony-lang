@@ -270,7 +270,7 @@ spec = do
       let a =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "B")]) ))
           b =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "C")]) ))
           c = (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A")]) ))
-          t' = (SecT (UVM.Top) (BaseT UnitT))
+         
           τ₁₁ =(SecT (UVM.Top) (BaseT UnitT))
           τ₁₂ =(SecT (UVM.Top) (BaseT UnitT))
           η =  Effect {effectInput = UVM.null, effectReveal = UVM.null,  effectMode = UVM.Top}
