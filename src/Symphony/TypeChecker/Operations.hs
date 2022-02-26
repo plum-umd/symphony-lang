@@ -353,10 +353,10 @@ wf_loctype sigma m =
       _ ← (wf_type loctyₗ τ₁₁)
       _ ← (wf_type loctyᵣ τ₁₂)
       guardErr (m ≡ l) $
-      typeError "Not well formed m != l" $ frhs
-      [ ("m", pretty m)
-      , ("l", pretty l)
-      ]
+        typeError "Not well formed m != l" $ frhs
+        [ ("m", pretty m)
+        , ("l", pretty l)
+        ]
 
     _  → todoError
 
