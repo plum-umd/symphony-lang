@@ -256,12 +256,12 @@ spec = do
           t' = (SecT (UVM.Top) (BaseT UnitT))
           τ₁₁ =(SecT (UVM.Top) (BaseT UnitT))
           τ₁₂ =(SecT (UVM.Top) (BaseT UnitT))
-          η =  Effect {effectInput = UVM.Top, effectReveal = UVM.Top,  effectMode = UVM.Top}
-          t = SecT loc (τ₁₁ :→: (η :* τ₁₂)) 
+          η =  Effect {effectInput = UVM.Null, effectReveal = UVM.Null,  effectMode = UVM.Top}
+          t = SecT UVM.Top (τ₁₁ :→: (η :* τ₁₂)) 
           f = UVM.var "f"
           xvar = (UVM.var "x")
           lst = (UVM.frhs [(VarP xvar)] )
-          expr =  (AscrE  (LamE (Some f) lst (nullExp (VarE xvar))) t )
+          expr =  (AscrE  (LamE (UVM.Some f) lst (nullExp (VarE xvar))) t )
           x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
