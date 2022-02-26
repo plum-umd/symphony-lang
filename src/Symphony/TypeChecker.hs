@@ -434,6 +434,47 @@ synAscr e τ = do
   return τ
 
 -------------------
+--- References ---
+-------------------
+
+synRef ∷ Exp → EM Type
+synRef e =
+  let c = synExp e
+  in do
+  τ ← c
+  return (RefT τ)
+
+synRefRead ∷ Exp → EM Type
+synRefRead e =
+  let c₁ = interpExp e
+  in do
+    τ ← c
+    case τ of
+      (SecT l (RefT τ'))  → do
+        m  ← askL terModeL
+        l ← elabEMode loc
+        --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
+        guardErr (m ≡ l) $
+          typeError "synRefRead: m /≡ l" $ frhs
+          [ ("m", pretty m)
+          , ("l", pretty l₁)
+          ]
+    return τ
+
+
+synRefWrite ∷ Exp → Exp → EM Type
+synRefWrite e₁ e₂ =
+  let c₁ = synExp e₁
+      c₂ = synExp e₂
+  in do
+  in do
+    τ₁  ← c₁
+    τ₂ ← c₂
+    case τ₁ of
+      (SecT loc (RefT τ₂'))  →  do
+        join_t ← (ty_join  τ₁ τ₂')
+        return join_t
+-------------------
 --- Expressions ---
 -------------------
 
