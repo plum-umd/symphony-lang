@@ -239,6 +239,32 @@ spec = do
           x  = (evalEM (ER {terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
+    it "() : readbul" $
+      let a =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "B")]) ))
+          b =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "C")]) ))
+          c = (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A")]) ))
+          t = (SecT c (BaseT UnitT))
+          m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A") ])))
+          expr =  (WriteE  (nullExp (BulE)) (nullExp (StrE "Test")) )
+          x  = (evalEM (ER {terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+      in case x of
+        UVM.Inr a -> a `shouldBe`  t
+    it "() : annotatednillam" $
+      let a =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "B")]) ))
+          b =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "C")]) ))
+          c = (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A")]) ))
+          t' = (SecT (UVM.Top) (BaseT UnitT))
+          τ₁₁ =(SecT (UVM.Top) (BaseT UnitT))
+          τ₁₂ =(SecT (UVM.Top) (BaseT UnitT))
+          η =  Effect {effectInput = UVM.Top, effectReveal = UVM.Top,  effectMode = UVM.Top}
+          t = SecT loc (τ₁₁ :→: (η :* τ₁₂)) 
+          f = UVM.var "f"
+          x = (UVM.var "x")
+          lst = (UVM.frhs [(VarP x)] )
+          expr =  (AscrE  (LamE (Some f) lst (nullExp (VarE x))) t )
+          x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+      in case x of
+        UVM.Inr a -> a `shouldBe`  t
     it "() + () error" $
       let e = PrimE PlusO $ UVM.frhs $ [(nullExp BulE), (nullExp BulE)] in
       let x = evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExpR e) in

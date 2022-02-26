@@ -420,7 +420,7 @@ chkExpR e τ =
       LE eₗ        → checkL eₗ τ
       RE eᵣ        → checkR eᵣ τ
       NilE        → checkNil τ
-      --  LamE self𝑂 ψs e → checkLam self𝑂 ψs e τ
+      LamE self𝑂 ψs e → checkLam self𝑂 ψs e τ
       _ →     
           do 
             τ' ← synExpR e
@@ -463,8 +463,6 @@ synExpR e = case e of
   WriteE e₁ e₂ → synWrite e₁ e₂
 
   AscrE e τ → synAscr e τ
-
-  -- PrimE op es → synPrim op es
   _      → undefined
 
 
