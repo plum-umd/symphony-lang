@@ -446,7 +446,7 @@ synRef e =
 
 synRefRead ∷ Exp → EM Type
 synRefRead e =
-  let c = synpExp e
+  let c = synExp e
   in do
     τ ← c
     case τ of
@@ -457,7 +457,7 @@ synRefRead e =
         guardErr (m ≡ l) $
           typeError "synRefRead: m /≡ l" $ frhs
           [ ("m", pretty m)
-          , ("l", pretty l₁)
+          , ("l", pretty l)
           ]
     return τ
 
