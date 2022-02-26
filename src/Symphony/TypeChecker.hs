@@ -327,7 +327,7 @@ checkLam self𝑂 ψs e τ =
                           todoError
                       ψ :& Nil → do
                         bind ←  (bindType τ₁₁ ψ) 
-                        bind (checkExp e τ₁₂)
+                        bind (chkExp e τ₁₂)
                       ψ :& ψs → do
                         bind ←  (bindType τ₁₁ ψ) 
                         bind (checkLam None ψs e τ₁₂)
