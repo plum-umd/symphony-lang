@@ -575,7 +575,7 @@ synArraySize e =
             [ ("m", pretty m)
             , ("l", pretty l)
             ]
-          return (SecT em (BaseT (ℕT 0)))
+          return (SecT em (BaseT (ℕT InfIPr)))
       _ → todoError
         
 -------------------
