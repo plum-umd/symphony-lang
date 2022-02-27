@@ -567,13 +567,13 @@ synArraySize e =
     case τ of
       SecT loc (ArrT _ τ')  → do
           m  ← askL terModeL
-          l ← elabEMode loc₁
+          l ← elabEMode loc
           em ← elabMode m
           --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
-          guardErr (m ≡ l₁) $
+          guardErr (m ≡ l) $
             typeError "synArraySize: m /≡ l" $ frhs
             [ ("m", pretty m)
-            , ("l", pretty l₁)
+            , ("l", pretty l)
             ]
           return (SecT em (BaseT (ℕT 0)))
       _ → todoError
