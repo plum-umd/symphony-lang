@@ -562,11 +562,10 @@ synArrayWrite e₁ e₂ e₃ =
 synArraySize ∷ Exp → EM Type
 synArraySize e =
   let c = synExp e 
-  in 
-    do
-      τ ← c
-      case τ of
-        (SecT loc (ArrT _ τ'))  → 
+  in do
+    τ ← c
+    case τ of
+      SecT loc (ArrT _ τ'))  → 
           m  ← askL terModeL
           l ← elabEMode loc₁
           em ← elabMode m
