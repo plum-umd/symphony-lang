@@ -318,7 +318,7 @@ checkLam self𝑂 ψs e τ =
                         ("l", pretty l₂)
                       ]
                     case ψs of
-                      Nil	 → do
+                      Nil → do
                         τ₁₂' ← (synExp e)
                         subcond  ← (subtype τ₁₂' τ₁₂)
                         if subcond then
