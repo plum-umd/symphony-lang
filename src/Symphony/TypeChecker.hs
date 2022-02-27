@@ -559,7 +559,24 @@ synArrayWrite e₁ e₂ e₃ =
           _  → todoError
       _  → todoError
 
-
+synArraySize ∷ Exp → EM Type
+synArraySize e =
+  let c = synExp e 
+  in 
+    do
+      τ ← c
+      case τ of
+        (SecT loc (ArrT _ τ'))  → 
+          m  ← askL terModeL
+          l ← elabEMode loc₁
+          em ← elabMode m
+          --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
+          guardErr (m ≡ l₁) $
+            typeError "synArraySize: m /≡ l" $ frhs
+            [ ("m", pretty m)
+            , ("l", pretty l₁)
+            ]
+          return (SecT em (BaseT (ℕT 0)))
         
 -------------------
 --- Expressions ---
