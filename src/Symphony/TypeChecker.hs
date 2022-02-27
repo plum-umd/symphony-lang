@@ -560,9 +560,8 @@ synArrayWrite e₁ e₂ e₃ =
       _  → todoError
 
 synArraySize ∷ Exp → EM Type
-synArraySize e = do
+synArraySize e =
   let c = synExp e 
-      c' = synExp e 
   in do
     τ ← c
     case τ of
