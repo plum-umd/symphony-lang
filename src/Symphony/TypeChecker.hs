@@ -562,7 +562,8 @@ synArrayWrite e₁ e₂ e₃ =
 synArraySize ∷ Exp → EM Type
 synArraySize e =
   let c = synExp e 
-  in do
+  in 
+    do
     τ ← c
     case τ of
       (SecT loc (ArrT _ τ'))  → 
