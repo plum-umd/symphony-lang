@@ -485,7 +485,7 @@ synArray e₁ e₂ =
     τ₁  ← c₁
     τ₂ ← c₂
     case τ₁ of
-      (SecT loc (BaseT (ℕT IPrecision)))  → do
+      (SecT loc (BaseT (ℕT _)))  → do
         m  ← askL terModeL
         l ← elabEMode loc
         em ← elabMode m
@@ -514,7 +514,7 @@ synArrayRead e₁ e₂ =
           , ("l", pretty l₁)
           ]
         case τ₂ of
-          (SecT loc₂ (BaseT (ℕT IPrecision)))  → do
+          (SecT loc₂ (BaseT (ℕT _)))  → do
             l₂ ← elabEMode loc₂
             em ← elabMode m
             guardErr (m ≡ l₂) $
@@ -547,7 +547,7 @@ synArrayWrite e₁ e₂ e₃ =
           , ("l", pretty l₁)
           ]
         case τ₂ of
-          (SecT loc₂ (BaseT (ℕT IPrecision)))  → do
+          (SecT loc₂ (BaseT (ℕT _)))  → do
             l₂ ← elabEMode loc₂
             em ← elabMode m
             guardErr (m ≡ l₂) $
