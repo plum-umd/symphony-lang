@@ -561,7 +561,8 @@ synArrayWrite e₁ e₂ e₃ =
 
 synArraySize ∷ Exp → IM v v
 synArraySize e = do
-  let c = synExp e
+  let 
+    c = synExp e
   in do
     τ ← c
     case τ of
