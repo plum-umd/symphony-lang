@@ -564,7 +564,8 @@ synArraySize e =
   let c = synExp e 
   in do
     τ ← c
-    todoError
+    case τ of
+      _ → todoError
         
 -------------------
 --- Expressions ---
