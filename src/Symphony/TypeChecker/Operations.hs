@@ -108,6 +108,7 @@ subtype_loc loctyS loctyT = case loctyS of
         loccondᵣ ← (subtype_loc τ₁₂ τ₁₂')
         return ((l == l') ⩓ loccondₗ ⩓ loccondᵣ)
   (RefT τ) → return (loctyS == loctyT)
+  (ArrT _ τ) → return (loctyS == loctyT)
 
   _ → return False
 
@@ -234,6 +235,7 @@ locty_meet locty locty' =
           )
         else todoError
   (RefT τ)  →  if (locty == locty') then (return locty) else todoError
+  (ArrT _ τ)  →  if (locty == locty') then (return locty) else todoError
   _ → todoError
 
 -- Finds join of two types
@@ -304,6 +306,7 @@ locty_join locty locty' =
           )
         else todoError
   RefT _ → if (locty == locty') then (return locty) else todoError
+  (ArrT _ _)  →  if (locty == locty') then (return locty) else todoError
   _ → todoError
 
 -- Finds join of two types
@@ -361,6 +364,9 @@ wf_loctype sigma m =
         , ("l", pretty l)
         ]
     (RefT τ')  → do
+      _ ← (wf_type τ' m)
+      return ()
+    (Arr n τ')  →  do
       _ ← (wf_type τ' m)
       return ()
     _  → todoError
@@ -422,6 +428,9 @@ superlocty_wf sigma m =
     (RefT τ)  → do
       τ' ← (superty_wf τ m)
       return (RefT τ')
+    (ArrT n τ)  → do
+      τ' ← (superty_wf τ m)
+      return (ArrT n τ')
     x  → todoError
 
 -- Rules to get the least super supertype of located type that a share can take sigma that is well formed

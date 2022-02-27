@@ -473,9 +473,110 @@ synRefWrite e₁ e₂ =
     τ₁  ← c₁
     τ₂ ← c₂
     case τ₁ of
-      (SecT loc (RefT τ₁'))  →  do
-        join_t ← (ty_join  τ₁' τ₂)
-        return join_t
+      (SecT loc (RefT τ₁'))  →  (ty_join  τ₁' τ₂)
+        
+      _ → todoError
+
+synArray ∷ Exp → Exp → EM Type
+synArray e₁ e₂ =
+  let c₁ = synExp e₁
+      c₂ = synExp e₂
+  in do
+    τ₁  ← c₁
+    τ₂ ← c₂
+    case τ₁ of
+      (SecT loc (BaseT (ℕT IPrecision)))  → do
+        m  ← askL terModeL
+        l ← elabEMode loc
+        em ← elabMode m
+        guardErr (m ≡ l) $
+          typeError "synArray: m /≡ l" $ frhs
+          [ ("m", pretty m)
+          , ("l", pretty l)
+          ]
+        return (SecT em (ArrT 0 τ₂))
+
+synArrayRead ∷ Exp → Exp → EM Type
+synArrayRead e₁ e₂ =
+  let c₁ = synExp e₁
+      c₂ = synExp e₂
+  in do
+    τ₁ ← c₁
+    τ₂ ← c₂
+    case τ₁ of
+      (SecT loc₁ (ArrT _ τ₁'))  → do
+        m  ← askL terModeL
+        l₁ ← elabEMode loc₁
+        --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
+        guardErr (m ≡ l₁) $
+          typeError "synArrayRead: m /≡ l" $ frhs
+          [ ("m", pretty m)
+          , ("l", pretty l₁)
+          ]
+        case τ₂ of
+          (SecT loc₂ (BaseT (ℕT IPrecision)))  → do
+            l₂ ← elabEMode loc₂
+            em ← elabMode m
+            guardErr (m ≡ l₂) $
+            typeError "synArray: m /≡ l" $ frhs
+            [ ("m", pretty m)
+            , ("l", pretty l₂)
+            ]
+            return τ₁'
+          _  → todoError
+      _  → todoError
+
+
+synArrayWrite ∷ Exp → Exp → Exp → IM v v
+synArrayWrite e₁ e₂ e₃ =
+  let c₁ = synExp e₁
+      c₂ = synExp e₂
+      c₃ = synExp e₃
+  in do
+    τ₁ ← c₁
+    τ₂ ← c₂
+    τ₃ ← c₃
+    case τ₁ of
+      (SecT loc₁ (ArrT _ τ₁'))  → do
+        m  ← askL terModeL
+        l₁ ← elabEMode loc₁
+        --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
+        guardErr (m ≡ l₁) $
+          typeError "synArrayWrite: m /≡ l" $ frhs
+          [ ("m", pretty m)
+          , ("l", pretty l₁)
+          ]
+        case τ₂ of
+          (SecT loc₂ (BaseT (ℕT IPrecision)))  → do
+            l₂ ← elabEMode loc₂
+            em ← elabMode m
+            guardErr (m ≡ l₂) $
+            typeError "synArrayWrite: m /≡ l" $ frhs
+            [ ("m", pretty m)
+            , ("l", pretty l₂)
+            ]
+            (ty_join  τ₁' τ₃)
+          _  → todoError
+      _  → todoError
+
+synArraySize ∷ Exp → IM v v
+synArraySize e = do
+  let c = synExp e
+  in do
+    τ ← c
+    case τ of
+      (SecT loc (ArrT _ τ'))  → 
+        m  ← askL terModeL
+        l ← elabEMode loc₁
+        em ← elabMode m
+        --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
+        guardErr (m ≡ l₁) $
+          typeError "synArraySize: m /≡ l" $ frhs
+          [ ("m", pretty m)
+          , ("l", pretty l₁)
+          ]
+          return (SecT em (BaseT (ℕT 0)))
+        
 -------------------
 --- Expressions ---
 -------------------
