@@ -518,10 +518,10 @@ synArrayRead e₁ e₂ =
             l₂ ← elabEMode loc₂
             em ← elabMode m
             guardErr (m ≡ l₂) $
-            typeError "synArray: m /≡ l" $ frhs
-            [ ("m", pretty m)
-            , ("l", pretty l₂)
-            ]
+              typeError "synArray: m /≡ l" $ frhs
+              [ ("m", pretty m)
+                , ("l", pretty l₂)
+              ]
             return τ₁'
           _  → todoError
       _  → todoError
