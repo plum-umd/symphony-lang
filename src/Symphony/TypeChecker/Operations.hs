@@ -366,7 +366,7 @@ wf_loctype sigma m =
     (RefT τ')  → do
       _ ← (wf_type τ' m)
       return ()
-    (Arr n τ')  →  do
+    (ArrT n τ')  →  do
       _ ← (wf_type τ' m)
       return ()
     _  → todoError
