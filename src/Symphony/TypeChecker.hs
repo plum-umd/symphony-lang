@@ -551,10 +551,10 @@ synArrayWrite e₁ e₂ e₃ =
             l₂ ← elabEMode loc₂
             em ← elabMode m
             guardErr (m ≡ l₂) $
-            typeError "synArrayWrite: m /≡ l" $ frhs
-            [ ("m", pretty m)
-            , ("l", pretty l₂)
-            ]
+              typeError "synArrayWrite: m /≡ l" $ frhs
+                [ ("m", pretty m)
+                  , ("l", pretty l₂)
+                ]
             (ty_join  τ₁' τ₃)
           _  → todoError
       _  → todoError
