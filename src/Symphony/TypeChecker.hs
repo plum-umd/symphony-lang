@@ -527,7 +527,7 @@ synArrayRead e₁ e₂ =
       _  → todoError
 
 
-synArrayWrite ∷ Exp → Exp → Exp → IM v v
+synArrayWrite ∷ Exp → Exp → Exp → EM Type
 synArrayWrite e₁ e₂ e₃ =
   let c₁ = synExp e₁
       c₂ = synExp e₂
@@ -559,9 +559,11 @@ synArrayWrite e₁ e₂ e₃ =
           _  → todoError
       _  → todoError
 
-synArraySize ∷ Exp → IM v v
+synArraySize ∷ Exp → EM Type
 synArraySize e = do
-  let c = synExp e in do
+  let c = synExp e 
+      c' = synExp e 
+  in do
     τ ← c
     case τ of
       (SecT loc (ArrT _ τ'))  → 
