@@ -585,7 +585,7 @@ synArraySize e =
 
 synPar ∷  PrinSetExp → Exp → EM Type
 synPar ρse₁ e₂ =
-  let c₁ = synPrinSetExp ρse₁
+  let c₁ = synPrinSet ρse₁
       c₂ = synExp e₂
   in do
     m  ← askL terModeL
@@ -599,7 +599,7 @@ synPar ρse₁ e₂ =
 
 checkPar ∷  PrinSetExp → Exp → EM Type
 checkPar ρse₁ e₂ τ=
-  let c₁ = synPrinSetExp ρse₁
+  let c₁ = synPrinSet ρse₁
       c₂ = synExp e₂
   in do
     m  ← askL terModeL
