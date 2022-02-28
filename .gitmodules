@@ -1,0 +1,3 @@
+[submodule "lang/vendor/uvmhs"]
+	path = lang/vendor/uvmhs
+	url = git@github.com:uvm-plaid/uvmhs.git
