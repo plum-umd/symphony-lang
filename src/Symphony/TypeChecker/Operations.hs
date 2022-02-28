@@ -450,7 +450,7 @@ subty_wf t m =
     case t of
     SecT loc loc_ty → do
       loc_subty ← (superlocty_wf loc_ty m)
-      wfcond ← (wf_loctype locty m)
+      wfcond ← (wf_loctype loc_ty m)
       l ← (elabEMode loc)
       if (supermode m l) then (return (SecT l loc_subty)) else todoError
     _  → todoError
