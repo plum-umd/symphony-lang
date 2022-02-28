@@ -593,7 +593,7 @@ synPar ρse₁ e₂ =
     let l = AddTop ρ𝑃
     let m' = m ⊓ l
     if m' ≢ bot then
-      localL terMode m' c₂
+      localL terModeL m' c₂
     else
       todoError
 
@@ -607,7 +607,7 @@ checkPar ρse₁ e₂ τ=
     let l = AddTop ρ𝑃
     let m' = m ⊓ l
     if m' ≢ bot then do 
-      τ' ← localL terMode m' c₂
+      τ' ← localL terModeL m' c₂
       subcond  ← (subtype τ' τ)
       if subcond then
               return ()
