@@ -1,3 +1,12 @@
 [submodule "lang/vendor/uvmhs"]
 	path = lang/vendor/uvmhs
 	url = git@github.com:uvm-plaid/uvmhs.git
+[submodule "lang/backends/emp/vendor/symphony-emp-tool"]
+	path = lang/backends/emp/vendor/symphony-emp-tool
+	url = git@github.com:Isweet/symphony-emp-tool.git
+[submodule "lang/backends/emp/vendor/symphony-emp-ot"]
+	path = lang/backends/emp/vendor/symphony-emp-ot
+	url = git@github.com:Isweet/symphony-emp-ot.git
+[submodule "lang/backends/symphony-spdz"]
+	path = lang/backends/symphony-spdz
+	url = git@github.com:Isweet/symphony-spdz

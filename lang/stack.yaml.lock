@@ -3,18 +3,7 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages:
-- completed:
-    name: uvmhs
-    version: 0.0.0.0
-    git: https://github.com/uvm-plaid/uvmhs.git
-    pantry-tree:
-      size: 123066
-      sha256: 3df1ccce10300967e598699c81c377695e325d57e6ea3f9e8efaa9f584afc4c3
-    commit: 9987218dd3bbe678234d1ccf069941728f8920bb
-  original:
-    git: https://github.com/uvm-plaid/uvmhs.git
-    commit: 9987218dd3bbe678234d1ccf069941728f8920bb
+packages: []
 snapshots:
 - completed:
     size: 586041
