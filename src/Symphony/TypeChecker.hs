@@ -583,7 +583,7 @@ synArraySize e =
 --- Par ---
 -----------
 
-synPar ∷  PrinSetExp → Exp → IM v v
+synPar ∷  PrinSetExp → Exp → EM Type
 synPar ρse₁ e₂ =
   let c₁ = synPrinSetExp ρse₁
       c₂ = synExp e₂
@@ -597,7 +597,7 @@ synPar ρse₁ e₂ =
     else
       todoError
 
-checkPar ∷  PrinSetExp → Exp → IM v v
+checkPar ∷  PrinSetExp → Exp → EM Type
 checkPar ρse₁ e₂ τ=
   let c₁ = synPrinSetExp ρse₁
       c₂ = synExp e₂
