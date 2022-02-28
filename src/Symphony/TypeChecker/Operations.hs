@@ -395,6 +395,67 @@ wf_type ty m =
       if (supermode m m') then (return ()) else todoError
 
 
+-- Rules to get the least sub subtype of loctype sigma that is well formed
+sublocty_wf :: Type  → Mode →  EM Type 
+sublocty_wf sigma m = 
+  case sigma of
+    BaseT bt → return sigma
+    ShareT p loc loc_ty  → do
+        l ← (elabEMode loc)
+        if (l == m) then
+          do 
+            loc_subty ← (share_subloctype_wf loc_ty m)
+            return (ShareT p loc loc_subty)
+        else
+          todoError
+    (loctyₗ :+: loctyᵣ) → do 
+      loctyₗ' ← (subty_wf loctyₗ m)
+      loctyᵣ' ← (subty_wf loctyᵣ m)
+      return (loctyₗ' :+: loctyᵣ')
+    (loctyₗ :×: loctyᵣ)  → do
+      loctyₗ' ← (subty_wf loctyₗ m)
+      loctyᵣ' ← (subty_wf loctyᵣ m)
+      return (loctyₗ' :×: loctyᵣ')
+    (ListT n τₜ)  → do
+      τₜ' ← (subty_wf τₜ m)
+      return (ListT n τₜ') 
+    (τ₁₁ :→: (η :* τ₁₂)) → do
+      l ← elabEMode $ effectMode η
+      l_inter ← (elabMode (inter_m m l))
+      τ₁₁' ← (superty_wf τ₁₁ m)
+      τ₁₂' ← (subty_wf τ₁₂ m)
+      return (τ₁₁' :→:  (( Effect {effectInput = effectInput η, effectReveal = effectReveal η,  effectMode = l_inter}) :* τ₁₂'))
+    (RefT τ)  → do
+      τ' ← (subty_wf τ m)
+      return (RefT τ')
+    (ArrT n τ)  → do
+      τ' ← (subty_wf τ m)
+      return (ArrT n τ')
+    x  → todoError
+
+-- Rules to get the least super supertype of located type that a share can take sigma that is well formed
+share_subloctype_wf :: Type → Mode → EM Type
+share_subloctype_wf sigma m =
+  case sigma of
+    BaseT bt → return sigma
+    (loctyₗ :+: loctyᵣ) → do 
+      loctyₗ' ← (subty_wf loctyₗ m)
+      loctyᵣ' ← (subty_wf loctyᵣ m)
+      return (loctyₗ' :+: loctyᵣ')
+    _  → todoError
+
+-- Rules to get the least super supertype of type t that is well formed
+subty_wf :: Type  → Mode  → EM Type 
+subty_wf t m = 
+    case t of
+    SecT loc loc_ty → do
+      loc_subty ← (superlocty_wf loc_ty m)
+      wfcond ← (wf_loctype locty m)
+      l ← (elabEMode loc)
+      if (supermode m l) then (return (SecT l loc_subty)) else todoError
+    _  → todoError
+
+
 -- Rules to get the least super supertype of loctype sigma that is well formed
 superlocty_wf :: Type  → Mode →  EM Type 
 superlocty_wf sigma m = 
@@ -422,7 +483,7 @@ superlocty_wf sigma m =
     (τ₁₁ :→: (η :* τ₁₂)) → do
       l ← elabEMode $ effectMode η
       l_inter ← (elabMode (inter_m m l))
-      τ₁₁' ← (superty_wf τ₁₁ m)
+      τ₁₁' ← (subty_wf τ₁₁ m)
       τ₁₂' ← (superty_wf τ₁₂ m)
       return (τ₁₁' :→:  (( Effect {effectInput = effectInput η, effectReveal = effectReveal η,  effectMode = l_inter}) :* τ₁₂'))
     (RefT τ)  → do
