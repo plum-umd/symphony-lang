@@ -75,7 +75,7 @@ library:
     - text
     - vector
   extra-libraries:
-    - empc
+    - symphony-mpc
 
 tests:
   symphony-test:
