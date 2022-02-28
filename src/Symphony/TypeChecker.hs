@@ -577,7 +577,45 @@ synArraySize e =
             ]
           return (SecT em (BaseT (ℕT InfIPr)))
       _ → todoError
-        
+
+
+-----------
+--- Par ---
+-----------
+
+synPar ∷  PrinSetExp → Exp → IM v v
+synPar ρse₁ e₂ =
+  let c₁ = synPrinSetExp ρse₁
+      c₂ = synExp e₂
+  in do
+    m  ← askL terModeL
+    ρ𝑃 ← (elabPrinSetExp  ρse₁)
+    let l = AddTop ρ𝑃
+    let m' = m ⊓ l
+    if m' ≢ bot then
+      localL terMode m' c₂
+    else
+      todoError
+
+checkPar ∷  PrinSetExp → Exp → IM v v
+checkPar ρse₁ e₂ τ=
+  let c₁ = synPrinSetExp ρse₁
+      c₂ = synExp e₂
+  in do
+    m  ← askL terModeL
+    ρ𝑃 ← (elabPrinSetExp  ρse₁)
+    let l = AddTop ρ𝑃
+    let m' = m ⊓ l
+    if m' ≢ bot then do 
+      τ' ← localL iterMode m' c₂
+      subcond  ← (subtype τ' τ)
+      if subcond then
+              return ()
+      else
+        todoError
+    else do
+      wfcond ← (wf_type τ  (AddTop pø))
+      return ()
 -------------------
 --- Expressions ---
 -------------------
@@ -595,6 +633,7 @@ chkExpR e τ =
       RE eᵣ        → checkR eᵣ τ
       NilE        → checkNil τ
       LamE self𝑂 ψs e → checkLam self𝑂 ψs e τ
+      ParE ρse₁ e₂ → checkPar ρse₁ e₂ τ
       _ →     
           do 
             τ' ← synExpR e
@@ -643,6 +682,7 @@ synExpR e = case e of
   RefReadE e      → synRefRead e
   RefWriteE e₁ e₂ → synRefWrite e₁ e₂
 
+  ParE ρse₁ e₂ → synPar ρse₁ e₂
   AscrE e τ → synAscr e τ
   _      → undefined
 
