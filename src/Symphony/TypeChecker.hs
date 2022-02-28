@@ -597,7 +597,7 @@ synPar ρse₁ e₂ =
     else
       todoError
 
-checkPar ∷  PrinSetExp → Exp → EM Type
+checkPar ∷  PrinSetExp → Exp → Type → EM Type
 checkPar ρse₁ e₂ τ=
   let c₁ = synPrinSet ρse₁
       c₂ = synExp e₂
