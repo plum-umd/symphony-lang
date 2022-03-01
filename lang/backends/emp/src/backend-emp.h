@@ -45,13 +45,32 @@ extern "C" {
     int obj[4];
   } emp_semi_bit_t;
 
+  // Share from INPUT party
+  void emp_semi_bit_send_share(bool b, int *sockets, size_t size);
+  emp_semi_bit_t *emp_semi_bit_recv_share(emp_semi_ctx_t *p, int socket);
+  emp_semi_bit_t emp_semi_bit_recv_share_stack(emp_semi_ctx_t *p, int socket);
+
+  // Share from COMPUTE party
+  emp_semi_bit_t emp_semi_bit_share_stack(emp_semi_ctx_t *p, int8_t party, bool b);
+  emp_semi_bit_t *emp_semi_bit_share(emp_semi_ctx_t *p, int8_t party, bool b);
+
+  // Reveal to OUTPUT party
+  void emp_semi_bit_send_reveal(emp_semi_ctx_t *p, emp_semi_bit_t *v, int socket);
+  void emp_semi_bit_send_reveal_stack(emp_semi_ctx_t *p, emp_semi_bit_t v, int socket);
+  bool emp_semi_bit_recv_reveal(int *sockets, size_t size);
+
+  // Reveal to COMPUTE party
+  bool emp_semi_bit_reveal(emp_semi_ctx_t *p, int8_t party, emp_semi_bit_t *v);
+  bool emp_semi_bit_reveal_stack(emp_semi_ctx_t *p, int8_t party, emp_semi_bit_t v);
+
+  // Destroy a share
+  void emp_semi_bit_destroy(emp_semi_bit_t *v);
+
 /*
   --------------------------
   ---- Stack Allocation ----
   --------------------------
 */
-
-  emp_semi_bit_t emp_semi_bit_create_stack(emp_semi_ctx_t *p, int8_t party, bool b);
 
   emp_semi_bit_t emp_semi_bit_xor_stack(emp_semi_ctx_t *p, emp_semi_bit_t *lhs, emp_semi_bit_t *rhs);
   emp_semi_bit_t emp_semi_bit_and_stack(emp_semi_ctx_t *p, emp_semi_bit_t *lhs, emp_semi_bit_t *rhs);
@@ -66,10 +85,6 @@ extern "C" {
   -------------------------
 */
 
-  emp_semi_bit_t *emp_semi_bit_create(emp_semi_ctx_t *p, int8_t party, bool b);
-  bool emp_semi_bit_reveal(emp_semi_ctx_t *p, int8_t party, emp_semi_bit_t *v);
-  void emp_semi_bit_destroy(emp_semi_bit_t *v);
-
   emp_semi_bit_t *emp_semi_bit_xor(emp_semi_ctx_t *p, emp_semi_bit_t *lhs, emp_semi_bit_t *rhs);
   emp_semi_bit_t *emp_semi_bit_and(emp_semi_ctx_t *p, emp_semi_bit_t *lhs, emp_semi_bit_t *rhs);
 
@@ -83,24 +98,37 @@ extern "C" {
   --------------------
 */
 
-  struct emp_semi_integer;
-  typedef struct emp_semi_integer emp_semi_integer_t;
+  struct emp_semi_int64;
+  typedef struct emp_semi_int64 emp_semi_int64_t;
 
-  emp_semi_integer_t *emp_semi_integer_create(emp_semi_ctx_t *p, int8_t party, uint16_t precision, int64_t v);
-  int64_t emp_semi_integer_reveal(emp_semi_ctx_t *p, int8_t party, emp_semi_integer_t *v);
-  void emp_semi_integer_destroy(emp_semi_integer_t *v);
+  // Share from INPUT party
+  void emp_semi_int64_send_share(int64_t v, int *sockets, size_t size);
+  emp_semi_int64_t *emp_semi_int64_recv_share(emp_semi_ctx_t *p, int socket);
 
-  emp_semi_integer_t *emp_semi_integer_add(emp_semi_ctx_t *p, emp_semi_integer_t *lhs, emp_semi_integer_t *rhs);
-  emp_semi_integer_t *emp_semi_integer_mult(emp_semi_ctx_t *p, emp_semi_integer_t *lhs, emp_semi_integer_t *rhs);
+  // Share from COMPUTE party
+  emp_semi_int64_t *emp_semi_int64_share(emp_semi_ctx_t *p, int8_t party, int64_t v);
 
-  emp_semi_integer_t *emp_semi_integer_sub(emp_semi_ctx_t *p, emp_semi_integer_t *lhs, emp_semi_integer_t *rhs);
-  emp_semi_integer_t *emp_semi_integer_div(emp_semi_ctx_t *p, emp_semi_integer_t *lhs, emp_semi_integer_t *rhs);
-  emp_semi_integer_t *emp_semi_integer_mod(emp_semi_ctx_t *p, emp_semi_integer_t *lhs, emp_semi_integer_t *rhs);
-  emp_semi_bit_t *emp_semi_integer_eq(emp_semi_ctx_t *p, emp_semi_integer_t *lhs, emp_semi_integer_t *rhs);
-  emp_semi_bit_t *emp_semi_integer_lt(emp_semi_ctx_t *p, emp_semi_integer_t *lhs, emp_semi_integer_t *rhs);
-  emp_semi_bit_t *emp_semi_integer_lte(emp_semi_ctx_t *p, emp_semi_integer_t *lhs, emp_semi_integer_t *rhs);
-  emp_semi_bit_t *emp_semi_integer_gt(emp_semi_ctx_t *p, emp_semi_integer_t *lhs, emp_semi_integer_t *rhs);
-  emp_semi_integer_t *emp_semi_integer_cond(emp_semi_ctx_t *p, emp_semi_bit_t *guard, emp_semi_integer_t *lhs, emp_semi_integer_t *rhs);
+  // Reveal to OUTPUT party
+  void emp_semi_int64_send_reveal(emp_semi_ctx_t *p, emp_semi_int64_t *v, int socket);
+  int64_t emp_semi_int64_recv_reveal(int *sockets, size_t size);
+
+  // Reveal to COMPUTE party
+  int64_t emp_semi_int64_reveal(emp_semi_ctx_t *p, int8_t party, emp_semi_int64_t *v);
+
+  // Destroy a share
+  void emp_semi_int64_destroy(emp_semi_int64_t *v);
+
+  emp_semi_int64_t *emp_semi_int64_add(emp_semi_ctx_t *p, emp_semi_int64_t *lhs, emp_semi_int64_t *rhs);
+  emp_semi_int64_t *emp_semi_int64_mult(emp_semi_ctx_t *p, emp_semi_int64_t *lhs, emp_semi_int64_t *rhs);
+
+  emp_semi_int64_t *emp_semi_int64_sub(emp_semi_ctx_t *p, emp_semi_int64_t *lhs, emp_semi_int64_t *rhs);
+  emp_semi_int64_t *emp_semi_int64_div(emp_semi_ctx_t *p, emp_semi_int64_t *lhs, emp_semi_int64_t *rhs);
+  emp_semi_int64_t *emp_semi_int64_mod(emp_semi_ctx_t *p, emp_semi_int64_t *lhs, emp_semi_int64_t *rhs);
+  emp_semi_bit_t *emp_semi_int64_eq(emp_semi_ctx_t *p, emp_semi_int64_t *lhs, emp_semi_int64_t *rhs);
+  emp_semi_bit_t *emp_semi_int64_lt(emp_semi_ctx_t *p, emp_semi_int64_t *lhs, emp_semi_int64_t *rhs);
+  emp_semi_bit_t *emp_semi_int64_lte(emp_semi_ctx_t *p, emp_semi_int64_t *lhs, emp_semi_int64_t *rhs);
+  emp_semi_bit_t *emp_semi_int64_gt(emp_semi_ctx_t *p, emp_semi_int64_t *lhs, emp_semi_int64_t *rhs);
+  emp_semi_int64_t *emp_semi_int64_cond(emp_semi_ctx_t *p, emp_semi_bit_t *guard, emp_semi_int64_t *lhs, emp_semi_int64_t *rhs);
 
 #ifdef __cplusplus
 }
