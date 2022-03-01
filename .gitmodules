@@ -7,9 +7,6 @@
 [submodule "lang/backends/emp/vendor/symphony-emp-ot"]
 	path = lang/backends/emp/vendor/symphony-emp-ot
 	url = git@github.com:Isweet/symphony-emp-ot.git
-[submodule "lang/backends/symphony-spdz"]
-	path = lang/backends/symphony-spdz
-	url = git@github.com:Isweet/symphony-spdz
 [submodule "lang/backends/emp/vendor/symphony-emp-sh2pc"]
 	path = lang/backends/emp/vendor/symphony-emp-sh2pc
 	url = git@github.com:Isweet/symphony-emp-sh2pc.git
