@@ -10,7 +10,7 @@ out/lib/libbackend-emp.dylib: emp src/backend-emp.o
 	g++ -o $@ -shared -Lvendor/out/lib -L/usr/local/opt/openssl/lib -lemp-tool -lcrypto src/backend-emp.o
 
 src/backend-emp.o: src/backend-emp.cpp
-	g++ -o $@ -std=c++11 -maes -Ivendor/out/include -c $^
+	g++ -o $@ -std=c++11 -maes -Ivendor/out/include -I/usr/local/opt/openssl/include -c $^
 
 .PHONY: emp
 emp:
