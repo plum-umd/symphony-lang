@@ -1,97 +1,46 @@
-#include "backend-emp.h"
+// USES
+#include "symphony/Util.hpp"
 #include "emp-sh2pc/emp-sh2pc.h"
 #include <immintrin.h>
 
+// PROVIDES
+#include "symphony/emp.h"
+
 using namespace emp;
 
-ssize_t send_all(int socket, const void *buf, size_t len, int flags) {
-  ssize_t left = len;
-  const uint8_t *buf_bytes = (uint8_t *) buf;
-
-  ssize_t sent = 0;
-  while (0 < left) {
-    sent = send(socket, buf_bytes + (len - left), left, flags);
-
-    if (sent < 0) { return sent; }
-
-    left -= sent;
-  }
-
-  return len;
-}
-
-void send_bool(int socket, bool b, int flags) {
-  ssize_t sent = send_all(socket, &b, sizeof(bool), flags);
-
-  if (sent < 0) { perror("send_bool: impossible"); }
-}
-
-void send_int64(int socket, int64_t v, int flags) {
-  ssize_t sent = send_all(socket, &v, sizeof(int64_t), flags);
-
-  if (sent < 0) { perror("send_int64: impossible"); }
-}
-
-bool recv_bool(int socket, int flags) {
-  bool b;
-  ssize_t received = recv(socket, &b, sizeof(bool), flags);
-
-  if (received != sizeof(bool)) { perror("recv_bool: impossible"); }
-
-  return b;
-}
-
-int64_t recv_int64(int socket, int flags) {
-  int64_t v;
-  ssize_t received = recv(socket, &v, sizeof(int64_t), flags);
-
-  if (received != sizeof(int64_t)) { perror("recv_int64: impossible"); }
-
-  return v;
-}
-
 /*
-  ----------------------
-  --- NetIO Channels ---
-  ----------------------
+  ----------------------------
+  --- Channel => IOChannel ---
+  ----------------------------
 */
 
-struct netio {
-  void *obj;
-};
+class SymphonyIO : public IOChannel<SymphonyIO> {
+private:
+  Channel *c;
 
-netio_t *netio_create(const char *address, int port, bool quiet) {
-  netio_t *io;
-
-  io      = (netio_t *) malloc(sizeof(netio_t));
-  io->obj = new NetIO(address, port, quiet);
-
-  return io;
-}
-
-void netio_destroy(netio_t *io) {
-  if (io == NULL) {
-    return;
+public:
+  SymphonyIO(Channel *c) {
+    this->c = c;
   }
 
-  delete static_cast<NetIO *>(io->obj);
-  free(io);
-}
+  ~SymphonyIO() {
+    delete this->c;
+  }
 
-void netio_send(netio_t *io, void *data, size_t bytes) {
-  NetIO *net = static_cast<NetIO *>(io->obj);
-  net->send_data_internal(data, bytes);
-}
+  void send_data_internal(const void *data, int len) {
+    this->c->send_all(data, len);
+  }
 
-void netio_recv(netio_t *io, void *data, size_t bytes) {
-  NetIO *net = static_cast<NetIO *>(io->obj);
-  net->recv_data_internal(data, bytes);
-}
+  void recv_data_internal(void *data, int len) {
+    this->c->recv_all(data, len);
+  }
 
-void netio_flush(netio_t *io) {
-  NetIO *net = static_cast<NetIO *>(io->obj);
-  net->flush();
-}
+  void flush() {
+    this->c->flush();
+  }
+};
+
+/*
 
 /*
   --------------------
@@ -104,13 +53,13 @@ struct emp_semi_ctx {
   void *prot;
 };
 
-emp_semi_ctx_t *emp_semi_ctx_create(int8_t party, netio_t *io) {
-  NetIO *net = static_cast<NetIO *>(io->obj);
+emp_semi_ctx_t *emp_semi_ctx_create(int8_t party, channel_t *chan) {
+  SymphonyIO *io = new SymphonyIO(static_cast<Channel *>(chan->obj));
 
   emp_semi_ctx_t *p;
 
   p = (emp_semi_ctx_t *) malloc(sizeof(emp_semi_ctx_t));
-  setup_semi_honest(net, party);
+  setup_semi_honest(io, party);
   p->circ = CircuitExecution::circ_exec;
   p->prot = ProtocolExecution::prot_exec;
 
@@ -142,9 +91,10 @@ void emp_semi_ctx_destroy(emp_semi_ctx_t *p) {
 //       I am committing a cardinal sin by implementing my own crypto.
 
 // INPUT -> {COMPUTE}
-void emp_semi_bit_send_share(bool b, int *sockets, size_t size) {
+void emp_semi_bit_send_share(bool b, channel_t **chans) {
+  size_t size = 2;
   bool *shares = (bool *) malloc(size * sizeof(bool));
-  bool sum = 0;
+  bool sum = false;
 
   size_t i;
   PRG prg;
@@ -158,29 +108,29 @@ void emp_semi_bit_send_share(bool b, int *sockets, size_t size) {
   shares[i] = b ^ sum;
 
   for (i = 0; i < size; i++) {
-    send_bool(sockets[i], shares[i], 0);
+    send_bool(chans[i], shares[i]);
   }
 
   free(shares);
 }
 
 // {COMPUTE} <- INPUT
-emp_semi_bit_t *emp_semi_bit_recv_share(emp_semi_ctx_t *p, int socket) {
+emp_semi_bit_t *emp_semi_bit_recv_share(emp_semi_ctx_t *p, channel_t *chan) {
   emp_install(p);
 
   emp_semi_bit_t *v = (emp_semi_bit_t *) malloc(sizeof(emp_semi_bit_t));
-  *v = emp_semi_bit_recv_share_stack(p, socket);
+  *v = emp_semi_bit_recv_share_stack(p, chan);
 
   return v;
 }
 
 // {COMPUTE} <- INPUT
-emp_semi_bit_t emp_semi_bit_recv_share_stack(emp_semi_ctx_t *p, int socket) {
+emp_semi_bit_t emp_semi_bit_recv_share_stack(emp_semi_ctx_t *p, channel_t *chan) {
   emp_install(p);
 
-  bool my_sh = recv_bool(socket, 0);
-  emp_semi_bit_t sh1 = emp_semi_bit_share_stack(p, 0, my_sh);
-  emp_semi_bit_t sh2 = emp_semi_bit_share_stack(p, 1, my_sh);
+  bool my_sh = recv_bool(chan);
+  emp_semi_bit_t sh1 = emp_semi_bit_share_stack(p, 1, my_sh);
+  emp_semi_bit_t sh2 = emp_semi_bit_share_stack(p, 2, my_sh);
 
   Bit sh1_bit(_mm_loadu_si128((__m128i *) sh1.obj));
   Bit sh2_bit(_mm_loadu_si128((__m128i *) sh2.obj));
@@ -214,28 +164,29 @@ emp_semi_bit_t *emp_semi_bit_share(emp_semi_ctx_t *p, int8_t party, bool b) {
 }
 
 // {COMPUTE} -> OUTPUT
-void emp_semi_bit_send_reveal(emp_semi_ctx_t *p, emp_semi_bit_t *v, int socket) {
+void emp_semi_bit_send_reveal(emp_semi_ctx_t *p, emp_semi_bit_t *v, channel_t *chan) {
   emp_install(p);
 
-  emp_semi_bit_send_reveal_stack(p, *v, socket);
+  emp_semi_bit_send_reveal_stack(p, *v, chan);
 }
 
 // {COMPUTE} -> OUTPUT
-void emp_semi_bit_send_reveal_stack(emp_semi_ctx_t *p, emp_semi_bit_t v, int socket) {
+void emp_semi_bit_send_reveal_stack(emp_semi_ctx_t *p, emp_semi_bit_t v, channel_t *chan) {
   emp_install(p);
 
   Bit v0(_mm_loadu_si128((__m128i *) v.obj));
   bool my_sh = v0.reveal<bool>(XOR); // See: https://github.com/emp-toolkit/emp-sh2pc/blob/master/emp-sh2pc/sh_gen.h#L61
 
-  send_bool(socket, my_sh, 0);
+  send_bool(chan, my_sh);
 }
 
 // OUTPUT <- {COMPUTE}
-bool emp_semi_bit_recv_reveal(int *sockets, size_t size) {
-  bool result = 0;
+bool emp_semi_bit_recv_reveal(channel_t **chans) {
+  size_t size = 2;
+  bool result = false;
 
   for (size_t i = 0; i < size; i++) {
-    result ^= recv_bool(sockets[i], 0);
+    result ^= recv_bool(chans[i]);
   }
 
   return result;
@@ -389,7 +340,8 @@ struct emp_semi_int64 {
 //       I am committing a cardinal sin by implementing my own crypto.
 
 // INPUT -> {COMPUTE}
-void emp_semi_int64_send_share(int64_t v, int *sockets, size_t size) {
+void emp_semi_int64_send_share(int64_t v, channel_t **chans) {
+  size_t size = 2;
   int64_t *shares = (int64_t *) malloc(size * sizeof(int64_t));
   int64_t sum = 0;
 
@@ -405,19 +357,19 @@ void emp_semi_int64_send_share(int64_t v, int *sockets, size_t size) {
   shares[i] = v ^ sum;
 
   for (i = 0; i < size; i++) {
-    send_int64(sockets[i], shares[i], 0);
+    send_int64(chans[i], shares[i]);
   }
 
   free(shares);
 }
 
 // {COMPUTE} <- INPUT
-emp_semi_int64_t *emp_semi_int64_recv_share(emp_semi_ctx_t *p, int socket) {
+emp_semi_int64_t *emp_semi_int64_recv_share(emp_semi_ctx_t *p, channel_t *chan) {
   emp_install(p);
 
-  int64_t my_sh = recv_int64(socket, 0);
-  emp_semi_int64_t *sh1 = emp_semi_int64_share(p, 0, my_sh);
-  emp_semi_int64_t *sh2 = emp_semi_int64_share(p, 1, my_sh);
+  int64_t my_sh = recv_int64(chan);
+  emp_semi_int64_t *sh1 = emp_semi_int64_share(p, 1, my_sh);
+  emp_semi_int64_t *sh2 = emp_semi_int64_share(p, 2, my_sh);
 
   Integer *sh1_int64 = static_cast<Integer *>(sh1->obj);
   Integer *sh2_int64 = static_cast<Integer *>(sh2->obj);
@@ -439,21 +391,22 @@ emp_semi_int64_t *emp_semi_int64_share(emp_semi_ctx_t *p, int8_t party, int64_t 
 }
 
 // {COMPUTE} -> OUTPUT
-void emp_semi_int64_send_reveal(emp_semi_ctx_t *p, emp_semi_int64_t *v, int socket) {
+void emp_semi_int64_send_reveal(emp_semi_ctx_t *p, emp_semi_int64_t *v, channel_t *chan) {
   emp_install(p);
 
   Integer *v0 = static_cast<Integer *>(v->obj);
   int64_t my_sh = v0->reveal<int64_t>(XOR); // See: https://github.com/emp-toolkit/emp-sh2pc/blob/master/emp-sh2pc/sh_gen.h#L61
 
-  send_int64(socket, my_sh, 0);
+  send_int64(chan, my_sh);
 }
 
 // OUTPUT <- {COMPUTE}
-int64_t emp_semi_int64_recv_reveal(int *sockets, size_t size) {
+int64_t emp_semi_int64_recv_reveal(channel_t **chans) {
+  size_t size = 2;
   int64_t result = 0;
 
   for (size_t i = 0; i < size; i++) {
-    result ^= recv_int64(sockets[i], 0);
+    result ^= recv_int64(chans[i]);
   }
 
   return result;

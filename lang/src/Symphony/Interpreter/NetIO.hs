@@ -17,11 +17,12 @@ import qualified Prelude as HS
 import qualified Data.Text as T
 import qualified Data.ByteString as BS
 
-foreign import ccall unsafe "symphony.h netio_create" netio_create ∷ CString → HS.Int → HS.Bool → IO (Ptr NetIOStruct)
-foreign import ccall unsafe "symphony.h netio_send" netio_send ∷ Ptr NetIOStruct → Ptr a → HS.Int → IO ()
-foreign import ccall unsafe "symphony.h netio_recv" netio_recv ∷ Ptr NetIOStruct → Ptr a → HS.Int → IO ()
-foreign import ccall unsafe "symphony.h netio_flush" netio_flush ∷ Ptr NetIOStruct → IO ()
-foreign import ccall unsafe "symphony.h &netio_destroy" netio_destroy ∷ FinalizerPtr NetIOStruct
+foreign import ccall unsafe "backend-emp.h netio_create" netio_create ∷ CString → HS.Int → HS.Bool → IO (Ptr NetIOStruct)
+foreign import ccall unsafe "backend-emp.h netio_send" netio_send ∷ Ptr NetIOStruct → Ptr a → HS.Int → IO ()
+foreign import ccall unsafe "backend-emp.h netio_recv" netio_recv ∷ Ptr NetIOStruct → Ptr a → HS.Int → IO ()
+foreign import ccall unsafe "backend-emp.h netio_flush" netio_flush ∷ Ptr NetIOStruct → IO ()
+foreign import ccall unsafe "backend-emp.h netio_socket" netio_socket ∷ Ptr NetIOStruct → IO CInt
+foreign import ccall unsafe "backend-emp.h &netio_destroy" netio_destroy ∷ FinalizerPtr NetIOStruct
 
 assignRoles ∷ (Monad m, MonadReader (ICxt v) m, MonadError IError m) ⇒ PrinVal → PrinVal → m (PrinVal ∧ PrinVal)
 assignRoles ρv₁ ρv₂ = if ρv₁ < ρv₂ then return (ρv₁ :* ρv₂) else if ρv₂ < ρv₁ then return (ρv₂ :* ρv₁) else impossibleCxt
@@ -48,6 +49,9 @@ netIOCreate ρvMe ρvThem quiet = do
 
 netIOFlush ∷ NetIO → IO ()
 netIOFlush net = withForeignPtr net netio_flush
+
+netIOSocket ∷ NetIO → IO CInt
+netIOSocket net = withForeignPtr net netio_socket
 
 netIOSendStorable ∷ (Storable a) ⇒ NetIO → a → IO ()
 netIOSendStorable net v =

@@ -1,23 +1,55 @@
+# Artifacts
+LIB_NAME    = symphony-emp
+SHARED_LIB := lib$(LIB_NAME).dylib
+LIBS        = $(SHARED_LIB)
+
+# Dependencies
+OPENSSL_ROOT_DIR = /usr/local/opt/openssl
+VENDOR_DIR       = vendor
+UTIL_ROOT_DIR    = ../util
+
+DEPS_DIRS := $(OPENSSL_ROOT_DIR) $(VENDOR_DIR) $(UTIL_ROOT_DIR)
+DEPS       = crypto emp-tool symphony-util
+
+# Input / Output
+SOURCE_DIR = src
+BUILD_DIR  = build
+LIB_DIR    = lib
+
+# Compiler Options
+CXX       = g++
+CXXFLAGS := -std=c++11 -maes $(addprefix -I, $(addsuffix /include, . $(DEPS_DIRS)))
+LDFLAGS  := $(addprefix -L, $(addsuffix /lib, $(DEPS_DIRS)))
+LDLIBS   := $(addprefix -l, $(DEPS))
+
+SOURCES = $(shell find $(SOURCE_DIR) -name '*.cpp')
+OBJECTS = $(patsubst $(SOURCE_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(SOURCES))
+
+# Build
 .PHONY: all
-all: out/include/backend-emp.h out/lib/libbackend-emp.dylib
+all: $(addprefix $(LIB_DIR)/, $(LIBS))
 
-out/include/backend-emp.h: src/backend-emp.h
-	mkdir -p out/include
-	cp src/backend-emp.h out/include/backend-emp.h
+$(LIB_DIR)/$(SHARED_LIB): vendor util $(OBJECTS) $(LIB_DIR)
+	$(CXX) -o $@ -shared $(LDFLAGS) $(OBJECTS) $(LDLIBS)
 
-out/lib/libbackend-emp.dylib: emp src/backend-emp.o
-	mkdir -p out/lib
-	g++ -o $@ -shared -Lvendor/out/lib -L/usr/local/opt/openssl/lib -lemp-tool -lcrypto src/backend-emp.o
+$(LIB_DIR):
+	mkdir -p $@
 
-src/backend-emp.o: src/backend-emp.cpp
-	g++ -o $@ -std=c++11 -maes -Ivendor/out/include -I/usr/local/opt/openssl/include -c $^
+$(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.cpp vendor util $(BUILD_DIR)
+	$(CXX) -o $@ -c $(CXXFLAGS) $<
 
-.PHONY: emp
-emp:
-	$(MAKE) -C vendor
+$(BUILD_DIR):
+	mkdir -p $@
+
+.PHONY: vendor
+vendor:
+	$(MAKE) -C $(VENDOR_DIR)
+
+.PHONY: util
+util:
+	$(MAKE) -C $(UTIL_ROOT_DIR)
 
 .PHONY: clean
 clean:
-	$(MAKE) -C vendor clean
-	rm -f src/backend-emp.o
-	rm -rf out
+	rm -rf $(BUILD_DIR)
+	rm -rf $(LIB_DIR)

@@ -3,25 +3,11 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include "symphony/util.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/*
-  ----------------------
-  --- NetIO Channels ---
-  ----------------------
-*/
-
-  struct netio;
-  typedef struct netio netio_t;
-  netio_t *netio_create(const char *addr, int port, bool quiet);
-  void netio_destroy(netio_t *io);
-
-  void netio_send(netio_t *io, void *data, size_t bytes);
-  void netio_recv(netio_t *io, void *data, size_t bytes);
-  void netio_flush(netio_t *io);
 
 /*
   --------------------
@@ -32,7 +18,7 @@ extern "C" {
   struct emp_semi_ctx;
   typedef struct emp_semi_ctx emp_semi_ctx_t;
 
-  emp_semi_ctx_t *emp_semi_ctx_create(int8_t party, netio_t *io);
+  emp_semi_ctx_t *emp_semi_ctx_create(int8_t party, channel_t *chan);
   void emp_semi_ctx_destroy(emp_semi_ctx_t *p);
 
 /*
@@ -46,18 +32,18 @@ extern "C" {
   } emp_semi_bit_t;
 
   // Share from INPUT party
-  void emp_semi_bit_send_share(bool b, int *sockets, size_t size);
-  emp_semi_bit_t *emp_semi_bit_recv_share(emp_semi_ctx_t *p, int socket);
-  emp_semi_bit_t emp_semi_bit_recv_share_stack(emp_semi_ctx_t *p, int socket);
+  void emp_semi_bit_send_share(bool b, channel_t **chans);
+  emp_semi_bit_t *emp_semi_bit_recv_share(emp_semi_ctx_t *p, channel_t *chan);
+  emp_semi_bit_t emp_semi_bit_recv_share_stack(emp_semi_ctx_t *p, channel_t *chan);
 
   // Share from COMPUTE party
   emp_semi_bit_t emp_semi_bit_share_stack(emp_semi_ctx_t *p, int8_t party, bool b);
   emp_semi_bit_t *emp_semi_bit_share(emp_semi_ctx_t *p, int8_t party, bool b);
 
   // Reveal to OUTPUT party
-  void emp_semi_bit_send_reveal(emp_semi_ctx_t *p, emp_semi_bit_t *v, int socket);
-  void emp_semi_bit_send_reveal_stack(emp_semi_ctx_t *p, emp_semi_bit_t v, int socket);
-  bool emp_semi_bit_recv_reveal(int *sockets, size_t size);
+  void emp_semi_bit_send_reveal(emp_semi_ctx_t *p, emp_semi_bit_t *v, channel_t *chan);
+  void emp_semi_bit_send_reveal_stack(emp_semi_ctx_t *p, emp_semi_bit_t v, channel_t *chan);
+  bool emp_semi_bit_recv_reveal(channel_t **chans);
 
   // Reveal to COMPUTE party
   bool emp_semi_bit_reveal(emp_semi_ctx_t *p, int8_t party, emp_semi_bit_t *v);
@@ -102,15 +88,15 @@ extern "C" {
   typedef struct emp_semi_int64 emp_semi_int64_t;
 
   // Share from INPUT party
-  void emp_semi_int64_send_share(int64_t v, int *sockets, size_t size);
-  emp_semi_int64_t *emp_semi_int64_recv_share(emp_semi_ctx_t *p, int socket);
+  void emp_semi_int64_send_share(int64_t v, channel_t **chans);
+  emp_semi_int64_t *emp_semi_int64_recv_share(emp_semi_ctx_t *p, channel_t *chan);
 
   // Share from COMPUTE party
   emp_semi_int64_t *emp_semi_int64_share(emp_semi_ctx_t *p, int8_t party, int64_t v);
 
   // Reveal to OUTPUT party
-  void emp_semi_int64_send_reveal(emp_semi_ctx_t *p, emp_semi_int64_t *v, int socket);
-  int64_t emp_semi_int64_recv_reveal(int *sockets, size_t size);
+  void emp_semi_int64_send_reveal(emp_semi_ctx_t *p, emp_semi_int64_t *v, channel_t *chan);
+  int64_t emp_semi_int64_recv_reveal(channel_t **chans);
 
   // Reveal to COMPUTE party
   int64_t emp_semi_int64_reveal(emp_semi_ctx_t *p, int8_t party, emp_semi_int64_t *v);
