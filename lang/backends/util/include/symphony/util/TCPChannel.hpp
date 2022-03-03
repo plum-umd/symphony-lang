@@ -129,7 +129,7 @@ public:
     this->init_server(port, buffer_size);
   }
 
-  ~TCPChannel(){
+  ~TCPChannel() {
     this->flush();
     fclose(this->conn);
     delete[] this->buffer;

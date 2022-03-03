@@ -14,6 +14,8 @@ extern "C" {
   };
   typedef struct channel channel_t;
 
+  void channel_destroy(channel_t *chan);
+
   void send_all(channel_t *chan, const void *data, size_t size);
   void recv_all(channel_t *chan, void *buf, size_t size);
 

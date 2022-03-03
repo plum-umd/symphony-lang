@@ -1,8 +1,15 @@
+#include <cstdlib>
+
 // USES
 #include "symphony/util/Channel.hpp"
 
 // PROVIDES
 #include "symphony/util/channel.h"
+
+void channel_destroy(channel_t *chan) {
+  delete static_cast<Channel *>(chan->obj);
+  free(chan);
+}
 
 void send_all(channel_t *chan, const void *data, size_t size) {
   Channel *o = static_cast<Channel *>(chan->obj);

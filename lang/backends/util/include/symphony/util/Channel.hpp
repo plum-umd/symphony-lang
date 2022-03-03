@@ -6,10 +6,11 @@
 
 class Channel {
 public:
+  virtual ~Channel() {}
+
   virtual void send_all(const void *data, size_t size) = 0;
   virtual void recv_all(void *buf, size_t size) = 0;
   virtual void flush() = 0;
-  virtual ~Channel() = 0;
 
   void send_bool(bool b) {
     this->send_all(&b, sizeof(bool));
@@ -30,8 +31,6 @@ public:
     this->recv_all(&z, sizeof(int64_t));
     return z;
   }
-
-
 };
 
 #endif

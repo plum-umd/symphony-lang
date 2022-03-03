@@ -73,10 +73,9 @@ void emp_install(emp_semi_ctx_t *p) {
 
 void emp_semi_ctx_destroy(emp_semi_ctx_t *p) {
   emp_install(p);
+
   finalize_semi_honest();
   free(p);
-
-  return;
 }
 
 /*
@@ -208,11 +207,7 @@ bool emp_semi_bit_reveal_stack(emp_semi_ctx_t *p, int8_t party, emp_semi_bit_t v
 }
 
 void emp_semi_bit_destroy(emp_semi_bit_t *v) {
-  if (v == NULL) { return; }
-
   free(v);
-
-  return;
 }
 
 
@@ -421,12 +416,8 @@ int64_t emp_semi_int64_reveal(emp_semi_ctx_t *p, int8_t party, emp_semi_int64_t 
 }
 
 void emp_semi_int64_destroy(emp_semi_int64_t *v) {
-  if (v == NULL) { return; }
-
   delete static_cast<Integer *>(v->obj);
   free(v);
-
-  return;
 }
 
 emp_semi_int64_t *emp_semi_int64_add(emp_semi_ctx_t *p, emp_semi_int64_t *lhs, emp_semi_int64_t *rhs) {
