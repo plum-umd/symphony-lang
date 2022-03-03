@@ -70,12 +70,12 @@ instance (Pretty v, Pretty e) ⇒ Pretty (ValR v e) where
     DefaultV → ppCon "⊥"
 
 
----------------------
---- NetIO Channel ---
----------------------
+---------------
+--- Channel ---
+---------------
 
-data NetIOStruct = NetIOStruct deriving (Eq,Ord,Show)
-type NetIO = ForeignPtr NetIOStruct
+data ChannelStruct = ChannelStruct deriving (Eq,Ord,Show)
+type Channel = ForeignPtr ChannelStruct
 
 ----------------------
 --- EMP FFI Values ---
@@ -201,7 +201,7 @@ data IState v = IState
   { iStateStore        ∷ (Store v)
   , iStateNextLoc      ∷ ℤ64
   , iStateGen          ∷ R.ChaChaDRG
-  , iStateChannels     ∷ PrinVal ⇰ NetIO
+  , iStateChannels     ∷ PrinVal ⇰ Channel
   , iStateNextWires    ∷ (𝑃 PrinVal) ⇰ Wire
   , iStateSessionsYao  ∷ PrinVal ⇰ EMPProtocol
   , iStateSessionsSPDZ ∷ 𝑃 PrinVal ⇰ MPSPDZProtocol
