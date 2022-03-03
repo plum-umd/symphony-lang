@@ -51,5 +51,7 @@ util:
 
 .PHONY: clean
 clean:
+	$(MAKE) -C $(VENDOR_DIR) clean
+	$(MAKE) -C $(UTIL_ROOT_DIR) clean
 	rm -rf $(BUILD_DIR)
 	rm -rf $(LIB_DIR)

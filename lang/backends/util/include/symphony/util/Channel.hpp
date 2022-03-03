@@ -9,6 +9,7 @@ public:
   virtual void send_all(const void *data, size_t size) = 0;
   virtual void recv_all(void *buf, size_t size) = 0;
   virtual void flush() = 0;
+  virtual ~Channel() = 0;
 
   void send_bool(bool b) {
     this->send_all(&b, sizeof(bool));
