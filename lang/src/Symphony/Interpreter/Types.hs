@@ -19,10 +19,10 @@ class (Pretty (EBV v), Pretty v) ⇒ Value v where
   locateVal  ∷ (STACK) ⇒ v → IM v v
   inPrins    ∷ (STACK) ⇒ 𝑃 PrinVal → IM v 𝔹
 
-  shareVal  ∷ (STACK) ⇒ Prot → PrinVal   → 𝑃 PrinVal → v → Type → IM v v
-  commVal   ∷ (STACK) ⇒        PrinVal   → 𝑃 PrinVal → v → Type → IM v v
-  flushVal  ∷ (STACK) ⇒ PrinVal → PrinVal                       → IM v ()
-  revealVal ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → PrinVal   → v → Type → IM v v
+  shareVal  ∷ (STACK) ⇒ Prot → PrinVal → 𝑃 PrinVal → v → Type → IM v v
+  commVal   ∷ (STACK) ⇒ PrinVal → 𝑃 PrinVal → v → Type → IM v v
+  flushVal  ∷ (STACK) ⇒ PrinVal → IM v ()
+  revealVal ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → PrinVal → v → Type → IM v v
 
   embedEBV ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → ClearBaseVal → IM v (EBV v)
   primEBV  ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → Op → 𝐿 (EBV v) → IM v (EBV v)
@@ -81,18 +81,23 @@ type Channel = ForeignPtr ChannelStruct
 --- EMP FFI Values ---
 ----------------------
 
-data EMPProtocolStruct = EMPProtocolStruct deriving (Eq,Ord,Show)
-type EMPProtocol = ForeignPtr EMPProtocolStruct
+data EMPProtocolStruct = EMPProtocolStruct deriving (Eq, Ord, Show)
+type EMPProtocol       = ForeignPtr EMPProtocolStruct
 
-data EMPBool = EMPBool deriving (Eq,Ord,Show)
-data EMPInt  = EMPInt  deriving (Eq,Ord,Show)
-data EMPFlt  = EMPFlt  deriving (Eq,Ord,Show)
+data EMPBoolStruct = EMPBoolStruct deriving (Eq, Ord, Show)
+type EMPBool       = ForeignPtr EMPBoolStruct
+
+data EMPIntStruct = EMPIntStruct deriving (Eq, Ord, Show)
+type EMPInt       = ForeignPtr EMPIntStruct
+
+data EMPFltStruct = EMPFltStruct deriving (Eq, Ord, Show)
+type EMPFlt       = ForeignPtr EMPFltStruct
 
 data EMPVal =
-    BoolEV (ForeignPtr EMPBool)
-  | NatEV IPrecision (ForeignPtr EMPInt) -- Unfortunately, EMP doesn't support ℕ so we represent them as integers
-  | IntEV IPrecision (ForeignPtr EMPInt)
-  | FltEV FPrecision (ForeignPtr EMPFlt)
+    BoolEV EMPBool
+  | NatEV IPrecision EMPInt -- Unfortunately, EMP doesn't support ℕ so we represent them as integers
+  | IntEV IPrecision EMPInt
+  | FltEV FPrecision EMPFlt
   deriving (Eq,Ord,Show)
 
 instance Pretty EMPVal where
@@ -203,7 +208,7 @@ data IState v = IState
   , iStateGen          ∷ R.ChaChaDRG
   , iStateChannels     ∷ PrinVal ⇰ Channel
   , iStateNextWires    ∷ (𝑃 PrinVal) ⇰ Wire
-  , iStateSessionsYao  ∷ PrinVal ⇰ EMPProtocol
+  , iStateSessionsYao  ∷ 𝑃 PrinVal ⇰ EMPProtocol
   , iStateSessionsSPDZ ∷ 𝑃 PrinVal ⇰ MPSPDZProtocol
   , iStateMPCCont      ∷ 𝐿 (𝐿 v ∧ v)
   }

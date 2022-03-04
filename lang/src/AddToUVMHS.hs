@@ -265,3 +265,6 @@ cont f = ContT $ \ c → ID (f (unID ∘ c))
 
 runCont ∷ Cont r a → (a → r) → r
 runCont m k = unID $ runContT (ID ∘ k) m
+
+pmapM ∷ (Monad m, Ord b) ⇒ (a → m b) → 𝑃 a → m (𝑃 b)
+pmapM f = pow𝐼 ^∘ (mapM f) ∘ iter

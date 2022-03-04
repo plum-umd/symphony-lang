@@ -22,7 +22,7 @@ elimClear = \case
 
 elimEncrypted ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → BaseVal e → IM v e
 elimEncrypted φₑ ρsₑ = \case
-  Clear _cbv            → throwIErrorCxt TypeIError "elimEncrypted: C" empty𝐿
+  Clear _cbv           → throwIErrorCxt TypeIError "elimEncrypted: C" empty𝐿
   Encrypted φₐ ρsₐ ebv → do
     guardErr (φₑ ≡ φₐ ⩓ ρsₑ ≡ ρsₐ) $
       throwIErrorCxt TypeIError "elimEncrypted: φₑ ≢ φₐ ⩔ ρvsₑ ≢ ρvsₐ" $ frhs

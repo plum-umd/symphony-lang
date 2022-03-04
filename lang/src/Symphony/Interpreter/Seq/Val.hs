@@ -141,8 +141,8 @@ commValSeq ρvFr ρvsTo ṽ _τ = do
          _ → todoCxt
   introSeqValMode (AddTop ρvsTo) vˢ
 
-flushValSeq ∷ (STACK) ⇒ PrinVal → PrinVal → IM SeqVal ()
-flushValSeq _ρvFr _ρvTo = return ()
+flushValSeq ∷ (STACK) ⇒ PrinVal → IM SeqVal ()
+flushValSeq _ρvWith = return ()
 
 revealValSeq ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → PrinVal → SeqVal → Type → IM SeqVal SeqVal
 revealValSeq φ ρvsFr ρvTo ṽ _τ = do

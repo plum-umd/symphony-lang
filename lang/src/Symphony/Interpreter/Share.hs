@@ -12,26 +12,13 @@ import Symphony.Interpreter.Plain ()
 import Symphony.Interpreter.Yao ()
 import Symphony.Interpreter.SPDZ ()
 
-proxySProt ∷ SProt p → P p
-proxySProt = \case
-  SPlainP    → P
-  SYaoPlainP → P
-  SYaoNP     → P
-  SYao2P     → P
-  SBGWP      → P
-  SGMWP      → P
-  SBGVP      → P
-  SSPDZP     → P
-  SAutoP     → P
-
-withProt ∷ (Monad m, MonadReader (ICxt v) m, MonadError IError m, STACK) ⇒ Prot → (∀ (p ∷ Prot). (Protocol p) ⇒ P p → SProt p → m b) → m b
+withProt ∷ (Monad m, MonadReader (ICxt v) m, MonadError IError m, STACK) ⇒ Prot → (∀ (p ∷ Prot). (Protocol p) ⇒ SProt p → m b) → m b
 withProt φ k = case φ of
-  PlainP    → k P SPlainP
-  YaoPlainP → k P SYaoPlainP
+  PlainP    → todoCxt
   YaoNP     → todoCxt
-  Yao2P     → k P SYao2P
+  Yao2P     → k SYao2P
   BGWP      → todoCxt
   GMWP      → todoCxt
   BGVP      → todoCxt
-  SPDZP     → k P SSPDZP
+  SPDZP     → todoCxt
   AutoP     → todoCxt

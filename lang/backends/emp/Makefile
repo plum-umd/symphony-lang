@@ -30,7 +30,8 @@ OBJECTS = $(patsubst $(SOURCE_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(SOURCES))
 all: $(addprefix $(LIB_DIR)/, $(LIBS))
 
 $(LIB_DIR)/$(SHARED_LIB): vendor util $(OBJECTS) $(LIB_DIR)
-	$(CXX) -o $@ -shared $(LDFLAGS) $(OBJECTS) $(LDLIBS)
+	$(CXX) -o $(@F) -shared $(LDFLAGS) $(OBJECTS) $(LDLIBS)
+	mv $(@F) $@
 
 $(LIB_DIR):
 	mkdir -p $@

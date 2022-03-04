@@ -1,45 +1,102 @@
 module Symphony.Interpreter.EMP where
 
 import UVMHS
+import AddToUVMHS
 
 import Symphony.Interpreter.Types
 import Symphony.Interpreter.Pretty ()
 
 import Foreign.Ptr
 import Foreign.ForeignPtr
+import Foreign.C.Types
+import Foreign.Marshal.Utils
+import Foreign.Marshal.Array
 
 import qualified Prelude as HS
 import qualified Data.Int as Int
+
+type ChannelP     = Ptr ChannelStruct
+type EMPProtocolP = Ptr EMPProtocolStruct
+type EMPBoolP     = Ptr EMPBoolStruct
+type EMPIntP      = Ptr EMPIntStruct
+
+type Party = CSChar
+
+toParty ∷ (HS.Integral a) ⇒ a → Party
+toParty = HS.fromIntegral
+
+withForeignPtrs ∷ (Functor t, FunctorM t) ⇒ t (ForeignPtr a) → (t (Ptr a) → IO b) → IO b
+withForeignPtrs xs f = runCont (exchange $ map (cont ∘ withForeignPtr) xs) f
 
 ----------------------------
 --- EMP Setup / Teardown ---
 ----------------------------
 
-foreign import ccall unsafe "backend-emp.h emp_semi_ctx_create"   emp_semi_ctx_create  ∷ CSChar → Ptr NetIOStruct → IO (Ptr EMPProtocolStruct)
-foreign import ccall unsafe "backend-emp.h &emp_semi_ctx_destroy" emp_semi_ctx_destroy ∷ FinalizerPtr EMPProtocolStruct
+foreign import ccall unsafe "symphony/emp.h emp_semi_ctx_create"   emp_semi_ctx_create  ∷ Party → ChannelP → IO EMPProtocolP
+foreign import ccall unsafe "symphony/emp.h &emp_semi_ctx_destroy" emp_semi_ctx_destroy ∷ FinalizerPtr EMPProtocolStruct
 
-empSemiCtxCreate ∷ ℤ8 → NetIO → IO EMPProtocol
-empSemiCtxCreate party net = newForeignPtr emp_semi_ctx_destroy *$ withForeignPtr net $ \ netp → emp_semi_ctx_create party netp
+empSemiCtxCreate ∷ (Monad m, MonadIO m) ⇒ ℤ8 → Channel → m EMPProtocol
+empSemiCtxCreate party chan = io $
+  newForeignPtr emp_semi_ctx_destroy *$
+  withForeignPtr chan $ \ chan_ptr →
+  emp_semi_ctx_create (toParty party) chan_ptr
 
-foreign import ccall unsafe "backend-emp.h emp_semi_bit_send_share" emp_semi_bit_send_share ∷ CBool → Ptr CInt → CSize → IO ()
-foreign import ccall unsafe "backend-emp.h emp_semi_bit_recv_share" emp_semi_bit_recv_share ∷ Ptr EMPProtocolStruct → CInt → IO (Ptr EMPBool)
-foreign import ccall unsafe "backend-emp.h emp_semi_bit_share"      emp_semi_bit_share      ∷ Ptr EMPProtocolStruct → CSChar → CBool → IO (Ptr EMPBool)
+---------------------------------
+--- Bit Sharing / Destruction ---
+---------------------------------
 
-empSemiBitSendShare ∷ 𝔹 → 𝐿 NetIO → IO ()
-empSemiBitSendShare b ios = do
-  sockets ← mapM netIOSocket ios
-  withArrayLen sockets $ \ size fds → emp_semi_bit_send_share b fds size
+foreign import ccall unsafe "symphony/emp.h emp_semi_bit_send_share" emp_semi_bit_send_share ∷ CBool → Ptr ChannelP → IO ()
+foreign import ccall unsafe "symphony/emp.h emp_semi_bit_recv_share" emp_semi_bit_recv_share ∷ EMPProtocolP → ChannelP → IO EMPBoolP
+foreign import ccall unsafe "symphony/emp.h emp_semi_bit_share"      emp_semi_bit_share      ∷ EMPProtocolP → Party → CBool → IO EMPBoolP
+foreign import ccall unsafe "symphony/emp.h &emp_semi_bit_destroy"   emp_semi_bit_destroy    ∷ FinalizerPtr EMPBoolStruct
 
-foreign import ccall unsafe "backend-emp.h emp_semi_bit_create" bit_create ∷ (Ptr EMPProtocolStruct) → HS.Bool → HS.Int → IO (Ptr EMPBool)
-foreign import ccall unsafe "backend-emp.h &emp_semi_bit_destroy" bit_destroy ∷ FinalizerPtr EMPBool
-foreign import ccall unsafe "backend-emp.h emp_semi_integer_create" integer_create ∷ (Ptr EMPProtocolStruct) → HS.Int → Int.Int64 → HS.Int → IO (Ptr EMPInt)
-foreign import ccall unsafe "backend-emp.h &emp_semi_integer_destroy" integer_destroy ∷ FinalizerPtr EMPInt
+empSemiBitSendShare ∷ (Monad m, MonadIO m) ⇒ 𝔹 → 𝐿 Channel → m ()
+empSemiBitSendShare b chans = io $
+  withForeignPtrs chans $ \ chan_ptrs →
+  withArray (tohs chan_ptrs) $ \ chans_ptr →
+  emp_semi_bit_send_share (fromBool b) chans_ptr
 
-empShareBit ∷ EMPProtocol → HS.Int → 𝔹 → IO (ForeignPtr EMPBool)
-empShareBit ep ρvFr b = withForeignPtr ep $ \ epp → newForeignPtr bit_destroy *$ bit_create epp b ρvFr
+empSemiBitRecvShare ∷ (Monad m, MonadIO m) ⇒ EMPProtocol → Channel → m EMPBool
+empSemiBitRecvShare π chan = io $
+  withForeignPtr π $ \ π_ptr →
+  withForeignPtr chan $ \ chan_ptr →
+  newForeignPtr emp_semi_bit_destroy *$ emp_semi_bit_recv_share π_ptr chan_ptr
 
-empShareInt ∷ EMPProtocol → HS.Int → HS.Int → ℤ → IO (ForeignPtr EMPInt)
-empShareInt ep ρvFr prec z = withForeignPtr ep $ \ epp → newForeignPtr integer_destroy *$ integer_create epp prec (HS.fromIntegral z) ρvFr
+empSemiBitShare ∷ (Monad m, MonadIO m) ⇒ EMPProtocol → ℤ8 → 𝔹 → m EMPBool
+empSemiBitShare π party b = io $
+  withForeignPtr π $ \ π_ptr →
+  newForeignPtr emp_semi_bit_destroy *$ emp_semi_bit_share π_ptr (toParty party) (fromBool b)
+
+---------------------
+--- Bit Revealing ---
+---------------------
+
+foreign import ccall unsafe "symphony/emp.h emp_semi_bit_send_reveal" emp_semi_bit_send_reveal ∷ EMPProtocolP → EMPBoolP → ChannelP → IO ()
+foreign import ccall unsafe "symphony/emp.h emp_semi_bit_recv_reveal" emp_semi_bit_recv_reveal ∷ Ptr ChannelP → IO CBool
+foreign import ccall unsafe "symphony/emp.h emp_semi_bit_reveal"      emp_semi_bit_reveal      ∷ EMPProtocolP → Party → EMPBoolP → IO CBool
+
+empSemiBitSendReveal ∷ (Monad m, MonadIO m) ⇒ EMPProtocol → EMPBool → Channel → m ()
+empSemiBitSendReveal π sh chan = io $
+  withForeignPtr π $ \ π_ptr →
+  withForeignPtr sh $ \ sh_ptr →
+  withForeignPtr chan $ \ chan_ptr →
+  emp_semi_bit_send_reveal π_ptr sh_ptr chan_ptr
+
+empSemiBitRecvReveal ∷ (Monad m, MonadIO m) ⇒ 𝐿 Channel → m 𝔹
+empSemiBitRecvReveal chans = io $
+  withForeignPtrs chans $ \ chan_ptrs →
+  withArray (tohs chan_ptrs) $ \ chans_ptr →
+  toBool ^$ emp_semi_bit_recv_reveal chans_ptr
+
+empSemiBitReveal ∷ (Monad m, MonadIO m) ⇒ EMPProtocol → ℤ8 → EMPBool → m 𝔹
+empSemiBitReveal π party sh = io $
+  withForeignPtr π $ \ π_ptr →
+  withForeignPtr sh $ \ sh_ptr →
+  toBool ^$ emp_semi_bit_reveal π_ptr (toParty party) sh_ptr
+
+----------------------
+--- Bit Operations ---
+----------------------
 
 empUnary ∷ ForeignPtr a → (Ptr a → IO (Ptr b)) → FinalizerPtr b → IO (ForeignPtr b)
 empUnary ev₁ f final = do
@@ -59,65 +116,25 @@ empTernary ev₁ ev₂ ev₃ f final = do
     withForeignPtr ev₃ $ \ evp₃ →
     newForeignPtr final *$ f evp₁ evp₂ evp₃
 
-foreign import ccall unsafe "backend-emp.h emp_semi_bit_not" bit_not ∷ Ptr EMPProtocolStruct → (Ptr EMPBool) → IO (Ptr EMPBool)
-foreign import ccall unsafe "backend-emp.h emp_semi_bit_and" bit_and ∷ Ptr EMPProtocolStruct → (Ptr EMPBool) → (Ptr EMPBool) → IO (Ptr EMPBool)
-foreign import ccall unsafe "backend-emp.h emp_semi_bit_cond" bit_cond ∷ Ptr EMPProtocolStruct → (Ptr EMPBool) → (Ptr EMPBool) → (Ptr EMPBool) → IO (Ptr EMPBool)
+foreign import ccall unsafe "symphony/emp.h emp_semi_bit_xor"  emp_semi_bit_xor  ∷ EMPProtocolP → EMPBoolP → EMPBoolP → IO EMPBoolP
+foreign import ccall unsafe "symphony/emp.h emp_semi_bit_and"  emp_semi_bit_and  ∷ EMPProtocolP → EMPBoolP → EMPBoolP → IO EMPBoolP
+foreign import ccall unsafe "symphony/emp.h emp_semi_bit_not"  emp_semi_bit_not  ∷ EMPProtocolP → EMPBoolP → IO EMPBoolP
+foreign import ccall unsafe "symphony/emp.h emp_semi_bit_or"   emp_semi_bit_or   ∷ EMPProtocolP → EMPBoolP → EMPBoolP → IO EMPBoolP
+foreign import ccall unsafe "symphony/emp.h emp_semi_bit_cond" emp_semi_bit_cond ∷ EMPProtocolP → EMPBoolP → EMPBoolP → EMPBoolP → IO EMPBoolP
 
-empBitNot ∷ EMPProtocol → ForeignPtr EMPBool → IO (ForeignPtr EMPBool)
-empBitNot ep eb₁ = withForeignPtr ep $ \ epp → empUnary eb₁ (bit_not epp) bit_destroy
+empSemiBitXor ∷ (Monad m, MonadIO m) ⇒ EMPProtocol → EMPBool → EMPBool → m EMPBool
+empSemiBitXor π sh₁ sh₂ = io $ withForeignPtr π $ \ π_ptr → empBinary sh₁ sh₂ (emp_semi_bit_xor π_ptr) emp_semi_bit_destroy
 
-empBitAnd ∷ EMPProtocol → ForeignPtr EMPBool → ForeignPtr EMPBool → IO (ForeignPtr EMPBool)
-empBitAnd ep eb₁ eb₂ = withForeignPtr ep $ \ epp → empBinary eb₁ eb₂ (bit_and epp) bit_destroy
+empSemiBitAnd ∷ (Monad m, MonadIO m) ⇒ EMPProtocol → EMPBool → EMPBool → m EMPBool
+empSemiBitAnd π sh₁ sh₂ = io $ withForeignPtr π $ \ π_ptr → empBinary sh₁ sh₂ (emp_semi_bit_and π_ptr) emp_semi_bit_destroy
 
-empBitCond ∷ EMPProtocol → ForeignPtr EMPBool → ForeignPtr EMPBool → ForeignPtr EMPBool → IO (ForeignPtr EMPBool)
-empBitCond ep eb₁ eb₂ eb₃ = withForeignPtr ep $ \ epp → empTernary eb₁ eb₂ eb₃ (bit_cond epp) bit_destroy
+empSemiBitNot ∷ (Monad m, MonadIO m) ⇒ EMPProtocol → EMPBool → m EMPBool
+empSemiBitNot π sh = io $ withForeignPtr π $ \ π_ptr → empUnary sh (emp_semi_bit_not π_ptr) emp_semi_bit_destroy
 
-foreign import ccall unsafe "backend-emp.h emp_semi_integer_add" integer_add ∷ Ptr EMPProtocolStruct → (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPInt)
-foreign import ccall unsafe "backend-emp.h emp_semi_integer_sub" integer_sub ∷ Ptr EMPProtocolStruct → (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPInt)
-foreign import ccall unsafe "backend-emp.h emp_semi_integer_mult" integer_mult ∷ Ptr EMPProtocolStruct → (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPInt)
-foreign import ccall unsafe "backend-emp.h emp_semi_integer_div" integer_div ∷ Ptr EMPProtocolStruct → (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPInt)
-foreign import ccall unsafe "backend-emp.h emp_semi_integer_mod" integer_mod ∷ Ptr EMPProtocolStruct → (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPInt)
-foreign import ccall unsafe "backend-emp.h emp_semi_integer_eq" integer_eq ∷ Ptr EMPProtocolStruct → (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPBool)
-foreign import ccall unsafe "backend-emp.h emp_semi_integer_lt" integer_lt ∷ Ptr EMPProtocolStruct → (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPBool)
-foreign import ccall unsafe "backend-emp.h emp_semi_integer_lte" integer_lte ∷ Ptr EMPProtocolStruct → (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPBool)
-foreign import ccall unsafe "backend-emp.h emp_semi_integer_gt" integer_gt ∷ Ptr EMPProtocolStruct → (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPBool)
-foreign import ccall unsafe "backend-emp.h emp_semi_integer_cond" integer_cond ∷ Ptr EMPProtocolStruct → (Ptr EMPBool) → (Ptr EMPInt) → (Ptr EMPInt) → IO (Ptr EMPInt)
+empSemiBitOr ∷ (Monad m, MonadIO m) ⇒ EMPProtocol → EMPBool → EMPBool → m EMPBool
+empSemiBitOr π sh₁ sh₂ = io $ withForeignPtr π $ \ π_ptr → empBinary sh₁ sh₂ (emp_semi_bit_or π_ptr) emp_semi_bit_destroy
 
-empIntegerAdd ∷ EMPProtocol → ForeignPtr EMPInt → ForeignPtr EMPInt → IO (ForeignPtr EMPInt)
-empIntegerAdd ep ez₁ ez₂ = withForeignPtr ep $ \ epp → empBinary ez₁ ez₂ (integer_add epp) integer_destroy
+empSemiBitCond ∷ EMPProtocol → EMPBool → EMPBool → EMPBool → IO EMPBool
+empSemiBitCond π sh₁ sh₂ sh₃ = io $ withForeignPtr π $ \ π_ptr → empTernary sh₁ sh₂ sh₃ (emp_semi_bit_cond π_ptr) emp_semi_bit_destroy
 
-empIntegerSub ∷ EMPProtocol → ForeignPtr EMPInt → ForeignPtr EMPInt → IO (ForeignPtr EMPInt)
-empIntegerSub ep ez₁ ez₂ = withForeignPtr ep $ \ epp → empBinary ez₁ ez₂ (integer_sub epp) integer_destroy
-
-empIntegerMult ∷ EMPProtocol → ForeignPtr EMPInt → ForeignPtr EMPInt → IO (ForeignPtr EMPInt)
-empIntegerMult ep ez₁ ez₂ = withForeignPtr ep $ \ epp → empBinary ez₁ ez₂ (integer_mult epp) integer_destroy
-
-empIntegerDiv ∷ EMPProtocol → ForeignPtr EMPInt → ForeignPtr EMPInt → IO (ForeignPtr EMPInt)
-empIntegerDiv ep ez₁ ez₂ = withForeignPtr ep $ \ epp → empBinary ez₁ ez₂ (integer_div epp) integer_destroy
-
-empIntegerMod ∷ EMPProtocol → ForeignPtr EMPInt → ForeignPtr EMPInt → IO (ForeignPtr EMPInt)
-empIntegerMod ep ez₁ ez₂ = withForeignPtr ep $ \ epp → empBinary ez₁ ez₂ (integer_mod epp) integer_destroy
-
-empIntegerEq ∷ EMPProtocol → ForeignPtr EMPInt → ForeignPtr EMPInt → IO (ForeignPtr EMPBool)
-empIntegerEq ep ez₁ ez₂ = withForeignPtr ep $ \ epp → empBinary ez₁ ez₂ (integer_eq epp) bit_destroy
-
-empIntegerLt ∷ EMPProtocol → ForeignPtr EMPInt → ForeignPtr EMPInt → IO (ForeignPtr EMPBool)
-empIntegerLt ep ez₁ ez₂ = withForeignPtr ep $ \ epp → empBinary ez₁ ez₂ (integer_lt epp) bit_destroy
-
-empIntegerLte ∷ EMPProtocol → ForeignPtr EMPInt → ForeignPtr EMPInt → IO (ForeignPtr EMPBool)
-empIntegerLte ep ez₁ ez₂ = withForeignPtr ep $ \ epp → empBinary ez₁ ez₂ (integer_lte epp) bit_destroy
-
-empIntegerGt ∷ EMPProtocol → ForeignPtr EMPInt → ForeignPtr EMPInt → IO (ForeignPtr EMPBool)
-empIntegerGt ep ez₁ ez₂ = withForeignPtr ep $ \ epp → empBinary ez₁ ez₂ (integer_gt epp) bit_destroy
-
-empIntegerCond ∷ EMPProtocol → ForeignPtr EMPBool → ForeignPtr EMPInt → ForeignPtr EMPInt → IO (ForeignPtr EMPInt)
-empIntegerCond ep eb₁ ez₂ ez₃ = withForeignPtr ep $ \ epp → empTernary eb₁ ez₂ ez₃ (integer_cond epp) integer_destroy
-
-foreign import ccall unsafe "backend-emp.h emp_semi_bit_reveal" bit_reveal ∷ Ptr EMPProtocolStruct → (Ptr EMPBool) → HS.Int → IO HS.Bool
-foreign import ccall unsafe "backend-emp.h emp_semi_integer_reveal" integer_reveal ∷ Ptr EMPProtocolStruct → (Ptr EMPInt) → HS.Int → IO Int.Int64
-
-empBitReveal ∷ EMPProtocol → HS.Int → ForeignPtr EMPBool → IO 𝔹
-empBitReveal ep ρvTo eb = withForeignPtr ep $ \ epp → withForeignPtr eb $ \ ebp → bit_reveal epp ebp ρvTo
-
-empIntegerReveal ∷ EMPProtocol → HS.Int → ForeignPtr EMPInt → IO Int.Int64
-empIntegerReveal ep ρvTo ez = withForeignPtr ep $ \ epp → withForeignPtr ez $ \ ezp → integer_reveal epp ezp ρvTo
+--- TODO: Integers

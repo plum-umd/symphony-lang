@@ -124,7 +124,6 @@ type TVar = 𝕏
 -- φ ∈ protocol ⩴  …
 data Prot =
     PlainP -- plaintext
-  | YaoPlainP -- plaintext, using EMP
   | YaoNP  -- yao
   | Yao2P  -- yao2
   | BGWP   -- bgw
@@ -137,7 +136,6 @@ data Prot =
 instance Pretty Prot where
   pretty = \case
     PlainP → ppBdr "plainP"
-    YaoPlainP → ppBdr "yaoPlainP"
     YaoNP → ppBdr "yaoNP"
     Yao2P → ppBdr "yao2P"
     BGWP → ppBdr "bgw"
@@ -149,7 +147,6 @@ instance Pretty Prot where
 -- Singleton for Prot
 data SProt (p ∷ Prot) where
   SPlainP ∷ SProt 'PlainP
-  SYaoPlainP ∷ SProt 'YaoPlainP
   SYaoNP  ∷ SProt 'YaoNP
   SYao2P  ∷ SProt 'Yao2P
   SBGWP   ∷ SProt 'BGWP
@@ -165,7 +162,6 @@ deriving instance Show (SProt p)
 instance Pretty (SProt p) where
   pretty = \case
     SPlainP → ppLit "SPlainP"
-    SYaoPlainP → ppLit "SYaoPlainP"
     SYaoNP  → ppLit "SYaoNP"
     SYao2P  → ppLit "SYao2P"
     SBGWP   → ppLit "SBGWP"
@@ -177,7 +173,6 @@ instance Pretty (SProt p) where
 instance DEqable SProt where
   deq sp₁ sp₂ = case (sp₁, sp₂) of
     (SPlainP, SPlainP) → YesDEq
-    (SYaoPlainP, SYaoPlainP) → YesDEq
     (SYaoNP , SYaoNP ) → YesDEq
     (SYao2P , SYao2P ) → YesDEq
     (SBGWP  , SBGWP  ) → YesDEq
@@ -192,24 +187,17 @@ instance DCmpable SProt where
     -- SPlain
     (SPlainP, SPlainP) → EQDCmp
     (SPlainP, _      ) → LTDCmp
-    -- SYaoPlainP
-    (SYaoPlainP, SPlainP) → GTDCmp
-    (SYaoPlainP, SYaoPlainP) → EQDCmp
-    (SYaoPlainP, _) → LTDCmp
     -- SYaoNP
     (SYaoNP , SPlainP) → GTDCmp
-    (SYaoNP , SYaoPlainP) → GTDCmp
     (SYaoNP , SYaoNP ) → EQDCmp
     (SYaoNP , _      ) → LTDCmp
     -- SYao2P
     (SYao2P , SPlainP) → GTDCmp
-    (SYao2P , SYaoPlainP) → GTDCmp
     (SYao2P , SYaoNP ) → GTDCmp
     (SYao2P , SYao2P ) → EQDCmp
     (SYao2P , _      ) → LTDCmp
     -- SBGWP
     (SBGWP  , SPlainP) → GTDCmp
-    (SBGWP  , SYaoPlainP) → GTDCmp
     (SBGWP  , SYaoNP ) → GTDCmp
     (SBGWP  , SYao2P ) → GTDCmp
     (SBGWP  , SBGWP  ) → EQDCmp
@@ -236,7 +224,6 @@ instance DCmpable SProt where
 protFrSProt ∷ SProt p → Prot
 protFrSProt = \case
   SPlainP → PlainP
-  SYaoPlainP → YaoPlainP
   SYaoNP  → YaoNP
   SYao2P  → Yao2P
   SBGWP   → BGWP

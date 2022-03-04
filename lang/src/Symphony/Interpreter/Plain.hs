@@ -1,5 +1,5 @@
 module Symphony.Interpreter.Plain where
-
+{-
 import UVMHS
 
 import Symphony.Syntax
@@ -27,3 +27,4 @@ instance Protocol 'PlainP where
 
   reveal ∷ P 'PlainP → 𝑃 PrinVal → PrinVal → ClearBaseVal → IM DistVal ClearBaseVal
   reveal _p _ρvsFr _ρvTo bv = return bv
+-}

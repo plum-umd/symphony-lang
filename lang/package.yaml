@@ -51,8 +51,8 @@ ghc-options:
   - -fexpose-all-unfoldings
 
 data-files:
-  - ../lib/*
-  - ../examples/*
+  - lib/**/*
+  - examples/**/*
 
 library:
   source-dirs:
@@ -72,13 +72,9 @@ library:
     - bytestring
     - text
     - vector
-  include-dirs:
-    - backends/emp/include
-  extra-lib-dirs:
-    - backends/emp/lib
   extra-libraries:
     - symphony-emp
-
+    - symphony-util
 
 tests:
   symphony-test:

@@ -48,9 +48,9 @@ elimExShare φˢ₁ (ExShare φˢ₂ sh) = case deq φˢ₁ φˢ₂ of
   NoDEq  → throwIErrorCxt TypeIError "φˢ₁ ≢ φˢ₂" $ frhs [ ("φˢ₁", pretty φˢ₁), ("φˢ₂", pretty φˢ₂) ]
   YesDEq → return sh
 
---------------------
--- MPC Protocols ---
---------------------
+---------------------
+--- MPC Protocols ---
+---------------------
 
 class
   ( Eq     (Share p)
@@ -59,9 +59,11 @@ class
   , Pretty (Share p)
   ) ⇒
   Protocol p where
-    type Share p   ∷ ★
+    type Share p ∷ ★
 
-    share  ∷ P p → PrinVal → 𝑃 PrinVal → (ClearBaseVal ∨ BaseType) → IM DistVal (Share p)
-    embed  ∷ P p → 𝑃 PrinVal → ClearBaseVal → IM DistVal (Share p)
-    prim   ∷ P p → 𝑃 PrinVal → Op → 𝐿 (Share p) → IM DistVal (Share p)
-    reveal ∷ P p → 𝑃 PrinVal → PrinVal → Share p → IM DistVal ClearBaseVal
+    sendShare  ∷ SProt p → 𝑃 Channel → ClearBaseVal → IM DistVal ()
+    recvShare  ∷ SProt p → 𝑃 PrinVal → Channel → BaseType → IM DistVal (Share p)
+    embed      ∷ SProt p → 𝑃 PrinVal → ClearBaseVal → IM DistVal (Share p)
+    prim       ∷ SProt p → 𝑃 PrinVal → Op → 𝐿 (Share p) → IM DistVal (Share p)
+    sendReveal ∷ SProt p → 𝑃 PrinVal → Channel → Share p → IM DistVal ()
+    recvReveal ∷ SProt p → 𝑃 Channel → BaseType → IM DistVal ClearBaseVal

@@ -455,9 +455,8 @@ interpFlush ∷ (STACK, Value v) ⇒ PrinExp → IM v v
 interpFlush ρe =
   let c = interpPrinExp ρe
   in do
-    ρvMe   ← singletonMode
     ρvThem ← c
-    flushVal ρvMe ρvThem
+    flushVal ρvThem
     interpBul
 
 ----------------------

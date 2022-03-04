@@ -367,7 +367,7 @@ pBool = concat
 
 pProt ∷ CParser TokenBasic Prot
 pProt = cpNewContext "prot" $ concat
-  [ do cpSyntaxVoid "plain" ; return YaoPlainP
+  [ do cpSyntaxVoid "plain" ; return PlainP
   , do cpSyntaxVoid "yao"   ; return Yao2P
   , do cpSyntaxVoid "yaoN"  ; return YaoNP
   , do cpSyntaxVoid "yao2"  ; return Yao2P

@@ -55,46 +55,42 @@ getOrMkChannel them = do
 --- Send / Recv BaseVal ---
 ----------------------------
 
-sendClearBaseVal ∷ (Monad m, MonadReader (ICxt v) m, MonadError IError m, MonadState (IState v) m, MonadIO m, STACK) ⇒ PrinVal → ClearBaseVal → m ()
-sendClearBaseVal to bv = do
-  ch ← getOrMkChannel to
-  case bv of
-    BoolV b → io $ channelSendStorable ch b
+sendClearBaseVal ∷ (Monad m, MonadReader (ICxt v) m, MonadError IError m, MonadState (IState v) m, MonadIO m, STACK) ⇒ Channel → ClearBaseVal → m ()
+sendClearBaseVal chanTo = \case
+    BoolV b → channelSendStorable chanTo b
     NatV pr n → case pr of
-      FixedIPr wPr dPr | wPr + dPr ≡ 8  → io $ channelSendStorable @ℕ8  ch $ HS.fromIntegral n
-      FixedIPr wPr dPr | wPr + dPr ≡ 16 → io $ channelSendStorable @ℕ16 ch $ HS.fromIntegral n
-      FixedIPr wPr dPr | wPr + dPr ≡ 32 → io $ channelSendStorable @ℕ32 ch $ HS.fromIntegral n
-      FixedIPr wPr dPr | wPr + dPr ≡ 64 → io $ channelSendStorable @ℕ64 ch $ HS.fromIntegral n
+      FixedIPr wPr dPr | wPr + dPr ≡ 8  → channelSendStorable @ℕ8  chanTo $ HS.fromIntegral n
+      FixedIPr wPr dPr | wPr + dPr ≡ 16 → channelSendStorable @ℕ16 chanTo $ HS.fromIntegral n
+      FixedIPr wPr dPr | wPr + dPr ≡ 32 → channelSendStorable @ℕ32 chanTo $ HS.fromIntegral n
+      FixedIPr wPr dPr | wPr + dPr ≡ 64 → channelSendStorable @ℕ64 chanTo $ HS.fromIntegral n
       _ → throwIErrorCxt NotImplementedIError "TODO" empty𝐿
     IntV pr z → case pr of
-      FixedIPr wPr dPr | wPr + dPr ≡ 8  → io $ channelSendStorable @ℤ8  ch $ HS.fromIntegral z
-      FixedIPr wPr dPr | wPr + dPr ≡ 16 → io $ channelSendStorable @ℤ16 ch $ HS.fromIntegral z
-      FixedIPr wPr dPr | wPr + dPr ≡ 32 → io $ channelSendStorable @ℤ32 ch $ HS.fromIntegral z
-      FixedIPr wPr dPr | wPr + dPr ≡ 64 → io $ channelSendStorable @ℤ64 ch $ HS.fromIntegral z
+      FixedIPr wPr dPr | wPr + dPr ≡ 8  → channelSendStorable @ℤ8  chanTo $ HS.fromIntegral z
+      FixedIPr wPr dPr | wPr + dPr ≡ 16 → channelSendStorable @ℤ16 chanTo $ HS.fromIntegral z
+      FixedIPr wPr dPr | wPr + dPr ≡ 32 → channelSendStorable @ℤ32 chanTo $ HS.fromIntegral z
+      FixedIPr wPr dPr | wPr + dPr ≡ 64 → channelSendStorable @ℤ64 chanTo $ HS.fromIntegral z
       _ → throwIErrorCxt NotImplementedIError "TODO" empty𝐿
     _ → throwIErrorCxt NotImplementedIError "TODO" empty𝐿
 
-recvClearBaseVal ∷ (Monad m, MonadReader (ICxt v) m, MonadError IError m, MonadState (IState v) m, MonadIO m, STACK) ⇒ PrinVal → BaseType → m ClearBaseVal
-recvClearBaseVal fr bτ = do
-  ch ← getOrMkChannel fr
-  case bτ of
+recvClearBaseVal ∷ (Monad m, MonadReader (ICxt v) m, MonadError IError m, MonadState (IState v) m, MonadIO m, STACK) ⇒ Channel → BaseType → m ClearBaseVal
+recvClearBaseVal chanFr = \case
     𝔹T → do
-      b ← io $ channelRecvStorable ch
+      b ← channelRecvStorable chanFr
       return $ BoolV b
     ℕT pr → do
       n ← case pr of
-            FixedIPr wPr dPr | wPr + dPr ≡ 8  → map HS.fromIntegral $ io $ channelRecvStorable @ℕ8 ch
-            FixedIPr wPr dPr | wPr + dPr ≡ 16 → map HS.fromIntegral $ io $ channelRecvStorable @ℕ16 ch
-            FixedIPr wPr dPr | wPr + dPr ≡ 32 → map HS.fromIntegral $ io $ channelRecvStorable @ℕ32 ch
-            FixedIPr wPr dPr | wPr + dPr ≡ 64 → map HS.fromIntegral $ io $ channelRecvStorable @ℕ64 ch
+            FixedIPr wPr dPr | wPr + dPr ≡ 8  → HS.fromIntegral ^$ channelRecvStorable @ℕ8 chanFr
+            FixedIPr wPr dPr | wPr + dPr ≡ 16 → HS.fromIntegral ^$ channelRecvStorable @ℕ16 chanFr
+            FixedIPr wPr dPr | wPr + dPr ≡ 32 → HS.fromIntegral ^$ channelRecvStorable @ℕ32 chanFr
+            FixedIPr wPr dPr | wPr + dPr ≡ 64 → HS.fromIntegral ^$ channelRecvStorable @ℕ64 chanFr
             _ → throwIErrorCxt NotImplementedIError "TODO" empty𝐿
       return $ NatV pr n
     ℤT pr → do
       z ← case pr of
-            FixedIPr wPr dPr | wPr + dPr ≡ 8  → map HS.fromIntegral $ io $ channelRecvStorable @ℤ8 ch
-            FixedIPr wPr dPr | wPr + dPr ≡ 16 → map HS.fromIntegral $ io $ channelRecvStorable @ℤ16 ch
-            FixedIPr wPr dPr | wPr + dPr ≡ 32 → map HS.fromIntegral $ io $ channelRecvStorable @ℤ32 ch
-            FixedIPr wPr dPr | wPr + dPr ≡ 64 → map HS.fromIntegral $ io $ channelRecvStorable @ℤ64 ch
+            FixedIPr wPr dPr | wPr + dPr ≡ 8  → HS.fromIntegral ^$ channelRecvStorable @ℤ8 chanFr
+            FixedIPr wPr dPr | wPr + dPr ≡ 16 → HS.fromIntegral ^$ channelRecvStorable @ℤ16 chanFr
+            FixedIPr wPr dPr | wPr + dPr ≡ 32 → HS.fromIntegral ^$ channelRecvStorable @ℤ32 chanFr
+            FixedIPr wPr dPr | wPr + dPr ≡ 64 → HS.fromIntegral ^$ channelRecvStorable @ℤ64 chanFr
             _ → throwIErrorCxt NotImplementedIError "TODO" empty𝐿
       return $ IntV pr z
     _ → throwIErrorCxt NotImplementedIError "TODO" empty𝐿
