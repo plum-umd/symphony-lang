@@ -257,3 +257,11 @@ writeℝMut = IOR.writeIORef ∘ unℝMut
 
 instance Pretty a ⇒ Pretty (ℝMut a) where
   pretty v = pretty $ io_UNSAFE $ readℝMut v
+
+type Cont r a = ContT r ID a
+
+cont ∷ ((a → r) → r) → Cont r a
+cont f = ContT $ \ c → ID (f (unID ∘ c))
+
+runCont ∷ Cont r a → (a → r) → r
+runCont m k = unID $ runContT (ID ∘ k) m
