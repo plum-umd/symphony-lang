@@ -4,3 +4,10 @@
 *~
 \#*
 .\#*
+*.cabal
+
+lang/backends/**/build
+lang/backends/**/lib
+lang/backends/emp/vendor/include
+lang/backends/emp/vendor/cmake
+lang/backends/emp/vendor/lib

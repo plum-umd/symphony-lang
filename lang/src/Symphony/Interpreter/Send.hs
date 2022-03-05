@@ -17,12 +17,16 @@ import qualified Data.Text as T
 addressOf ∷ (Monad m) ⇒ PrinVal → m 𝕊
 addressOf _ = return "127.0.0.1"
 
-portOf ∷ (Monad m, MonadReader (ICxt v) m, MonadError IError m) ⇒ PrinVal → m ℕ16
-portOf ρ = do
+portOf ∷ (Monad m, MonadReader (ICxt v) m, MonadError IError m) ⇒ PrinVal → PrinVal → m ℕ16
+portOf ρ₁ ρ₂ = do
   scope ← askL iCxtPrinScopeL
-  let ports = map ((+) basePort) $ idsFr scope
-  port ← fromSomeCxt $ ports ⋕? ρ
-  return $ HS.fromIntegral port
+  let n = count scope
+  let ids = idsFr scope
+  id₁   ← fromSomeCxt $ ids ⋕? ρ₁
+  id₂   ← fromSomeCxt $ ids ⋕? ρ₂
+  let gauss  = ((id₁ + 1) × (id₁ + 2)) `HS.div` 2
+  let offset = n × id₁ + id₂ - gauss
+  return $ HS.fromIntegral $ basePort + offset
   where basePort = 12345
 
 ----------------
@@ -35,10 +39,10 @@ mkChannel them = do
   let iAmClient = them < me
   if iAmClient then do
     addr ← addressOf them
-    port ← portOf them
+    port ← portOf them me
     tcpChannelCreateClient addr port
   else do
-    port ← portOf me
+    port ← portOf me them
     tcpChannelCreateServer port
 
 getOrMkChannel ∷ (Monad m, MonadReader (ICxt v) m, MonadError IError m, MonadState (IState v) m, MonadIO m, STACK) ⇒ PrinVal → m Channel

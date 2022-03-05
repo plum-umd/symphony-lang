@@ -18,7 +18,6 @@ extern "C" {
 
   void send_all(channel_t *chan, const void *data, size_t size);
   void recv_all(channel_t *chan, void *buf, size_t size);
-
   void flush(channel_t *chan);
 
   void send_bool(channel_t *chan, bool b);

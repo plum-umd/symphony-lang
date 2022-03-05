@@ -48,7 +48,6 @@ static void buffer_with(FILE *conn, uint8_t *buf, size_t size) {
 
 class TCPChannel : public Channel {
 private:
-  bool dirty;
   uint8_t *buffer;
   FILE *conn;
 
@@ -120,12 +119,10 @@ private:
 
 public:
   TCPChannel(const char *address, int port, size_t buffer_size = DEFAULT_BUFFER_SIZE) {
-    this->dirty = false;
     this->init_client(address, port, buffer_size);
   }
 
   TCPChannel(int port, size_t buffer_size = DEFAULT_BUFFER_SIZE) {
-    this->dirty = false;
     this->init_server(port, buffer_size);
   }
 
@@ -148,16 +145,9 @@ public:
         exit(EXIT_FAILURE);
       }
     }
-
-    this->dirty = true;
   }
 
   void recv_all(void *buf, size_t size) {
-    if (this->dirty) {
-      this->flush();
-      this->dirty = false;
-    }
-
     uint8_t *tmp = (uint8_t *) buf;
     size_t total_read = 0;
 
