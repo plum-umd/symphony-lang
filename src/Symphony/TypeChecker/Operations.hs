@@ -86,7 +86,7 @@ subtype_loc loctyS loctyT = case loctyS of
         loccondₗ ← (subtype_loc loctySₗ loctyTₗ)
         loccondᵣ ← (subtype_loc loctySᵣ loctyTᵣ)
         return (loccondₗ ⩓ loccondᵣ)
-    _ → return False
+    _ → return False 
   -- t1 <: t1' t2 <: t2'
   -- -------Sub-Pair
   -- t1 x t2 <: t1' x t2' 
@@ -97,7 +97,19 @@ subtype_loc loctyS loctyT = case loctyS of
         loccondᵣ ← (subtype_loc loctySᵣ loctyTᵣ)
         return (loccondₗ ⩓ loccondᵣ)
     _ → return False
-    
+  (ListT _ τₜ)  →  case loctyT of
+    (ListT _ τₜ') → (subtype_loc τₜ τₜ')
+    _ → return False
+  (τ₁₁ :→: (η :* τ₁₂)) → case loctyT of
+    (τ₁₁' :→: (η' :* τ₁₂')) → do 
+        l ← elabEMode $ effectMode η
+        l' ← elabEMode $ effectMode η'
+        loccondₗ ← (subtype_loc τ₁₁' τ₁₁)
+        loccondᵣ ← (subtype_loc τ₁₂ τ₁₂')
+        return ((l == l') ⩓ loccondₗ ⩓ loccondᵣ)
+  (RefT τ) → return (loctyS == loctyT)
+  (ArrT _ τ) → return (loctyS == loctyT)
+
   _ → return False
 
 -- Check if tyS <: tyT
@@ -149,11 +161,94 @@ inter_m l l' = case l of
       Top → (AddTop ps)
       AddTop ps'  →  AddTop(ps ∩ ps')
 
-
+ -- Returns em ∩ em'
+union_em :: EMode → EMode → EM EMode
+union_em loc loc' = do
+  l ← elabEMode loc
+  l' ← elabEMode loc'
+  (elabMode (union_m l l'))
+ 
+-- Returns m ∩ m'
+union_m :: Mode → Mode → Mode
+union_m l l' = case l of
+  Top → Top
+  AddTop ps → case l' of
+      Top → Top
+      AddTop ps'  →  AddTop(ps ∪ ps')
 
 -----------------
 --- Join functions ---
 -----------------
+-- Finds meet of two located types (subtype of both)
+locty_meet :: Type  → Type  → EM Type 
+locty_meet locty locty' =
+  case locty of
+  -- sigma = bty 
+  -- -------Sub-Refl
+  -- sigma <: sigma 
+  BaseT bty → if (locty == locty') then (return locty) else todoError
+  ShareT p loc locty  → (case locty' of
+    ShareT p' loc' locty' → 
+      do 
+        l ← (elabEMode loc)
+        l' ← (elabEMode loc')
+        if ((p == p') ⩓ (l == l'))
+          then (
+            do
+              loc_meet ← (locty_meet locty locty')
+              return (ShareT p loc loc_meet)
+          )
+        else todoError
+      
+    _  → todoError
+    )
+  (tyₗ :+: tyᵣ) → case locty' of
+    (ty'ₗ :+: ty'ᵣ) → do 
+
+        meet_tyₗ  ← (ty_meet tyₗ ty'ₗ)
+        meet_tyᵣ ← (ty_meet tyᵣ ty'ᵣ)
+        return (meet_tyₗ :+: meet_tyᵣ)
+  -- t1 <: t1' t2 <: t2'
+  -- -------Sub-Pair
+  -- t1 x t2 <: t1' x t2' 
+  (tyₗ :×: tyᵣ) → case locty' of
+    (ty'ₗ :×: ty'ᵣ) → do 
+
+        meet_tyₗ  ← (ty_meet tyₗ ty'ₗ)
+        meet_tyᵣ ← (ty_meet tyᵣ ty'ᵣ)
+        return (meet_tyₗ :×: meet_tyᵣ)
+
+    _ → todoError
+  (ListT _ τₜ)  →  case locty' of
+    (ListT _ τₜ') → (ty_meet τₜ τₜ')
+    _ → todoError
+  (τ₁₁ :→: (η :* τ₁₂)) → case locty' of
+    (τ₁₁' :→: (η' :* τ₁₂')) → do 
+        l ← elabEMode $ effectMode η
+        l' ← elabEMode $ effectMode η'
+        if (l == l')
+          then (
+            do
+              join_τ₁₁ ← (locty_join τ₁₁ τ₁₁')
+              meet_τ₁₂ ← (locty_meet τ₁₂ τ₁₂')
+              return (join_τ₁₁ :→: (η :* meet_τ₁₂))
+          )
+        else todoError
+  (RefT τ)  →  if (locty == locty') then (return locty) else todoError
+  (ArrT _ τ)  →  if (locty == locty') then (return locty) else todoError
+  _ → todoError
+
+-- Finds join of two types
+ty_meet :: Type  → Type  → EM Type 
+ty_meet ty ty' = case ty of
+  SecT loc loc_ty → (case ty' of
+      SecT loc' loc_ty' → do 
+        loc_union ← (union_em loc loc')
+        loc_meet ← (locty_meet loc_ty loc_ty')
+        return (SecT loc_union loc_meet)
+      ty' → todoError)
+
+  x  → todoError
 
 -- Finds join of two located types
 locty_join :: Type  → Type  → EM Type 
@@ -171,8 +266,8 @@ locty_join locty locty' =
         if ((p == p') ⩓ (l == l'))
           then (
             do
-              loc_top ← (locty_join locty locty')
-              return (ShareT p loc loc_top)
+              loc_join ← (locty_join locty locty')
+              return (ShareT p loc loc_join)
           )
         else todoError
       
@@ -195,7 +290,23 @@ locty_join locty locty' =
         return (join_tyₗ :×: join_tyᵣ)
 
     _ → todoError
-
+  (ListT _ τₜ)  →  case locty' of
+    (ListT _ τₜ') → (ty_join τₜ τₜ')
+    _ → todoError
+  (τ₁₁ :→: (η :* τ₁₂)) → case locty' of
+    (τ₁₁' :→: (η' :* τ₁₂')) → do 
+        l ← elabEMode $ effectMode η
+        l' ← elabEMode $ effectMode η'
+        if (l == l')
+          then (
+            do
+              meet_τ₁₁ ← (locty_meet τ₁₁ τ₁₁')
+              join_τ₁₂ ← (locty_join τ₁₂ τ₁₂')
+              return (meet_τ₁₁ :→: (η :* join_τ₁₂))
+          )
+        else todoError
+  RefT _ → if (locty == locty') then (return locty) else todoError
+  (ArrT _ _)  →  if (locty == locty') then (return locty) else todoError
   _ → todoError
 
 -- Finds join of two types
@@ -242,6 +353,22 @@ wf_loctype sigma m =
     (ListT _ τₜ)  → do
       _ ← (wf_type τₜ m)
       return ()
+    (τ₁₁ :→: (η :* τ₁₂)) → do
+      m  ← askL terModeL
+      l ← elabEMode $ effectMode η
+      _ ← (wf_type τ₁₁ m)
+      _ ← (wf_type τ₁₂ m)
+      guardErr (m ≡ l) $
+        typeError "Not well formed m != l" $ frhs
+        [ ("m", pretty m)
+        , ("l", pretty l)
+        ]
+    (RefT τ')  → do
+      _ ← (wf_type τ' m)
+      return ()
+    (ArrT n τ')  →  do
+      _ ← (wf_type τ' m)
+      return ()
     _  → todoError
 
 
@@ -268,6 +395,67 @@ wf_type ty m =
       if (supermode m m') then (return ()) else todoError
 
 
+-- Rules to get the least sub subtype of loctype sigma that is well formed
+sublocty_wf :: Type  → Mode →  EM Type 
+sublocty_wf sigma m = 
+  case sigma of
+    BaseT bt → return sigma
+    ShareT p loc loc_ty  → do
+        l ← (elabEMode loc)
+        if (l == m) then
+          do 
+            loc_subty ← (share_subloctype_wf loc_ty m)
+            return (ShareT p loc loc_subty)
+        else
+          todoError
+    (loctyₗ :+: loctyᵣ) → do 
+      loctyₗ' ← (subty_wf loctyₗ m)
+      loctyᵣ' ← (subty_wf loctyᵣ m)
+      return (loctyₗ' :+: loctyᵣ')
+    (loctyₗ :×: loctyᵣ)  → do
+      loctyₗ' ← (subty_wf loctyₗ m)
+      loctyᵣ' ← (subty_wf loctyᵣ m)
+      return (loctyₗ' :×: loctyᵣ')
+    (ListT n τₜ)  → do
+      τₜ' ← (subty_wf τₜ m)
+      return (ListT n τₜ') 
+    (τ₁₁ :→: (η :* τ₁₂)) → do
+      l ← elabEMode $ effectMode η
+      l_inter ← (elabMode (inter_m m l))
+      τ₁₁' ← (superty_wf τ₁₁ m)
+      τ₁₂' ← (subty_wf τ₁₂ m)
+      return (τ₁₁' :→:  (( Effect {effectInput = effectInput η, effectReveal = effectReveal η,  effectMode = l_inter}) :* τ₁₂'))
+    (RefT τ)  → do
+      τ' ← (subty_wf τ m)
+      return (RefT τ')
+    (ArrT n τ)  → do
+      τ' ← (subty_wf τ m)
+      return (ArrT n τ')
+    x  → todoError
+
+-- Rules to get the least super supertype of located type that a share can take sigma that is well formed
+share_subloctype_wf :: Type → Mode → EM Type
+share_subloctype_wf sigma m =
+  case sigma of
+    BaseT bt → return sigma
+    (loctyₗ :+: loctyᵣ) → do 
+      loctyₗ' ← (subty_wf loctyₗ m)
+      loctyᵣ' ← (subty_wf loctyᵣ m)
+      return (loctyₗ' :+: loctyᵣ')
+    _  → todoError
+
+-- Rules to get the least super supertype of type t that is well formed
+subty_wf :: Type  → Mode  → EM Type 
+subty_wf t m = 
+    case t of
+    SecT loc loc_ty → do
+      loc_subty ← (superlocty_wf loc_ty m)
+      wfcond ← (wf_loctype loc_ty m)
+      l ← (elabEMode loc)
+      if (supermode m l) then (return (SecT loc loc_subty)) else todoError
+    _  → todoError
+
+
 -- Rules to get the least super supertype of loctype sigma that is well formed
 superlocty_wf :: Type  → Mode →  EM Type 
 superlocty_wf sigma m = 
@@ -292,6 +480,18 @@ superlocty_wf sigma m =
     (ListT n τₜ)  → do
       τₜ' ← (superty_wf τₜ m)
       return (ListT n τₜ') 
+    (τ₁₁ :→: (η :* τ₁₂)) → do
+      l ← elabEMode $ effectMode η
+      l_inter ← (elabMode (inter_m m l))
+      τ₁₁' ← (subty_wf τ₁₁ m)
+      τ₁₂' ← (superty_wf τ₁₂ m)
+      return (τ₁₁' :→:  (( Effect {effectInput = effectInput η, effectReveal = effectReveal η,  effectMode = l_inter}) :* τ₁₂'))
+    (RefT τ)  → do
+      τ' ← (superty_wf τ m)
+      return (RefT τ')
+    (ArrT n τ)  → do
+      τ' ← (superty_wf τ m)
+      return (ArrT n τ')
     x  → todoError
 
 -- Rules to get the least super supertype of located type that a share can take sigma that is well formed
@@ -321,13 +521,13 @@ superty_wf t m =
 --- Bind Typing ---
 -----------------
 
-bindTo ∷ Var → Type → EM Type → EM Type
+bindTo ∷ Var → Type → EM a → EM a
 bindTo x τ = mapEnvL terEnvL ((x ↦ τ) ⩌)
 
-bindType ∷ Type → Pat → (EM (EM Type → EM Type))
+bindType ∷ Type → Pat → (EM (EM a → EM a))
 bindType τ ψ = matchType τ ψ
 -- assume type is well formed
-matchType ∷  Type → Pat → EM (EM Type → EM Type)
+matchType ∷  Type → Pat → EM (EM a → EM a)
 matchType τ ψ= case ψ of 
   VarP x → return (bindTo  x τ)
   BulP → case τ of

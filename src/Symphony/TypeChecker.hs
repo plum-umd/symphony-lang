@@ -302,23 +302,67 @@ synLet ψ e₁ e₂ =
     synBind τ₁ (ψ :* e₂)
 
 
-{-}
-checkLam ∷ 𝑂 Var → 𝐿 Pat → Exp →  Type → EM Type
-synLam self𝑂 ψs e = 
+-- type is well formed
+checkLam ∷ 𝑂 Var → 𝐿 Pat → Exp →  Type → EM ()
+checkLam self𝑂 ψs e τ = 
   case τ of
-    SecT m (Type :→: (Effect ∧ Type) )  → return ()
+    SecT loc (τ₁₁ :→: (η :* τ₁₂))   → 
+      case self𝑂 of
+      None      →  
+                  do
+                    m  ← askL terModeL
+                    l₂ ← elabEMode loc
+                    guardErr (m ≡ l₂) $
+                      typeError "synLam: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+                      [ ("m", pretty m),
+                        ("l", pretty l₂)
+                      ]
+                    case ψs of
+                      Nil → do
+                        τ₁₂' ← (synExp e)
+                        subcond  ← (subtype τ₁₂' τ₁₂)
+                        if subcond then
+                          return ()
+                        else
+                          todoError
+                      ψ :& Nil → do
+                        bind ←  (bindType τ₁₁ ψ) 
+                        bind (chkExp e τ₁₂)
+                      ψ :& ψs → do
+                        bind ←  (bindType τ₁₁ ψ) 
+                        bind (checkLam None ψs e τ₁₂)
+  
+                    
+      Some self → (bindTo self τ) (checkLam None ψs e τ)
     x  → todoError
-  case self𝑂 of
-      None      → 
-                    let c = synExp e
-                        c' =  case self𝑂 of
-                              None      → c
-                              Some self → bindTo self c
-                    in
-                    (fold c' ($) ψs)
-      Some self → bindTo self c
-  -}
-
+  
+synApp ∷ Exp → Exp → EM Type
+synApp e₁ e₂ = 
+  let c₁ = synExp e₁
+      c₂ = synExp e₂
+  in do
+    τ₁ ← c₁
+    τ₂ ← c₂
+    case τ₁ of
+      SecT loc (τ₁₁ :→: (η :* τ₁₂)) → do
+        m  ← askL terModeL
+        l₁ ← elabEMode $ effectMode η
+        l₂ ← elabEMode loc
+        subcond  ←  (subtype τ₂ τ₁₂)
+        guardErr (m ≡ l₁) $
+          typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+          [ ("m", pretty m)
+          , ("l", pretty l₁)
+          ]
+        guardErr (m ≡ l₂) $
+          typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+          [ ("m", pretty m)
+          , ("l", pretty l₁)
+          ]
+        return τ₂
+      _ → typeError "synApp: τ₁ ≢ (_ → _)@_" $ frhs
+          [ ("τ₁", pretty τ₁)
+          ]
 
 ----------------------
 --- Read and Write ---
@@ -340,7 +384,7 @@ synRead τ e =
         do
           l ← elabEMode loc
           guardErr (m ≡ l) $
-            typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+            typeError "synRead: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
               [ ("m", pretty m)
                 , ("l", pretty l)
               ]
@@ -390,6 +434,189 @@ synAscr e τ = do
   return τ
 
 -------------------
+--- References ---
+-------------------
+
+synRef ∷ Exp → EM Type
+synRef e =
+  let c = synExp e
+  in do
+  τ ← c
+  m  ← askL terModeL
+  em ← elabMode m
+  return (SecT em (RefT τ))
+
+synRefRead ∷ Exp → EM Type
+synRefRead e =
+  let c = synExp e
+  in do
+    τ ← c
+    case τ of
+      (SecT loc (RefT τ'))  → do
+        m  ← askL terModeL
+        l ← elabEMode loc
+        --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
+        guardErr (m ≡ l) $
+          typeError "synRefRead: m /≡ l" $ frhs
+          [ ("m", pretty m)
+          , ("l", pretty l)
+          ]
+        return τ'
+      _  → todoError
+
+
+synRefWrite ∷ Exp → Exp → EM Type
+synRefWrite e₁ e₂ =
+  let c₁ = synExp e₁
+      c₂ = synExp e₂
+  in do
+    τ₁  ← c₁
+    τ₂ ← c₂
+    case τ₁ of
+      (SecT loc (RefT τ₁'))  →  (ty_join  τ₁' τ₂)
+        
+      _ → todoError
+
+synArray ∷ Exp → Exp → EM Type
+synArray e₁ e₂ =
+  let c₁ = synExp e₁
+      c₂ = synExp e₂
+  in do
+    τ₁  ← c₁
+    τ₂ ← c₂
+    case τ₁ of
+      (SecT loc (BaseT (ℕT _)))  → do
+        m  ← askL terModeL
+        l ← elabEMode loc
+        em ← elabMode m
+        guardErr (m ≡ l) $
+          typeError "synArray: m /≡ l" $ frhs
+          [ ("m", pretty m)
+          , ("l", pretty l)
+          ]
+        return (SecT em (ArrT 0 τ₂))
+
+synArrayRead ∷ Exp → Exp → EM Type
+synArrayRead e₁ e₂ =
+  let c₁ = synExp e₁
+      c₂ = synExp e₂
+  in do
+    τ₁ ← c₁
+    τ₂ ← c₂
+    case τ₁ of
+      (SecT loc₁ (ArrT _ τ₁'))  → do
+        m  ← askL terModeL
+        l₁ ← elabEMode loc₁
+        --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
+        guardErr (m ≡ l₁) $
+          typeError "synArrayRead: m /≡ l" $ frhs
+          [ ("m", pretty m)
+          , ("l", pretty l₁)
+          ]
+        case τ₂ of
+          (SecT loc₂ (BaseT (ℕT _)))  → do
+            l₂ ← elabEMode loc₂
+            em ← elabMode m
+            guardErr (m ≡ l₂) $
+              typeError "synArray: m /≡ l" $ frhs
+              [ ("m", pretty m)
+                , ("l", pretty l₂)
+              ]
+            return τ₁'
+          _  → todoError
+      _  → todoError
+
+
+synArrayWrite ∷ Exp → Exp → Exp → EM Type
+synArrayWrite e₁ e₂ e₃ =
+  let c₁ = synExp e₁
+      c₂ = synExp e₂
+      c₃ = synExp e₃
+  in do
+    τ₁ ← c₁
+    τ₂ ← c₂
+    τ₃ ← c₃
+    case τ₁ of
+      (SecT loc₁ (ArrT _ τ₁'))  → do
+        m  ← askL terModeL
+        l₁ ← elabEMode loc₁
+        --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
+        guardErr (m ≡ l₁) $
+          typeError "synArrayWrite: m /≡ l" $ frhs
+          [ ("m", pretty m)
+          , ("l", pretty l₁)
+          ]
+        case τ₂ of
+          (SecT loc₂ (BaseT (ℕT _)))  → do
+            l₂ ← elabEMode loc₂
+            em ← elabMode m
+            guardErr (m ≡ l₂) $
+              typeError "synArrayWrite: m /≡ l" $ frhs
+                [ ("m", pretty m)
+                  , ("l", pretty l₂)
+                ]
+            (ty_join  τ₁' τ₃)
+          _  → todoError
+      _  → todoError
+
+synArraySize ∷ Exp → EM Type
+synArraySize e =
+  let c = synExp e 
+  in do
+    τ ← c
+    case τ of
+      SecT loc (ArrT _ τ')  → do
+          m  ← askL terModeL
+          l ← elabEMode loc
+          em ← elabMode m
+          --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
+          guardErr (m ≡ l) $
+            typeError "synArraySize: m /≡ l" $ frhs
+            [ ("m", pretty m)
+            , ("l", pretty l)
+            ]
+          return (SecT em (BaseT (ℕT InfIPr)))
+      _ → todoError
+
+
+-----------
+--- Par ---
+-----------
+
+synPar ∷  PrinSetExp → Exp → EM Type
+synPar ρse₁ e₂ =
+  let c₁ = synPrinSet ρse₁
+      c₂ = synExp e₂
+  in do
+    m  ← askL terModeL
+    ρ𝑃 ← (elabPrinSetExp  ρse₁)
+    let l = AddTop ρ𝑃
+    let m' = m ⊓ l
+    if m' ≢ bot then
+      localL terModeL m' c₂
+    else
+      todoError
+
+checkPar ∷  PrinSetExp → Exp → Type → EM ()
+checkPar ρse₁ e₂ τ=
+  let c₁ = synPrinSet ρse₁
+      c₂ = synExp e₂
+  in do
+    m  ← askL terModeL
+    ρ𝑃 ← (elabPrinSetExp  ρse₁)
+    let l = AddTop ρ𝑃
+    let m' = m ⊓ l
+    if m' ≢ bot then do 
+      τ' ← localL terModeL m' c₂
+      subcond  ← (subtype τ' τ)
+      if subcond then
+              return ()
+      else
+        todoError
+    else do
+      wfcond ← (wf_type τ  (AddTop pø))
+      return ()
+-------------------
 --- Expressions ---
 -------------------
 
@@ -405,7 +632,8 @@ chkExpR e τ =
       LE eₗ        → checkL eₗ τ
       RE eᵣ        → checkR eᵣ τ
       NilE        → checkNil τ
-      --  LamE self𝑂 ψs e → checkLam self𝑂 ψs e τ
+      LamE self𝑂 ψs e → checkLam self𝑂 ψs e τ
+      ParE ρse₁ e₂ → checkPar ρse₁ e₂ τ
       _ →     
           do 
             τ' ← synExpR e
@@ -442,14 +670,20 @@ synExpR e = case e of
   CaseE e ψes  → synCase e ψes
 
   LetE ψ e₁ e₂    → synLet ψ e₁ e₂  
-  
+  AppE e₁ e₂      → synApp e₁ e₂
+
   -- Read and Write
   ReadE τ e    → synRead τ e
   WriteE e₁ e₂ → synWrite e₁ e₂
 
-  AscrE e τ → synAscr e τ
+  
+  -- References
+  RefE e          → synRef e
+  RefReadE e      → synRefRead e
+  RefWriteE e₁ e₂ → synRefWrite e₁ e₂
 
-  -- PrimE op es → synPrim op es
+  ParE ρse₁ e₂ → synPar ρse₁ e₂
+  AscrE e τ → synAscr e τ
   _      → undefined
 
 
