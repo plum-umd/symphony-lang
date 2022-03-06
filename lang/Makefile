@@ -1,4 +1,4 @@
-BACKENDS = emp spdz
+BACKENDS = util emp
 
 .PHONY: symphony
 symphony: build
