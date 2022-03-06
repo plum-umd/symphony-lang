@@ -332,8 +332,8 @@ data Type =
   | Type :+: Type                               --  τ + τ                      /  τ + τ
   | Type :×: Type                               --  τ × τ                      /  τ * τ
   | ListT ℕ Type                                --  list[n] τ                  /  list[n] τ
-  | RefT Type                                   --  ref τ                      /  ref τ
-  | ArrT ℕ Type                                 --  arr[n] τ                   /  arr[n] τ
+  | RefT (𝑂 EMode) Type                         --  ref{P} τ                   /  ref{P} τ
+  | ArrT (𝑂 EMode) ℕ Type                       --  arr[P,n] τ                 /  arr[P,n] τ
   | Type :→: (Effect ∧ Type)                    --  τ →{η} τ                   /  τ ->{η} τ
   | (𝕏 ∧ Type ∧ 𝐿 Constr) :→†: (Effect ∧ Type)  --  (x : τ | c,…,c) →{η} τ     /  (x : τ | c,…,c) ->{η} τ
   | ForallT (𝐿 (TVar ∧ Kind)) (𝐿 Constr) Type   --  ∀ α:κ,…,α:κ | c,…,c. τ     /  forall α:κ,…,α:κ | c,…,c. τ

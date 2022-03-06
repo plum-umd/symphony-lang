@@ -85,7 +85,7 @@ parseInputType τ s = case τ of
   ListT _n τ' → do
     ṽs ← mapM (snd ^∘ parseInputType τ') $ list $ filter (not ∘ isEmpty) $ splitOn𝕊 "\n" s
     (null :*) ^$ introVal $ ListV ṽs
-  ArrT n τ' → do
+  ArrT _em n τ' → do
     ṽs ← mapM (snd ^∘ parseInputType τ') $ list $ filter (not ∘ isEmpty) $ splitOn𝕊 "\n" s
     a ← io $ new𝕍Mut (natΩ64 n)
     eachOn (withIndex ṽs) $ \ (i :* ṽᵢ) → io $ set𝕍Mut i ṽᵢ a

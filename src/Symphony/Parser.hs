@@ -278,15 +278,22 @@ pType = cpNewContext "type" $ mixfix $ concat
       n ← natΩ ^$ cpInteger
       cpSyntaxVoid "]"
       return $ ListT n
-  -- ref τ
-  , mixPrefix levelAPP $ do cpSyntaxVoid "ref" ; return RefT
+  -- ref{P} τ
+  , mixPrefix levelAPP $ do
+      cpSyntaxVoid "ref"
+      cpSyntaxVoid "{"
+      ρs ← pEMode
+      cpSyntaxVoid "}"
+      return $ RefT (Some ρs)
   -- arr τ
   , mixPrefix levelAPP $ do
       cpSyntaxVoid "array"
       cpSyntaxVoid "["
+      ρs ← pEMode
+      cpSyntaxVoid ","
       n ← natΩ ^$ cpInteger
       cpSyntaxVoid "]"
-      return $ ArrT n
+      return $ ArrT (Some ρs) n
   -- τ →{η} τ
   , mixInfixR levelARROW $ do
       concat [cpSyntaxVoid "→",cpSyntaxVoid "->"]
