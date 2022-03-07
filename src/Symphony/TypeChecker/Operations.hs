@@ -107,8 +107,14 @@ subtype_loc loctyS loctyT = case loctyS of
         loccondₗ ← (subtype_loc τ₁₁' τ₁₁)
         loccondᵣ ← (subtype_loc τ₁₂ τ₁₂')
         return ((l == l') ⩓ loccondₗ ⩓ loccondᵣ)
-  (RefT τ) → return (loctyS == loctyT)
-  (ArrT _ τ) → return (loctyS == loctyT)
+  (RefT None τ) →  return (loctyS == loctyT)
+  (RefT _ τ) case loctyT of
+    (RefT None τ') → (subtype_loc τ τ')
+    _  → return (loctyS == loctyT)
+  (ArrT _ _ τ) →   return (loctyS == loctyT)
+  (ArrT _ _ τ) case loctyT of
+    (ArrT None _ τ') → (subtype_loc τ τ')
+    _  → return (loctyS == loctyT)
 
   _ → return False
 
@@ -234,8 +240,26 @@ locty_meet locty locty' =
               return (join_τ₁₁ :→: (η :* meet_τ₁₂))
           )
         else todoError
-  (RefT τ)  →  if (locty == locty') then (return locty) else todoError
-  (ArrT _ τ)  →  if (locty == locty') then (return locty) else todoError
+  (RefT None τ)  →  case locty' of
+    (RefT (Some _) τ') do
+        loc_meet ← (locty_meet locty locty')
+        return (RefT (Some loc) loc_meet)
+    _  → if (locty == locty') then (return locty) else todoError
+  (RefT (Some loc) τ)  →  case locty' of
+      (RefT None τ') → do
+        loc_meet ← (locty_meet locty locty')
+        return (RefT (Some loc) loc_meet)
+      _  → if (locty == locty') then (return locty) else todoError
+(ArrT None _ τ)  →  case locty' of
+    (ArrT (Some _) _ τ') do
+        loc_meet ← (locty_meet locty locty')
+        return (ArrT None _ loc_meet)
+    _  → if (locty == locty') then (return locty) else todoError
+  (ArrT (Some loc) _ τ)  →  case locty' of
+      (ArrT None _ τ') → do
+        loc_meet ← (locty_meet locty locty')
+        return (ArrT None _ loc_meet)
+      _  → if (locty == locty') then (return locty) else todoError
   _ → todoError
 
 -- Finds join of two types
@@ -305,8 +329,16 @@ locty_join locty locty' =
               return (meet_τ₁₁ :→: (η :* join_τ₁₂))
           )
         else todoError
-  RefT _ → if (locty == locty') then (return locty) else todoError
-  (ArrT _ _)  →  if (locty == locty') then (return locty) else todoError
+  (ArrT None _ τ)  →  case locty' of
+      (ArrT (Some _) _ τ') do
+          loc_meet ← (locty_join locty locty')
+          return (ArrT (Some loc) _ loc_meet)
+      _  → if (locty == locty') then (return locty) else todoError
+    (ArrT (Some loc) _ τ)  →  case locty' of
+        (ArrT None _ τ') → do
+          loc_meet ← (locty_join locty locty')
+          return (ArrT (Some loc) _ loc_meet)
+        _  → if (locty == locty') then (return locty) else todoError
   _ → todoError
 
 -- Finds join of two types
@@ -363,10 +395,10 @@ wf_loctype sigma m =
         [ ("m", pretty m)
         , ("l", pretty l)
         ]
-    (RefT τ')  → do
+    (RefT _ τ')  → do
       _ ← (wf_type τ' m)
       return ()
-    (ArrT n τ')  →  do
+    (ArrT _ _ τ')  →  do
       _ ← (wf_type τ' m)
       return ()
     _  → todoError
@@ -425,12 +457,12 @@ sublocty_wf sigma m =
       τ₁₁' ← (superty_wf τ₁₁ m)
       τ₁₂' ← (subty_wf τ₁₂ m)
       return (τ₁₁' :→:  (( Effect {effectInput = effectInput η, effectReveal = effectReveal η,  effectMode = l_inter}) :* τ₁₂'))
-    (RefT τ)  → do
+    (RefT loc τ)  → do
+      τ' ← (subty_wf loc τ m)
+      return (RefT loc τ')
+    (ArrT loc n τ)  → do
       τ' ← (subty_wf τ m)
-      return (RefT τ')
-    (ArrT n τ)  → do
-      τ' ← (subty_wf τ m)
-      return (ArrT n τ')
+      return (ArrT loc n τ')
     x  → todoError
 
 -- Rules to get the least super supertype of located type that a share can take sigma that is well formed
@@ -486,12 +518,12 @@ superlocty_wf sigma m =
       τ₁₁' ← (subty_wf τ₁₁ m)
       τ₁₂' ← (superty_wf τ₁₂ m)
       return (τ₁₁' :→:  (( Effect {effectInput = effectInput η, effectReveal = effectReveal η,  effectMode = l_inter}) :* τ₁₂'))
-    (RefT τ)  → do
+    (RefT loc τ)  → do
       τ' ← (superty_wf τ m)
-      return (RefT τ')
-    (ArrT n τ)  → do
+      return (RefT loc τ')
+    (ArrT loc n τ)  → do
       τ' ← (superty_wf τ m)
-      return (ArrT n τ')
+      return (ArrT loc n τ')
     x  → todoError
 
 -- Rules to get the least super supertype of located type that a share can take sigma that is well formed

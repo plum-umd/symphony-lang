@@ -444,7 +444,7 @@ synRef e =
   τ ← c
   m  ← askL terModeL
   em ← elabMode m
-  return (SecT em (RefT τ))
+  return (SecT (Some em) (RefT τ))
 
 synRefRead ∷ Exp → EM Type
 synRefRead e =
@@ -452,7 +452,8 @@ synRefRead e =
   in do
     τ ← c
     case τ of
-      (SecT loc (RefT τ'))  → do
+      -- None is subtype
+      (SecT loc (RefT _ τ'))  → do
         m  ← askL terModeL
         l ← elabEMode loc
         --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
@@ -465,6 +466,7 @@ synRefRead e =
       _  → todoError
 
 
+
 synRefWrite ∷ Exp → Exp → EM Type
 synRefWrite e₁ e₂ =
   let c₁ = synExp e₁
@@ -473,7 +475,16 @@ synRefWrite e₁ e₂ =
     τ₁  ← c₁
     τ₂ ← c₂
     case τ₁ of
-      (SecT loc (RefT τ₁'))  →  (ty_join  τ₁' τ₂)
+      (SecT loc₁ (RefT (Some loc₂) τ₁'))  →  
+          m  ← askL terModeL
+          l₁ ← elabEMode loc₁
+          l₂ ← elabEMode loc₂
+          guardErr ((m ≡ l₁) ⩓ (m ≡ l₂)) $
+          typeError "synRefRead: m /≡ l" $ frhs
+          [ ("m", pretty m)
+          , ("l", pretty l₁)
+          ]
+        (ty_join  τ₁' τ₂)
         
       _ → todoError
 
@@ -504,7 +515,7 @@ synArrayRead e₁ e₂ =
     τ₁ ← c₁
     τ₂ ← c₂
     case τ₁ of
-      (SecT loc₁ (ArrT _ τ₁'))  → do
+      (SecT loc₁ (ArrT _ _ τ₁'))  → do
         m  ← askL terModeL
         l₁ ← elabEMode loc₁
         --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
@@ -537,11 +548,12 @@ synArrayWrite e₁ e₂ e₃ =
     τ₂ ← c₂
     τ₃ ← c₃
     case τ₁ of
-      (SecT loc₁ (ArrT _ τ₁'))  → do
+      (SecT loc₁ (ArrT loc₂ _ τ₁'))  → do
         m  ← askL terModeL
         l₁ ← elabEMode loc₁
+        l₂ ← elabEMode loc₂
         --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
-        guardErr (m ≡ l₁) $
+        guardErr ((m ≡ l₁) ⩓ (m ≡ l₂)) $
           typeError "synArrayWrite: m /≡ l" $ frhs
           [ ("m", pretty m)
           , ("l", pretty l₁)
@@ -565,7 +577,7 @@ synArraySize e =
   in do
     τ ← c
     case τ of
-      SecT loc (ArrT _ τ')  → do
+      SecT loc (ArrT _ _ τ')  → do
           m  ← askL terModeL
           l ← elabEMode loc
           em ← elabMode m
