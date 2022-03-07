@@ -108,7 +108,7 @@ subtype_loc loctyS loctyT = case loctyS of
         loccondᵣ ← (subtype_loc τ₁₂ τ₁₂')
         return ((l == l') ⩓ loccondₗ ⩓ loccondᵣ)
   (RefT None τ) →  return (loctyS == loctyT)
-  (RefT _ τ) case loctyT of
+  (RefT _ τ) → case loctyT of
     (RefT None τ') → (subtype_loc τ τ')
     _  → return (loctyS == loctyT)
   (ArrT _ _ τ) →   return (loctyS == loctyT)
