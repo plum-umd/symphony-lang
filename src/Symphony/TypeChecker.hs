@@ -475,16 +475,15 @@ synRefWrite e₁ e₂ =
     τ₁  ← c₁
     τ₂ ← c₂
     case τ₁ of
-      (SecT loc₁ (RefT (Some loc₂) τ₁'))  →
-        do  
-          m  ← askL terModeL
-          l₁ ← elabEMode loc₁
-          l₂ ← elabEMode loc₂
-          guardErr ((m ≡ l₁) ⩓ (m ≡ l₂)) $
-            typeError "synRefRead: m /≡ l" $ frhs
-            [ ("m", pretty m)
-            , ("l", pretty l₁)
-            ] 
+      (SecT loc₁ (RefT (Some loc₂) τ₁'))  → do  
+        m  ← askL terModeL
+        l₁ ← elabEMode loc₁
+        l₂ ← elabEMode loc₂
+        guardErr ((m ≡ l₁) ⩓ (m ≡ l₂)) $
+          typeError "synRefRead: m /≡ l" $ frhs
+          [ ("m", pretty m)
+          , ("l", pretty l₁)
+          ] 
         (ty_join  τ₁' τ₂)
         
       _ → todoError
