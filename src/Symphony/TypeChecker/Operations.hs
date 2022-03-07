@@ -112,7 +112,7 @@ subtype_loc loctyS loctyT = case loctyS of
     (RefT None τ') → (subtype_loc τ τ')
     _  → return (loctyS == loctyT)
   (ArrT _ _ τ) →   return (loctyS == loctyT)
-  (ArrT _ _ τ) case loctyT of
+  (ArrT _ _ τ) → case loctyT of
     (ArrT None _ τ') → (subtype_loc τ τ')
     _  → return (loctyS == loctyT)
 
