@@ -330,7 +330,7 @@ locty_join locty locty' =
           )
         else todoError
   (ArrT None n τ)  →  case locty' of
-    (ArrT (Some _) _ τ') → do
+    (ArrT (Some loc) _ τ') → do
         loc_meet ← (locty_join locty locty')
         return (ArrT (Some loc) n loc_meet)
     _  → if (locty == locty') then (return locty) else todoError
