@@ -475,7 +475,8 @@ synRefWrite e₁ e₂ =
     τ₁  ← c₁
     τ₂ ← c₂
     case τ₁ of
-      (SecT loc₁ (RefT (Some loc₂) τ₁'))  →  
+      (SecT loc₁ (RefT (Some loc₂) τ₁'))  →
+        do  
           m  ← askL terModeL
           l₁ ← elabEMode loc₁
           l₂ ← elabEMode loc₂
