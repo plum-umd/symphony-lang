@@ -458,7 +458,7 @@ sublocty_wf sigma m =
       τ₁₂' ← (subty_wf τ₁₂ m)
       return (τ₁₁' :→:  (( Effect {effectInput = effectInput η, effectReveal = effectReveal η,  effectMode = l_inter}) :* τ₁₂'))
     (RefT loc τ)  → do
-      τ' ← (subty_wf loc τ m)
+      τ' ← (subty_wf τ m)
       return (RefT loc τ')
     (ArrT loc n τ)  → do
       τ' ← (subty_wf τ m)
