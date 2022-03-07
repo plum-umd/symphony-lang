@@ -444,7 +444,7 @@ synRef e =
   τ ← c
   m  ← askL terModeL
   em ← elabMode m
-  return (SecT (Some em) (RefT τ))
+  return (SecT em (RefT (Some em) τ))
 
 synRefRead ∷ Exp → EM Type
 synRefRead e =
@@ -505,7 +505,7 @@ synArray e₁ e₂ =
           [ ("m", pretty m)
           , ("l", pretty l)
           ]
-        return (SecT em (ArrT 0 τ₂))
+        return (SecT em (ArrT (Some em) 0 τ₂))
 
 synArrayRead ∷ Exp → Exp → EM Type
 synArrayRead e₁ e₂ =
@@ -548,7 +548,7 @@ synArrayWrite e₁ e₂ e₃ =
     τ₂ ← c₂
     τ₃ ← c₃
     case τ₁ of
-      (SecT loc₁ (ArrT loc₂ _ τ₁'))  → do
+      (SecT loc₁ (ArrT (Some loc₂) _ τ₁'))  → do
         m  ← askL terModeL
         l₁ ← elabEMode loc₁
         l₂ ← elabEMode loc₂
