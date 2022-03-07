@@ -251,7 +251,7 @@ locty_meet locty locty' =
         return (RefT (Some loc) loc_meet)
       _  → if (locty == locty') then (return locty) else todoError
   (ArrT None _ τ)  →  case locty' of
-    (ArrT (Some _) _ τ') do
+    (ArrT (Some _) _ τ') → do
         loc_meet ← (locty_meet locty locty')
         return (ArrT None _ loc_meet)
     _  → if (locty == locty') then (return locty) else todoError
