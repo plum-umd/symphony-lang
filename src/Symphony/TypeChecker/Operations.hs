@@ -241,7 +241,7 @@ locty_meet locty locty' =
           )
         else todoError
   (RefT None τ)  →  case locty' of
-    (RefT (Some _) τ') → do
+    (RefT (Some loc) τ') → do
         loc_meet ← (locty_meet locty locty')
         return (RefT (Some loc) loc_meet)
     _  → if (locty == locty') then (return locty) else todoError
@@ -250,15 +250,15 @@ locty_meet locty locty' =
         loc_meet ← (locty_meet locty locty')
         return (RefT (Some loc) loc_meet)
       _  → if (locty == locty') then (return locty) else todoError
-  (ArrT None _ τ)  →  case locty' of
+  (ArrT None n τ)  →  case locty' of
     (ArrT (Some _) _ τ') → do
         loc_meet ← (locty_meet locty locty')
-        return (ArrT None _ loc_meet)
+        return (ArrT None n loc_meet)
     _  → if (locty == locty') then (return locty) else todoError
-  (ArrT (Some loc) _ τ)  →  case locty' of
+  (ArrT (Some loc) n τ)  →  case locty' of
       (ArrT None _ τ') → do
         loc_meet ← (locty_meet locty locty')
-        return (ArrT None _ loc_meet)
+        return (ArrT None n loc_meet)
       _  → if (locty == locty') then (return locty) else todoError
   _ → todoError
 
@@ -329,15 +329,15 @@ locty_join locty locty' =
               return (meet_τ₁₁ :→: (η :* join_τ₁₂))
           )
         else todoError
-  (ArrT None _ τ)  →  case locty' of
+  (ArrT None n τ)  →  case locty' of
     (ArrT (Some _) _ τ') → do
         loc_meet ← (locty_join locty locty')
-        return (ArrT (Some loc) _ loc_meet)
+        return (ArrT (Some loc) n loc_meet)
     _  → if (locty == locty') then (return locty) else todoError
-  (ArrT (Some loc) _ τ)  →  case locty' of
+  (ArrT (Some loc) n τ)  →  case locty' of
     (ArrT None _ τ') → do
         loc_meet ← (locty_join locty locty')
-        return (ArrT (Some loc) _ loc_meet)
+        return (ArrT (Some loc) n loc_meet)
     _  → if (locty == locty') then (return locty) else todoError
   _ → todoError
 
