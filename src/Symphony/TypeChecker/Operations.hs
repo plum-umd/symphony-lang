@@ -346,7 +346,7 @@ locty_join locty locty' =
   (ArrT None n τ)  →  case locty' of
     (ArrT locO _ τ') → do
         loc_join ← (locty_join locty locty')
-        return (ArrT (locO n loc_join))
+        return (ArrT locO n loc_join)
   (ArrT (Some loc) n τ)  →  case locty' of
     (ArrT None _ τ') → do
         loc_join ← (locty_join locty locty')
