@@ -607,7 +607,7 @@ synPar ρse₁ e₂ =
     if m' ≢ bot then
       localL terModeL m' c₂
     else
-      todoError
+      (SecT empty𝐿 (BaseT UnitT))
 
 checkPar ∷  PrinSetExp → Exp → Type → EM ()
 checkPar ρse₁ e₂ τ=
@@ -628,6 +628,19 @@ checkPar ρse₁ e₂ τ=
     else do
       wfcond ← (wf_type τ  (AddTop pø))
       return ()
+
+synShare ∷  Prot → Type → PrinExp → PrinSetExp → Exp → IM v v
+synShare φ τ ρe₁ ρse₂ e₃ =
+  let c₁ = synPrinExp ρe₁
+      c₂ = synPrinSetExp ρse₂
+      case τ of
+        SecT loc' τ' →
+          in do
+            subcond  ← checkExp e₃ τ
+    ρvsTo ← elimPSV ^$ c₂
+    ṽ     ← c₃
+    modeCheckComm ρvFr ρvsTo
+    shareVal φ ρvFr ρvsTo ṽ τ
 -------------------
 --- Expressions ---
 -------------------

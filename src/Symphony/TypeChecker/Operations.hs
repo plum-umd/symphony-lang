@@ -107,11 +107,15 @@ subtype_loc loctyS loctyT = case loctyS of
         loccondₗ ← (subtype_loc τ₁₁' τ₁₁)
         loccondᵣ ← (subtype_loc τ₁₂ τ₁₂')
         return ((l == l') ⩓ loccondₗ ⩓ loccondᵣ)
-  (RefT None τ) →  return (loctyS == loctyT)
+  (RefT None τ) →  case loctyT of
+    (RefT None τ') → (subtype_loc τ τ')
+    _  → return False
   (RefT _ τ) → case loctyT of
     (RefT None τ') → (subtype_loc τ τ')
     _  → return (loctyS == loctyT)
-  (ArrT _ _ τ) →   return (loctyS == loctyT)
+  (ArrT None _ τ) →  case loctyT of
+    (ArrT None _ τ') → (subtype_loc τ τ')
+    _  → return False
   (ArrT _ _ τ) → case loctyT of
     (ArrT None _ τ') → (subtype_loc τ τ')
     _  → return (loctyS == loctyT)
@@ -241,20 +245,20 @@ locty_meet locty locty' =
           )
         else todoError
   (RefT None τ)  →  case locty' of
-    (RefT (Some loc) τ') → do
+    (RefT _ τ') → do
         loc_meet ← (locty_meet locty locty')
-        return (RefT (Some loc) loc_meet)
-    _  → if (locty == locty') then (return locty) else todoError
+        return (RefT None loc_meet)
+    _  → todoError
   (RefT (Some loc) τ)  →  case locty' of
       (RefT None τ') → do
         loc_meet ← (locty_meet locty locty')
-        return (RefT (Some loc) loc_meet)
+        return (RefT None loc_meet)
       _  → if (locty == locty') then (return locty) else todoError
   (ArrT None n τ)  →  case locty' of
-    (ArrT (Some _) _ τ') → do
+    (ArrT _ _ τ') → do
         loc_meet ← (locty_meet locty locty')
-        return (ArrT None n loc_meet)
-    _  → if (locty == locty') then (return locty) else todoError
+        return (RefT None loc_meet)
+    _  → todoError
   (ArrT (Some loc) n τ)  →  case locty' of
       (ArrT None _ τ') → do
         loc_meet ← (locty_meet locty locty')
@@ -329,15 +333,24 @@ locty_join locty locty' =
               return (meet_τ₁₁ :→: (η :* join_τ₁₂))
           )
         else todoError
+  (RefT None τ)  →  case locty' of
+    (RefT locO τ') → do
+        loc_join ← (locty_join locty locty')
+        return (RefT locO loc_meet)
+    _  → todoError
+  (RefT (Some loc) τ)  →  case locty' of
+      (RefT None τ') → do
+        loc_join ← (locty_join locty locty')
+        return (RefT (Some loc) loc_join)
+      _  → if (locty == locty') then (return locty) else todoError
   (ArrT None n τ)  →  case locty' of
-    (ArrT (Some loc) _ τ') → do
-        loc_meet ← (locty_join locty locty')
-        return (ArrT (Some loc) n loc_meet)
-    _  → if (locty == locty') then (return locty) else todoError
+    (ArrT _ _ τ') → do
+        loc_join ← (locty_join locty locty')
+        return (ArrT (Some loc) n loc_join)
   (ArrT (Some loc) n τ)  →  case locty' of
     (ArrT None _ τ') → do
-        loc_meet ← (locty_join locty locty')
-        return (ArrT (Some loc) n loc_meet)
+        loc_join ← (locty_join locty locty')
+        return (ArrT (Some loc) n loc_join)
     _  → if (locty == locty') then (return locty) else todoError
   _ → todoError
 
