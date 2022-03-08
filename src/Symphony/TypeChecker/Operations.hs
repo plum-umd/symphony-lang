@@ -336,7 +336,7 @@ locty_join locty locty' =
   (RefT None τ)  →  case locty' of
     (RefT locO τ') → do
         loc_join ← (locty_join locty locty')
-        return (RefT locO loc_meet)
+        return (RefT locO loc_join)
     _  → todoError
   (RefT (Some loc) τ)  →  case locty' of
       (RefT None τ') → do
@@ -344,9 +344,9 @@ locty_join locty locty' =
         return (RefT (Some loc) loc_join)
       _  → if (locty == locty') then (return locty) else todoError
   (ArrT None n τ)  →  case locty' of
-    (ArrT _ _ τ') → do
+    (ArrT locO _ τ') → do
         loc_join ← (locty_join locty locty')
-        return (ArrT (Some loc) n loc_join)
+        return (ArrT (locO n loc_join)
   (ArrT (Some loc) n τ)  →  case locty' of
     (ArrT None _ τ') → do
         loc_join ← (locty_join locty locty')
