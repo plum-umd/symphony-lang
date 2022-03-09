@@ -647,7 +647,26 @@ synShare φ τ ρe₁ ρse₂ e₃ =
               else todoError
         _ → do
           todoError
-                       
+
+
+synReveal ∷ Prot → Type → PrinSetExp → PrinExp → Exp → IM v v
+interpReveal φ τ ρse₁ ρe₂ e₃ =
+  let c₁ = synPrinSetExp ρse₁
+      c₂ = synPrinExp ρe₂
+      in case τ of
+        SecT loc (ShareT φ loc' τ') → do
+
+            m  ← askL terModeL
+            p ←  elabEMode loc
+            p' ← elabEMode loc'
+            qs ← elabPrinSetExp ρse₂ (ShareT φ (AddTop ρse₂) τ') ) m
+            subcond  ←  localL terModeL m (chkExp e₃ τ)
+            if (not (isEmpty  qs)) ⩓ (p ≡ p') ⩓ (m ≡ ( p ⊓ (AddTop qs)) )
+              then return (SecT (AddTop (PowPSE (frhs [ρe₁]))) (ShareT τ') ) 
+              else todoError
+        _ → do
+          todoError
+
 -------------------
 --- Expressions ---
 -------------------
