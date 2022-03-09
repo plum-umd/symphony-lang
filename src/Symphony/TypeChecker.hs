@@ -639,11 +639,10 @@ synShare φ τ ρe₁ ρse₂ e₃ =
             m  ← askL terModeL
             p ←  elabEMode (AddTop (PowPSE (frhs [ρe₁])))
             p' ← elabEMode loc'
-            psv ← elabPrinSetExp ρse₂
-            q ← AddTop psv
-            wfcond ← wf_type (SecT (AddTop ρse₂) (ShareT φ (AddTop ρse₂) τ') ) q
+            qs ← elabPrinSetExp ρse₂
+            wfcond ← wf_type (SecT (AddTop ρse₂) (ShareT φ (AddTop ρse₂) τ') ) m
             subcond  ←  localL terModeL m (chkExp e₃ τ)
-            if (not (isEmpty (iter psv))) ⩓ (supermode p' p) 
+            if (not (isEmpty (iter qs))) ⩓ (supermode p' p) 
               then return (SecT (AddTop ρse₂) (ShareT φ (AddTop ρse₂) τ') ) 
               else todoError
         _ → do
