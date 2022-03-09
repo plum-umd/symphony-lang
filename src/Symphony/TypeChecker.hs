@@ -648,7 +648,7 @@ synShare φ τ ρe₁ ρse₂ e₃ =
         _ → do
           todoError
 
-
+-- Assume φ is in type
 synReveal ∷ Prot → Type → PrinSetExp → PrinExp → Exp → IM v v
 interpReveal φ τ ρse₁ ρe₂ e₃ =
   let c₁ = synPrinSetExp ρse₁
@@ -659,7 +659,7 @@ interpReveal φ τ ρse₁ ρe₂ e₃ =
             m  ← askL terModeL
             p ←  elabEMode loc
             p' ← elabEMode loc'
-            qs ← elabPrinSetExp ρse₂ (ShareT φ (AddTop ρse₂) τ') ) m
+            qs ← elabPrinSetExp ρse₂ (ShareT φ (AddTop ρse₂) τ')  m
             subcond  ←  localL terModeL m (chkExp e₃ τ)
             if (not (isEmpty  qs)) ⩓ (p ≡ p') ⩓ (m ≡ ( p ⊓ (AddTop qs)) )
               then return (SecT (AddTop (PowPSE (frhs [ρe₁]))) t' ) 
