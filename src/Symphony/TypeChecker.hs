@@ -633,7 +633,7 @@ checkPar ρse₁ e₂ τ=
 synShare ∷  Prot → Type → PrinExp → PrinSetExp → Exp → EM Type
 synShare φ τ ρe₁ ρse₂ e₃ =
   let c₁ = synPrinExp ρe₁
-      c₂ = synPrinSetExp ρse₂
+      c₂ = synPrinSet ρse₂
       in case τ of
         SecT loc' τ' → do
             m  ← askL terModeL
