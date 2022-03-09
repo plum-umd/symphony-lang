@@ -662,7 +662,7 @@ interpReveal φ τ ρse₁ ρe₂ e₃ =
             qs ← elabPrinSetExp ρse₂ (ShareT φ (AddTop ρse₂) τ') ) m
             subcond  ←  localL terModeL m (chkExp e₃ τ)
             if (not (isEmpty  qs)) ⩓ (p ≡ p') ⩓ (m ≡ ( p ⊓ (AddTop qs)) )
-              then return (SecT (AddTop (PowPSE (frhs [ρe₁]))) (ShareT τ') ) 
+              then return (SecT (AddTop (PowPSE (frhs [ρe₁]))) t' ) 
               else todoError
         _ → do
           todoError
