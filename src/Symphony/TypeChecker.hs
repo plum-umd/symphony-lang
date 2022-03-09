@@ -634,8 +634,7 @@ synShare φ τ ρe₁ ρse₂ e₃ =
   let c₁ = synPrinExp ρe₁
       c₂ = synPrinSetExp ρse₂
       case τ of
-        SecT loc' τ' →
-          in do
+        SecT loc' τ' → do
             m  ← askL terModeL
             p ←  elabEMode (AddTop (PowPSE (frhs [ρe₁])))
             p' ← elabEMode loc'
