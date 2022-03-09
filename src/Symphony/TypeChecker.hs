@@ -649,8 +649,8 @@ synShare φ τ ρe₁ ρse₂ e₃ =
           todoError
 
 -- Assume φ is in type
-synReveal ∷ Prot → Type → PrinSetExp → PrinExp → Exp → IM v v
-interpReveal φ τ ρse₁ ρe₂ e₃ =
+synReveal ∷ Prot → Type → PrinSetExp → PrinExp → Exp → EM Type
+synReveal φ τ ρse₁ ρe₂ e₃ =
   let c₁ = synPrinSetExp ρse₁
       c₂ = synPrinExp ρe₂
       in case τ of
