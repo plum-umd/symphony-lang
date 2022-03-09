@@ -642,7 +642,7 @@ synShare φ τ ρe₁ ρse₂ e₃ =
             q ← elabEMode (AddTop ρse₂)
             emptycond ← isEmpty (iter q) 
             wfcond ← wf_type (SecT (AddTop ρse₂) (ShareT φ (AddTop ρse₂) loc') )
-            subcond  ←  localL terModeL m (checkExp e₃ τ)
+            subcond  ←  localL terModeL m (chkExp e₃ τ)
             if (supermode p' p) 
               then return (SecT (AddTop ρse₂) (ShareT φ (AddTop ρse₂) loc') ) 
               else todoError
