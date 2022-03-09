@@ -667,6 +667,23 @@ synReveal φ τ ρse₁ ρe₂ e₃ =
         _ → do
           todoError
 
+synComm ∷  Type → PrinExp → PrinSetExp → Exp → EM Type
+synComm τ ρe₁ ρse₂ e₃ =
+  let c₁ = synPrinExp ρe₁
+      c₂ = synPrinSet ρse₂
+      in case τ of
+        SecT loc' τ' → do
+            m  ← askL terModeL
+            p ←  elabEMode (AddTop (PowPSE (frhs [ρe₁])))
+            p' ← elabEMode loc'
+            qs ← elabPrinSetExp ρse₂
+            wfcond ← wf_type (SecT (AddTop ρse₂) t' ) m
+            subcond  ←  localL terModeL m (chkExp e₃ τ)
+            if (not (isEmpty  qs)) ⩓ (supermode p' p) 
+              then return (SecT (AddTop ρse₂) t' ) 
+              else todoError
+        _ → do
+          todoError
 -------------------
 --- Expressions ---
 -------------------
