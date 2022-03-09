@@ -677,10 +677,9 @@ synComm τ ρe₁ ρse₂ e₃ =
             p ←  elabEMode (AddTop (PowPSE (frhs [ρe₁])))
             p' ← elabEMode loc'
             qs ← elabPrinSetExp ρse₂
-            wfcond ← wf_type (SecT (AddTop ρse₂) t' ) m
             subcond  ←  localL terModeL m (chkExp e₃ τ)
             if (not (isEmpty  qs)) ⩓ (supermode p' p) 
-              then return (SecT (AddTop ρse₂) t' ) 
+              then return (SecT (AddTop ρse₂) τ' ) 
               else todoError
         _ → do
           todoError
