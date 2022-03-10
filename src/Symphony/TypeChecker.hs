@@ -188,7 +188,7 @@ synPrim op es =
         else
           case ps  of
             ((p, loc) :& _) → 
-              if (and (map (\(p', l) -> (p == p') ⩓  (l == m)) pos)) then
+              if (and (map (\(p', l) -> (p == p') ⩓  (l == m)) ps)) then
                 return (SecT em (ShareT p em (BaseT bt))) 
               else
                 todoError
