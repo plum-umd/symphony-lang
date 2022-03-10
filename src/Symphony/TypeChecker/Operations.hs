@@ -38,10 +38,12 @@ primType op τs = case (op, tohs τs) of
   _ → todoError
 
 -- Gets protocol of located type
-extractProt :: Type → EM (𝑂 Prot)
+extractProt :: Type → EM (𝑂 (Prot, Mode) )
 extractProt τ =
  case τ of 
-  (SecT _  (ShareT p _ _))   → return (Some p)
+  (SecT _  (ShareT p loc _))   → do
+    l ← elabEMode loc
+    return (Some (p, l))
   (SecT _ _)  → return None
   _ → todoError
 
