@@ -747,11 +747,8 @@ synMuxCase e ψes =do
               if (and (map (\(p', l) -> (p == p') ⩓  (l == m)) ps)) then
                 do
                   eτs' ← (mapM (embedShare p em) τs' )
-                  case eτs of
-                    if subcond then do
-                      (joinList eτs')
-                    else
-                      todoError
+                  (joinList eτs')
+                    
               else
                 todoError
     
