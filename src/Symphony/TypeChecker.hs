@@ -281,9 +281,9 @@ synCase e ψes =
   let c = synExp e
   in do
     τ  ← c
-    case  τ of
+    case τ of
       (SecT loc (ShareT _ _ _)) → todoError
-      (SecT loc _) → 
+      (SecT loc _) → do
         l ← elabEMode loc
         guardErr (m ≡ l₁) $
           typeError "synCase: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
