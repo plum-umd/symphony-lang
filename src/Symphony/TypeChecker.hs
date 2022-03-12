@@ -695,7 +695,7 @@ synMuxIf e₁ e₂ e₃ =do
         if (isEmpty ps) then 
           case τs of
                     (τ₁ :& (τ₂ :& (τ₃ :& Nil))) → do
-                      subcond  ← (subtype τ₁ (SecT em (ShareT l (BaseT 𝔹T))) )
+                      subcond  ← (subtype τ₁ (SecT em (BaseT 𝔹T)) )
                       if subcond then do
                         (ty_join τ₂ τ₃)
                       else
@@ -705,10 +705,10 @@ synMuxIf e₁ e₂ e₃ =do
             ((p, loc) :& _) → 
               if (and (map (\(p', l) -> (p == p') ⩓  (l == m)) ps)) then
                 do
-                  eτs ← (mapM (embedShare p m) τs )
+                  eτs ← (mapM (embedShare p em) τs )
                   case eτs of
                     (τ₁ :& (τ₂ :& (τ₃ :& Nil))) → do
-                      subcond  ← (subtype τ₁ (SecT em (ShareT l (BaseT 𝔹T))) )
+                      subcond  ← (subtype τ₁ (SecT em (ShareT em (BaseT 𝔹T))) )
                       if subcond then do
                         (ty_join τ₂ τ₃)
                       else
