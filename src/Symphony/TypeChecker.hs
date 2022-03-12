@@ -693,7 +693,13 @@ synMuxIf e₁ e₂ e₃ =do
       pos ← (mapM extractProt τs)
       let ps = list𝐼 (filterMap (\x -> x)  pos) in
         if (isEmpty ps) then 
-          return (SecT em (BaseT bt))
+          case τs of
+                    (τ₁ :& (τ₂ :& (τ₃ :& Nil))) → do
+                      subcond  ← (subtype τ₁ (SecT em (ShareT l (BaseT 𝔹T))) )
+                      if subcond then do
+                        (ty_join τ₂ τ₃)
+                      else
+                        todoError
         else
           case ps  of
             ((p, loc) :& _) → 
