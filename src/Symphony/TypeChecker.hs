@@ -733,8 +733,7 @@ synMuxCase e ψes =
   let c = synExp e
   in do
     τ  ← c
-    τ  ← c
-    case  of
+    case τ  of
       (SecT loc (ShareT φ loc' _)) → do
         l ← elabEMode loc
         l' ← elabEMode loc'
