@@ -683,6 +683,32 @@ synComm τ ρe₁ ρse₂ e₃ =
               else todoError
         _ → do
           todoError
+
+synMuxIf ∷  Exp → Exp → Exp → EM Type
+synMuxIf e₁ e₂ e₃ =do 
+      m ← askL terModeL
+      em ← elabMode m
+      τs ← (mapM synExp (frhs [e₁, e₂, e₃]) )
+      _ ← (mapM (assertM m) τs)
+      pos ← (mapM extractProt τs)
+      let ps = list𝐼 (filterMap (\x -> x)  pos) in
+        if (isEmpty ps) then 
+          return (SecT em (BaseT bt))
+        else
+          case ps  of
+            ((p, loc) :& _) → 
+              if (and (map (\(p', l) -> (p == p') ⩓  (l == m)) ps)) then
+                do
+                  eτs ← (mapM (embedShare p m) τs )
+                  case eτs of
+                    (τ₁ :& (τ₂ :& (τ₃ :& Nil))) → do
+                      subcond  ← (subtype τ₁ (ShareT l (BaseT 𝔹T)) )
+                      if subcond then do
+                        (ty_join τ₂ τ₃)
+                      else
+                        todoError
+              else
+                todoError
 -------------------
 --- Expressions ---
 -------------------
