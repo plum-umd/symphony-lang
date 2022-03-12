@@ -289,7 +289,7 @@ synCase e ψes =
         guardErr (m ≡ l) $
           typeError "synCase: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
           [ ("m", pretty m)
-          , ("l", pretty l₁)
+          , ("l", pretty l)
           ]
         τs ← mapM (synBind τ) ψes
         (joinList τs)
