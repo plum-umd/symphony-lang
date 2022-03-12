@@ -702,7 +702,7 @@ synMuxIf e₁ e₂ e₃ =do
                   eτs ← (mapM (embedShare p m) τs )
                   case eτs of
                     (τ₁ :& (τ₂ :& (τ₃ :& Nil))) → do
-                      subcond  ← (subtype τ₁ (ShareT l (BaseT 𝔹T)) )
+                      subcond  ← (subtype τ₁ (SecT em (ShareT l (BaseT 𝔹T))) )
                       if subcond then do
                         (ty_join τ₂ τ₃)
                       else
