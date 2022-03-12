@@ -735,13 +735,13 @@ synMuxCase e ψes =do
     m ← askL terModeL
     em ← elabMode m
     τs' ← mapM (synBind τ) ψes
-    τs ← (τ :& τs')
-    _ ← (mapM (assertM m) τs)
-    pos ← (mapM extractProt τs)
-    let ps = list𝐼 (filterMap (\x -> x)  pos) in
-      if (isEmpty ps) then 
-        (joinList τs')
-      else
+    let ts = (τ :& τs') in do
+      _ ← (mapM (assertM m) τs)
+      pos ← (mapM extractProt τs)
+      let ps = list𝐼 (filterMap (\x -> x)  pos) in
+        if (isEmpty ps) then 
+          (joinList τs')
+        else
           case ps  of
             ((p, loc) :& _) → 
               if (and (map (\(p', l) -> (p == p') ⩓  (l == m)) ps)) then
