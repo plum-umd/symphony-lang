@@ -741,9 +741,8 @@ synMuxCase e ψes =do
     pos ← (mapM extractProt τs)
     let ps = list𝐼 (filterMap (\x -> x)  pos) in
       if (isEmpty ps) then 
-        do
-          (joinList τs')
-        else
+        (joinList τs')
+      else
           case ps  of
             ((p, loc) :& _) → 
               if (and (map (\(p', l) -> (p == p') ⩓  (l == m)) ps)) then
