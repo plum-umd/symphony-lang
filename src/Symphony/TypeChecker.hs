@@ -749,10 +749,10 @@ synMuxCase e ψes =
           _ ← (mapM (assertM m) τs)
           pos ← (mapM extractProt τs)
           let ps = list𝐼 (filterMap (\x -> x)  pos) in
-          if (isEmpty ps) then
-            do
-              eτs ← (mapM (embedShare p em) τs ) 
-              (joinList eτs)
+            if (isEmpty ps) then
+              do
+                eτs ← (mapM (embedShare p em) τs ) 
+                (joinList eτs)
  
           else
             case ps  of
@@ -779,10 +779,10 @@ synMuxCase e ψes =
           _ ← (mapM (assertM m) τs)
           pos ← (mapM extractProt τs)
           let ps = list𝐼 (filterMap (\x -> x)  pos) in
-          if (isEmpty ps) then
-            do
-              eτs ← (mapM (embedShare p em) τs ) 
-              (joinList eτs)
+            if (isEmpty ps) then
+              do
+                eτs ← (mapM (embedShare p em) τs ) 
+                (joinList eτs)
  
           else
             case ps  of
