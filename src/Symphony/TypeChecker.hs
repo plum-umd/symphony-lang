@@ -730,8 +730,7 @@ synMuxIf e₁ e₂ e₃ =do
 
 synMuxCase ∷  Exp → 𝐿 (Pat ∧ Exp) → EM Type
 synMuxCase e ψes =do 
-  let c = synExp e
-  in do
+  let c = synExp e in do
     τ  ← c
     m ← askL terModeL
     em ← elabMode m
