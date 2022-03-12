@@ -281,8 +281,18 @@ synCase e ψes =
   let c = synExp e
   in do
     τ  ← c
-    τs ← mapM (synBind τ) ψes
-    (joinList τs)
+    τ  ← c
+    case  of
+      (SecT loc (ShareT _ _ _)) → todoError
+      (SecT loc _) → 
+        l ← elabEMode loc
+        guardErr (m ≡ l₁) $
+          typeError "synCase: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+          [ ("m", pretty m)
+          , ("l", pretty l₁)
+          ]
+        τs ← mapM (synBind τ) ψes
+        (joinList τs)
 
 synBind ∷ Type → (Pat ∧ Exp) → EM Type 
 synBind τ₁ (ψ :* e₂) =
@@ -693,7 +703,9 @@ synMuxIf e₁ e₂ e₃ =do
       pos ← (mapM extractProt τs)
       let ps = list𝐼 (filterMap (\x -> x)  pos) in
         if (isEmpty ps) then 
-          case τs of
+          do
+            eτs ← (mapM (embedShare p em) τs )
+            case eτs of
                     (τ₁ :& (τ₂ :& (τ₃ :& Nil))) → do
                       subcond  ← (subtype τ₁ (SecT em (BaseT 𝔹T)) )
                       if subcond then do
@@ -715,6 +727,75 @@ synMuxIf e₁ e₂ e₃ =do
                         todoError
               else
                 todoError
+
+
+synMuxCase ∷  Exp → 𝐿 (Pat ∧ Exp) → IM v v
+synMuxCase e ψes =
+  let c = synExp e
+  in do
+    τ  ← c
+    τ  ← c
+    case  of
+      (SecT loc (ShareT φ loc' _)) → do
+        l ← elabEMode loc
+        l' ← elabEMode loc'
+        guardErr ((m ≡ l) ⩓ (m ≡ l')) $
+          typeError "synMyxCase: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+          [ ("m", pretty m)
+          , ("l", pretty l)
+          ]
+        do 
+          m ← askL terModeL
+          em ← elabMode m
+          τs ← mapM (synBind τ) ψes
+          _ ← (mapM (assertM m) τs)
+          pos ← (mapM extractProt τs)
+          let ps = list𝐼 (filterMap (\x -> x)  pos) in
+          if (isEmpty ps) then
+            do
+              eτs ← (mapM (embedShare p em) τs ) 
+              (joinList eτs)
+ 
+          else
+            case ps  of
+              ((p, loc) :& _) → 
+                if (and (map (\(p', l) -> (φ == p') ⩓  (l == m)) ps)) then
+                  do
+                    eτs ← (mapM (embedShare p em) τs )
+                    (joinList eτs)
+                else
+                  todoError
+
+      (SecT loc _) → do
+        l ← elabEMode loc
+        l' ← elabEMode loc'
+        guardErr ((m ≡ l) ⩓ (m ≡ l')) $
+          typeError "synMyxCase: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+          [ ("m", pretty m)
+          , ("l", pretty l)
+          ]
+        do 
+          m ← askL terModeL
+          em ← elabMode m
+          τs ← mapM (synBind τ) ψes
+          _ ← (mapM (assertM m) τs)
+          pos ← (mapM extractProt τs)
+          let ps = list𝐼 (filterMap (\x -> x)  pos) in
+          if (isEmpty ps) then
+            do
+              eτs ← (mapM (embedShare p em) τs ) 
+              (joinList eτs)
+ 
+          else
+            case ps  of
+              ((p, loc) :& _) → 
+                if (and (map (\(p', l) -> (p == p') ⩓  (l == m)) ps)) then
+                  do
+                    eτs ← (mapM (embedShare p em) τs )
+                    (joinList eτs)
+                else
+                  todoError
+    
 -------------------
 --- Expressions ---
 -------------------
