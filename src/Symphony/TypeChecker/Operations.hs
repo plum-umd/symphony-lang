@@ -64,10 +64,11 @@ extractBase τ =
      _ → todoError
 
 embedShare :: Type → Prot → EMode → EM Type
-embedShare τ φ l = 
+embedShare φ l τ = 
   case τ of 
-    (SecT l' (BaseT bτ))  → (SecT l' (ShareT φ l (BaseT bτ))) 
-    (SecT l' (τₗ :+: τᵣ) )  → (SecT l' (ShareT φ l (τₗ :+: τᵣ))) 
+    (SecT l' (BaseT bτ))  → return (SecT l' (ShareT φ l (BaseT bτ))) 
+    (SecT l' (τₗ :+: τᵣ) )  → return (SecT l' (ShareT φ l (τₗ :+: τᵣ))) 
+    _ → todoError
 -----------------
 --- Subtype utility ---
 -----------------
