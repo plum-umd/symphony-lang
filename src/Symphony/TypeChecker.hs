@@ -728,7 +728,7 @@ synMuxIf e₁ e₂ e₃ =do
                 todoError
 
 
-synMuxCase ∷  Exp → 𝐿 (Pat ∧ Exp) → IM v v
+synMuxCase ∷  Exp → 𝐿 (Pat ∧ Exp) → EM Type
 synMuxCase e ψes =
   let c = synExp e
   in do
