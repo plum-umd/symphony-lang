@@ -67,7 +67,20 @@ embedShare ::  Prot → EMode → Type → EM Type
 embedShare φ l τ = 
   case τ of 
     (SecT l' (BaseT bτ))  → return (SecT l' (ShareT φ l (BaseT bτ))) 
-    (SecT l' (τₗ :+: τᵣ) )  → return (SecT l' (ShareT φ l (τₗ :+: τᵣ))) 
+    (SecT l' (τₗ :+: τᵣ) )  → do
+      τₗ' ← (embedShare φ l τₗ )
+      τᵣ' ← (embedShare φ l τᵣ )
+      return (SecT l' (ShareT φ l (τₗ' :+: τᵣ'))) 
+    _ → todoError
+
+asssertSharable ::  Prot → EMode → Type → EM ()
+asssertSharable φ l τ = 
+  case τ of 
+    (SecT l' (BaseT bτ))  → return ()
+    (SecT l' (τₗ :+: τᵣ) )  → do
+      τₗ' ← (embedShare φ l τₗ )
+      τᵣ' ← (embedShare φ l τᵣ )
+      return ()
     _ → todoError
 -----------------
 --- Subtype utility ---
@@ -720,6 +733,26 @@ elabPrinVal ρv = case  ρv of
   (SinglePV ρ)    → return (VarPE (var ρ)) 
   (AccessPV ρ n₁) → return (AccessPE (var ρ) n₁)
 
+-- Bundles
+synBundleIntro (PrinExp ∧ Exp) → EM Type
+synBundle (pe :* e) = 
+  let c = synExp e
+  in do
+    τ ← c
+    _ ← asssertSharable τ
+    m  ← askL terModeL
+    em ← elabMode m
+    case t of
+      (SecT loc τ' ) → do
+          p ←  elabEMode (AddTop (PowPSE (frhs [ρe])))
+          p' ← elabEMode loc
+          guardErr (p ≡ p') $
+          typeError "synBundleAccess: p /≡ p'" $ frhs
+            [ ("p", pretty p)
+            , ("p'", pretty p')
+            ]
+          (SecT em (ISecT loc τ'))
+    
 -- turn powerset to list, map the list, convert to prinsetexp
 elabPrinValSet :: (𝑃 PrinVal)  → EM PrinSetExp
 elabPrinValSet ρvp = let ρvl = (setToList ρvp) in do

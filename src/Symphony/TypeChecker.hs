@@ -752,6 +752,87 @@ synMuxCase e ψes =do
               else
                 todoError
     
+
+
+synBundle ∷ 𝐿 (PrinExp ∧ Exp) → EM Type
+synBundle ρee𝐿 =
+  do
+    τs ← (mapM ρee𝐿)
+    case τs of
+      (τ :& τs') → (mfold τ synBundleUnionHelper τs)
+      _ → todoError
+
+synBundleAccess ∷ Exp → PrinExp → EM Type
+synBundleAccess e₁ ρe₂ =
+  let c₁ = synExp e₁
+      c₂ = synPrinExp ρe₂
+  in do
+    τ₁ ← c₁
+    τ₂ ← c₂
+    case τ₁ of
+      (SecT loc₁ (ISecT loc₁' τ₁'))  → do
+        m  ← askL terModeL
+        l₁ ← elabEMode loc₁
+        --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
+        guardErr (m ≡ l₁) $
+          typeError "synBundleAccess: m /≡ l" $ frhs
+          [ ("m", pretty m)
+          , ("l", pretty l₁)
+          ]
+        do
+          q ← elabEMode loc₁'
+          p ←  elabEMode (AddTop (PowPSE (frhs [ρe₂])))
+          guardErr (supermode q p)  $
+            typeError "synBundleAccess: not p <= q" $ frhs
+            [ ("p", pretty p)
+              , ("q", pretty q)
+            ]
+          return (SecT (AddTop (PowPSE (frhs [ρe₂]))) τ₁')
+        _  → todoError
+
+synBundleUnion ∷ Exp → Exp → EM Type
+synBundleUnion e₁ e₂ =
+  let c₁ = synExp e₁
+      c₂ = synExp e₂
+  in do
+    τ₁ ← c₁
+    τ₂ ← c₂
+    synBundleUnionHelper τ₁ τ₂
+
+
+synBundleUnionHelper ∷ Type → Type → EM Type
+synBundleUnionHelper τ₁ τ₂ =
+
+    case τ₁ of
+      (SecT loc₁ (ISecT loc₁' τ₁'))  → do
+        m  ← askL terModeL
+        l₁ ← elabEMode loc₁
+        --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
+        guardErr (m ≡ l₁) $
+          typeError "synBundle: m /≡ l" $ frhs
+          [ ("m", pretty m)
+          , ("l", pretty l₁)
+          ]
+        case τ₂ of
+          (SecT loc₂ (ISecT loc₂' τ₂'))  → do
+            l₂ ← elabEMode loc₂
+            em ← elabMode m
+            guardErr (m ≡ l₂) $
+              typeError "synBundle: m /≡ l" $ frhs
+              [ ("m", pretty m)
+                , ("l", pretty l₂)
+              ]
+            p₁ ← elabEMode loc₁'
+            p₂ ← elabEMode loc₂'
+            guardErr (p₁ ⊓ p₂ ≡ bot)
+              typeError "synBundle: p₁ ⊓ p₂ ≢  bot" $ frhs
+              [ ("p₁", pretty p₁)
+                , ("p₂", pretty p₂)
+              ]
+            q ← elabMode (p₁ ⊔ p₂)
+            τ ←  (ty_join τ₁' τ₂')
+            return  (SecT loc₂ (ISecT q τ))
+            
 -------------------
 --- Expressions ---
 -------------------
