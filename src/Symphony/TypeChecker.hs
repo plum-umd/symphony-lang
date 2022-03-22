@@ -807,7 +807,7 @@ synBundleAccess e₁ ρe₂ =
               , ("q", pretty q)
             ]
           return (SecT (AddTop (PowPSE (frhs [ρe₂]))) τ₁')
-        _  → todoError
+      _  → todoError
 
 synBundleUnion ∷ Exp → Exp → EM Type
 synBundleUnion e₁ e₂ =
