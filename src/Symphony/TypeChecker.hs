@@ -771,8 +771,9 @@ synBundleIntro (pe :* e) =
               [ ("p", pretty p)
               , ("p'", pretty p')
               ]
-          (SecT em (ISecT loc τ'))
-
+          return (SecT em (ISecT loc τ'))
+      _ → todoError
+      
 synBundle ∷ 𝐿 (Pat ∧ Exp) → EM Type
 synBundle ρee𝐿 =
   do
