@@ -733,25 +733,7 @@ elabPrinVal ρv = case  ρv of
   (SinglePV ρ)    → return (VarPE (var ρ)) 
   (AccessPV ρ n₁) → return (AccessPE (var ρ) n₁)
 
--- Bundles
-synBundleIntro :: (PrinExp ∧ Exp) → EM Type
-synBundleIntro (pe :* e) = 
-  let c = synExp e
-  in do
-    τ ← c
-    _ ← asssertSharable τ
-    m  ← askL terModeL
-    em ← elabMode m
-    case t of
-      (SecT loc τ' ) → do
-          p ←  elabEMode (AddTop (PowPSE (frhs [ρe])))
-          p' ← elabEMode loc
-          guardErr (p ≡ p') $
-            typeError "synBundleAccess: p /≡ p'" $ frhs
-              [ ("p", pretty p)
-              , ("p'", pretty p')
-              ]
-          (SecT em (ISecT loc τ'))
+
     
 -- turn powerset to list, map the list, convert to prinsetexp
 elabPrinValSet :: (𝑃 PrinVal)  → EM PrinSetExp
