@@ -747,10 +747,10 @@ synBundle (pe :* e) =
           p ←  elabEMode (AddTop (PowPSE (frhs [ρe])))
           p' ← elabEMode loc
           guardErr (p ≡ p') $
-          typeError "synBundleAccess: p /≡ p'" $ frhs
-            [ ("p", pretty p)
-            , ("p'", pretty p')
-            ]
+            typeError "synBundleAccess: p /≡ p'" $ frhs
+              [ ("p", pretty p)
+              , ("p'", pretty p')
+              ]
           (SecT em (ISecT loc τ'))
     
 -- turn powerset to list, map the list, convert to prinsetexp
