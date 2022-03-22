@@ -289,7 +289,7 @@ locty_meet locty locty' =
         loc_meet ← (locty_meet locty locty')
         return (ArrT None n loc_meet)
       _  → if (locty == locty') then (return locty) else todoError
-  (ISecT loc loc_ty) →  case ty' of
+  (ISecT loc loc_ty) →  case locty' of
       (ISecT loc' loc_ty') → do 
         loc_union ← (union_em loc loc')
         loc_meet ← (locty_meet loc_ty loc_ty')
@@ -383,7 +383,7 @@ locty_join locty locty' =
         loc_join ← (locty_join locty locty')
         return (ArrT (Some loc) n loc_join)
     _  → if (locty == locty') then (return locty) else todoError
-  (ISecT loc loc_ty) → case ty' of
+  (ISecT loc loc_ty) → case locty' of
       (ISecT loc' loc_ty') → do 
         loc_inter ← (inter_em loc loc')
         loc_top ← (locty_join loc_ty loc_ty')
@@ -451,7 +451,7 @@ wf_loctype sigma m =
     (ArrT _ _ τ')  →  do
       _ ← (wf_type τ' m)
       return ()
-    ISecT p loc locty → do
+    ISecT loc locty → do
       _ ← (wf_share_loctype locty m)
       return ()
     _  → todoError
