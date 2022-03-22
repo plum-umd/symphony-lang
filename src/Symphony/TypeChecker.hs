@@ -774,7 +774,7 @@ synBundleIntro (pe :* e) =
           return (SecT em (ISecT loc τ'))
       _ → todoError
 
-synBundle ∷ 𝐿 (Pat ∧ Exp) → EM Type
+synBundle ∷ 𝐿 (PrinExp ∧ Exp) → EM Type
 synBundle ρee𝐿 =
   do
     τs ← (mapM synBundleIntro ρee𝐿)
