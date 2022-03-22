@@ -365,7 +365,7 @@ spec = do
       let a =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "B")]) ))
           b =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "C")]) ))
           c = (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A")]) ))
-          t =  (SecT c (BaseT UnitT))
+          t =  (SecT c (BaseT (UnitT)))
           m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A") ])))
           expr'' =  (ArrayE  (nullExp (NatE InfIPr 2))  (nullExp (BulE)) )
           expr' = (ArrayReadE (nullExp expr'') (nullExp (NatE InfIPr 2)) )
@@ -375,11 +375,11 @@ spec = do
         UVM.Inr a -> a `shouldBe`  t
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
          UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
-    it "() : arrread" $
+    it "() : arrrsize" $
       let a =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "B")]) ))
           b =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "C")]) ))
           c = (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A")]) ))
-          t =  (SecT c (BaseT UnitT))
+          t =  (SecT c (BaseT (ℕT InfIPr)))
           m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A") ])))
           expr' =  (ArrayE  (nullExp (NatE InfIPr 2))  (nullExp (BulE)) )
           expr = (ArraySizeE (nullExp expr')  )
