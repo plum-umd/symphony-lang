@@ -374,7 +374,6 @@ spec = do
       in case x of
         UVM.Inr a -> a `shouldBe`  t
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
-         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
     it "() : arrrsize" $
       let a =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "B")]) ))
           b =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "C")]) ))
