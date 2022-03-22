@@ -140,7 +140,11 @@ subtype_loc loctyS loctyT = case loctyS of
   (ArrT _ _ τ) → case loctyT of
     (ArrT None _ τ') → (subtype_loc τ τ')
     _  → return (loctyS == loctyT)
-
+  ISecT locS loctyS  → case loctyT of
+      ISecT locT loctyT → do 
+        mcond ← (superemode locS locT)
+        loccond ← (subtype_loc loctyS loctyT)
+        return (mcond ⩓ loccond)
   _ → return False
 
 -- Check if tyS <: tyT
@@ -285,6 +289,12 @@ locty_meet locty locty' =
         loc_meet ← (locty_meet locty locty')
         return (ArrT None n loc_meet)
       _  → if (locty == locty') then (return locty) else todoError
+  (ISecT loc loc_ty) →  case ty' of
+      (ISecT loc' loc_ty') → do 
+        loc_union ← (union_em loc loc')
+        loc_meet ← (locty_meet loc_ty loc_ty')
+        return (ISecT loc_union loc_meet)
+      ty' → todoError
   _ → todoError
 
 -- Finds join of two types
@@ -373,17 +383,23 @@ locty_join locty locty' =
         loc_join ← (locty_join locty locty')
         return (ArrT (Some loc) n loc_join)
     _  → if (locty == locty') then (return locty) else todoError
+  (ISecT loc loc_ty) → case ty' of
+      (ISecT loc' loc_ty') → do 
+        loc_inter ← (inter_em loc loc')
+        loc_top ← (locty_join loc_ty loc_ty')
+        return (SecT loc_inter loc_top)
+      _ → todoError
   _ → todoError
 
 -- Finds join of two types
 ty_join :: Type  → Type  → EM Type 
 ty_join ty ty' = case ty of
-  SecT loc loc_ty → (case ty' of
+  SecT loc loc_ty → case ty' of
       SecT loc' loc_ty' → do 
         loc_inter ← (inter_em loc loc')
         loc_top ← (locty_join loc_ty loc_ty')
         return (SecT loc_inter loc_top)
-      ty' → todoError)
+      _ → todoError
 
   x  → todoError
 
@@ -434,6 +450,9 @@ wf_loctype sigma m =
       return ()
     (ArrT _ _ τ')  →  do
       _ ← (wf_type τ' m)
+      return ()
+    ISecT p loc locty → do
+      _ ← (wf_share_loctype locty m)
       return ()
     _  → todoError
 
@@ -497,6 +516,9 @@ sublocty_wf sigma m =
     (ArrT loc n τ)  → do
       τ' ← (subty_wf τ m)
       return (ArrT loc n τ')
+    (ISecT loc loc_ty) → do
+      loc_subty ← (share_subloctype_wf loc_ty m)
+      (return (ISecT loc loc_subty))
     x  → todoError
 
 -- Rules to get the least super supertype of located type that a share can take sigma that is well formed
@@ -558,7 +580,10 @@ superlocty_wf sigma m =
     (ArrT loc n τ)  → do
       τ' ← (superty_wf τ m)
       return (ArrT loc n τ')
-    x  → todoError
+    (ISecT loc loc_ty) → do
+      loc_subty ← (share_superlocty_wf loc_ty m)
+      (return (ISecT loc loc_subty))
+    _  → todoError
 
 -- Rules to get the least super supertype of located type that a share can take sigma that is well formed
 share_superloctype_wf :: Type → Mode → EM Type
