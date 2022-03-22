@@ -920,7 +920,15 @@ synExpR e = case e of
   RefReadE e      → synRefRead e
   RefWriteE e₁ e₂ → synRefWrite e₁ e₂
 
+  -- Arrays
+  ArrayE e₁ e₂                                → synArray e₁ e₂
+  ArrayReadE e₁ e₂                            → synArrayRead e₁ e₂
+  ArrayWriteE (extract → ArrayReadE e₁ e₂) e₃ → synArrayWrite e₁ e₂ e₃
+  ArraySizeE e                                → synArraySize e
+
+  -- Par
   ParE ρse₁ e₂ → synPar ρse₁ e₂
+
   AscrE e τ → synAscr e τ
 
     -- Share, Reveal, and Send
