@@ -646,6 +646,7 @@ synShare φ τ ρe₁ ρse₂ e₃ =
       c₂ = synPrinSet ρse₂
       in case τ of
         SecT loc' τ' → do
+
             m  ← askL terModeL
             p ←  elabEMode (AddTop (PowPSE (frhs [ρe₁])))
             p' ← elabEMode loc'
@@ -664,8 +665,7 @@ synReveal φ τ ρse₁ ρe₂ e₃ =
   let c₁ = synPrinSet ρse₁
       c₂ = synPrinExp ρe₂
       in case τ of
-        SecT loc (ShareT φ loc' τ') → do
-
+        SecT loc (ShareT φ loc' τ') → do            
             m  ← askL terModeL
             p ←  elabEMode loc
             p' ← elabEMode loc'
@@ -732,6 +732,7 @@ synMuxCase ∷  Exp → 𝐿 (Pat ∧ Exp) → EM Type
 synMuxCase e ψes =do 
   let c = synExp e in do
     τ  ← c
+
     m ← askL terModeL
     em ← elabMode m
     τs' ← mapM (synBind τ) ψes
