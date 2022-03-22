@@ -735,7 +735,7 @@ elabPrinVal ρv = case  ρv of
 
 -- Bundles
 synBundleIntro :: (PrinExp ∧ Exp) → EM Type
-synBundle (pe :* e) = 
+synBundleIntro (pe :* e) = 
   let c = synExp e
   in do
     τ ← c
