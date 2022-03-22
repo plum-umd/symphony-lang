@@ -581,7 +581,7 @@ superlocty_wf sigma m =
       τ' ← (superty_wf τ m)
       return (ArrT loc n τ')
     (ISecT loc loc_ty) → do
-      loc_subty ← (share_superlocty_wf loc_ty m)
+      loc_subty ← (share_superloctype_wf loc_ty m)
       (return (ISecT loc loc_subty))
     _  → todoError
 
