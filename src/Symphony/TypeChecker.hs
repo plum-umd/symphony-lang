@@ -922,6 +922,21 @@ synExpR e = case e of
 
   ParE ρse₁ e₂ → synPar ρse₁ e₂
   AscrE e τ → synAscr e τ
+
+    -- Share, Reveal, and Send
+  ShareE φ τ ρe₁ ρse₂ e₃  → synShare φ τ ρe₁ ρse₂ e₃
+  RevealE φ τ ρse₁ ρe₂ e₃ → synReveal φ τ ρse₁ ρe₂ e₃
+  SendE τ ρe₁ ρse₂ e₃     → synComm τ ρe₁ ρse₂ e₃
+
+  -- MPC Operations
+  MuxIfE e₁ e₂ e₃ → synMuxIf e₁ e₂ e₃
+  MuxCaseE e ψes  → synMuxCase e ψes
+
+  -- Bundles
+  BundleE ρees         → synBundle ρees
+  BundleAccessE e₁ ρe₂ → synBundleAccess e₁ ρe₂
+  BundleUnionE e₁ e₂   → synBundleUnion e₁ e₂
+  
   _      → undefined
 
 
