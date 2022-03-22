@@ -78,8 +78,8 @@ asssertSharable τ =
   case τ of 
     (SecT l' (BaseT bτ))  → return ()
     (SecT l' (τₗ :+: τᵣ) )  → do
-      τₗ' ← (embedShare τₗ )
-      τᵣ' ← (embedShare τᵣ )
+      τₗ' ← (embedShareable τₗ )
+      τᵣ' ← (embedShareable τᵣ )
       return ()
     _ → todoError
 -----------------
