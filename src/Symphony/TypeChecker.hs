@@ -753,6 +753,25 @@ synMuxCase e ψes =do
                 todoError
     
 
+-- Bundles
+synBundleIntro :: (PrinExp ∧ Exp) → EM Type
+synBundleIntro (pe :* e) = 
+  let c = synExp e
+  in do
+    τ ← c
+    _ ← asssertSharable τ
+    m  ← askL terModeL
+    em ← elabMode m
+    case τ of
+      (SecT loc τ' ) → do
+          p ←  elabEMode (AddTop (PowPSE (frhs [pe])))
+          p' ← elabEMode loc
+          guardErr (p ≡ p') $
+            typeError "synBundleAccess: p /≡ p'" $ frhs
+              [ ("p", pretty p)
+              , ("p'", pretty p')
+              ]
+          (SecT em (ISecT loc τ'))
 
 synBundle ∷ 𝐿 (Pat ∧ Exp) → EM Type
 synBundle ρee𝐿 =
