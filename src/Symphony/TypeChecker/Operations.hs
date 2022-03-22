@@ -73,13 +73,13 @@ embedShare φ l τ =
       return (SecT l' (ShareT φ l (τₗ' :+: τᵣ'))) 
     _ → todoError
 
-asssertSharable ::  Prot → EMode → Type → EM ()
+asssertSharable ::   Type → EM ()
 asssertSharable φ l τ = 
   case τ of 
     (SecT l' (BaseT bτ))  → return ()
     (SecT l' (τₗ :+: τᵣ) )  → do
-      τₗ' ← (embedShare φ l τₗ )
-      τᵣ' ← (embedShare φ l τᵣ )
+      τₗ' ← (embedShare τₗ )
+      τᵣ' ← (embedShare τᵣ )
       return ()
     _ → todoError
 -----------------
