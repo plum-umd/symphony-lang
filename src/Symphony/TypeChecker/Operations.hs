@@ -734,7 +734,7 @@ elabPrinVal ρv = case  ρv of
   (AccessPV ρ n₁) → return (AccessPE (var ρ) n₁)
 
 -- Bundles
-synBundleIntro (PrinExp ∧ Exp) → EM Type
+synBundleIntro :: (PrinExp ∧ Exp) → EM Type
 synBundle (pe :* e) = 
   let c = synExp e
   in do
