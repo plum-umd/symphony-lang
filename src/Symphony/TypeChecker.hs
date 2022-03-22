@@ -777,7 +777,7 @@ synBundleIntro (pe :* e) =
 synBundle ∷ 𝐿 (Pat ∧ Exp) → EM Type
 synBundle ρee𝐿 =
   do
-    τs ← (mapM ρee𝐿 synBundleIntro)
+    τs ← (mapM synBundleIntro ρee𝐿)
     case τs of
       (τ :& τs') → (mfold τ synBundleUnionHelper τs)
       _ → todoError
@@ -844,7 +844,7 @@ synBundleUnionHelper τ₁ τ₂ =
               ]
             p₁ ← elabEMode loc₁'
             p₂ ← elabEMode loc₂'
-            guardErr (p₁ ⊓ p₂ ≡ bot)
+            guardErr (p₁ ⊓ p₂ ≡ bot) $
               typeError "synBundle: p₁ ⊓ p₂ ≢  bot" $ frhs
               [ ("p₁", pretty p₁)
                 , ("p₂", pretty p₂)
