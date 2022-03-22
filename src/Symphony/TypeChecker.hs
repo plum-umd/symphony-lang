@@ -759,7 +759,7 @@ synBundleIntro (pe :* e) =
   let c = synExp e
   in do
     τ ← c
-    _ ← asssertSharable τ
+    _ ← assertShareable τ
     m  ← askL terModeL
     em ← elabMode m
     case τ of
