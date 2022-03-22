@@ -773,11 +773,11 @@ synBundleIntro (pe :* e) =
               ]
           return (SecT em (ISecT loc τ'))
       _ → todoError
-      
+
 synBundle ∷ 𝐿 (Pat ∧ Exp) → EM Type
 synBundle ρee𝐿 =
   do
-    τs ← (mapM ρee𝐿)
+    τs ← (mapM ρee𝐿 synBundleIntro)
     case τs of
       (τ :& τs') → (mfold τ synBundleUnionHelper τs)
       _ → todoError
