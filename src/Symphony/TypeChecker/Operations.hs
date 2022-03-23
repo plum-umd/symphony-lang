@@ -76,7 +76,7 @@ embedShare φ l τ =
         ]
       return (SecT l' (ShareT φ l (BaseT bτ))) 
     (SecT l' (BaseT bτ))  → return (SecT l' (ShareT φ l (BaseT bτ))) 
-    (SecT l' (ShareT φ' l'' (τₗ' :+: τᵣ'))) → do
+    (SecT l' (ShareT φ' l'' (τₗ :+: τᵣ))) → do
       q ← elabEMode l
       q'' ← elabEMode l''
       guardErr ((q ≡ q'') ⩓ φ ≡ φ) $
