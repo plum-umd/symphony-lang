@@ -434,7 +434,7 @@ spec = do
       in case x of
         UVM.Inr a -> a `shouldBe`  t
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
-     it "() : comm" $
+    it "() : comm" $
       let a =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "B")]) ))
           bpse = (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "C")]) )
           b =  (UVM.AddTop (bpse))
@@ -444,7 +444,7 @@ spec = do
           dpse = (PowPSE (UVM.frhs [ VarPE (UVM.var "C")]) )
           d = (UVM.AddTop (dpse))
           t' =  (SecT c (BaseT UnitT))
-          t =  (SecT d (BaseT UnitT) )
+          t =  (SecT d  (BaseT UnitT)) 
           m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A"), (SinglePV "C")])))
           expr'' =  (BulE)
           expr' = (ParE cpse (nullExp expr'')  )
