@@ -80,9 +80,9 @@ embedShare φ l τ =
       q ← elabEMode l
       q'' ← elabEMode l''
       guardErr ((q ≡ q') ⩓ φ ≡ φ) $
-        typeError "Not well formed q != q'" $ frhs
+        typeError "Not well formed q != q''" $ frhs
         [ ("q", pretty q)
-        , ("q", pretty q')
+        , ("q''", pretty q'')
         ]
       τₗ' ← (embedShare φ l τₗ )
       τᵣ' ← (embedShare φ l τᵣ )
