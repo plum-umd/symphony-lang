@@ -482,11 +482,12 @@ spec = do
           c = (UVM.AddTop (cpse))
           dpse = (PowPSE (UVM.frhs [ VarPE (UVM.var "C")]) )
           d = (UVM.AddTop (dpse))
+          t =  (SecT d (ShareT YaoNP d (BaseT UnitT)) )
           m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [  (SinglePV "C")])))
           expr =  (IfE (UVM.𝐴 y (VarE (UVM.var "D"))) (UVM.𝐴 y (VarE (UVM.var "A"))) (UVM.𝐴 y (VarE (UVM.var "B"))) )
-          x  = (evalEM (ER {terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT d (ShareT YaoNP d (BaseT 𝔹T)) ), (UVM.var "A" ,(SecT d (ShareT YaoNP d (BaseT UnitT)) ) ) ]))) }) () (synExpR expr))
+          x  = (evalEM (ER {terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT d (ShareT YaoNP d (BaseT 𝔹T)) )), (UVM.var "A" , (SecT d (ShareT YaoNP d (BaseT UnitT)) )), (UVM.var "B" , (SecT d (ShareT YaoNP d (BaseT UnitT)) )) ])) }) () (synExpR expr))
       in case x of
-      UVM.Inr a -> a `shouldBe`  (SecT c  (BaseT UnitT))
+      UVM.Inr a -> a `shouldBe`  t
     it "() + () error" $
       let e = PrimE PlusO $ UVM.frhs $ [(nullExp BulE), (nullExp BulE)] in
       let x = evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExpR e) in
