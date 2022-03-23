@@ -671,7 +671,7 @@ synReveal φ τ ρse₁ ρe₂ e₃ =
             p' ← elabEMode loc'
             qs ← elabPrinSetExp  (PowPSE (frhs [ρe₂]))
             subcond  ←  localL terModeL m (chkExp e₃ τ)
-            if (not (isEmpty  qs)) ⩓ (p ≡ p') ⩓ (m ≡ ( p ⊓ (AddTop qs)) )
+            if ( (p ≡ p') ⩓ (m ≡ ( p ⊔ (AddTop qs)) )
               then return (SecT (AddTop (PowPSE (frhs [ρe₂]))) τ' ) 
               else todoError
         _ → do
