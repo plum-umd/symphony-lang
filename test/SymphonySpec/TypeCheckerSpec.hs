@@ -419,7 +419,7 @@ spec = do
       let a =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "B")]) ))
           bpse = (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "C")]) )
           b =  (UVM.AddTop (bpse))
-          Aprin = VarPE (UVM.var "A")
+          aprin = VarPE (UVM.var "A")
           cpse = PowPSE (UVM.frhs [APrin])
           c = (UVM.AddTop (cpse))
           dpse = (PowPSE (UVM.frhs [ VarPE (UVM.var "C")]) )
@@ -428,7 +428,7 @@ spec = do
           m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A"), (SinglePV "C")])))
           expr'' =  (BulE)
           expr' = (ParE cpse (nullExp expr')  )
-          expr = (ShareE YaoNP t'  Aprin d expr')
+          expr = (ShareE YaoNP t'  aprin d expr')
           x  = (evalEM (ER {terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
