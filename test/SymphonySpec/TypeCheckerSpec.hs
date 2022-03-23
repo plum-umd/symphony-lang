@@ -425,10 +425,10 @@ spec = do
           dpse = (PowPSE (UVM.frhs [ VarPE (UVM.var "C")]) )
           d = (UVM.AddTop (dpse))
           t' =  (SecT c (BaseT UnitT))
-          t =  (SecT d (BaseT UnitT))
+          t =  (SecT d (ShareT YaoNP d (BaseT UnitT)) )
           m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A"), (SinglePV "C")])))
           expr'' =  (BulE)
-          expr' = (ParE cpse (nullExp expr')  )
+          expr' = (ParE cpse (nullExp expr'')  )
           expr = (ShareE YaoNP t'  aprin dpse (nullExp expr'))
           x  = (evalEM (ER {terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
