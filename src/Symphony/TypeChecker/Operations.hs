@@ -70,9 +70,9 @@ embedShare φ l τ =
       q ← elabEMode l
       q'' ← elabEMode l''
       guardErr ((q ≡ q') ⩓ φ ≡ φ) $
-        typeError "Not well formed m != l" $ frhs
-        [ ("m", pretty m)
-        , ("l", pretty l)
+        typeError "Not well formed q != q'" $ frhs
+        [ ("q", pretty q)
+        , ("q'", pretty q')
         ]
       return (SecT l' (ShareT φ l (BaseT bτ))) 
     (SecT l' (BaseT bτ))  → return (SecT l' (ShareT φ l (BaseT bτ))) 
@@ -80,9 +80,9 @@ embedShare φ l τ =
       q ← elabEMode l
       q'' ← elabEMode l''
       guardErr ((q ≡ q') ⩓ φ ≡ φ) $
-        typeError "Not well formed m != l" $ frhs
-        [ ("m", pretty m)
-        , ("l", pretty l)
+        typeError "Not well formed q != q'" $ frhs
+        [ ("q", pretty q)
+        , ("q", pretty q')
         ]
       τₗ' ← (embedShare φ l τₗ )
       τᵣ' ← (embedShare φ l τᵣ )
