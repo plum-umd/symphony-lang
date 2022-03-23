@@ -66,7 +66,27 @@ extractBase τ =
 embedShare ::  Prot → EMode → Type → EM Type
 embedShare φ l τ = 
   case τ of 
+    (SecT l' (ShareT φ' l'' (BaseT bτ))) → do
+      q ← elabEMode l
+      q'' ← elabEMode l''
+      guardErr ((q ≡ q') ⩓ φ ≡ φ) $
+        typeError "Not well formed m != l" $ frhs
+        [ ("m", pretty m)
+        , ("l", pretty l)
+        ]
+      return (SecT l' (ShareT φ l (BaseT bτ))) 
     (SecT l' (BaseT bτ))  → return (SecT l' (ShareT φ l (BaseT bτ))) 
+    (SecT l' (ShareT φ' l'' (τₗ' :+: τᵣ'))) do
+      q ← elabEMode l
+      q'' ← elabEMode l''
+      guardErr ((q ≡ q') ⩓ φ ≡ φ) $
+        typeError "Not well formed m != l" $ frhs
+        [ ("m", pretty m)
+        , ("l", pretty l)
+        ]
+      τₗ' ← (embedShare φ l τₗ )
+      τᵣ' ← (embedShare φ l τᵣ )
+      return (SecT l' (ShareT φ l (τₗ' :+: τᵣ'))) 
     (SecT l' (τₗ :+: τᵣ) )  → do
       τₗ' ← (embedShare φ l τₗ )
       τᵣ' ← (embedShare φ l τᵣ )
