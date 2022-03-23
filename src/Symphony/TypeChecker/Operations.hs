@@ -423,7 +423,7 @@ wf_loctype sigma m =
       _ ← (wf_share_loctype locty m)
       l ← (elabEMode loc)
       -- WF-Enc
-      if (m == l) then (return ()) else todoError
+      return ()
     (loctyₗ :+: loctyᵣ) → do 
       _ ← (wf_type loctyₗ m)
       _ ← (wf_type loctyᵣ m)
