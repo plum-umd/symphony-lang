@@ -449,7 +449,7 @@ spec = do
           expr''' =  (BulE)
           expr'' = (ParE cpse (nullExp expr''')  )
           expr' = (ShareE YaoNP t  aprin dpse (nullExp expr''))
-          expr = (RevealE YaoNP t' dpse aprin expr')
+          expr = (RevealE YaoNP t' dpse aprin (nullExp expr'))
           x  = (evalEM (ER {terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
