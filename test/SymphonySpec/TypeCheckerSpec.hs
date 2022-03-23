@@ -389,7 +389,7 @@ spec = do
     it "() : par" $
       let a =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "B")]) ))
           bpse = (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "C")]) )
-          b =  (UVM.AddTop )
+          b =  (UVM.AddTop (bpse))
           cpse = PowPSE (UVM.frhs [VarPE (UVM.var "A")])
           c = (UVM.AddTop (cpse))
           t =  (SecT c (BaseT UnitT))
