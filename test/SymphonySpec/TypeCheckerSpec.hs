@@ -484,7 +484,7 @@ spec = do
           d = (UVM.AddTop (dpse))
           t =  (SecT d (ShareT YaoNP d (BaseT UnitT)) )
           m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [  (SinglePV "C")])))
-          expr =  (IfE (nullExp (VarE (UVM.var "D"))) (nullExp (VarE (UVM.var "A"))) (nullExp (VarE (UVM.var "B"))) )
+          expr =  (MuxIfE (nullExp (VarE (UVM.var "D"))) (nullExp (VarE (UVM.var "A"))) (nullExp (VarE (UVM.var "B"))) )
           x  = (evalEM (ER {terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT d (ShareT YaoNP d (BaseT 𝔹T)) )), (UVM.var "A" , (SecT d (ShareT YaoNP d (BaseT UnitT)) )), (UVM.var "B" , (SecT d (ShareT YaoNP d (BaseT UnitT)) )) ])) }) () (synExpR expr))
       in case x of
       UVM.Inr a -> a `shouldBe`  t
