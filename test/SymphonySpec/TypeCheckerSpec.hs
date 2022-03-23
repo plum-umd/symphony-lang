@@ -484,7 +484,7 @@ spec = do
           d = (UVM.AddTop (dpse))
           m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [  (SinglePV "C")])))
           expr =  (IfE (UVM.𝐴 y (VarE (UVM.var "D"))) (UVM.𝐴 y (VarE (UVM.var "A"))) (UVM.𝐴 y (VarE (UVM.var "B"))) )
-          x  = (evalEM (ER {terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT d (ShareT YaoNP d (BaseT 𝔹T)) ), (UVM.var "A" ,(SecT d (ShareT YaoNP d (BaseT UnitT)) ) ) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT d (ShareT YaoNP d (BaseT 𝔹T)) ), (UVM.var "A" ,(SecT d (ShareT YaoNP d (BaseT UnitT)) ) ) ]))) }) () (synExpR expr))
       in case x of
       UVM.Inr a -> a `shouldBe`  (SecT c  (BaseT UnitT))
     it "() + () error" $
