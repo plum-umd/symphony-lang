@@ -503,6 +503,20 @@ spec = do
       in case x of
       UVM.Inr a -> a `shouldBe`  t
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
+    it "() : caseexp" $
+      let y = (UVM.SrcCxt {UVM.srcCxtSourceName = "", UVM.srcCxtLocRange = UVM.locRange₀, UVM.srcCxtPrefix = UVM.null, UVM.srcCxtContext = UVM.null, UVM.srcCxtSuffix = UVM.null})
+          a =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "B")]) ))
+          b =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "C")]) ))
+          c = (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A")]) ))
+          exprL = ( (LP (VarP (UVM.var "X"))) UVM.:*  (nullExp (VarE (UVM.var "A"))) )
+          exprR = ((RP (VarP (UVM.var "X"))) UVM.:*  (nullExp (VarE (UVM.var "B"))))
+          expr =  (MuxCaseE (nullExp (VarE (UVM.var "D"))) (UVM.frhs [exprL, exprR] ) )
+          t = (SecT UVM.Top (ShareT YaoNP UVM.Top (BaseT UnitT)) )
+          guardt = (SecT UVM.Top (ShareT YaoNP  UVM.Top ((SecT a (BaseT UnitT )) :+: (SecT a (BaseT UnitT )))))
+          x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , guardt), (UVM.var "A" ,  (SecT UVM.Top (ShareT YaoNP (BaseT UnitT )))), (UVM.var "B" ,  (SecT UVM.Top (ShareT YaoNP (BaseT UnitT )))) ])) }) () (synExpR expr))
+      in case x of
+      UVM.Inr a -> a `shouldBe`  t
+      UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
     it "() + () error" $
       let e = PrimE PlusO $ UVM.frhs $ [(nullExp BulE), (nullExp BulE)] in
       let x = evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExpR e) in
