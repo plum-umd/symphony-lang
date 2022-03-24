@@ -497,6 +497,7 @@ spec = do
           exprL = ( (LP (VarP (UVM.var "X"))) UVM.:*  (nullExp (VarE (UVM.var "A"))) )
           exprR = ((RP (VarP (UVM.var "X"))) UVM.:*  (nullExp (VarE (UVM.var "B"))))
           expr =  (MuxCaseE (nullExp (VarE (UVM.var "D"))) (UVM.frhs [exprL, exprR] ) )
+          t = (SecT UVM.Top (ShareT YaoNP d (BaseT UnitT)) )
           guardt = (SecT UVM.Top (ShareT YaoNP  UVM.Top ((SecT a (BaseT UnitT )) :+: (SecT a (BaseT UnitT )))))
           x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , guardt), (UVM.var "A" , (SecT UVM.Top (BaseT UnitT ))), (UVM.var "B" , (SecT UVM.Top (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
