@@ -513,7 +513,7 @@ spec = do
           expr =  (MuxCaseE (nullExp (VarE (UVM.var "D"))) (UVM.frhs [exprL, exprR] ) )
           t = (SecT UVM.Top (ShareT YaoNP UVM.Top (BaseT UnitT)) )
           guardt = (SecT UVM.Top (ShareT YaoNP  UVM.Top ((SecT a (BaseT UnitT )) :+: (SecT a (BaseT UnitT )))))
-          x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , guardt), (UVM.var "A" ,  (SecT UVM.Top (ShareT YaoNP (BaseT UnitT )))), (UVM.var "B" ,  (SecT UVM.Top (ShareT YaoNP (BaseT UnitT )))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , guardt), (UVM.var "A" ,  (SecT UVM.Top (ShareT YaoNP  UVM.Top  (BaseT UnitT )))), (UVM.var "B" ,  (SecT UVM.Top (ShareT YaoNP  UVM.Top  (BaseT UnitT )))) ])) }) () (synExpR expr))
       in case x of
       UVM.Inr a -> a `shouldBe`  t
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
