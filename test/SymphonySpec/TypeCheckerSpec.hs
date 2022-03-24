@@ -501,7 +501,7 @@ spec = do
           guardt = (SecT UVM.Top (ShareT YaoNP  UVM.Top ((SecT a (BaseT UnitT )) :+: (SecT a (BaseT UnitT )))))
           x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , guardt), (UVM.var "A" , (SecT UVM.Top (BaseT UnitT ))), (UVM.var "B" , (SecT UVM.Top (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
-      UVM.Inr a -> a `shouldBe`  (SecT UVM.Top  (BaseT UnitT))
+      UVM.Inr a -> a `shouldBe`  t
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
     it "() + () error" $
       let e = PrimE PlusO $ UVM.frhs $ [(nullExp BulE), (nullExp BulE)] in
