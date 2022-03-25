@@ -535,7 +535,7 @@ spec = do
           exprR = (cprin UVM.:*  (nullExp (VarE (UVM.var "B"))) )
           l = UVM.frhs  (UVM.frhs [exprL, exprR] )
           expr =  (BundleE l)
-          x  = (evalEM (ER {terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (  (UVM.var "A" , t'),  (UVM.var "B" , t'' )) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [  (UVM.var "A" , t'),  (UVM.var "B" , t'' ) ])) }) () (synExpR expr))
       in case x of
       UVM.Inr a -> a `shouldBe`  t
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -557,7 +557,7 @@ spec = do
           exprR = (cprin UVM.:*  (nullExp (VarE (UVM.var "B"))) )
           l =  (UVM.frhs [exprL, exprR] )
           expr =  (BundleE l)
-          x  = (evalEM (ER {terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (  (UVM.var "A" , t'),  (UVM.var "B" , t'' )) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [  (UVM.var "A" , t'),  (UVM.var "B" , t'' ) ])) }) () (synExpR expr))
       in case x of
       UVM.Inr a -> a `shouldBe`  t
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -580,7 +580,7 @@ spec = do
           l =  (UVM.frhs [exprL, exprR] )
           expr' =  (BundleE l)
           expr = (BundleAccessE (nullExp expr') aprin )
-          x  = (evalEM (ER {terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (  (UVM.var "A" , t'),  (UVM.var "B" , t'' )) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [   (UVM.var "A" , t'),  (UVM.var "B" , t'' ) ])) }) () (synExpR expr))
       in case x of
       UVM.Inr a -> a `shouldBe`  t
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
