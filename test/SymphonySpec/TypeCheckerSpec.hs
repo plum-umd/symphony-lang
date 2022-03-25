@@ -601,7 +601,7 @@ spec = do
           exprL = (nullExp (VarE (UVM.var "A"))) 
           exprR = (nullExp (VarE (UVM.var "B"))) 
           expr =  (BundleUnionE exprL exprR)
-          x  = (evalEM (ER {terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (  (UVM.var "A" , t'),  (UVM.var "B" , t'' )) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [  (UVM.var "A" , t'),  (UVM.var "B" , t'' ) ])) }) () (synExpR expr))
       in case x of
       UVM.Inr a -> a `shouldBe`  t
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
