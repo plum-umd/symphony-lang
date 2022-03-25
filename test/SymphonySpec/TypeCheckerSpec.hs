@@ -517,6 +517,94 @@ spec = do
       in case x of
       UVM.Inr a -> a `shouldBe`  t
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
+    it "() : bundlerexp" $
+      let a =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "B")]) ))
+          bpse = (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "C")]) )
+          b =  (UVM.AddTop (bpse))
+          aprin = VarPE (UVM.var "A")
+          cpse = PowPSE (UVM.frhs [aprin])
+          c = (UVM.AddTop (cpse))
+          cprin = VarPE (UVM.var "C")
+          dpse = (PowPSE (UVM.frhs [cprin]) )
+          d = (UVM.AddTop (dpse))
+          t' = (SecT c (BaseT UnitT)) 
+          t'' = (SecT d (BaseT UnitT)) 
+          t =  (SecT b (ISecT b (BaseT UnitT)) )
+          m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [  (SinglePV "C")])))
+          exprL = (aprin UVM.:*  (nullExp (VarE (UVM.var "A"))) )
+          exprL = (cprin UVM.:*  (nullExp (VarE (UVM.var "B"))) )
+          l = UVM.frhs  (UVM.frhs [exprL, exprR] )
+          expr =  (BundleE l)
+          x  = (evalEM (ER {terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (  (UVM.var "A" , t'),  (UVM.var "B" , t'' )) ])) }) () (synExpR expr))
+      in case x of
+      UVM.Inr a -> a `shouldBe`  t
+      UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
+    it "() : bundleexp" $
+      let a =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "B")]) ))
+          bpse = (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "C")]) )
+          b =  (UVM.AddTop (bpse))
+          aprin = VarPE (UVM.var "A")
+          cpse = PowPSE (UVM.frhs [aprin])
+          c = (UVM.AddTop (cpse))
+          cprin = VarPE (UVM.var "C")
+          dpse = (PowPSE (UVM.frhs [cprin]) )
+          d = (UVM.AddTop (dpse))
+          t' = (SecT c (BaseT UnitT)) 
+          t'' = (SecT d (BaseT UnitT)) 
+          t =  (SecT b (ISecT b (BaseT UnitT)) )
+          m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [  (SinglePV "C")])))
+          exprL = (aprin UVM.:*  (nullExp (VarE (UVM.var "A"))) )
+          exprL = (cprin UVM.:*  (nullExp (VarE (UVM.var "B"))) )
+          l =  (UVM.frhs [exprL, exprR] )
+          expr =  (BundleE l)
+          x  = (evalEM (ER {terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (  (UVM.var "A" , t'),  (UVM.var "B" , t'' )) ])) }) () (synExpR expr))
+      in case x of
+      UVM.Inr a -> a `shouldBe`  t
+      UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
+    it "() : bundlereadexp" $
+      let a =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "B")]) ))
+          bpse = (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "C")]) )
+          b =  (UVM.AddTop (bpse))
+          aprin = VarPE (UVM.var "A")
+          cpse = PowPSE (UVM.frhs [aprin])
+          c = (UVM.AddTop (cpse))
+          cprin = VarPE (UVM.var "C")
+          dpse = (PowPSE (UVM.frhs [cprin]) )
+          d = (UVM.AddTop (dpse))
+          t' = (SecT c (BaseT UnitT)) 
+          t'' = (SecT d (BaseT UnitT)) 
+          t =  t'
+          m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [  (SinglePV "C")])))
+          exprL = (aprin UVM.:*  (nullExp (VarE (UVM.var "A"))) )
+          exprR = (cprin UVM.:*  (nullExp (VarE (UVM.var "B"))) )
+          l =  (UVM.frhs [exprL, exprR] )
+          expr' =  (BundleE l)
+          expr = (BundleAccessE (nullExp expr') aprin )
+          x  = (evalEM (ER {terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (  (UVM.var "A" , t'),  (UVM.var "B" , t'' )) ])) }) () (synExpR expr))
+      in case x of
+      UVM.Inr a -> a `shouldBe`  t
+      UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
+    it "() : bundleunionexp" $
+      let a =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "B")]) ))
+          bpse = (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "C")]) )
+          b =  (UVM.AddTop (bpse))
+          aprin = VarPE (UVM.var "A")
+          cpse = PowPSE (UVM.frhs [aprin])
+          c = (UVM.AddTop (cpse))
+          cprin = VarPE (UVM.var "C")
+          dpse = (PowPSE (UVM.frhs [cprin]) )
+          d = (UVM.AddTop (dpse))
+          t' = (SecT c (BaseT UnitT)) 
+          t'' = (SecT d (BaseT UnitT)) 
+          t =  (SecT b (ISecT b (BaseT UnitT)) )
+          m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [  (SinglePV "C")])))
+          exprL = (nullExp (VarE (UVM.var "A"))) 
+          exprR = (nullExp (VarE (UVM.var "B"))) 
+          expr =  (BundleUnionE exprL exprR)
+          x  = (evalEM (ER {terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (  (UVM.var "A" , t'),  (UVM.var "B" , t'' )) ])) }) () (synExpR expr))
+      in case x of
+      UVM.Inr a -> a `shouldBe`  t
+      UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
     it "() + () error" $
       let e = PrimE PlusO $ UVM.frhs $ [(nullExp BulE), (nullExp BulE)] in
       let x = evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExpR e) in
