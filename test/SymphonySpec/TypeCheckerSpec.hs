@@ -558,7 +558,7 @@ spec = do
           l =  (UVM.frhs [exprL, exprR] )
           expr' =  (BundleE l)
           expr = (BundleAccessE (nullExp expr') aprin )
-          x  = (evalEM (ER {terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "x" , t'),  (UVM.var "y" , t'' )  ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "x" , t'),  (UVM.var "y" , t'' ), (UVM.var "A" , (SecT UVM.Top (BaseT ℙT)))  ])) }) () (synExpR expr))
       in case x of
       UVM.Inr a -> a `shouldBe`  t
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
