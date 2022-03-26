@@ -768,7 +768,7 @@ synBundleIntro (pe :* e) =
           p ←  elabEMode (AddTop (PowPSE (frhs [pe])))
           p' ← elabEMode loc
           guardErr (p ≡ p') $
-            typeError "synBundleAccess: p /≡ p'" $ frhs
+            typeError "synBundleIntro: p /≡ p'" $ frhs
               [ ("p", pretty p)
               , ("p'", pretty p')
               ]
