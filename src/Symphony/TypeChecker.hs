@@ -780,7 +780,7 @@ synBundle ρee𝐿 =
   do
     τs ← (mapM synBundleIntro ρee𝐿)
     case τs of
-      (τ :& τs') → (mfold τ synBundleUnionHelper τs)
+      (τ :& τs') → (mfold τ synBundleUnionHelper τs')
       _ → todoError
 
 synBundleAccess ∷ Exp → PrinExp → EM Type
@@ -853,6 +853,8 @@ synBundleUnionHelper τ₁ τ₂ =
             q ← elabMode (p₁ ⊔ p₂)
             τ ←  (ty_join τ₁' τ₂')
             return  (SecT loc₂ (ISecT q τ))
+          _ → todoError
+        _ → todoError
             
 -------------------
 --- Expressions ---
