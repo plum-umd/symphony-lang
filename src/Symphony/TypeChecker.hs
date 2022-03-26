@@ -770,7 +770,7 @@ synBundleIntro (pe :* e) =
           guardErr (p ≡ p') $
             typeError "synBundleIntro: p /≡ p'" $ frhs
               [ ("p", pretty p)
-              , ("p'", pretty p')
+              , ("p'", pretty loc)
               ]
           return (SecT em (ISecT loc τ'))
       _ → todoError
