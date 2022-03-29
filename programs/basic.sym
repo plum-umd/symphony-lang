@@ -1,7 +1,7 @@
 principal A B C D E
 
 def main () = par {A,B,C,D,E}
-  let v1 = par {A,C,D} (share [yao, 𝔹 : A → {C,D}] (par {A} read 𝔹 from "basic.txt")) in
-  let v2 = par {B,C,D} (share [yao, 𝔹 : B → {C,D}] (par {B} read 𝔹 from "basic.txt")) in
+  let v1 = par {A,C,D} (share [yao, 𝔹 : A → {C,D}] (par {A} read 𝔹 from "input.txt")) in
+  let v2 = par {B,C,D} (share [yao, 𝔹 : B → {C,D}] (par {B} read 𝔹 from "input.txt")) in
   let v3 = par {C,D} v1 + v2 in -- xor
   par {C,D,E} (reveal [yao, 𝔹 : {C,D} → E] v3)

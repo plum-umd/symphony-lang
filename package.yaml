@@ -37,6 +37,13 @@ default-extensions:
   - UndecidableSuperClasses
   - UnicodeSyntax
   - ViewPatterns
+  - CPP
+
+flags:
+  dist:
+    default: false
+    manual: true
+
 
 ghc-options:
   - -Wall

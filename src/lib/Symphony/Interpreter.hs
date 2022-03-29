@@ -672,7 +672,7 @@ asTLM xM = mkITLM $ \ θ ωtl →
                 , update iCxtEnvL γ
                 , update iCxtPrinScopeL ds
                 ]
-                ξ₀
+                (ξ₀ (iParamsName θ))
   in do
     rox ← runIM ξ ω xM
     return $ case rox of
@@ -741,11 +741,11 @@ options₀ = do
     if localTestsExists
     then return "tests"
     else datapath "tests"
-  libPathExists ← pexists "lib"
+  libPathExists ← pexists "programs"
   libPath ←
     if libPathExists
-    then return "lib"
-    else datapath "lib"
+    then return "programs"
+    else datapath ""
   return $ Options
     { optVersion = False
     , optHelp = False
@@ -795,8 +795,8 @@ readPrinVal s = case list $ splitOn𝕊 "." s of
   ρ :& n :& Nil → Some $ AccessPV ρ (read𝕊 n)
   _             → None
 
-initializeEnv ∷ Options → IParams
-initializeEnv os = flip compose θ₀
+initializeEnv ∷ Options → 𝕊 → IParams
+initializeEnv os name = flip compose (θ₀ name)
   [ update iParamsMeL $ mjoin $ readPrinVal ^$ optParty os ]
 
 parseOptionsSymphony ∷ IO (Options ∧ 𝐿 𝕊)

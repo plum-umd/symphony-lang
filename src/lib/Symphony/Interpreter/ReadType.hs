@@ -27,9 +27,10 @@ inputPath ∷ (STACK) ⇒ PrinVal → 𝕊 → IM v 𝕊
 inputPath ρ fn = do
   b ← askL iCxtIsExampleL
   ppath ← prinDataPath ρ
+  name ← askL iCxtNameL
   if b
   then io $ do
-      let relativePath = concat ["examples-input/",ppath,"/",fn]
+      let relativePath = concat ["programs/",name,"/",ppath,"/",fn]
       dataFilePath ← datapath relativePath
       relativePathExists ← pexists relativePath
       dataFilePathExists ← pexists dataFilePath
