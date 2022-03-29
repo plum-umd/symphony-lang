@@ -1,3 +1,6 @@
 [submodule "extern/uvmhs"]
 	path = extern/uvmhs
 	url = git@github.com:uvm-plaid/uvmhs.git
+[submodule "extern/symphony-runtime"]
+	path = extern/symphony-runtime
+	url = git@github.com:Isweet/symphony-runtime.git
