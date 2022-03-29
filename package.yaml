@@ -51,12 +51,11 @@ ghc-options:
   - -fexpose-all-unfoldings
 
 data-files:
-  - lib/**/*
-  - examples/**/*
+  - programs/**/*
 
 library:
   source-dirs:
-    - src
+    - src/lib
   dependencies:
     - aeson
     - network
@@ -72,15 +71,12 @@ library:
     - bytestring
     - text
     - vector
-  extra-libraries:
-    - symphony-emp
-    - symphony-util
 
 tests:
   symphony-test:
     main: Main.hs
     source-dirs:
-      - test
+      - src/test
     dependencies:
       - base
       - text
@@ -90,8 +86,9 @@ tests:
 
 executables:
   symphony:
-    source-dirs: main
     main: Main.hs
+    source-dirs:
+      - src/main
     dependencies:
       - base
       - cryptonite
