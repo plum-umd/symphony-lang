@@ -57,8 +57,10 @@ ghc-options:
   - -fspecialise-aggressively
   - -fexpose-all-unfoldings
 
+data-dir: data
+
 data-files:
-  - data/**/*
+  - ./**/*
 
 library:
   source-dirs:

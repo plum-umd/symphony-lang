@@ -20,7 +20,7 @@ symphonyMainExample = do
     Nil      → failIO "ERROR: No file specified as target. Correct usage: symphony example [<arguments>] <name>"
     t :& Nil → return t
     _ → failIO "ERROR: Too many files specified as target. Correct usage: symphony example [<arguments>] <name>"
-  examplePath ← findFile $ "examples/" ⧺ name ⧺ ".sym"
+  examplePath ← findFile $ "bin/" ⧺ name ⧺ ".sym"
   pprint $ ppHorizontal
     [ ppHeader "INTERPRETING EXAMPLE:"
     , ppString name
