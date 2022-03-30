@@ -173,11 +173,10 @@ type Store v = 𝑉 v
 data IParams = IParams
   { iParamsIsExample ∷ 𝔹
   , iParamsMe        ∷ 𝑂 PrinVal
-  , iParamsName      ∷ 𝕊
   } deriving (Eq,Ord,Show)
 
-θ₀ ∷ 𝕊 → IParams
-θ₀ name = IParams False None name
+θ₀ ∷ IParams
+θ₀ = IParams False None
 
 -------------
 -- CONTEXT --
@@ -194,8 +193,8 @@ data ICxt v = ICxt
   , iCxtMPCPathCondition ∷ 𝐿 v
   } deriving (Show)
 
-ξ₀ ∷ 𝕊 → ICxt v
-ξ₀ name = ICxt (θ₀ name) None null null top null
+ξ₀ ∷ ICxt v
+ξ₀ = ICxt θ₀ None null null top null
 
 -----------
 -- STATE --
@@ -331,9 +330,6 @@ iCxtIsExampleL = iParamsIsExampleL ⊚ iCxtParamsL
 
 iCxtMeL ∷ ICxt v ⟢ 𝑂 PrinVal
 iCxtMeL = iParamsMeL ⊚ iCxtParamsL
-
-iCxtNameL ∷ ICxt v ⟢ 𝕊
-iCxtNameL = iParamsNameL ⊚ iCxtParamsL
 
 makePrettyRecord ''Ckt
 makePrettySum ''Input

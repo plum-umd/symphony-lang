@@ -27,27 +27,15 @@ inputPath ∷ (STACK) ⇒ PrinVal → 𝕊 → IM v 𝕊
 inputPath ρ fn = do
   b ← askL iCxtIsExampleL
   ppath ← prinDataPath ρ
-  name ← askL iCxtNameL
   if b
-  then io $ do
-      let relativePath = concat ["programs/",name,"/",ppath,"/",fn]
-      dataFilePath ← datapath relativePath
-      relativePathExists ← pexists relativePath
-      dataFilePathExists ← pexists dataFilePath
-      when (not relativePathExists ⩓ dataFilePathExists) $ do
-        dtouch $ concat ["examples-input/",ppath]
-        fcopy dataFilePath relativePath
-      return relativePath
+  then io $ findFile $ concat ["input/", ppath, "/", fn]
   else return $ concat ["data-input/",ppath]
 
 outputPath ∷ (STACK) ⇒ PrinVal → 𝕊 → IM v 𝕊
 outputPath ρ fn = do
   b ← askL iCxtIsExampleL
   ppath ← prinDataPath ρ
-  let path =
-        if b
-        then concat ["examples-output/",ppath,"/",fn]
-        else concat ["data-output/",ppath,"/",fn]
+  let path = concat ["output/", ppath, "/", fn]
   io $ dtouch $ pdirectory path
   return path
 

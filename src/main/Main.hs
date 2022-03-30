@@ -20,20 +20,14 @@ symphonyMainExample = do
     Nil      → failIO "ERROR: No file specified as target. Correct usage: symphony example [<arguments>] <name>"
     t :& Nil → return t
     _ → failIO "ERROR: Too many files specified as target. Correct usage: symphony example [<arguments>] <name>"
-  let exampleRelativePath = "programs/" ⧺ name ⧺ ".sym"
-  exampleDataFilePath ← datapath exampleRelativePath
-  exampleLocalExists ← pexists exampleRelativePath
-  exampleDataFileExists ← pexists exampleDataFilePath
-  when (not exampleLocalExists ⩓ exampleDataFileExists) $ do
-    dtouch "programs"
-    fcopy exampleDataFilePath exampleRelativePath
+  examplePath ← findFile $ "examples/" ⧺ name ⧺ ".sym"
   pprint $ ppHorizontal
     [ ppHeader "INTERPRETING EXAMPLE:"
     , ppString name
     ]
-  let θ = update iParamsIsExampleL True $ initializeEnv os name
+  let θ = update iParamsIsExampleL True $ initializeEnv os
   tlsStd ← parseFile "lib:stdlib.sym" (optLibPath os ⧺ "/stdlib.sym")
-  tlsPrg ← parseFile (concat ["example:",name,".sym"]) exampleRelativePath
+  tlsPrg ← parseFile (concat ["example:",name,".sym"]) examplePath
   g ← case optRandomSeed os of
         None   → R.drgNew
         Some n → return $ R.drgNewSeed $ R.seedFromInteger $ HS.fromIntegral n

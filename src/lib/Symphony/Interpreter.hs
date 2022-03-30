@@ -672,7 +672,7 @@ asTLM xM = mkITLM $ \ θ ωtl →
                 , update iCxtEnvL γ
                 , update iCxtPrinScopeL ds
                 ]
-                (ξ₀ (iParamsName θ))
+                ξ₀
   in do
     rox ← runIM ξ ω xM
     return $ case rox of
@@ -736,16 +736,8 @@ makeLenses ''Options
 
 options₀ ∷ IO Options
 options₀ = do
-  localTestsExists ← pexists "tests"
-  testsPath ←
-    if localTestsExists
-    then return "tests"
-    else datapath "tests"
-  libPathExists ← pexists "programs"
-  libPath ←
-    if libPathExists
-    then return "programs"
-    else datapath ""
+  testsPath ← findFile "tests"
+  libPath   ← findFile "lib"
   return $ Options
     { optVersion = False
     , optHelp = False
@@ -795,8 +787,8 @@ readPrinVal s = case list $ splitOn𝕊 "." s of
   ρ :& n :& Nil → Some $ AccessPV ρ (read𝕊 n)
   _             → None
 
-initializeEnv ∷ Options → 𝕊 → IParams
-initializeEnv os name = flip compose (θ₀ name)
+initializeEnv ∷ Options → IParams
+initializeEnv os = flip compose θ₀
   [ update iParamsMeL $ mjoin $ readPrinVal ^$ optParty os ]
 
 parseOptionsSymphony ∷ IO (Options ∧ 𝐿 𝕊)

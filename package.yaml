@@ -58,7 +58,7 @@ ghc-options:
   - -fexpose-all-unfoldings
 
 data-files:
-  - programs/**/*
+  - data/**/*
 
 library:
   source-dirs:
