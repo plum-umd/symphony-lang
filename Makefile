@@ -15,11 +15,14 @@ all-examples: $(NAME)
 	./$(NAME) example $(FLAGS) basic
 	./$(NAME) example $(FLAGS) gcd
 
+extern/uvmhs/stack.yaml:
+	git submodule update --init --recursive $(@D)
+
 .stack-work:
 	stack setup
 
 .PHONY: build
-build: .stack-work
+build: extern/uvmhs/stack.yaml .stack-work
 	stack build
 
 build-profile: .stack-work
