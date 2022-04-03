@@ -17,10 +17,9 @@ synProg ∷ 𝐿 TL → TLM Type
 synProg prog = do
   eachOn prog bindTL
   asTLM $ do
-    τMain ← synVar $ var "main"
-    return (BaseT UnitT)
-    -- synAppTL τMain $ BaseT UnitT
-
+  --  τMain ← BaseT UnitT
+   -- synAppTL τMain $ BaseT UnitT
+      return BaseT UnitT
 bindTL ∷ TL → TLM ()
 bindTL tl = localL ttlrSourceL (Some $ atag tl) $ bindTLR $ extract tl
 
@@ -51,6 +50,22 @@ chkLam self𝑂 ψs e τ = todoError
 
 synAppTL ∷ Type → Type → EM Type
 synAppTL τ₁ τ₂ = case τ₁ of
+  SecT loc (τ₁₁ :→: (η :* τ₁₂)) → do
+    m  ← askL terModeL
+    l₁ ← elabEMode $ effectMode η
+    l₂ ← elabEMode loc
+    guardErr (m ≡ l₁) $
+      typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+      [ ("m", pretty m)
+      , ("l", pretty l₁)
+      ]
+    return τ₂
+  _ → typeError "synApp: τ₁ ≢ (_ → _)@_" $ frhs
+      [ ("τ₁", pretty τ₁)
+      ]
+
+synAppTL2 ∷ Type → Type → EM Type
+synAppTL2 τ₁ τ₂ = case τ₁ of
   SecT loc (τ₁₁ :→: (η :* τ₁₂)) → do
     m  ← askL terModeL
     l₁ ← elabEMode $ effectMode η
