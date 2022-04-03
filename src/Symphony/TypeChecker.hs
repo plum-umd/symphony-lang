@@ -45,7 +45,7 @@ bindDefn x ψs e = asTLM $ do
   chkLam (Some x) ψs e τ
 
 bindDefnTest ∷ Exp → TLM ()
-bindDefnTest e = synExp e 
+bindDefnTest e = asTLM $ (synExp e) 
 
 
 
