@@ -35,11 +35,13 @@ symphonyMainExample = do
   tlsStd ← parseFile "lib:stdlib.sym" (optLibPath os ⧺ "/stdlib.sym")
   tlsPrg ← parseFile (concat ["example:",name,".sym"]) exampleRelativePath
   pptraceM tlsPrg
+  
   g ← case optRandomSeed os of
         None   → R.drgNew
         Some n → return $ R.drgNewSeed $ R.seedFromInteger $ HS.fromIntegral n
   let tls = tlsStd ⧺ tlsPrg
  -- _τ ← evalTLMIO null null name $ synProg tls
+ {-
   if isSome (iParamsMe θ) then do
     let prog = do
           interpTLs tls
@@ -54,7 +56,7 @@ symphonyMainExample = do
     v ← evalITLMIO @SeqVal θ (ωtl₀ g) name prog
     pprint $ ppHeader "RESULT"
     pprint v
-
+-}
 symphonyUsage ∷ 𝕊
 symphonyUsage = "USAGE: symphony [options] file..."
 
