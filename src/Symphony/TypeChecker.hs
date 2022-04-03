@@ -909,7 +909,7 @@ synExp e = synExpR $ extract e
 synExpR ∷ ExpR → EM Type
 synExpR e = case e of
    -- Variables
-   _ → todoError
+  _ → todoError
   VarE x → synVar x
 
   -- Literals--
