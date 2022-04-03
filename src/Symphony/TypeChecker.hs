@@ -634,8 +634,8 @@ synPar ρse₁ e₂ =
     if m' ≢ bot then
       localL terModeL m' c₂
     else
-      --todoError
-      return (SecT (AddTop (PowPSE empty𝐿)) (BaseT UnitT))
+      todoError
+      --return (SecT (AddTop (PowPSE empty𝐿)) (BaseT UnitT))
 
 checkPar ∷  PrinSetExp → Exp → Type → EM ()
 checkPar ρse₁ e₂ τ=
