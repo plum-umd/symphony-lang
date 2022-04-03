@@ -14,16 +14,12 @@ import Symphony.TypeChecker.Operations
 ---------------------
 
 synProg ∷ 𝐿 TL → TLM Type
-synProg prog = 
-
-  do
-  
+synProg prog = do
   eachOn prog bindTL
   asTLM $ do
   --  τMain ← BaseT UnitT
    -- synAppTL τMain $ BaseT UnitT
       return (BaseT UnitT)
-     
 bindTL ∷ TL → TLM ()
 bindTL tl = localL ttlrSourceL (Some $ atag tl) $ bindTLR $ extract tl
 
@@ -45,11 +41,13 @@ bindDefn x ψs e = asTLM $ do
   chkLam (Some x) ψs e τ
 
 bindDefnTest ∷ Exp → TLM ()
-bindDefnTest e =  do
-    τ ←  (synExp e) 
-    typeError "e" $ frhs
-      [ ("e",e )
-      ]
+bindDefnTest e = asTLM $ do
+  typeError "Test: e" $ frhs
+             [ ("e", pretty e)
+             ]
+
+
+
 
 bindPrins ∷ 𝐿 PrinDecl → TLM ()
 bindPrins ρds = eachOn ρds bindPrin
