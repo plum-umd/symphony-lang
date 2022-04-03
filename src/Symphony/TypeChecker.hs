@@ -47,8 +47,8 @@ bindDefn x ψs e = asTLM $ do
 bindDefnTest ∷ Exp → TLM ()
 bindDefnTest e = asTLM $ do
     τ ←  (synExp e) 
-    typeError "Test" $ frhs
-      [ 
+    typeError "e" $ frhs
+      [ ("e", e)
       ]
 
 bindPrins ∷ 𝐿 PrinDecl → TLM ()
