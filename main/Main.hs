@@ -1,4 +1,4 @@
-odule Main where
+module Main where
 
 import UVMHS
 
