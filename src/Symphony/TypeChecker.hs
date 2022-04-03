@@ -40,7 +40,7 @@ bindDefn x ψs e = asTLM $ do
   τ ← synVar x
   chkLam (Some x) ψs e τ
 
-bindDefnTest ∷ 𝕏 → 𝐿 Pat → Exp → TLM ()
+bindDefnTest ∷ Exp → TLM ()
 bindDefnTest x ψs e = asTLM $ do
   typeError "Test: e" $ frhs
              [ ("x", pretty e)
