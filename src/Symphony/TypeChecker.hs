@@ -19,7 +19,7 @@ synProg prog = do
   asTLM $ do
   --  τMain ← BaseT UnitT
    -- synAppTL τMain $ BaseT UnitT
-      return BaseT UnitT
+      return (BaseT UnitT)
 bindTL ∷ TL → TLM ()
 bindTL tl = localL ttlrSourceL (Some $ atag tl) $ bindTLR $ extract tl
 
