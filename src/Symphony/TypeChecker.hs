@@ -47,8 +47,9 @@ bindDefn x ψs e = asTLM $ do
 bindDefnTest ∷ Exp → TLM ()
 bindDefnTest e = asTLM $ do
     τ ←  (synExp e) 
-    todoError
-
+    typeError "Test" $ frhs
+      [ 
+      ]
 
 bindPrins ∷ 𝐿 PrinDecl → TLM ()
 bindPrins ρds = eachOn ρds bindPrin
