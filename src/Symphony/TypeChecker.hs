@@ -25,6 +25,7 @@ bindTL tl = localL ttlrSourceL (Some $ atag tl) $ bindTLR $ extract tl
 
 bindTLR ∷ TLR → TLM ()
 bindTLR tlr = case tlr of
+  PrinTL ρds          → bindPrins ρds
   DefnTL _brec x ψs e → bindDefnTest e
   _ → return ()
   DeclTL _brec x τ    → bindDecl x τ
