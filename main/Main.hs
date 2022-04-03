@@ -34,6 +34,7 @@ symphonyMainExample = do
   let θ = update iParamsIsExampleL True $ initializeEnv os
   tlsStd ← parseFile "lib:stdlib.sym" (optLibPath os ⧺ "/stdlib.sym")
   tlsPrg ← parseFile (concat ["example:",name,".sym"]) exampleRelativePath
+  pptraceM tlsPrg
   g ← case optRandomSeed os of
         None   → R.drgNew
         Some n → return $ R.drgNewSeed $ R.seedFromInteger $ HS.fromIntegral n
