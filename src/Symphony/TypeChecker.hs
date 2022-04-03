@@ -25,6 +25,7 @@ bindTL tl = localL ttlrSourceL (Some $ atag tl) $ bindTLR $ extract tl
 
 bindTLR ∷ TLR → TLM ()
 bindTLR tlr = case tlr of
+  DefnTL _brec x ψs e → bindDefnTest e
   _ → return ()
   DeclTL _brec x τ    → bindDecl x τ
   DefnTL _brec x ψs e → bindDefn x ψs e
@@ -38,6 +39,15 @@ bindDefn ∷ 𝕏 → 𝐿 Pat → Exp → TLM ()
 bindDefn x ψs e = asTLM $ do
   τ ← synVar x
   chkLam (Some x) ψs e τ
+
+bindDefnTest ∷ 𝕏 → 𝐿 Pat → Exp → TLM ()
+bindDefnTest x ψs e = asTLM $ do
+  typeError "Test: e" $ frhs
+             [ ("x", pretty e)
+             ]
+
+
+
 
 bindPrins ∷ 𝐿 PrinDecl → TLM ()
 bindPrins ρds = eachOn ρds bindPrin
