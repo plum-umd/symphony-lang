@@ -41,7 +41,7 @@ bindDefn x ψs e = asTLM $ do
   chkLam (Some x) ψs e τ
 
 bindDefnTest ∷ Exp → TLM ()
-bindDefnTest x ψs e = asTLM $ do
+bindDefnTest e = asTLM $ do
   typeError "Test: e" $ frhs
              [ ("x", pretty e)
              ]
