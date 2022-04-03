@@ -1,14 +1,14 @@
-module Main where
+odule Main where
 
 import UVMHS
 
 import Symphony.Config
+import Symphony.TypeChecker
+import Symphony.TypeChecker.TLM
 import Symphony.Interpreter
 import Symphony.Interpreter.Types
 import Symphony.Interpreter.Seq.Types
-#if DIST
 import Symphony.Interpreter.Dist.Types
-#endif
 
 import qualified Prelude as HS
 import qualified Crypto.Random as R
@@ -20,29 +20,32 @@ symphonyMainExample = do
     Nil      → failIO "ERROR: No file specified as target. Correct usage: symphony example [<arguments>] <name>"
     t :& Nil → return t
     _ → failIO "ERROR: Too many files specified as target. Correct usage: symphony example [<arguments>] <name>"
-  examplePath ← findFile $ "bin/" ⧺ name ⧺ ".sym"
+  let exampleRelativePath = "examples/" ⧺ name ⧺ ".sym"
+  exampleDataFilePath ← datapath exampleRelativePath
+  exampleLocalExists ← pexists exampleRelativePath
+  exampleDataFileExists ← pexists exampleDataFilePath
+  when (not exampleLocalExists ⩓ exampleDataFileExists) $ do
+    dtouch "examples"
+    fcopy exampleDataFilePath exampleRelativePath
   pprint $ ppHorizontal
     [ ppHeader "INTERPRETING EXAMPLE:"
     , ppString name
     ]
   let θ = update iParamsIsExampleL True $ initializeEnv os
   tlsStd ← parseFile "lib:stdlib.sym" (optLibPath os ⧺ "/stdlib.sym")
-  tlsPrg ← parseFile (concat ["example:",name,".sym"]) examplePath
+  tlsPrg ← parseFile (concat ["example:",name,".sym"]) exampleRelativePath
   g ← case optRandomSeed os of
         None   → R.drgNew
         Some n → return $ R.drgNewSeed $ R.seedFromInteger $ HS.fromIntegral n
   let tls = tlsStd ⧺ tlsPrg
+  _τ ← evalTLMIO null null name $ synProg tls
   if isSome (iParamsMe θ) then do
-#if DIST
     let prog = do
           interpTLs tls
           interpMain
     v ← evalITLMIO @DistVal θ (ωtl₀ g) name prog
     pprint $ ppHeader "RESULT"
     pprint v
-#else
-    return ()
-#endif
   else do
     let prog = do
           interpTLs tls
@@ -68,14 +71,12 @@ symphonyInfo =
 symphonyMainInfo ∷ IO ()
 symphonyMainInfo = out symphonyInfo
 
-
-
 symphonyMain ∷ IO ()
 symphonyMain = do
   map list iargs ≫= \case
     a :& as | a ≡ "example" → ilocalArgs as symphonyMainExample
-    Nil                     → ilocalArgs (list ["--version", "--help"]) symphonyMainInfo
-    as                      → ilocalArgs as symphonyMainInfo
+    Nil             → ilocalArgs (list ["--version", "--help"]) symphonyMainInfo
+    as              → ilocalArgs as symphonyMainInfo
 
 main ∷ IO ()
 main = do
