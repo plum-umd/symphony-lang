@@ -18,7 +18,7 @@ synProg prog = do
   eachOn prog bindTL
   asTLM $ do
     τMain ← synVar $ var "main"
-    synAppTL τMain $ BaseT UnitT
+    -- synAppTL τMain $ BaseT UnitT
 
 bindTL ∷ TL → TLM ()
 bindTL tl = localL ttlrSourceL (Some $ atag tl) $ bindTLR $ extract tl
