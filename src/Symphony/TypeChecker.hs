@@ -31,11 +31,11 @@ bindTLR tlr = case tlr of
 
 --  DefnTL _brec x ψs e → bindDefnTest e
  -- _ → return ()
-
+  PrinTL ρds          → bindPrins ρds
   DeclTL _brec x τ    → bindDecl x τ
   _ → return ()
   DefnTL _brec x ψs e → bindDefn x ψs e
-  _ → return ()
+  
   PrinTL ρds          → bindPrins ρds
   ImportTL path       → todoError
 
