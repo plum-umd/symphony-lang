@@ -16,10 +16,11 @@ import Symphony.TypeChecker.Operations
 synProg ∷ 𝐿 TL → TLM Type
 synProg prog = do
   eachOn prog bindTL
-  asTLM $ do
+  return (BaseT UnitT)
+--  asTLM $ do
   --  τMain ← BaseT UnitT
    -- synAppTL τMain $ BaseT UnitT
-      return (BaseT UnitT)
+    --  return (BaseT UnitT)
 bindTL ∷ TL → TLM ()
 bindTL tl = localL ttlrSourceL (Some $ atag tl) $ bindTLR $ extract tl
 
