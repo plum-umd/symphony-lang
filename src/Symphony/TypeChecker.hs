@@ -31,6 +31,7 @@ bindTLR tlr = case tlr of
   DeclTL _brec x τ    → return ()
   DeclTL _brec x τ    → bindDecl x τ
   DefnTL _brec x ψs e → bindDefn x ψs e
+  _ → return ()
   PrinTL ρds          → bindPrins ρds
   ImportTL path       → todoError
 
