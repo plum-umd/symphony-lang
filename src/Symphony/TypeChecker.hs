@@ -33,7 +33,7 @@ bindTLR tlr = case tlr of
  -- _ → return ()
 
   DeclTL _brec x τ    → bindDecl x τ
-  
+  _ → return ()
   DefnTL _brec x ψs e → bindDefn x ψs e
   _ → return ()
   PrinTL ρds          → bindPrins ρds
