@@ -44,9 +44,7 @@ bindDefn x ψs e = asTLM $ do
 bindDefnTest ∷ Exp → TLM ()
 bindDefnTest e = asTLM $ do
   _ ←  (synExp e)
-  typeError "Test: e" $ frhs
-             [ ("e", pretty e)
-             ]
+  return ()
 
 
 
