@@ -1,0 +1,3 @@
+principal A B
+
+def main () = "Test"
