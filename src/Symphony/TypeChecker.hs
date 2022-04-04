@@ -28,6 +28,7 @@ bindTLR tlr = case tlr of
   PrinTL ρds          → bindPrins ρds
 --  DefnTL _brec x ψs e → bindDefnTest e
  -- _ → return ()
+  DeclTL _brec x τ    → return ()
   DeclTL _brec x τ    → bindDecl x τ
   DefnTL _brec x ψs e → bindDefn x ψs e
   PrinTL ρds          → bindPrins ρds
