@@ -701,7 +701,7 @@ synShare φ τ ρe₁ ρse₂ e₃ =
                 typeError "synShare: p is not a subset of p' or q is empty" $ frhs
                   [ ("p", pretty p)
                     , ("p'", pretty p'),
-                    ("q", pretty q)
+                    ("q", pretty qs)
                   ]
         _ → do
           todoError
