@@ -313,7 +313,7 @@ synIf e₁ e₂ e₃ =
     else
        typeError "synIf: e₁ is not of type b @ m" $ frhs
           [ ("m", pretty m),
-            ("e₁", pretty e₁).
+            ("e₁", pretty e₁),
             ("τ₁", pretty τ₁)
           ]
 
