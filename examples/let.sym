@@ -1,0 +1,3 @@
+principal A B C
+
+def main () = let a = • in let b = • in b
