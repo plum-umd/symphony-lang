@@ -183,7 +183,11 @@ checkPrin ρe =
     subcond ← (subtype (SecT Top (BaseT ℙT)) ρτ)
     case subcond of
       True → return (SecT Top (BaseT ℙT))
-      False → todoError
+      False →       
+        typeError "synPrin ρτ is not a supertype of PT@top" $ frhs
+          [ ("ρτ", pretty ρτ)
+            
+          ]
 
 -- forall A in M = {A ...} gamma |- m A t t <: prin@all   
 -- ------T-PrinSetExp
