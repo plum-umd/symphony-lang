@@ -45,7 +45,7 @@ bindDecl = bindTypeTL
 bindDefn ∷ 𝕏 → 𝐿 Pat → Exp → TLM ()
 bindDefn x ψs e = asTLM $ do
   τ ← synVar x
-  chkLam (Some x) ψs e τ
+  checkLam (Some x) ψs e τ
 
 bindDefnTest ∷ Exp → TLM ()
 bindDefnTest e = asTLM $ do
