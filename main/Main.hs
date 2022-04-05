@@ -38,7 +38,7 @@ symphonyMainExample = do
   g ← case optRandomSeed os of
         None   → R.drgNew
         Some n → return $ R.drgNewSeed $ R.seedFromInteger $ HS.fromIntegral n
-  let tls = tlsStd ⧺ tlsPrg
+  let tls = stlsPrg
  -- _τ ← evalTLMIO null null name $ synProg tls
   if isSome (iParamsMe θ) then do
     let prog = do
