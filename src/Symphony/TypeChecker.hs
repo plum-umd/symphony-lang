@@ -686,7 +686,9 @@ synShare ∷  Prot → Type → PrinExp → PrinSetExp → Exp → EM Type
 synShare φ τ ρe₁ ρse₂ e₃ =
   let c₁ = synPrinExp ρe₁
       c₂ = synPrinSet ρse₂
+      c₃ = synExp e₃
       in case τ of
+
         SecT loc' τ' → do
 
             m  ← askL terModeL
@@ -703,6 +705,14 @@ synShare φ τ ρe₁ ρse₂ e₃ =
                     , ("p'", pretty p'),
                     ("q", pretty qs)
                   ]
+        τ → do
+            m  ← askL terModeL
+            p ←  elabEMode (AddTop (PowPSE (frhs [ρe₁])))
+            p' ← elabEMode loc'
+            qs ← elabPrinSetExp ρse₂
+            τ₃ ← c₃ 
+            wfcond ← wf_type (SecT (AddTop ρse₂) (ShareT φ (AddTop ρse₂) τ') ) m
+
         _ → do
           todoError
 

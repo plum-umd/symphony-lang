@@ -99,6 +99,68 @@ assertShareable τ =
       _ ← (assertShareable τᵣ )
       return ()
     _ → todoError
+
+eModeEqual :: EMode → EMode → EM 𝔹
+eModeEqual loc loc' = 
+  do
+    p ←  loc
+    p' ← elabEMode loc'
+    return p == p'
+
+p ←  elabEMode (AddTop (PowPSE (frhs [ρe₁])))
+            p' ← elabEMode loc'
+-- gets a type stripped of locations and a well formed type
+assertShareableType :: Type → Type → Prot → EMode → EM ()
+assertShareableType τ₁ τ₂ q φ =
+  case τ₁ of 
+    (BaseT bτ₁) → 
+      case τ₂ of 
+        (SecT l' (BaseT bτ₂))  → if (bτ₁ == bτ₂) 
+          then
+            return ()
+          else
+            typeError "bτ₁ != bτ₂" $ frhs
+              [ ("bτ₁", pretty bτ₁)
+              , ("bτ₂", pretty bτ₂)
+              ]
+        (SecT l' (ShareT φ' l'' (BaseT bτ₂))) → if (bτ₁ == bτ₂) 
+          then do
+            emodeCond ← eModeEqual q l''
+            if (emodeCond &&  φ == φ' ) 
+            then
+              return ()
+            else
+              typeError "The protocols are not equal" $ frhs
+                [ ("q", pretty q)
+                , ("l''", pretty l'')
+                , ("φ", pretty  φ)
+                , ("φ'", pretty  φ')
+                ] 
+          else
+            typeError "bτ₁ != bτ₂" $ frhs
+              [ ("bτ₁", pretty bτ₁)
+              , ("bτ₂", pretty bτ₂)
+              ]
+     (τₗ₁ :+: τᵣ₁)  → case τ₂ of 
+        (SecT l' (τₗ₂ :+: τᵣ₂) ) →  do
+          _ ← (assertShareableType τₗ₁ τₗ₂)
+          _ ← (assertShareableType τᵣ₁ τᵣ₂)
+          return ()
+        (SecT l' (ShareT φ' l''  (τₗ₂ :+: τᵣ₂)) ) →  do
+          _ ← (assertShareableType τₗ₁ τₗ₂)
+          _ ← (assertShareableType τᵣ₁ τᵣ₂)
+          emodeCond ← eModeEqual q l''
+        if (emodeCond &&  φ == φ' ) 
+          then
+            return ()
+          else
+            typeError "The protocols are not equal" $ frhs
+              [ ("q", pretty q)
+                , ("l''", pretty l'')
+                , ("φ", pretty  φ)
+                , ("φ'", pretty  φ')
+              ] 
+    _ → todoError
 -----------------
 --- Subtype utility ---
 -----------------
