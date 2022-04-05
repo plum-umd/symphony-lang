@@ -697,7 +697,12 @@ synShare φ τ ρe₁ ρse₂ e₃ =
             subcond  ←  localL terModeL m (chkExp e₃ τ)
             if (not (isEmpty  qs)) ⩓ (supermode p' p) 
               then return (SecT (AddTop ρse₂) (ShareT φ (AddTop ρse₂) τ') ) 
-              else todoError
+              else 
+                typeError "synShare: p is not a subset of p' or q is empty" $ frhs
+                  [ ("p", pretty p)
+                    , ("p'", pretty p'),
+                    ("q", pretty q)
+                  ]
         _ → do
           todoError
 
