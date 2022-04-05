@@ -58,8 +58,8 @@ bindDefnTest e = asTLM $ do
 bindPrins ∷ 𝐿 PrinDecl → TLM ()
 bindPrins ρds = eachOn ρds bindPrin
   where bindPrin ρd = case ρd of
-          SinglePD ρ   → bindTypeTL (var ρ) $ BaseT ℙT
-          ArrayPD ρ _n → bindTypeTL (var ρ) $ BaseT ℙsT
+          SinglePD ρ   → bindTypeTL (var ρ) $ (SecT Top (BaseT ℙT))
+          ArrayPD ρ _n → bindTypeTL (var ρ) $ (SecT Top (BaseT ℙsT))
 
 chkLam ∷ 𝑂 Var → 𝐿 Pat → Exp → Type → EM ()
 chkLam self𝑂 ψs e τ = todoError
