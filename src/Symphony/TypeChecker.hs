@@ -311,7 +311,10 @@ synIf e₁ e₂ e₃ =
     if subcond then do
       (ty_join τ₂ τ₃)
     else
-      todoError
+       typeError "synIf: e₁ is not of type b @ m" $ frhs
+          [ ("m", pretty m),
+            ("e₁", pretty e₁)
+          ]
 
 synCase ∷ Exp → 𝐿 (Pat ∧ Exp) → EM Type
 synCase e ψes =
