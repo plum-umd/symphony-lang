@@ -1,3 +1,3 @@
-principal A B
+principal A B C
 
-def main () = let a = • in let b = • in b
+def main () = let a = (par {A, B} •) in b = {par {A, C} •} in c = {par {A} •} in (if a then b else c)
