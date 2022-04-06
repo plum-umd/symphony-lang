@@ -1,0 +1,17 @@
+principal A[32]
+
+def main () =
+  -- read each party's money
+  let moneys = par A (read int from "richest-in.txt") in
+  -- fold over the bundle of inputs
+  let (richest, _) =
+    (fold moneys
+      as p.money
+      on (par { A.0 } share [ yao, int : A.0 -> A ] (A.0, moneys@A.0))
+      as highest in
+        (let (richP, h) = highest in
+         let s = share [ yao, int : p -> A ] money in
+         mux if s > h then (p, money)
+         else highest )) in
+  -- reveal the richest principal
+  reveal [ yao, A : A -> A ] richest
