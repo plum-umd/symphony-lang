@@ -1,17 +1,22 @@
 principal A[32]
+principal NoParty
 
-def main () =
-  -- read each party's money
-  let moneys = par A (read int from "richest-in.txt") in
-  -- fold over the bundle of inputs
-  let (richest, _) =
-    (fold moneys
-      as p.money
-      on (par { A.0 } share [ yao, int : A.0 -> A ] (A.0, moneys@A.0))
-      as highest in
-        (let (richP, h) = highest in
-         let s = share [ yao, int : p -> A ] money in
-         mux if s > h then (p, money)
-         else highest )) in
-  -- reveal the richest principal
-  reveal [ yao, A : A -> A ] richest
+def P = A + { NoParty }
+
+def read-int = 6
+-- TEST: actual implementation
+-- read int from "richest-in.txt"
+
+def main () = par A
+  -- reveal the richest principal to the principal A.0
+  reveal [ yao, P : A -> A.0 ] fst 
+    -- read each's principal's money and fold into a pair of
+    -- (1) richest party; (2) their money
+    (fold (solo A as p in read-int) as p.money
+      on (share [ yao, P * int : A.0 -> A ] (NoParty, 0)) as richest in
+      let pShr = share [ yao, P : p -> A ] p in
+      let s = share [ yao, int : p -> A ] money in
+      -- BUG: support for this mux isn't implemented
+      mux if s > (snd richest) then (pShr, s)
+      else richest)
+
