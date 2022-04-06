@@ -10,28 +10,31 @@ def Q = P + { NoParty }
 -- MAX_DIST: dummy value that must be larger than any actual distance
 def MAX_DIST = 1000
 
+def read-int = 6
+-- TEST:
+-- read int from "gps-locs.txt"
+
 -- top-level entry point:
-def main () =
-  -- locs: each party's location
-  let locs = par P (read int from "gps-locs.txt") in
+def main () = par P 
+  let locs = solo P as p in read-int in
 
   -- fold bundle of locations into bundle of nearest neighbors:
-  fold locs as p0.loc0
-    on << >> as closest in
-    -- loc0Shr: share location loc0
-    let loc0Shr = par { p0 } (share [ yao, int : p0 -> P ] loc0) in
+  bundle-map (fun p0 loc0 -> reveal [ yao, P : P -> p0 ]
+    -- loc0Shr: loc0, shared
+    (let loc0Shr = share [ yao, int : p0 -> P ] loc0 in
 
     -- nbor: closest neighbor, from folding over locations bundle:
-    let nbor = fst
+    fst
       (fold locs as p1.loc1
          on (share [ yao, Q * int : p0 -> P ] (NoParty, MAX_DIST))
          as msuredNbor in
          -- d: share of distance between loc0 and loc1
+         let p1Shr = share [ yao, Q * int : p1 -> P ] p1
          let d =
-           let loc1Shr = par { p1 } (share [ yao, int : p1 -> P ] loc1) in
+           let loc1Shr = share [ yao, int : p1 -> P ] loc1 in
            abs-val-int (loc0Shr - loc1Shr) in
          -- conditionally update nearest neighbor, using d
          mux if (d < (snd msuredNbor))
-         then (share [ yao, Q * int : p1 -> P ] p1, d)
-         else msuredNbor) in
-    closest ++ << p0 | reveal [ yao, P : P -> p0 ] nbor >>
+         then (p1Shr, d)
+         else msuredNbor ) ) )
+    locs
