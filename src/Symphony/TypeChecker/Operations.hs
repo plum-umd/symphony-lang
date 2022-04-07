@@ -171,7 +171,7 @@ subtype_loc loctyS loctyT = case loctyS of
   -- sigma = bty 
   -- -------Sub-Refl
   -- sigma <: sigma 
-  BaseT bty → return (loctyS == loctyT)
+  BaseT bty → return (loctyS ≡ loctyT)
   ShareT pS loc loctyS  → case loctyT of
       ShareT pT loc' loctyT → do 
         l ← (elabEMode loc)
@@ -265,7 +265,7 @@ inter_em :: EMode → EMode → EM EMode
 inter_em loc loc' = do
   l ← elabEMode loc
   l' ← elabEMode loc'
-  (elabMode (inter_m l l'))
+  (elabMode (l ⊓ l'))
  
 -- Returns m ∩ m'
 inter_m :: Mode → Mode → Mode
@@ -280,7 +280,7 @@ union_em :: EMode → EMode → EM EMode
 union_em loc loc' = do
   l ← elabEMode loc
   l' ← elabEMode loc'
-  (elabMode (union_m l l'))
+  (elabMode (l ⊔ l'))
  
 -- Returns m ∩ m'
 union_m :: Mode → Mode → Mode
@@ -300,7 +300,13 @@ locty_meet locty locty' =
   -- sigma = bty 
   -- -------Sub-Refl
   -- sigma <: sigma 
-  BaseT bty → if (locty == locty') then (return locty) else todoError
+  BaseT bty → 
+    guardErr (locty ≡ locty') $
+      typeError "synApp: ⊢ₘ _ ˡ→ _ ; locty ≢ locty'" $ frhs
+      [ ("locty", pretty locty)
+      , ("locty'", pretty locty')
+      ]
+      locty
   ShareT p loc locty  → (case locty' of
     ShareT p' loc' locty' → 
       do 
@@ -395,7 +401,13 @@ locty_join locty locty' =
   -- sigma = bty 
   -- -------Sub-Refl
   -- sigma <: sigma 
-  BaseT bty → if (locty == locty') then (return locty) else todoError
+  BaseT bty → 
+    guardErr (locty ≡ locty') $
+      typeError "synApp: ⊢ₘ _ ˡ→ _ ; locty ≢ locty'" $ frhs
+      [ ("locty", pretty locty)
+      , ("locty'", pretty locty')
+      ]
+      locty
   ShareT p loc locty  → (case locty' of
     ShareT p' loc' locty' → 
       do 
@@ -497,6 +509,7 @@ joinList τs =
 wf_loctype :: Type → Mode → EM ()
 wf_loctype sigma m =
   case sigma of
+     -- WF-Base (Based off WF-INT)
     BaseT bt → return () 
     ShareT p loc locty → do
       _ ← (wf_share_loctype locty m)
@@ -524,6 +537,7 @@ wf_loctype sigma m =
         [ ("m", pretty m)
         , ("l", pretty l)
         ]
+        return ()
     (RefT _ τ')  → do
       _ ← (wf_type τ' m)
       return ()
@@ -553,16 +567,25 @@ wf_share_loctype sigma m =
 wf_type :: Type → Mode → EM ()
 wf_type ty m = 
   case ty of 
+
+    -- WF-Loc
     SecT em' locty → do
-      wfcond ← (wf_loctype locty m)
       m' ← (elabEMode em')
-      if (supermode m m') then (return ()) else todoError
+      wfcond ← (wf_loctype locty m')
+      guardErr (supermode m m') $
+        typeError "m is not a superet of m'" $ frhs
+        [ ("m", pretty m)
+        , ("m'", pretty m')
+        ]
+        return ()
+    _ → todoError
 
 
 -- Rules to get the least sub subtype of loctype sigma that is well formed
 sublocty_wf :: Type  → Mode →  EM Type 
 sublocty_wf sigma m = 
   case sigma of
+    -- WF-Base (Based off WF-INT)
     BaseT bt → return sigma
     ShareT p loc loc_ty  → do
         l ← (elabEMode loc)
@@ -616,10 +639,14 @@ subty_wf :: Type  → Mode  → EM Type
 subty_wf t m = 
     case t of
     SecT loc loc_ty → do
-      loc_subty ← (superlocty_wf loc_ty m)
-      wfcond ← (wf_loctype loc_ty m)
-      l ← (elabEMode loc)
-      if (supermode m l) then (return (SecT loc loc_subty)) else todoError
+      m' ← (elabEMode loc)
+      loc_subty ← (superlocty_wf loc_ty m')
+      guardErr (supermode m l) $
+        typeError "m is not a superset of m'" $ frhs
+        [ ("m", pretty m)
+        , ("m'", pretty m')
+        ]
+        (return (SecT loc loc_subty))
     _  → todoError
 
 

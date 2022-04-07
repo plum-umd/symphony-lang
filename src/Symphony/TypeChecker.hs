@@ -16,11 +16,11 @@ import Symphony.TypeChecker.Operations
 synProg ∷ 𝐿 TL → TLM Type
 synProg prog = do
   eachOn prog bindTL
-  return (BaseT UnitT)
---  asTLM $ do
-  --  τMain ← BaseT UnitT
-   -- synAppTL τMain $ BaseT UnitT
-    --  return (BaseT UnitT)
+  asTLM $ do
+    τMain ← synVar $ var "main"
+    synAppTL τMain $ BaseT UnitT
+    
+
 bindTL ∷ TL → TLM ()
 bindTL tl = localL ttlrSourceL (Some $ atag tl) $ bindTLR $ extract tl
 
@@ -80,21 +80,29 @@ synAppTL τ₁ τ₂ = case τ₁ of
       [ ("τ₁", pretty τ₁)
       ]
 
-synAppTL2 ∷ Type → Type → EM Type
-synAppTL2 τ₁ τ₂ = case τ₁ of
-  SecT loc (τ₁₁ :→: (η :* τ₁₂)) → do
-    m  ← askL terModeL
-    l₁ ← elabEMode $ effectMode η
-    l₂ ← elabEMode loc
-    guardErr (m ≡ l₁) $
-      typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
-      [ ("m", pretty m)
-      , ("l", pretty l₁)
-      ]
-    return τ₂
-  _ → typeError "synApp: τ₁ ≢ (_ → _)@_" $ frhs
-      [ ("τ₁", pretty τ₁)
-      ]
+synAppTL ∷ Type → Type → EM Type
+synAppTL τ₁ τ₂ = 
+    case τ₁ of
+      SecT loc (τ₁₁ :→: (η :* τ₁₂)) → do
+        m  ← askL terModeL
+        l₁ ← elabEMode $ effectMode η
+        l₂ ← elabEMode loc
+        subcond  ←  (subtype τ₂ τ₁₂)
+        guardErr (m ≡ l₁) $
+          typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+          [ ("m", pretty m)
+          , ("l", pretty l₁)
+          ]
+        guardErr (m ≡ l₂) $
+          typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+          [ ("m", pretty m)
+          , ("l", pretty l₁)
+          ]
+        return τ₂
+      _ → typeError "synApp: τ₁ ≢ (_ → _)@_" $ frhs
+          [ ("τ₁", pretty τ₁)
+          ]
+
 ------------------------------
 -- Checking for Expressions --
 ------------------------------
@@ -924,6 +932,8 @@ chkExpR :: ExpR → Type → EM ()
 chkExpR e τ = 
   do 
     m  ← askL terModeL
+
+    -- Check it is well formed
     wfcond ← (wf_type τ m)
     case e of
       LE eₗ        → checkL eₗ τ
@@ -935,10 +945,12 @@ chkExpR e τ =
           do 
             τ' ← synExpR e
             subcond  ← (subtype τ' τ)
-            if subcond then
-              return ()
-            else
-              todoError
+            guardErr subcond $
+              typeError "checkExpR: e has type τ' which is not a subtype of τ" $ frhs
+              [ ("e", pretty e)
+              , ("τ'", pretty τ')
+              , ("τ'", pretty τ')
+              ]
 
 
 synExp :: Exp → EM Type
