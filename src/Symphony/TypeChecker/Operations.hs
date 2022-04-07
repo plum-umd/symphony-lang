@@ -107,7 +107,7 @@ eModeEqual loc loc' =
     p' ← elabEMode loc'
     return p == p'
 
-
+{-
 -- gets a type stripped of locations and a well formed type
 assertShareableType :: Type → Type → Prot → EMode → EM ()
 assertShareableType τ₁ τ₂ q φ =
@@ -160,6 +160,7 @@ assertShareableType τ₁ τ₂ q φ =
                 , ("φ'", pretty  φ')
               ] 
     _ → todoError
+    -}
 -----------------
 --- Subtype utility ---
 -----------------
