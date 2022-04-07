@@ -107,8 +107,7 @@ eModeEqual loc loc' =
     p' ← elabEMode loc'
     return p == p'
 
-p ←  elabEMode (AddTop (PowPSE (frhs [ρe₁])))
-            p' ← elabEMode loc'
+
 -- gets a type stripped of locations and a well formed type
 assertShareableType :: Type → Type → Prot → EMode → EM ()
 assertShareableType τ₁ τ₂ q φ =
