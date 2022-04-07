@@ -641,7 +641,7 @@ subty_wf t m =
     SecT loc loc_ty → do
       m' ← (elabEMode loc)
       loc_subty ← (superlocty_wf loc_ty m')
-      guardErr (supermode m l) $
+      guardErr (supermode m m') $
         typeError "m is not a superset of m'" $ frhs
         [ ("m", pretty m)
         , ("m'", pretty m')
