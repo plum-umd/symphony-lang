@@ -80,8 +80,8 @@ synAppTL τ₁ τ₂ = case τ₁ of
       [ ("τ₁", pretty τ₁)
       ]
 
-synAppTL ∷ Type → Type → EM Type
-synAppTL τ₁ τ₂ = 
+synAppTL2 ∷ Type → Type → EM Type
+synAppTL2 τ₁ τ₂ = 
     case τ₁ of
       SecT loc (τ₁₁ :→: (η :* τ₁₂)) → do
         m  ← askL terModeL
@@ -125,6 +125,9 @@ synVar x = do
 ------------------
 --- Primitives ---
 ------------------
+
+-- ------ T-Bt
+-- gamma |- m bt : basetype@m
 
 -- ------ T-Bul
 -- gamma |- m () : bul@m
@@ -713,13 +716,6 @@ synShare φ τ ρe₁ ρse₂ e₃ =
                     , ("p'", pretty p'),
                     ("q", pretty qs)
                   ]
-        τ → do
-            m  ← askL terModeL
-            p ←  elabEMode (AddTop (PowPSE (frhs [ρe₁])))
-            p' ← elabEMode loc'
-            qs ← elabPrinSetExp ρse₂
-            τ₃ ← c₃ 
-            wfcond ← wf_type (SecT (AddTop ρse₂) (ShareT φ (AddTop ρse₂) τ') ) m
 
         _ → do
           todoError
