@@ -105,7 +105,7 @@ eModeEqual loc loc' =
   do
     p ←  elabEMode loc
     p' ← elabEMode loc'
-    return p ≡ p'
+    return $ p ≡ p'
 
 {-
 -- gets a type stripped of locations and a well formed type
@@ -306,7 +306,7 @@ locty_meet locty locty' =
       [ ("locty", pretty locty)
       , ("locty'", pretty locty')
       ]
-    locty
+    return locty
   ShareT p loc locty  → (case locty' of
     ShareT p' loc' locty' → 
       do 
@@ -401,13 +401,13 @@ locty_join locty locty' =
   -- sigma = bty 
   -- -------Sub-Refl
   -- sigma <: sigma 
-  BaseT bty → 
+  BaseT bty → do
     guardErr (locty ≡ locty') $
       typeError "synApp: ⊢ₘ _ ˡ→ _ ; locty ≢ locty'" $ frhs
       [ ("locty", pretty locty)
       , ("locty'", pretty locty')
       ]
-      locty
+      return locty
   ShareT p loc locty  → (case locty' of
     ShareT p' loc' locty' → 
       do 
@@ -537,7 +537,7 @@ wf_loctype sigma m =
         [ ("m", pretty m)
         , ("l", pretty l)
         ]
-        return ()
+      return ()
     (RefT _ τ')  → do
       _ ← (wf_type τ' m)
       return ()
@@ -577,7 +577,7 @@ wf_type ty m =
         [ ("m", pretty m)
         , ("m'", pretty m')
         ]
-        return ()
+      return ()
     _ → todoError
 
 
@@ -646,7 +646,7 @@ subty_wf t m =
         [ ("m", pretty m)
         , ("m'", pretty m')
         ]
-        (return (SecT loc loc_subty))
+      (return (SecT loc loc_subty))
     _  → todoError
 
 
