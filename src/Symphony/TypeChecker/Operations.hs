@@ -103,9 +103,9 @@ assertShareable τ =
 eModeEqual :: EMode → EMode → EM 𝔹
 eModeEqual loc loc' = 
   do
-    p ←  loc
+    p ←  elabEMode loc
     p' ← elabEMode loc'
-    return p == p'
+    return p ≡ p'
 
 {-
 -- gets a type stripped of locations and a well formed type
@@ -300,13 +300,13 @@ locty_meet locty locty' =
   -- sigma = bty 
   -- -------Sub-Refl
   -- sigma <: sigma 
-  BaseT bty → 
+  BaseT bty → do 
     guardErr (locty ≡ locty') $
       typeError "synApp: ⊢ₘ _ ˡ→ _ ; locty ≢ locty'" $ frhs
       [ ("locty", pretty locty)
       , ("locty'", pretty locty')
       ]
-      locty
+    locty
   ShareT p loc locty  → (case locty' of
     ShareT p' loc' locty' → 
       do 
