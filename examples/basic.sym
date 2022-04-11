@@ -1,4 +1,4 @@
 principal A B C
 
-def bindTLR : TLR → TLM ()
-def main () =  share [yao, ℕ : A -> {A,B,C}] (par {A} 2)
+def main : UnitT@Top -> UnitT@Top
+def main () =  •
