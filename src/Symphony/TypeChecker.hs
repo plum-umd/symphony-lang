@@ -213,7 +213,7 @@ synPrinSet ρse =
     _ ←  mapM checkPrin ρes
     m ← askL terModeL
     em ← elabMode m
-    return SecT em $ BaseT ℙsT
+    return $ SecT em $ BaseT ℙsT
   _    →  typeError "Must be a set of literals" $ frhs []
       
 synPrim ∷ Op → 𝐿 Exp → EM Type
@@ -697,7 +697,7 @@ synPar ρse₁ e₂ =
       localL terModeL m' c₂
     else
       -- Default value
-      return SecT $ (AddTop $ PowPSE empty𝐿) $ BaseT UnitT
+      return $ SecT (AddTop (PowPSE empty𝐿))  (BaseT UnitT)
 
 checkPar ∷  PrinSetExp → Exp → Type → EM ()
 checkPar ρse₁ e₂ τ=
@@ -994,7 +994,6 @@ synExpR e = case e of
   IntE pr z   → synInt pr z
   FltE pr d   → synFlt pr d
   StrE s      → synStr s
-  PrinE e → checkPrin e
   PrinSetE es → synPrinSet es
   PrimE op es → synPrim op es
 
