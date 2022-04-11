@@ -191,6 +191,7 @@ checkPrin ∷ PrinExp → EM ()
 checkPrin ρe =
    do
     ρτ ← (synPrinExp ρe) 
+    m ← askL terModeL
     em ← elabMode m
     subcond ← (subtype ρτ (SecT em (BaseT ℙT)))
     guardErr subcond $
