@@ -1,4 +1,4 @@
 principal A B C
 
-def main : UnitT@{A, B, C} -> UnitT@{A, B, C}
+def main : unit@{A, B, C} -> unit@{A, B, C}
 def main () =  •
