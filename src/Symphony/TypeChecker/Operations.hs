@@ -627,7 +627,7 @@ sublocty_wf sigma m =
         ]
       τ₁₁' ← (superty_wf τ₁₁ m)
       τ₁₂' ← (subty_wf τ₁₂ m)
-      return (τ₁₁' :→:  η :* τ₁₂'))
+      return (τ₁₁' :→:  η :* τ₁₂')
     (RefT loc τ)  → do
       τ' ← (subty_wf τ m)
       return (RefT loc τ')
