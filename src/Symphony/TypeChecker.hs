@@ -685,6 +685,10 @@ synArraySize e =
 --- Par ---
 -----------
 
+--  |-m union p e : t
+--  m  union p != empty set
+-- ------T-Par
+-- gamma |- par [p] e : t
 synPar ∷  PrinSetExp → Exp → EM Type
 synPar ρse₁ e₂ =
   let c₁ = synPrinSet ρse₁
@@ -697,6 +701,10 @@ synPar ρse₁ e₂ =
     if m' ≢ bot then
       localL terModeL m' c₂
     else
+      --  |-empty t
+      --  m  union p == empty set
+    -- ------T-Par
+      -- gamma |- par [p] e : t
       -- Default value
       return $ SecT (AddTop (PowPSE empty𝐿))  (BaseT UnitT)
 

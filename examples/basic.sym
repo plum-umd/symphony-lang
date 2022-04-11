@@ -1,4 +1,4 @@
 principal A B C
 
-def main : UnitT@Top -> UnitT@Top
+def main : UnitT@⊤ -> UnitT@⊤
 def main () =  •
