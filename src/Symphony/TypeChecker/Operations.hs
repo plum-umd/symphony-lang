@@ -200,13 +200,16 @@ subtype_loc loctyS loctyT = case loctyS of
   (ListT _ τₜ)  →  case loctyT of
     (ListT _ τₜ') → (subtype_loc τₜ τₜ')
     _ → return False
+  -- t1' <: t1 t2 <: t2'
+  -- -------Sub-Fun
+  -- t1 m -> t2 <: t1' m -> t2' 
   (τ₁₁ :→: (η :* τ₁₂)) → case loctyT of
     (τ₁₁' :→: (η' :* τ₁₂')) → do 
         l ← elabEMode $ effectMode η
         l' ← elabEMode $ effectMode η'
         loccondₗ ← (subtype_loc τ₁₁' τ₁₁)
         loccondᵣ ← (subtype_loc τ₁₂ τ₁₂')
-        return ((l == l') ⩓ loccondₗ ⩓ loccondᵣ)
+        return ((l ≡ l') ⩓ loccondₗ ⩓ loccondᵣ)
   (RefT None τ) →  case loctyT of
     (RefT None τ') → (subtype_loc τ τ')
     _  → return False
@@ -302,7 +305,7 @@ locty_meet locty locty' =
   -- sigma <: sigma 
   BaseT bty → do 
     guardErr (locty ≡ locty') $
-      typeError "synApp: ⊢ₘ _ ˡ→ _ ; locty ≢ locty'" $ frhs
+      typeError "meet: ⊢ₘ _ ˡ→ _ ; locty ≢ locty'" $ frhs
       [ ("locty", pretty locty)
       , ("locty'", pretty locty')
       ]
@@ -342,18 +345,22 @@ locty_meet locty locty' =
   (ListT _ τₜ)  →  case locty' of
     (ListT _ τₜ') → (ty_meet τₜ τₜ')
     _ → todoError
+    -- t1' <: t1 t2 <: t2'
+  -- -------Sub-Fun
+  -- t1 m -> t2 <: t1' m -> t2's
   (τ₁₁ :→: (η :* τ₁₂)) → case locty' of
     (τ₁₁' :→: (η' :* τ₁₂')) → do 
         l ← elabEMode $ effectMode η
         l' ← elabEMode $ effectMode η'
-        if (l == l')
-          then (
-            do
-              join_τ₁₁ ← (locty_join τ₁₁ τ₁₁')
-              meet_τ₁₂ ← (locty_meet τ₁₂ τ₁₂')
-              return (join_τ₁₁ :→: (η :* meet_τ₁₂))
-          )
-        else todoError
+        guardErr (l ≡ l') $
+          typeError "join: l ≢ l'" $ frhs
+            [ ("l", pretty l)
+            , ("l'", pretty l')
+            ]
+        join_τ₁₁ ← (locty_join τ₁₁ τ₁₁')
+        meet_τ₁₂ ← (locty_meet τ₁₂ τ₁₂')
+        return (join_τ₁₁ :→: (η :* meet_τ₁₂))
+
   (RefT None τ)  →  case locty' of
     (RefT _ τ') → do
         loc_meet ← (locty_meet locty locty')
@@ -443,18 +450,22 @@ locty_join locty locty' =
   (ListT _ τₜ)  →  case locty' of
     (ListT _ τₜ') → (ty_join τₜ τₜ')
     _ → todoError
+  -- t1' <: t1 t2 <: t2'
+  -- -------Sub-Fun
+  -- t1 m -> t2 <: t1' m -> t2'
   (τ₁₁ :→: (η :* τ₁₂)) → case locty' of
     (τ₁₁' :→: (η' :* τ₁₂')) → do 
         l ← elabEMode $ effectMode η
         l' ← elabEMode $ effectMode η'
-        if (l == l')
-          then (
-            do
-              meet_τ₁₁ ← (locty_meet τ₁₁ τ₁₁')
-              join_τ₁₂ ← (locty_join τ₁₂ τ₁₂')
-              return (meet_τ₁₁ :→: (η :* join_τ₁₂))
-          )
-        else todoError
+        guardErr (l ≡ l') $
+          typeError "join: l ≢ l'" $ frhs
+            [ ("l", pretty l)
+            , ("l'", pretty l')
+            ]
+        meet_τ₁₁ ← (locty_meet τ₁₁ τ₁₁')
+        join_τ₁₂ ← (locty_join τ₁₂ τ₁₂')
+        return (meet_τ₁₁ :→: (η :* join_τ₁₂))
+
   (RefT None τ)  →  case locty' of
     (RefT locO τ') → do
         loc_join ← (locty_join locty locty')
@@ -527,6 +538,7 @@ wf_loctype sigma m =
     (ListT _ τₜ)  → do
       _ ← (wf_type τₜ m)
       return ()
+    -- WF-Fun t1 must be well formed and t2 must be well formed
     (τ₁₁ :→: (η :* τ₁₂)) → do
       m  ← askL terModeL
       l ← elabEMode $ effectMode η
@@ -608,10 +620,14 @@ sublocty_wf sigma m =
       return (ListT n τₜ') 
     (τ₁₁ :→: (η :* τ₁₂)) → do
       l ← elabEMode $ effectMode η
-      l_inter ← (elabMode (inter_m m l))
+      guardErr (m ≡ l) $
+        typeError "Not well formed m != l" $ frhs
+        [ ("m", pretty m)
+        , ("l", pretty l)
+        ]
       τ₁₁' ← (superty_wf τ₁₁ m)
       τ₁₂' ← (subty_wf τ₁₂ m)
-      return (τ₁₁' :→:  (( Effect {effectInput = effectInput η, effectReveal = effectReveal η,  effectMode = l_inter}) :* τ₁₂'))
+      return (τ₁₁' :→:  η :* τ₁₂'))
     (RefT loc τ)  → do
       τ' ← (subty_wf τ m)
       return (RefT loc τ')
@@ -718,12 +734,15 @@ superty_wf t m =
 --- Bind Typing ---
 -----------------
 
+-- Maps a type to a variable in the context
 bindTo ∷ Var → Type → EM a → EM a
 bindTo x τ = mapEnvL terEnvL ((x ↦ τ) ⩌)
 
+-- Returns a function that will change the environment based on the pattern
 bindType ∷ Type → Pat → (EM (EM a → EM a))
 bindType τ ψ = matchType τ ψ
--- assume type is well formed
+
+-- assume type is well formed to the current m
 matchType ∷  Type → Pat → EM (EM a → EM a)
 matchType τ ψ= case ψ of 
   VarP x → return (bindTo  x τ)
@@ -731,43 +750,74 @@ matchType τ ψ= case ψ of
     (SecT loc (BaseT (UnitT) )) →  do
           m ← askL terModeL
           l ← elabEMode loc
-          if (m == l) then return (\x -> x) else todoError
+          guardErr (m ≡ l) $
+            typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+              [ ("m", pretty m)
+              , ("l", pretty l)
+              ] 
+          return id
     (SecT loc (ShareT _ _ (BaseT (UnitT) ))) →  do
           m ← askL terModeL
           l ← elabEMode loc
-          if (m == l) then return (\x -> x) else todoError 
-    _ → todoError
+          guardErr (m ≡ l) $
+            typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+              [ ("m", pretty m)
+              , ("l", pretty l)
+              ] 
+          return id
+    _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; () is not of type τ" $ frhs
+              [ ("τ", pretty τ)
+              ] 
   EPrinSetP  → case τ of
     (SecT loc (BaseT ℙsT)) → do
           m ← askL terModeL
           l ← elabEMode loc
-          if (m == l) then return (\x -> x) else todoError
+          guardErr (m ≡ l) $
+            typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+              [ ("m", pretty m)
+              , ("l", pretty l)
+              ] 
+          return id
     (SecT loc (ShareT _ _ (BaseT  ℙsT )))   → do 
           m ← askL terModeL
           l ← elabEMode loc
-          if (m == l) then return (\x -> x) else todoError
-    _ → todoError
+          guardErr (m ≡ l) $
+            typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+              [ ("m", pretty m)
+              , ("l", pretty l)
+              ] 
+          return id
+    _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; {} is not of type τ" $ frhs
+              [ ("τ", pretty τ)
+              ] 
   NEPrinSetP x ψ   → case τ of
     (SecT loc (BaseT ℙsT ))  →  do
           m ← askL terModeL
           l ← elabEMode loc
-          if (m == l) then
-            return (\y -> ( 
+          guardErr (m ≡ l) $
+            typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+              [ ("m", pretty m)
+              , ("l", pretty l)
+              ] 
+          return (\y -> ( 
             do
             mt ← (bindType  (SecT loc (BaseT ℙsT )) ψ)
             (mt  ((bindTo  x (SecT loc (BaseT ℙT ))) y)) ))
-          else
-            todoError
     (SecT loc (ShareT p loc' (BaseT  ℙsT )))  → do
           m ← askL terModeL
           l ← elabEMode loc
-          if (m == l) then
-            return (\y -> ( 
+          guardErr (m ≡ l) $
+            typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+              [ ("m", pretty m)
+              , ("l", pretty l)
+              ] 
+          return (\y -> ( 
             do
             mt ←  (bindType (SecT loc (ShareT p loc' (BaseT ℙsT ))) ψ)
             (mt ((bindTo  x (SecT loc (ShareT p loc' (BaseT ℙT )))) y) ) ))
-          else
-            todoError
+    _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; {} is not of type τ" $ frhs
+              [ ("τ", pretty τ)
+              ] 
   ProdP ψₗ ψᵣ  →     case τ of
     (SecT loc (τₗ :×: τᵣ)) → do
         m ← askL terModeL
@@ -831,8 +881,7 @@ matchType τ ψ= case ψ of
           else
             todoError
     _ → todoError
-  WildP → return (\x -> x)
-
+  WildP → return id
 ------------------------------------------------
 -- Static Evaluation of Principal Expressions --
 ------------------------------------------------

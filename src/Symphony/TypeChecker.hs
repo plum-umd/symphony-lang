@@ -115,7 +115,7 @@ synVar x = do
     Some τ → do
       m ← askL terModeL
       -- T-Var: gets the well formed supertype if there is one, if not error
-      (superty_wf τ m)
+      superty_wf τ m
     None   → typeError "synVar: x ∉ Γ" $ frhs
              [ ("x", pretty x)
              , ("Γ", pretty $ keys env)
@@ -135,7 +135,7 @@ synBul ∷ EM Type
 synBul =  do
   m ← askL terModeL
   em ← elabMode m
-  return (SecT em (BaseT UnitT))
+  return SecT em $ BaseT UnitT
 
 -- ------ T-Bool
 -- gamma |- m b : bool@m
@@ -143,7 +143,7 @@ synBool ∷ 𝔹 → EM Type
 synBool b =  do
   m ← askL terModeL
   em ← elabMode m
-  return (SecT em (BaseT 𝔹T))
+  return SecT em $ BaseT 𝔹T
 
 -- ------ T-Nat
 -- gamma |- m n : nat@m
@@ -151,7 +151,7 @@ synNat ∷ IPrecision → ℕ → EM Type
 synNat pr n = do
   m ← askL terModeL
   em ← elabMode m
-  return (SecT em (BaseT (ℕT pr)))
+  return SecT em $ BaseT $ℕT pr
 
 -- ------ T-Int
 -- gamma |- m i : int@m
@@ -159,7 +159,7 @@ synInt ∷ IPrecision → ℤ → EM Type
 synInt pr z = do
   m ← askL terModeL
   em ← elabMode m
-  return (SecT em (BaseT (ℤT pr)))
+  return SecT em $ BaseT $ ℤT pr
 
 -- ------ T-Float
 -- gamma |- m d : float@m
@@ -167,7 +167,7 @@ synFlt ∷ FPrecision → 𝔻 → EM Type
 synFlt pr d = do
   m ← askL terModeL
   em ← elabMode m
-  return (SecT em (BaseT (𝔽T pr)))
+  return SecT em $ BaseT $ 𝔽T pr
 
 -- ------ T-String
 -- gamma |- m s : string@m
@@ -175,7 +175,7 @@ synStr ∷  𝕊 → EM Type
 synStr s = do
   m ← askL terModeL
   em ← elabMode m
-  return (SecT em (BaseT 𝕊T))
+  return SecT em $ BaseT 𝕊T
 
 -- gamma(x) = t
 -- ------ T-PrinExp
@@ -187,22 +187,24 @@ synPrinExp ρe = case ρe of
 
 
 -- forall A in M = {A ...} gamma |- m A t t <: prin@all
-checkPrin ∷ PrinExp → EM Type
+checkPrin ∷ PrinExp → EM ()
 checkPrin ρe =
    do
     ρτ ← (synPrinExp ρe) 
-    subcond ← (subtype (SecT Top (BaseT ℙT)) ρτ)
-    case subcond of
-      True → return (SecT Top (BaseT ℙT))
-      False →       
-        typeError "synPrin ρτ is not a supertype of PT@top" $ frhs
-          [ ("ρτ", pretty ρτ)
-            
-          ]
+    em ← elabMode m
+    subcond ← (subtype ρτ (SecT em (BaseT ℙT)))
+    guardErr subcond $
+      typeError "checkPrin: ρe has type ρτ which is not a subtype of τ" $ frhs
+        [ ("ρτ", pretty ρe)
+        , ("ρτ'", pretty ρτ)
+        , ("τ'", pretty (SecT em (BaseT ℙT)))
+        ]     
+    return ()
 
--- forall A in M = {A ...} gamma |- m A t t <: prin@all   
+
+-- forall A in M = {A ...} gamma |- m A t t : prin@m   
 -- ------T-PrinSetExp
--- gamma |- m A : ps@all
+-- gamma |- m A : ps@m
 synPrinSet ∷ PrinSetExp → EM Type
 synPrinSet ρse =
   case ρse of
@@ -210,9 +212,9 @@ synPrinSet ρse =
     _ ←  mapM checkPrin ρes
     m ← askL terModeL
     em ← elabMode m
-    return (SecT em (BaseT ℙsT))
-  _    →  todoError
-
+    return SecT em $ BaseT ℙsT
+  _    →  typeError "Must be a set of literals" $ frhs []
+      
 synPrim ∷ Op → 𝐿 Exp → EM Type
 synPrim op es =
   if (isEmpty es) then
@@ -346,6 +348,7 @@ synCase e ψes =
         τs ← mapM (synBind τ) ψes
         (joinList τs)
 
+-- (x|-> t1) union context |-m e : t2 
 synBind ∷ Type → (Pat ∧ Exp) → EM Type 
 synBind τ₁ (ψ :* e₂) =
   let c₂ = synExp e₂
@@ -356,6 +359,10 @@ synBind τ₁ (ψ :* e₂) =
 --- Functions ---
 -----------------
 
+--  |-m e1 t1
+-- (x|-> t1) union context |-m e t2 
+-- ------T-Let
+-- gamma |- m let x in e1 in e2 : t2
 synLet ∷ Pat → Exp → Exp → EM Type 
 synLet ψ e₁ e₂ =
   let c₁ = synExp e₁
@@ -364,7 +371,9 @@ synLet ψ e₁ e₂ =
     synBind τ₁ (ψ :* e₂)
 
 
--- type is well formed
+-- z|-> (t1 m -> t2)@m, x|-> t1) union context |-m e t2 
+-- ------T-FunExp
+-- gamma |- m lambda z x .e : (t1 m -> t2 )@m
 checkLam ∷ 𝑂 Var → 𝐿 Pat → Exp →  Type → EM ()
 checkLam self𝑂 ψs e τ = 
   case τ of
@@ -373,31 +382,42 @@ checkLam self𝑂 ψs e τ =
       None      →  
                   do
                     m  ← askL terModeL
+                    l₁ ← elabEMode $ effectMode η
                     l₂ ← elabEMode loc
+                    guardErr (m ≡ l₁) $
+                      typeError "checkLam: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+                      [ ("m", pretty m)
+                      , ("l", pretty l₁)
+                      ] 
                     guardErr (m ≡ l₂) $
-                      typeError "synLam: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
-                      [ ("m", pretty m),
-                        ("l", pretty l₂)
+                      typeError "checkLam: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+                      [ ("m", pretty m)
+                        , ("l", pretty l₁)
                       ]
                     case ψs of
                       Nil → do
-                        τ₁₂' ← (synExp e)
-                        subcond  ← (subtype τ₁₂' τ₁₂)
-                        if subcond then
-                          return ()
-                        else
-                          todoError
+                        chkExp e τ₁₂
                       ψ :& Nil → do
-                        bind ←  (bindType τ₁₁ ψ) 
-                        bind (chkExp e τ₁₂)
+                        bind ←  bindType τ₁₁ ψ
+                        τ' ← bind $ synExp e 
+                        subcond  ← subtype τ' τ₁₂
+                        guardErr subcond $
+                          typeError "checkPar: τ' is not a subtype of τ₁₂" $ frhs
+                          [ ("τ'", pretty τ')
+                            , ("τ₁₂", pretty τ₁₂)
+                          ]                        
                       ψ :& ψs → do
-                        bind ←  (bindType τ₁₁ ψ) 
-                        bind (checkLam None ψs e τ₁₂)
+                        bind ←  bindType τ₁₁ ψ
+                        bind $ checkLam None ψs e τ₁₂
   
                     
       Some self → (bindTo self τ) (checkLam None ψs e τ)
-    x  → todoError
-  
+    _  → typeError "checkLam: Not annotated correctly" $ frhs []
+                    
+--  |-m e1 ( t1 m -> t2)
+--  |-m e2 t₂
+-- ------T-FunExp
+-- gamma |- m e1 e2 : t2
 synApp ∷ Exp → Exp → EM Type
 synApp e₁ e₂ = 
   let c₁ = synExp e₁
@@ -410,7 +430,7 @@ synApp e₁ e₂ =
         m  ← askL terModeL
         l₁ ← elabEMode $ effectMode η
         l₂ ← elabEMode loc
-        subcond  ←  (subtype τ₂ τ₁₂)
+        subcond  ←  (subtype τ₂ τ₁₁)
         guardErr (m ≡ l₁) $
           typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
           [ ("m", pretty m)
@@ -421,7 +441,13 @@ synApp e₁ e₂ =
           [ ("m", pretty m)
           , ("l", pretty l₁)
           ]
-        return τ₂
+        guardErr subcond  $
+          typeError "synApp: ⊢ₘ _ ˡ→ _ ; type τ₂ of e₂ is not τ₁₁" $ frhs
+          [ ("τ₂", pretty τ₂)
+          , ("e₂", pretty e₂)
+          , ("τ₁₁", pretty τ₁₁)
+          ]
+        return τ₁₂
       _ → typeError "synApp: τ₁ ≢ (_ → _)@_" $ frhs
           [ ("τ₁", pretty τ₁)
           ]
@@ -669,7 +695,8 @@ synPar ρse₁ e₂ =
     if m' ≢ bot then
       localL terModeL m' c₂
     else
-      return (SecT (AddTop (PowPSE empty𝐿)) (BaseT UnitT))
+      -- Default value
+      return SecT $ (AddTop $ PowPSE empty𝐿) $ BaseT UnitT
 
 checkPar ∷  PrinSetExp → Exp → Type → EM ()
 checkPar ρse₁ e₂ τ=
@@ -682,11 +709,13 @@ checkPar ρse₁ e₂ τ=
     let m' = m ⊓ l
     if m' ≢ bot then do 
       τ' ← localL terModeL m' c₂
-      subcond  ← (subtype τ' τ)
-      if subcond then
-              return ()
-      else
-        todoError
+      subcond  ← subtype τ' τ
+      guardErr subcond $
+        typeError "checkPar: τ' is not a subtype of τ" $ frhs
+          [ ("τ'", pretty τ')
+          , ("τ", pretty τ)
+          ]
+      return ()
     else do
       wfcond ← (wf_type τ  (AddTop pø))
       return ()
