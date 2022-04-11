@@ -18,7 +18,8 @@ synProg prog = do
   eachOn prog bindTL
   asTLM $ do
     τMain ← synVar $ var "main"
-    synAppTL τMain $ BaseT UnitT
+    synApp (VarE (var "main")) (BulE)
+  --  synAppTL τMain $ BaseT UnitT
     
 
 bindTL ∷ TL → TLM ()
