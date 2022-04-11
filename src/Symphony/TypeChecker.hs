@@ -214,7 +214,7 @@ synPrinSet ρse =
     m ← askL terModeL
     em ← elabMode m
     return $ SecT em $ BaseT ℙsT
-  _    →  typeError "Must be a set of literals" $ frhs ["ρse", pretty ρse]
+  _    →  typeError "Must be a set of literals" $ frhs [("ρse", pretty ρse)]
       
 synPrim ∷ Op → 𝐿 Exp → EM Type
 synPrim op es =
