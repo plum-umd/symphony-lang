@@ -214,7 +214,7 @@ synPrinSet ρse =
     m ← askL terModeL
     em ← elabMode m
     return $ SecT em $ BaseT ℙsT
-  _    →  typeError "Must be a set of literals" $ frhs []
+  _    →  typeError "Must be a set of literals" $ frhs $ []
       
 synPrim ∷ Op → 𝐿 Exp → EM Type
 synPrim op es =
@@ -413,7 +413,7 @@ checkLam self𝑂 ψs e τ =
   
                     
       Some self → (bindTo self τ) (checkLam None ψs e τ)
-    _  → typeError "checkLam: Not annotated correctly" $ frhs []
+    _  → typeError "checkLam: Not annotated correctly" $ frhs $ []
                     
 --  |-m e1 ( t1 m -> t2)
 --  |-m e2 t₂
