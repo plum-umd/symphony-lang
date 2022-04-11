@@ -135,7 +135,7 @@ synBul ∷ EM Type
 synBul =  do
   m ← askL terModeL
   em ← elabMode m
-  return SecT em $ BaseT UnitT
+  return $ SecT em $ BaseT UnitT
 
 -- ------ T-Bool
 -- gamma |- m b : bool@m
@@ -143,7 +143,7 @@ synBool ∷ 𝔹 → EM Type
 synBool b =  do
   m ← askL terModeL
   em ← elabMode m
-  return SecT em $ BaseT 𝔹T
+  return $ SecT em $ BaseT 𝔹T
 
 -- ------ T-Nat
 -- gamma |- m n : nat@m
@@ -151,7 +151,7 @@ synNat ∷ IPrecision → ℕ → EM Type
 synNat pr n = do
   m ← askL terModeL
   em ← elabMode m
-  return SecT em $ BaseT $ℕT pr
+  return $ SecT em $ BaseT $ℕT pr
 
 -- ------ T-Int
 -- gamma |- m i : int@m
@@ -159,7 +159,7 @@ synInt ∷ IPrecision → ℤ → EM Type
 synInt pr z = do
   m ← askL terModeL
   em ← elabMode m
-  return SecT em $ BaseT $ ℤT pr
+  return $ SecT em $ BaseT $ ℤT pr
 
 -- ------ T-Float
 -- gamma |- m d : float@m
@@ -167,7 +167,7 @@ synFlt ∷ FPrecision → 𝔻 → EM Type
 synFlt pr d = do
   m ← askL terModeL
   em ← elabMode m
-  return SecT em $ BaseT $ 𝔽T pr
+  return $ SecT em $ BaseT $ 𝔽T pr
 
 -- ------ T-String
 -- gamma |- m s : string@m
@@ -175,7 +175,7 @@ synStr ∷  𝕊 → EM Type
 synStr s = do
   m ← askL terModeL
   em ← elabMode m
-  return SecT em $ BaseT 𝕊T
+  return $ SecT em $ BaseT 𝕊T
 
 -- gamma(x) = t
 -- ------ T-PrinExp
