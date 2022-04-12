@@ -1,4 +1,0 @@
-principal A B
-
-def main : unit@all -> prins@all
-def main () = {A, B}
