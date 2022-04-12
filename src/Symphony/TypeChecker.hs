@@ -251,6 +251,11 @@ synPrim op es =
 ---------------------------------
 
 --Gets the type of the first, gets type of the second, returns the pair located value
+-- T-Prod
+-- gamma |- m e1 : t1
+-- gamma |- m e2 : t2
+-- --------
+-- gamma |- m (e1, e2) : (t1 x t2) @m
 synProd ∷  Exp → Exp → EM Type
 synProd eₗ eᵣ =
   let cₗ = synExp eₗ
@@ -260,11 +265,11 @@ synProd eₗ eᵣ =
     τᵣ ← cᵣ
     m ← askL terModeL
     em ← elabMode m
-    return (SecT em (τₗ :×: τᵣ))
+    return $ SecT em $ (τₗ :×: τᵣ)
 
 -- gamma |- m e : t |- m t' (already assumed since it is wellformed)
 -- ------T-Inj
--- gamma |- m i1 e: (t + t')
+-- gamma |- m i1 e: (t + t')@m
 checkL ∷ Exp → Type → EM ()
 checkL eₗ τ  =
   case τ of
@@ -282,7 +287,7 @@ checkL eₗ τ  =
 
 -- gamma |- m e : t |- m t' (already assumed since it is wellformed)
 -- ------T-Inj
--- gamma |- m i2 e: (t' + t)
+-- gamma |- m i2 e: (t' + t)@m
 checkR ∷ Exp → Type → EM ()
 checkR eₗ τ  =
   case τ of
@@ -298,13 +303,22 @@ checkR eₗ τ  =
             ]        
     _ → typeError "checkR: τ is not annotated correctly as a sumtype" $ frhs [ ("τ'", pretty τ)]
 
-{- Todo: Check if m is a subset of the real mode-}
+-- gamma |- m : t
+-- t = (list t') @m
+-- t is well formed in m
+-- --------
+-- gamma |- m (nil) : t
 checkNil ∷ Type → EM ()
 checkNil τ =  
   case τ of
-    SecT m (ListT _ τₜ)  → return ()
+    SecT em (ListT _ τₜ)  → return ()
     x  → todoError
 
+-- T-Cons (t is the join of t' and t'')
+-- gamma |- m e1 : t where t' <: t
+-- gamma |- m e2 : list t'' @m' where t'' <: t and m' >= m
+--------
+-- gamma |- m (e1, e2) : (list t) @m
 synCons ∷ Exp → Exp → EM Type
 synCons eₕ eₜ =
   let cₕ = synExp eₕ
@@ -318,7 +332,11 @@ synCons eₕ eₜ =
         em ← elabMode m 
         join_t ← (ty_join τ  τₜ)
         em'' ← (inter_em em' em)
-        return (SecT em'' (ListT n join_t))
+        return $ SecT em'' $  ListT n join_t
+      _ → typeError "synCons: eₜ is not a located list. It is of type " $ frhs 
+            [ ("eₜ'", pretty eₜ)
+              , ("τₜ'", pretty τₜ)
+            ]
 
 -- gamma |- m e1 : bool@m
 -- gamma |- m e2 : t

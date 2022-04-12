@@ -194,7 +194,6 @@ subtype_loc loctyS loctyT = case loctyS of
   -- t1 x t2 <: t1' x t2' 
   (loctySₗ :×: loctySᵣ) → case loctyT of
     (loctyTₗ :×: loctyTᵣ) → do 
-
         loccondₗ ← (subtype_loc loctySₗ loctyTₗ)
         loccondᵣ ← (subtype_loc loctySᵣ loctyTᵣ)
         return (loccondₗ ⩓ loccondᵣ)
@@ -346,14 +345,19 @@ locty_meet locty locty' =
         meet_tyₗ  ← (ty_meet tyₗ ty'ₗ)
         meet_tyᵣ ← (ty_meet tyᵣ ty'ᵣ)
         return (meet_tyₗ :×: meet_tyᵣ)
+    _ →  typeError "meet: locty is a pair type but locty' is not'" $ frhs
+        [ ("locty", pretty locty)
+        , ("locty'", pretty locty')
+        ]
 
-    _ →  typeError "meet: locty is a sum type but locty' is not'" $ frhs
-      [ ("locty", pretty locty)
-      , ("locty'", pretty locty')
-      ]
-  (ListT _ τₜ)  →  case locty' of
-    (ListT _ τₜ') → (ty_meet τₜ τₜ')
-    _ → todoError
+  (ListT n τₜ)  →  case locty' of
+    (ListT n' τₜ') → do
+      meet_tyₜ ←(ty_meet τₜ τₜ')
+      return (ListT n meet_tyₜ) 
+    _ → typeError "meet: locty is a list type but locty' is not'" $ frhs
+        [ ("locty", pretty locty)
+        , ("locty'", pretty locty')
+        ]
     -- t1' <: t1 t2 <: t2'
   -- -------Sub-Fun
   -- t1 m -> t2 <: t1' m -> t2's
@@ -462,10 +466,18 @@ locty_join locty locty' =
         join_tyᵣ ← (ty_join tyᵣ ty'ᵣ)
         return (join_tyₗ :×: join_tyᵣ)
 
-    _ → todoError
+    _ → typeError "join: locty is a pair type but locty' is not'" $ frhs
+        [ ("locty", pretty locty)
+        , ("locty'", pretty locty')
+        ]
   (ListT _ τₜ)  →  case locty' of
-    (ListT _ τₜ') → (ty_join τₜ τₜ')
-    _ → todoError
+    (ListT n' τₜ') → do
+      join_tyₜ ←(ty_join τₜ τₜ')
+      return (ListT n join_tyₜ) 
+    _ → typeError "join: locty is a list type but locty' is not'" $ frhs
+        [ ("locty", pretty locty)
+        , ("locty'", pretty locty')
+        ]
   -- t1' <: t1 t2 <: t2'
   -- -------Sub-Fun
   -- t1 m -> t2 <: t1' m -> t2'
@@ -548,6 +560,7 @@ wf_loctype sigma m =
       _ ← (wf_type loctyₗ m)
       _ ← (wf_type loctyᵣ m)
       return ()
+    -- WF-Prod: t1 must be well formed and t2 must be well formed
     (loctyₗ :×: loctyᵣ)  → do
       _ ← (wf_type loctyₗ m)
       _ ← (wf_type loctyᵣ m)
@@ -714,11 +727,11 @@ superlocty_wf sigma m =
     -- WF-Fun: t1 must be well formed and t2 must be well formed
     (τ₁₁ :→: (η :* τ₁₂)) → do
        l ← elabEMode $ effectMode η
-      guardErr (m ≡ l) $
-        typeError "Not well formed m != l" $ frhs
-        [ ("m", pretty m)
-        , ("l", pretty l)
-        ]
+        guardErr (m ≡ l) $
+          typeError "Not well formed m != l" $ frhs
+          [ ("m", pretty m)
+            , ("l", pretty l)
+          ]
       τ₁₁' ← (subty_wf τ₁₁ m)
       τ₁₂' ← (superty_wf τ₁₂ m)
       return (τ₁₁' :→:  (η :* τ₁₂'))
@@ -841,8 +854,8 @@ matchType τ ψ= case ψ of
             do
             mt ←  (bindType (SecT loc (ShareT p loc' (BaseT ℙsT ))) ψ)
             (mt ((bindTo  x (SecT loc (ShareT p loc' (BaseT ℙT )))) y) ) ))
-    _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; {} is not of type τ" $ frhs
-              [ ("τ", pretty τ)
+    _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; the expression is not of type τ" $ frhs
+              [ ("τ", pretty (SecT loc (BaseT ℙsT )))
               ] 
   ProdP ψₗ ψᵣ  →     case τ of
     (SecT loc (τₗ :×: τᵣ)) → do
@@ -907,21 +920,32 @@ matchType τ ψ= case ψ of
     (SecT loc (ListT _ τₜ)) → do
           m ← askL terModeL
           l ← elabEMode loc
-          if (m == l ) then return (\x -> x) else todoError 
-    _ → todoError
+          guardErr (m ≡ l) $
+            typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+              [ ("m", pretty m)
+              , ("l", pretty l)
+              ] 
+          return id
+    _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; '() is not of type τ" $ frhs
+              [ ("τ", pretty τ)
+              ] 
   ConsP ψ ψₜ → case τ of
     (SecT loc (ListT n τₜ)) → do
           m ← askL terModeL
           l ← elabEMode loc
-          if (m == l) then
+          guardErr (m ≡ l) $
+            typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+              [ ("m", pretty m)
+              , ("l", pretty l)
+              ] 
             return (\x -> ( 
             do
-            mh ←  (bindType τₜ ψ) 
-            mt ←  (bindType τ ψₜ)
-            (mt (mh x)) ))
-          else
-            todoError
-    _ → todoError
+              mh ←  (bindType τₜ ψ) 
+              mt ←  (bindType τ ψₜ)
+              mt $ mh $ x
+    _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; the expression is not of type τ" $ frhs
+              [ ("τ", pretty (SecT loc (ListT n τₜ)))
+              ] 
   WildP → return id
 ------------------------------------------------
 -- Static Evaluation of Principal Expressions --
