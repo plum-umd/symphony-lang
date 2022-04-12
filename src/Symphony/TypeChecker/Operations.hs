@@ -875,7 +875,8 @@ matchType τ ψ= case ψ of
   LP ψₗ  → case τ of
 
 
-    _ → todoError 
+    _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; type τ is not a sumtype" $ frhs
+          [ ("τ", pretty τ)] 
   RP ψᵣ → case τ of
     (SecT loc (τₗ  :+: τᵣ)) → do
         m ← askL terModeL
