@@ -726,7 +726,7 @@ superlocty_wf sigma m =
       return (ListT n τₜ') 
     -- WF-Fun: t1 must be well formed and t2 must be well formed
     (τ₁₁ :→: (η :* τ₁₂)) → do
-       l ← elabEMode $ effectMode η
+      l ← elabEMode $ effectMode η
         guardErr (m ≡ l) $
           typeError "Not well formed m != l" $ frhs
           [ ("m", pretty m)
