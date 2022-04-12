@@ -262,32 +262,41 @@ synProd eₗ eᵣ =
     em ← elabMode m
     return (SecT em (τₗ :×: τᵣ))
 
-
+-- gamma |- m e : t |- m t' (already assumed since it is wellformed)
+-- ------T-Inj
+-- gamma |- m i1 e: (t + t')
 checkL ∷ Exp → Type → EM ()
 checkL eₗ τ  =
   case τ of
-    (SecT em (τₗ  :+: τᵣ)) →
+    (SecT em (τₗ  :+: _)) →
       let cₗ = synExp eₗ
       in do
-        cτₗ  ← cₗ
-        subcond  ← (subtype cτₗ τₗ)
-        (if subcond then return () else todoError)
-    x → todoError
+        τₗ'  ← cₗ
+        subcond  ← subtype τₗ' τₗ
+        guardErr subcond $
+          typeError "checkL: τₗ' is not a subtype of τₗ" $ frhs
+            [ ("τₗ'", pretty τₗ')
+            , ("τₗ", pretty τₗ)
+            ]        
+    _ → typeError "checkL: τ is not annotated correctly as a sumtype" $ frhs [ ("τ'", pretty τ)]
 
+-- gamma |- m e : t |- m t' (already assumed since it is wellformed)
+-- ------T-Inj
+-- gamma |- m i2 e: (t' + t)
 checkR ∷ Exp → Type → EM ()
-checkR eᵣ τ  =
+checkR eₗ τ  =
   case τ of
-    (SecT em (τₗ  :+: τᵣ)) →
+    (SecT em (_  :+: τᵣ)) →
       let cᵣ = synExp eᵣ
       in do
-        cτᵣ  ← cᵣ
-        subcond  ← (subtype cτᵣ τᵣ)
-        m  ← askL terModeL
-        if subcond then
-          return ()
-        else
-          todoError
-    x → todoError
+        τᵣ'  ← cᵣ
+        subcond  ← subtype τᵣ' τᵣ
+        guardErr subcond $
+          typeError "checkR: τᵣ' is not a subtype of τᵣ" $ frhs
+            [ ("τᵣ'", pretty τᵣ')
+            , ("τᵣ", pretty τᵣ)
+            ]        
+    _ → typeError "checkR: τ is not annotated correctly as a sumtype" $ frhs [ ("τ'", pretty τ)]
 
 {- Todo: Check if m is a subset of the real mode-}
 checkNil ∷ Type → EM ()
@@ -311,6 +320,11 @@ synCons eₕ eₜ =
         em'' ← (inter_em em' em)
         return (SecT em'' (ListT n join_t))
 
+-- gamma |- m e1 : bool@m
+-- gamma |- m e2 : t
+-- gamma |- m e3 : t 
+-- ------T-PrinSetExp
+-- gamma |- m if e1 then e2 else e3 : t
 synIf :: Exp → Exp → Exp → EM Type
 synIf e₁ e₂ e₃ =
   let c₁ = synExp e₁
@@ -322,16 +336,21 @@ synIf e₁ e₂ e₃ =
     τ₃ ← c₃
     m ← askL terModeL
     em  ← elabMode m
-    subcond ← (subtype τ₁ (SecT em (BaseT 𝔹T)) )
-    if subcond then do
-      (ty_join τ₂ τ₃)
-    else
-       typeError "synIf: e₁ is not of type b @ m" $ frhs
+    subcond ← subtype τ₁ $ SecT em $ BaseT 𝔹T
+    guardErr subcond $
+      typeError "synIf: e₁ is not of type bool @ m" $ frhs
           [ ("m", pretty m),
-            ("e₁", pretty e₁),
-            ("τ₁", pretty τ₁)
+            ("e₁", pretty e₁)
           ]
-
+    ty_join τ₂ τ₃
+   
+       
+-- T-Case (t is the join of t', t'', .... t'n)
+-- gamma |- m e : t_e@m' where m' <= m
+-- gamma updated_1 |- m e1 : t' where t'  <: t
+-- gamma updated_2 |- m e2 : t'' where t'' <: t
+-- ...
+--gamma updated_n |- m en : t'n where t'n <: t
 synCase ∷ Exp → 𝐿 (Pat ∧ Exp) → EM Type
 synCase e ψes =
   let c = synExp e
@@ -349,7 +368,6 @@ synCase e ψes =
           ]
         τs ← mapM (synBind τ) ψes
         (joinList τs)
-
 -- (x|-> t1) union context |-m e : t2 
 synBind ∷ Type → (Pat ∧ Exp) → EM Type 
 synBind τ₁ (ψ :* e₂) =

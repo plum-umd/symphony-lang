@@ -179,7 +179,9 @@ subtype_loc loctyS loctyT = case loctyS of
         loccond ← (subtype_loc loctyS loctyT)
         return ((l == l') ⩓ (pS == pT) ⩓ loccond)
       _  → return False
-
+  -- t1 <: t1' t2 <: t2'
+  -- -------Sub-Sum
+  -- t1 + t2 <: t1' + t2' 
   (loctySₗ :+: loctySᵣ) → case loctyT of
     (loctyTₗ :+: loctyTᵣ) → do 
 
@@ -325,12 +327,16 @@ locty_meet locty locty' =
       
     _  → todoError
     )
+  -- t1 <: t1' t2 <: t2'
+  -- -------Sub-Sum
+  -- t1 + t2 <: t1' + t2' 
   (tyₗ :+: tyᵣ) → case locty' of
     (ty'ₗ :+: ty'ᵣ) → do 
 
         meet_tyₗ  ← (ty_meet tyₗ ty'ₗ)
         meet_tyᵣ ← (ty_meet tyᵣ ty'ᵣ)
         return (meet_tyₗ :+: meet_tyᵣ)
+    _ → return False 
   -- t1 <: t1' t2 <: t2'
   -- -------Sub-Pair
   -- t1 x t2 <: t1' x t2' 
@@ -341,7 +347,10 @@ locty_meet locty locty' =
         meet_tyᵣ ← (ty_meet tyᵣ ty'ᵣ)
         return (meet_tyₗ :×: meet_tyᵣ)
 
-    _ → todoError
+    _ →  typeError "meet: locty is a sum type but locty' is not'" $ frhs
+      [ ("locty", pretty locty)
+      , ("locty'", pretty locty')
+      ]
   (ListT _ τₜ)  →  case locty' of
     (ListT _ τₜ') → (ty_meet τₜ τₜ')
     _ → todoError
@@ -353,7 +362,7 @@ locty_meet locty locty' =
         l ← elabEMode $ effectMode η
         l' ← elabEMode $ effectMode η'
         guardErr (l ≡ l') $
-          typeError "join: l ≢ l'" $ frhs
+          typeError "meet: l ≢ l'" $ frhs
             [ ("l", pretty l)
             , ("l'", pretty l')
             ]
@@ -430,12 +439,19 @@ locty_join locty locty' =
       
     _  → todoError
     )
+  -- t1 <: t1' t2 <: t2'
+  -- -------Sub-Sum
+  -- t1 + t2 <: t1' + t2' 
   (tyₗ :+: tyᵣ) → case locty' of
     (ty'ₗ :+: ty'ᵣ) → do 
 
         join_tyₗ  ← (ty_join tyₗ ty'ₗ)
         join_tyᵣ ← (ty_join tyᵣ ty'ᵣ)
         return (join_tyₗ :+: join_tyᵣ)
+    _ →  typeError "join: locty is a sum type but locty' is not'" $ frhs
+      [ ("locty", pretty locty)
+      , ("locty'", pretty locty')
+      ]
   -- t1 <: t1' t2 <: t2'
   -- -------Sub-Pair
   -- t1 x t2 <: t1' x t2' 
@@ -527,6 +543,7 @@ wf_loctype sigma m =
       l ← (elabEMode loc)
       -- WF-Enc
       return ()
+    -- WF-Sum: t1 must be well formed and t2 must be well formed
     (loctyₗ :+: loctyᵣ) → do 
       _ ← (wf_type loctyₗ m)
       _ ← (wf_type loctyᵣ m)
@@ -538,7 +555,7 @@ wf_loctype sigma m =
     (ListT _ τₜ)  → do
       _ ← (wf_type τₜ m)
       return ()
-    -- WF-Fun t1 must be well formed and t2 must be well formed
+    -- WF-Fun: m must be same as mode, t1 must be well formed and t2 must be well formed
     (τ₁₁ :→: (η :* τ₁₂)) → do
       m  ← askL terModeL
       l ← elabEMode $ effectMode η
@@ -607,6 +624,7 @@ sublocty_wf sigma m =
             return (ShareT p loc loc_subty)
         else
           todoError
+    -- WF-Sum: t1 must be well formed and t2 must be well formed
     (loctyₗ :+: loctyᵣ) → do 
       loctyₗ' ← (subty_wf loctyₗ m)
       loctyᵣ' ← (subty_wf loctyᵣ m)
@@ -618,6 +636,7 @@ sublocty_wf sigma m =
     (ListT n τₜ)  → do
       τₜ' ← (subty_wf τₜ m)
       return (ListT n τₜ') 
+    -- WF-Fun: m must be same as mode, t1 must be well formed and t2 must be well formed
     (τ₁₁ :→: (η :* τ₁₂)) → do
       l ← elabEMode $ effectMode η
       guardErr (m ≡ l) $
@@ -670,6 +689,7 @@ subty_wf t m =
 superlocty_wf :: Type  → Mode →  EM Type 
 superlocty_wf sigma m = 
   case sigma of
+    -- WF-Base (Based off WF-INT)
     BaseT bt → return sigma
     ShareT p loc loc_ty  → do
         l ← (elabEMode loc)
@@ -679,6 +699,7 @@ superlocty_wf sigma m =
             return (ShareT p loc loc_superty)
         else
           todoError
+    -- WF-Sum: t1 must be well formed and t2 must be well formed
     (loctyₗ :+: loctyᵣ) → do 
       loctyₗ' ← (superty_wf loctyₗ m)
       loctyᵣ' ← (superty_wf loctyᵣ m)
@@ -690,12 +711,17 @@ superlocty_wf sigma m =
     (ListT n τₜ)  → do
       τₜ' ← (superty_wf τₜ m)
       return (ListT n τₜ') 
+    -- WF-Fun: t1 must be well formed and t2 must be well formed
     (τ₁₁ :→: (η :* τ₁₂)) → do
-      l ← elabEMode $ effectMode η
-      l_inter ← (elabMode (inter_m m l))
+       l ← elabEMode $ effectMode η
+      guardErr (m ≡ l) $
+        typeError "Not well formed m != l" $ frhs
+        [ ("m", pretty m)
+        , ("l", pretty l)
+        ]
       τ₁₁' ← (subty_wf τ₁₁ m)
       τ₁₂' ← (superty_wf τ₁₂ m)
-      return (τ₁₁' :→:  (( Effect {effectInput = effectInput η, effectReveal = effectReveal η,  effectMode = l_inter}) :* τ₁₂'))
+      return (τ₁₁' :→:  (η :* τ₁₂'))
     (RefT loc τ)  → do
       τ' ← (superty_wf τ m)
       return (RefT loc τ')
@@ -822,46 +848,61 @@ matchType τ ψ= case ψ of
     (SecT loc (τₗ :×: τᵣ)) → do
         m ← askL terModeL
         l ← elabEMode loc
-        if (m == l) then
+        guardErr (m ≡ l) $
+          typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+              [ ("m", pretty m)
+              , ("l", pretty l)
+              ] 
           return (\x -> ( 
           do
           ml ←  (bindType τₗ ψₗ) 
           mr ←  (bindType τᵣ ψᵣ)
           (mr (ml x)) ))
-        else
-          todoError
     _ → todoError
   LP ψₗ  → case τ of
-    (SecT loc (τₗ  :+: τᵣ)) → do
+    (SecT loc (τₗ  :+: _)) → do
         m ← askL terModeL
         l ← elabEMode loc
-        if (m == l) then
-          (bindType τₗ ψₗ)
-        else
-          todoError
-    (SecT loc (ShareT _ _ (τₗ  :+: τᵣ))) → do
+          guardErr (m ≡ l) $
+          typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+              [ ("m", pretty m)
+              , ("l", pretty l)
+              ] 
+        (bindType τₗ ψₗ)
+    (SecT loc (ShareT _ _ (τₗ  :+: _))) → do
         m ← askL terModeL
         l ← elabEMode loc
-        if (m == l) then
+        guardErr (m ≡ l) $
+          typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+              [ ("m", pretty m)
+              , ("l", pretty l)
+              ] 
           (bindType τₗ ψₗ)
-        else
-          todoError
+     _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; type τ is not a sumtype" $ frhs
+              [ ("τ", pretty τ)
+              ] 
   RP ψᵣ → case τ of
     (SecT loc (τₗ  :+: τᵣ)) → do
         m ← askL terModeL
         l ← elabEMode loc
-        if (m == l) then
+        guardErr (m ≡ l) $
+          typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+              [ ("m", pretty m)
+              , ("l", pretty l)
+              ] 
            (bindType τᵣ ψᵣ)
-        else
-          todoError
     (SecT loc (ShareT _ _ (τₗ  :+: τᵣ))) → do
         m ← askL terModeL
         l ← elabEMode loc
-        if (m == l) then
+        guardErr (m ≡ l) $
+          typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+              [ ("m", pretty m)
+              , ("l", pretty l)
+              ] 
            (bindType τᵣ ψᵣ)
-        else
-          todoError
-    _ → todoError
+    _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; type τ is not a sumtype" $ frhs
+              [ ("τ", pretty τ)
+              ] 
   NilP → case τ of
     (SecT loc (ListT _ τₜ)) → do
           m ← askL terModeL
