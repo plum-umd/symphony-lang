@@ -289,7 +289,7 @@ checkL eₗ τ  =
 -- ------T-Inj
 -- gamma |- m i2 e: (t' + t)@m
 checkR ∷ Exp → Type → EM ()
-checkR eₗ τ  =
+checkR eᵣ τ  =
   case τ of
     (SecT em (_  :+: τᵣ)) →
       let cᵣ = synExp eᵣ
@@ -335,7 +335,7 @@ synCons eₕ eₜ =
         return $ SecT em'' $  ListT n join_t
       _ → typeError "synCons: eₜ is not a located list. It is of type " $ frhs 
             [ ("eₜ'", pretty eₜ)
-              , ("τₜ'", pretty τₜ)
+              , ("τs'", pretty τs)
             ]
 
 -- gamma |- m e1 : bool@m
