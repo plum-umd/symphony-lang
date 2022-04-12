@@ -872,7 +872,7 @@ matchType τ ψ= case ψ of
           mr ←  (bindType τᵣ ψᵣ)
           (mr (ml x)) ))
     _ → todoError
-  LP ψₗ  → case τ of
+  LP ψᵣ → case τ of
     (SecT loc (τₗ  :+: _)) → do
         m ← askL terModeL
         l ← elabEMode loc
@@ -881,7 +881,7 @@ matchType τ ψ= case ψ of
               [ ("m", pretty m)
               , ("l", pretty l)
               ] 
-        (bindType τₗ ψₗ)
+           (bindType τₗ ψₗ)
     (SecT loc (ShareT _ _ (τₗ  :+: _))) → do
         m ← askL terModeL
         l ← elabEMode loc
@@ -890,8 +890,10 @@ matchType τ ψ= case ψ of
               [ ("m", pretty m)
               , ("l", pretty l)
               ] 
-        (bindType τₗ ψₗ)
-     _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; type τ is not a sumtype" $ frhs [ ("τ", pretty τ)] 
+           (bindType τₗ ψₗ)
+    _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; type τ is not a sumtype" $ frhs
+              [ ("τ", pretty τ)
+              ]  
   RP ψᵣ → case τ of
     (SecT loc (τₗ  :+: τᵣ)) → do
         m ← askL terModeL
