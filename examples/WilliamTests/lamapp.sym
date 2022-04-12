@@ -1,0 +1,4 @@
+principal A B
+
+def main : unit@{A, B} -> int@{A, B}
+def main () = let g = (λ [f] x → x):(int@{A, B} -> int@{A,B}) in (f 1)

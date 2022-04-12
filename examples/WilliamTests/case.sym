@@ -1,0 +1,5 @@
+principal A B C
+
+def main : unit@{A, B, C} -> unit@{A, B, C}
+def main () =  let a = • in let b = • in case (L a):( unit@{A, B, C} + unit@{A, B, C}) {L x →x;R y→y} 
+

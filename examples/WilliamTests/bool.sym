@@ -1,0 +1,4 @@
+principal A B
+
+def main : unit@{A, B, C} -> bool@{A, B, C}
+def main () = true

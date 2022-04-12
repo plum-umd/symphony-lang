@@ -1,0 +1,4 @@
+principal A B C
+
+def main : unit@{A, B, C} -> ( unit@{A, B, C} + bool@{A, B, C})
+def main () = let a = • in (R a:( unit@{A, B, C} + bool@{A, B, C})

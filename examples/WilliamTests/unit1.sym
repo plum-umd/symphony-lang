@@ -1,0 +1,4 @@
+principal A B
+
+def main : unit@{A, B} -> unit@{A, B}
+def main () = •

@@ -1,0 +1,4 @@
+principal A B
+
+def main : unit@{A, B} -> int@{A}
+def main () = par {A, B} let x = par{A} 1 in let y = par{B} x in let z = par{C} 2 in x

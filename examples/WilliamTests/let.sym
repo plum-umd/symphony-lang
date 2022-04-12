@@ -1,0 +1,4 @@
+principal A B
+
+def main : unit@{A, B} -> unit@{B}
+def main () = let a = • in let b = • in b
