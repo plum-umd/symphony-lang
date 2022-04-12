@@ -873,10 +873,26 @@ matchType τ ψ= case ψ of
           (mr (ml x)) ))
     _ → todoError
   LP ψₗ  → case τ of
-
-
-    _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; type τ is not a sumtype" $ frhs
-          [ ("τ", pretty τ)] 
+    (SecT loc (τₗ  :+: _)) → do
+        m ← askL terModeL
+        l ← elabEMode loc
+        guardErr (m ≡ l) $
+          typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+              [ ("m", pretty m)
+              , ("l", pretty l)
+              ] 
+        (bindType τₗ ψₗ)
+    (SecT loc (ShareT _ _ (τₗ  :+: _))) → do
+        m ← askL terModeL
+        l ← elabEMode loc
+        guardErr (m ≡ l) $
+          typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+              [ ("m", pretty m)
+              , ("l", pretty l)
+              ] 
+        (bindType τₗ ψₗ)
+     _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; type τ is not a sumtype" $ frhs
+              [ ("τ", pretty τ)] 
   RP ψᵣ → case τ of
     (SecT loc (τₗ  :+: τᵣ)) → do
         m ← askL terModeL
