@@ -1,4 +1,4 @@
 principal A B
 
 def main : (unit@all -> int@all)@all
-def main () = let g = (λ [f] x → x):(int@all -> int@all)@all in (f 1)
+def main () = let g = (λ [f] x → x):(int@all -> int@all)@all in (g 1)
