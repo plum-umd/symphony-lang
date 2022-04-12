@@ -1,4 +1,6 @@
 principal A B C
 
-def main : unit@{A, B, C} -> unit@{A, B, C}
+def main : (unit@{A, B, C} -> unit@{A, B, C})
 def main () =  •
+
+SecT {A, B, C} BaseT Unit -> ({A, B, C}), BaseT Unit)
