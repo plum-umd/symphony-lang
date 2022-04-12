@@ -890,7 +890,7 @@ matchType τ ψ= case ψ of
               [ ("m", pretty m)
               , ("l", pretty l)
               ] 
-          (bindType τₗ ψₗ)
+        (bindType τₗ ψₗ)
      _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; type τ is not a sumtype" $ frhs
               [ ("τ", pretty τ)
               ] 
