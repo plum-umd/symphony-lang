@@ -470,7 +470,7 @@ locty_join locty locty' =
         [ ("locty", pretty locty)
         , ("locty'", pretty locty')
         ]
-  (ListT _ τₜ)  →  case locty' of
+  (ListT n τₜ)  →  case locty' of
     (ListT n' τₜ') → do
       join_tyₜ ←(ty_join τₜ τₜ')
       return (ListT n join_tyₜ) 
