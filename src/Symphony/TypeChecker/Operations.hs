@@ -942,8 +942,10 @@ matchType τ ψ= case ψ of
             do
               mh ←  (bindType τₜ ψ) 
               mt ←  (bindType τ ψₜ)
-              mt $ mh $ x
-    _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; the expression is not of type τ" $ frhs [ ("τ", pretty (SecT loc (ListT n τₜ)))] 
+              mt $ mh $ x))
+    _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; the expression is not of type τ" $ frhs
+              [ ("τ", pretty (SecT loc (ListT n τₜ)))
+              ] 
   WildP → return id
 ------------------------------------------------
 -- Static Evaluation of Principal Expressions --
