@@ -876,7 +876,7 @@ matchType τ ψ= case ψ of
     (SecT loc (τₗ  :+: _)) → do
         m ← askL terModeL
         l ← elabEMode loc
-          guardErr (m ≡ l) $
+        guardErr (m ≡ l) $
           typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
               [ ("m", pretty m)
               , ("l", pretty l)
