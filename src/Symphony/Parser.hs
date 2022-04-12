@@ -338,8 +338,8 @@ pType = cpNewContext "type" $ mixfix $ concat
   -- τ@ρse
   , mixPostfix levelMODE $ do
       cpSyntaxVoid "@"
-      ρse ← pPrinSetExp
-      return $ SecT $ AddTop ρse
+      ρse ← pEMode
+      return $ SecT ρse
   -- τ⟪ρse⟫
   , mixPostfix levelMODE $ do
       concat [cpSyntaxVoid "⟪",cpSyntaxVoid "<<"]

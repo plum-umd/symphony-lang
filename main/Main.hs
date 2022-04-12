@@ -55,6 +55,36 @@ symphonyMainExample = do
     pprint $ ppHeader "RESULT"
     pprint v
 
+symphonyMainCheck ∷ STACK ⇒ IO ()
+symphonyMainCheck = do
+  os :* ts ← parseOptionsSymphony
+  path ← case ts of
+    Nil      → failIO "ERROR: No file specified as target. Correct usage: symphony check [<arguments>] <path>"
+    t :& Nil → return t
+    _ → failIO "ERROR: Too many files specified as target. Correct usage: symphony check [<arguments>] <path>"
+  pprint $ ppHorizontal
+    [ ppHeader "CHECKING FILE:"
+    , ppString path
+    ]
+  tls ← parseFile (concat ["file:",path]) path
+  τ ← evalTLMIO null null path $ synProg tls
+  pprint $ ppHeader "RESULT"
+  pprint τ
+
+symphonyMainAST ∷ STACK ⇒ IO ()
+symphonyMainAST = do
+  os :* ts ← parseOptionsSymphony
+  path ← case ts of
+    Nil      → failIO "ERROR: No file specified as target. Correct usage: symphony ast [<arguments>] <path>"
+    t :& Nil → return t
+    _ → failIO "ERROR: Too many files specified as target. Correct usage: symphony ast [<arguments>] <path>"
+  pprint $ ppHorizontal
+    [ ppHeader "AST OF FILE:"
+    , ppString path
+    ]
+  tls ← parseFile (concat ["file:",path]) path
+  pprint tls
+
 symphonyUsage ∷ 𝕊
 symphonyUsage = "USAGE: symphony [options] file..."
 
@@ -76,6 +106,8 @@ symphonyMain ∷ IO ()
 symphonyMain = do
   map list iargs ≫= \case
     a :& as | a ≡ "example" → ilocalArgs as symphonyMainExample
+    a :& as | a ≡ "ast"     → ilocalArgs as symphonyMainAST
+    a :& as | a ≡ "check"   → ilocalArgs as symphonyMainCheck
     Nil             → ilocalArgs (list ["--version", "--help"]) symphonyMainInfo
     as              → ilocalArgs as symphonyMainInfo
 

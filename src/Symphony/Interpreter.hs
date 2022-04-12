@@ -819,7 +819,7 @@ parseOptionsSymphony = do
     out $ optUsageInfo "symphony test [arguments]" usageInfoTest
   return $ os :* nos
 
-parseFile ∷ 𝕊 → 𝕊 → IO (𝐿 TL)
+parseFile ∷ STACK ⇒ 𝕊 → 𝕊 → IO (𝐿 TL)
 parseFile name path = do
   s ← fread path
   let ts = tokens s

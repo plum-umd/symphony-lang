@@ -13,59 +13,38 @@ import Symphony.TypeChecker.Operations
 -- Checking for TL --
 ---------------------
 
-synProg ∷ 𝐿 TL → TLM Type
+synProg ∷ STACK ⇒ 𝐿 TL → TLM Type
 synProg prog = do
   eachOn prog bindTL
   asTLM $ do
     τMain ← synVar $ var "main"
     synApp (nullExp (VarE (var "main"))) (nullExp (BulE))
-  --  synAppTL τMain $ BaseT UnitT
-    
 
-bindTL ∷ TL → TLM ()
+bindTL ∷ STACK ⇒ TL → TLM ()
 bindTL tl = localL ttlrSourceL (Some $ atag tl) $ bindTLR $ extract tl
 
-bindTLR ∷ TLR → TLM ()
+bindTLR ∷ STACK ⇒ TLR → TLM ()
 bindTLR tlr = case tlr of
-  
-  PrinTL ρds          → bindPrins ρds
-
-  DefnTL _brec x ψs e → bindDefnTest e
- -- _ → return ()
   PrinTL ρds          → bindPrins ρds
   DeclTL _brec x τ    → bindDecl x τ
-
   DefnTL _brec x ψs e → bindDefn x ψs e
-  _ → return ()
-  PrinTL ρds          → bindPrins ρds
   ImportTL path       → todoError
 
-bindDecl ∷ 𝕏 → Type → TLM ()
+bindDecl ∷ STACK ⇒ 𝕏 → Type → TLM ()
 bindDecl = bindTypeTL
 
-bindDefn ∷ 𝕏 → 𝐿 Pat → Exp → TLM ()
+bindDefn ∷ STACK ⇒ 𝕏 → 𝐿 Pat → Exp → TLM ()
 bindDefn x ψs e = asTLM $ do
   τ ← synVar x
   checkLam (Some x) ψs e τ
 
-bindDefnTest ∷ Exp → TLM ()
-bindDefnTest e = asTLM $ do
-  _ ←  (synExp e)
-  return ()
-
-
-
-
-bindPrins ∷ 𝐿 PrinDecl → TLM ()
+bindPrins ∷ STACK ⇒ STACK ⇒ 𝐿 PrinDecl → TLM ()
 bindPrins ρds = eachOn ρds bindPrin
   where bindPrin ρd = case ρd of
           SinglePD ρ   → bindTypeTL (var ρ) $ (SecT Top (BaseT ℙT))
           ArrayPD ρ _n → bindTypeTL (var ρ) $ (SecT Top (BaseT ℙsT))
 
-chkLam ∷ 𝑂 Var → 𝐿 Pat → Exp → Type → EM ()
-chkLam self𝑂 ψs e τ = todoError
-
-synAppTL ∷ Type → Type → EM Type
+synAppTL ∷ STACK ⇒ Type → Type → EM Type
 synAppTL τ₁ τ₂ = case τ₁ of
   SecT loc (τ₁₁ :→: (η :* τ₁₂)) → do
     m  ← askL terModeL
@@ -81,8 +60,8 @@ synAppTL τ₁ τ₂ = case τ₁ of
       [ ("τ₁", pretty τ₁)
       ]
 
-synAppTL2 ∷ Type → Type → EM Type
-synAppTL2 τ₁ τ₂ = 
+synAppTL2 ∷ STACK ⇒ Type → Type → EM Type
+synAppTL2 τ₁ τ₂ =
     case τ₁ of
       SecT loc (τ₁₁ :→: (η :* τ₁₂)) → do
         m  ← askL terModeL
@@ -109,7 +88,7 @@ synAppTL2 τ₁ τ₂ =
 ------------------------------
 
 -- ------ T-Var
-synVar ∷ Var → EM Type
+synVar ∷ STACK ⇒ Var → EM Type
 synVar x = do
   env ← askL terEnvL
   case env ⋕? x of
@@ -132,7 +111,7 @@ synVar x = do
 
 -- ------ T-Bul
 -- gamma |- m () : bul@m
-synBul ∷ EM Type
+synBul ∷ STACK ⇒ EM Type
 synBul =  do
   m ← askL terModeL
   em ← elabMode m
@@ -140,7 +119,7 @@ synBul =  do
 
 -- ------ T-Bool
 -- gamma |- m b : bool@m
-synBool ∷ 𝔹 → EM Type
+synBool ∷ STACK ⇒ 𝔹 → EM Type
 synBool b =  do
   m ← askL terModeL
   em ← elabMode m
@@ -148,7 +127,7 @@ synBool b =  do
 
 -- ------ T-Nat
 -- gamma |- m n : nat@m
-synNat ∷ IPrecision → ℕ → EM Type
+synNat ∷ STACK ⇒ IPrecision → ℕ → EM Type
 synNat pr n = do
   m ← askL terModeL
   em ← elabMode m
@@ -156,7 +135,7 @@ synNat pr n = do
 
 -- ------ T-Int
 -- gamma |- m i : int@m
-synInt ∷ IPrecision → ℤ → EM Type
+synInt ∷ STACK ⇒ IPrecision → ℤ → EM Type
 synInt pr z = do
   m ← askL terModeL
   em ← elabMode m
@@ -164,7 +143,7 @@ synInt pr z = do
 
 -- ------ T-Float
 -- gamma |- m d : float@m
-synFlt ∷ FPrecision → 𝔻 → EM Type
+synFlt ∷ STACK ⇒ FPrecision → 𝔻 → EM Type
 synFlt pr d = do
   m ← askL terModeL
   em ← elabMode m
@@ -172,7 +151,7 @@ synFlt pr d = do
 
 -- ------ T-String
 -- gamma |- m s : string@m
-synStr ∷  𝕊 → EM Type
+synStr ∷ STACK ⇒  𝕊 → EM Type
 synStr s = do
   m ← askL terModeL
   em ← elabMode m
@@ -181,17 +160,17 @@ synStr s = do
 -- gamma(x) = t
 -- ------ T-PrinExp
 -- gamma |- m b : t
-synPrinExp ∷ PrinExp → EM Type
+synPrinExp ∷ STACK ⇒ PrinExp → EM Type
 synPrinExp ρe = case ρe of
   VarPE x       → synVar x
   AccessPE x n₁ → synVar x
 
 
 -- forall A in M = {A ...} gamma |- m A t t <: prin@all
-checkPrin ∷ PrinExp → EM ()
+checkPrin ∷ STACK ⇒ PrinExp → EM ()
 checkPrin ρe =
    do
-    ρτ ← (synPrinExp ρe) 
+    ρτ ← (synPrinExp ρe)
     m ← askL terModeL
     em ← elabMode m
     subcond ← (subtype ρτ (SecT em (BaseT ℙT)))
@@ -200,14 +179,14 @@ checkPrin ρe =
         [ ("ρτ", pretty ρe)
         , ("ρτ'", pretty ρτ)
         , ("τ'", pretty (SecT em (BaseT ℙT)))
-        ]     
+        ]
     return ()
 
 
--- forall A in M = {A ...} gamma |- m A t t : prin@m   
+-- forall A in M = {A ...} gamma |- m A t t : prin@m
 -- ------T-PrinSetExp
 -- gamma |- m A : ps@m
-synPrinSet ∷ PrinSetExp → EM Type
+synPrinSet ∷ STACK ⇒ PrinSetExp → EM Type
 synPrinSet ρse =
   case ρse of
   PowPSE ρes → do
@@ -216,17 +195,17 @@ synPrinSet ρse =
     em ← elabMode m
     return $ SecT em $ BaseT ℙsT
   _    →  typeError "Must be a set of literals" $ frhs [("ρse", pretty ρse)]
-      
-synPrim ∷ Op → 𝐿 Exp → EM Type
+
+synPrim ∷ STACK ⇒ Op → 𝐿 Exp → EM Type
 synPrim op es =
   if (isEmpty es) then
-     do 
+     do
        m ← askL terModeL
        em ← elabMode m
        bt ← (primType op (empty𝐿 ))
        return (SecT em (BaseT bt))
   else
-    do 
+    do
       m ← askL terModeL
       em ← elabMode m
       τs ← (mapM synExp es)
@@ -235,17 +214,17 @@ synPrim op es =
       bs ← (mapM extractBase τs)
       bt ← (primType op bs)
       let ps = list𝐼 (filterMap (\x -> x)  pos) in
-        if (isEmpty ps) then 
+        if (isEmpty ps) then
           return (SecT em (BaseT bt))
         else
           case ps  of
-            ((p, loc) :& _) → 
+            ((p, loc) :& _) →
               if (and (map (\(p', l) -> (p == p') ⩓  (l == m)) ps)) then
-                return (SecT em (ShareT p em (BaseT bt))) 
+                return (SecT em (ShareT p em (BaseT bt)))
               else
                 todoError
-    
-     
+
+
 ---------------------------------
 --- Products, Sums, and Lists ---
 ---------------------------------
@@ -256,7 +235,7 @@ synPrim op es =
 -- gamma |- m e2 : t2
 -- --------
 -- gamma |- m (e1, e2) : (t1 x t2) @m
-synProd ∷  Exp → Exp → EM Type
+synProd ∷ STACK ⇒  Exp → Exp → EM Type
 synProd eₗ eᵣ =
   let cₗ = synExp eₗ
       cᵣ = synExp eᵣ
@@ -270,7 +249,7 @@ synProd eₗ eᵣ =
 -- gamma |- m e : t |- m t' (already assumed since it is wellformed)
 -- ------T-Inj
 -- gamma |- m i1 e: (t + t')@m
-checkL ∷ Exp → Type → EM ()
+checkL ∷ STACK ⇒ Exp → Type → EM ()
 checkL eₗ τ  =
   case τ of
     (SecT em (τₗ  :+: _)) →
@@ -282,13 +261,13 @@ checkL eₗ τ  =
           typeError "checkL: τₗ' is not a subtype of τₗ" $ frhs
             [ ("τₗ'", pretty τₗ')
             , ("τₗ", pretty τₗ)
-            ]        
+            ]
     _ → typeError "checkL: τ is not annotated correctly as a sumtype" $ frhs [ ("τ'", pretty τ)]
 
 -- gamma |- m e : t |- m t' (already assumed since it is wellformed)
 -- ------T-Inj
 -- gamma |- m i2 e: (t' + t)@m
-checkR ∷ Exp → Type → EM ()
+checkR ∷ STACK ⇒ Exp → Type → EM ()
 checkR eᵣ τ  =
   case τ of
     (SecT em (_  :+: τᵣ)) →
@@ -300,7 +279,7 @@ checkR eᵣ τ  =
           typeError "checkR: τᵣ' is not a subtype of τᵣ" $ frhs
             [ ("τᵣ'", pretty τᵣ')
             , ("τᵣ", pretty τᵣ)
-            ]        
+            ]
     _ → typeError "checkR: τ is not annotated correctly as a sumtype" $ frhs [ ("τ'", pretty τ)]
 
 -- gamma |- m : t
@@ -308,8 +287,8 @@ checkR eᵣ τ  =
 -- t is well formed in m
 -- --------
 -- gamma |- m (nil) : t
-checkNil ∷ Type → EM ()
-checkNil τ =  
+checkNil ∷ STACK ⇒ Type → EM ()
+checkNil τ =
   case τ of
     SecT em (ListT _ τₜ)  → return ()
     x  → todoError
@@ -319,7 +298,7 @@ checkNil τ =
 -- gamma |- m e2 : list t'' @m' where t'' <: t and m' >= m
 --------
 -- gamma |- m (e1, e2) : (list t) @m
-synCons ∷ Exp → Exp → EM Type
+synCons ∷ STACK ⇒ Exp → Exp → EM Type
 synCons eₕ eₜ =
   let cₕ = synExp eₕ
       cₜ = synExp eₜ
@@ -329,21 +308,21 @@ synCons eₕ eₜ =
     case τs of
       SecT em' (ListT n τₜ)  →  do
         m ← askL terModeL
-        em ← elabMode m 
+        em ← elabMode m
         join_t ← (ty_join τ  τₜ)
         em'' ← (inter_em em' em)
         return $ SecT em'' $  ListT n join_t
-      _ → typeError "synCons: eₜ is not a located list. It is of type " $ frhs 
+      _ → typeError "synCons: eₜ is not a located list. It is of type " $ frhs
             [ ("eₜ'", pretty eₜ)
               , ("τs'", pretty τs)
             ]
 
 -- gamma |- m e1 : bool@m
 -- gamma |- m e2 : t
--- gamma |- m e3 : t 
+-- gamma |- m e3 : t
 -- ------T-PrinSetExp
 -- gamma |- m if e1 then e2 else e3 : t
-synIf :: Exp → Exp → Exp → EM Type
+synIf :: STACK ⇒ Exp → Exp → Exp → EM Type
 synIf e₁ e₂ e₃ =
   let c₁ = synExp e₁
       c₂ = synExp e₂
@@ -361,15 +340,15 @@ synIf e₁ e₂ e₃ =
             ("e₁", pretty e₁)
           ]
     ty_join τ₂ τ₃
-   
-       
+
+
 -- T-Case (t is the join of t', t'', .... t'n)
 -- gamma |- m e : t_e@m' where m' <= m
 -- gamma updated_1 |- m e1 : t' where t'  <: t
 -- gamma updated_2 |- m e2 : t'' where t'' <: t
 -- ...
 --gamma updated_n |- m en : t'n where t'n <: t
-synCase ∷ Exp → 𝐿 (Pat ∧ Exp) → EM Type
+synCase ∷ STACK ⇒ Exp → 𝐿 (Pat ∧ Exp) → EM Type
 synCase e ψes =
   let c = synExp e
   in do
@@ -386,8 +365,8 @@ synCase e ψes =
           ]
         τs ← mapM (synBind τ) ψes
         (joinList τs)
--- (x|-> t1) union context |-m e : t2 
-synBind ∷ Type → (Pat ∧ Exp) → EM Type 
+-- (x|-> t1) union context |-m e : t2
+synBind ∷ STACK ⇒ Type → (Pat ∧ Exp) → EM Type
 synBind τ₁ (ψ :* e₂) =
   let c₂ = synExp e₂
   in do
@@ -398,10 +377,10 @@ synBind τ₁ (ψ :* e₂) =
 -----------------
 
 --  |-m e1 t1
--- (x|-> t1) union context |-m e t2 
+-- (x|-> t1) union context |-m e t2
 -- ------T-Let
 -- gamma |- m let x in e1 in e2 : t2
-synLet ∷ Pat → Exp → Exp → EM Type 
+synLet ∷ STACK ⇒ Pat → Exp → Exp → EM Type
 synLet ψ e₁ e₂ =
   let c₁ = synExp e₁
   in do
@@ -409,15 +388,15 @@ synLet ψ e₁ e₂ =
     synBind τ₁ (ψ :* e₂)
 
 
--- z|-> (t1 m -> t2)@m, x|-> t1) union context |-m e t2 
+-- z|-> (t1 m -> t2)@m, x|-> t1) union context |-m e t2
 -- ------T-FunExp
 -- gamma |- m lambda z x .e : (t1 m -> t2 )@m
-checkLam ∷ 𝑂 Var → 𝐿 Pat → Exp →  Type → EM ()
-checkLam self𝑂 ψs e τ = 
+checkLam ∷ STACK ⇒ 𝑂 Var → 𝐿 Pat → Exp →  Type → EM ()
+checkLam self𝑂 ψs e τ =
   case τ of
-    SecT loc (τ₁₁ :→: (η :* τ₁₂))   → 
+    SecT loc (τ₁₁ :→: (η :* τ₁₂))   →
       case self𝑂 of
-      None      →  
+      None      →
                   do
                     m  ← askL terModeL
                     l₁ ← elabEMode $ effectMode η
@@ -426,38 +405,38 @@ checkLam self𝑂 ψs e τ =
                       typeError "checkLam: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
                       [ ("m", pretty m)
                       , ("l", pretty l₁)
-                      ] 
+                      ]
                     guardErr (m ≡ l₂) $
-                      typeError "checkLam: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+                      typeError "checkLam: ⊢ₘ _ ˡ→ _ ; m ≢ l₂" $ frhs
                       [ ("m", pretty m)
-                        , ("l", pretty l₁)
+                      , ("l", pretty l₂)
                       ]
                     case ψs of
                       Nil → do
                         chkExp e τ₁₂
                       ψ :& Nil → do
                         bind ←  bindType τ₁₁ ψ
-                        τ' ← bind $ synExp e 
+                        τ' ← bind $ synExp e
                         subcond  ← subtype τ' τ₁₂
                         guardErr subcond $
                           typeError "checkPar: τ' is not a subtype of τ₁₂" $ frhs
                           [ ("τ'", pretty τ')
                             , ("τ₁₂", pretty τ₁₂)
-                          ]                        
+                          ]
                       ψ :& ψs → do
                         bind ←  bindType τ₁₁ ψ
                         bind $ checkLam None ψs e τ₁₂
-  
-                    
+
+
       Some self → (bindTo self τ) (checkLam None ψs e τ)
     _  → typeError "checkLam: Not annotated correctly" $ frhs [ ("τ'", pretty τ)]
-                    
+
 --  |-m e1 ( t1 m -> t2)
 --  |-m e2 t₂
 -- ------T-FunExp
 -- gamma |- m e1 e2 : t2
-synApp ∷ Exp → Exp → EM Type
-synApp e₁ e₂ = 
+synApp ∷ STACK ⇒ Exp → Exp → EM Type
+synApp e₁ e₂ =
   let c₁ = synExp e₁
       c₂ = synExp e₂
   in do
@@ -494,7 +473,7 @@ synApp e₁ e₂ =
 --- Read and Write ---
 ----------------------
 
-synRead ∷ Type → Exp → EM Type
+synRead ∷ STACK ⇒ Type → Exp → EM Type
 synRead τ e =
   let c = synExp e
   in do
@@ -506,7 +485,7 @@ synRead τ e =
       [ ("m", pretty m)
       ]
     case τ' of
-      (SecT loc (BaseT 𝕊T))  →  
+      (SecT loc (BaseT 𝕊T))  →
         do
           l ← elabEMode loc
           guardErr (m ≡ l) $
@@ -516,10 +495,10 @@ synRead τ e =
               ]
           return τ
       _ →  typeError "synRead: ; e not a string" (frhs [("e", pretty e)])
-   
 
 
-synWrite ∷  Exp → Exp → EM Type
+
+synWrite ∷ STACK ⇒  Exp → Exp → EM Type
 synWrite e₁ e₂ =
   let c₁ = synExp e₁
       c₂ = synExp e₂
@@ -548,14 +527,14 @@ synWrite e₁ e₂ =
                                       return τ
             _ →  typeError "synWrite: ; e not a string" (frhs [("e", pretty e₂)])
       _ →  typeError "synWrite: ; e not a basetype" (frhs [("e", pretty e₁)])
-    
+
 
 -------------------
 --- Type Annotations ---
 -------------------
 
-synAscr :: Exp → Type →  EM Type
-synAscr e τ = do 
+synAscr :: STACK ⇒ Exp → Type →  EM Type
+synAscr e τ = do
   _ ← (chkExp e τ)
   return τ
 
@@ -563,7 +542,7 @@ synAscr e τ = do
 --- References ---
 -------------------
 
-synRef ∷ Exp → EM Type
+synRef ∷ STACK ⇒ Exp → EM Type
 synRef e =
   let c = synExp e
   in do
@@ -572,7 +551,7 @@ synRef e =
   em ← elabMode m
   return (SecT em (RefT (Some em) τ))
 
-synRefRead ∷ Exp → EM Type
+synRefRead ∷ STACK ⇒ Exp → EM Type
 synRefRead e =
   let c = synExp e
   in do
@@ -593,7 +572,7 @@ synRefRead e =
 
 
 
-synRefWrite ∷ Exp → Exp → EM Type
+synRefWrite ∷ STACK ⇒ Exp → Exp → EM Type
 synRefWrite e₁ e₂ =
   let c₁ = synExp e₁
       c₂ = synExp e₂
@@ -601,7 +580,7 @@ synRefWrite e₁ e₂ =
     τ₁  ← c₁
     τ₂ ← c₂
     case τ₁ of
-      (SecT loc₁ (RefT (Some loc₂) τ₁'))  → do  
+      (SecT loc₁ (RefT (Some loc₂) τ₁'))  → do
         m  ← askL terModeL
         l₁ ← elabEMode loc₁
         l₂ ← elabEMode loc₂
@@ -609,12 +588,12 @@ synRefWrite e₁ e₂ =
           typeError "synRefRead: m /≡ l" $ frhs
           [ ("m", pretty m)
           , ("l", pretty l₁)
-          ] 
+          ]
         (ty_join  τ₁' τ₂)
-        
+
       _ → todoError
 
-synArray ∷ Exp → Exp → EM Type
+synArray ∷ STACK ⇒ Exp → Exp → EM Type
 synArray e₁ e₂ =
   let c₁ = synExp e₁
       c₂ = synExp e₂
@@ -633,7 +612,7 @@ synArray e₁ e₂ =
           ]
         return (SecT em (ArrT (Some em) 0 τ₂))
 
-synArrayRead ∷ Exp → Exp → EM Type
+synArrayRead ∷ STACK ⇒ Exp → Exp → EM Type
 synArrayRead e₁ e₂ =
   let c₁ = synExp e₁
       c₂ = synExp e₂
@@ -664,7 +643,7 @@ synArrayRead e₁ e₂ =
       _  → todoError
 
 
-synArrayWrite ∷ Exp → Exp → Exp → EM Type
+synArrayWrite ∷ STACK ⇒ Exp → Exp → Exp → EM Type
 synArrayWrite e₁ e₂ e₃ =
   let c₁ = synExp e₁
       c₂ = synExp e₂
@@ -697,9 +676,9 @@ synArrayWrite e₁ e₂ e₃ =
           _  → todoError
       _  → todoError
 
-synArraySize ∷ Exp → EM Type
+synArraySize ∷ STACK ⇒ Exp → EM Type
 synArraySize e =
-  let c = synExp e 
+  let c = synExp e
   in do
     τ ← c
     case τ of
@@ -725,7 +704,7 @@ synArraySize e =
 --  m  union p != empty set
 -- ------T-Par
 -- gamma |- par [p] e : t
-synPar ∷  PrinSetExp → Exp → EM Type
+synPar ∷ STACK ⇒  PrinSetExp → Exp → EM Type
 synPar ρse₁ e₂ =
   let c₁ = synPrinSet ρse₁
       c₂ = synExp e₂
@@ -744,7 +723,7 @@ synPar ρse₁ e₂ =
       -- Default value
       return $ SecT (AddTop (PowPSE empty𝐿))  (BaseT UnitT)
 
-checkPar ∷  PrinSetExp → Exp → Type → EM ()
+checkPar ∷ STACK ⇒  PrinSetExp → Exp → Type → EM ()
 checkPar ρse₁ e₂ τ=
   let c₁ = synPrinSet ρse₁
       c₂ = synExp e₂
@@ -753,7 +732,7 @@ checkPar ρse₁ e₂ τ=
     ρ𝑃 ← (elabPrinSetExp  ρse₁)
     let l = AddTop ρ𝑃
     let m' = m ⊓ l
-    if m' ≢ bot then do 
+    if m' ≢ bot then do
       τ' ← localL terModeL m' c₂
       subcond  ← subtype τ' τ
       guardErr subcond $
@@ -767,7 +746,7 @@ checkPar ρse₁ e₂ τ=
       return ()
 
 
-synShare ∷  Prot → Type → PrinExp → PrinSetExp → Exp → EM Type
+synShare ∷ STACK ⇒  Prot → Type → PrinExp → PrinSetExp → Exp → EM Type
 synShare φ τ ρe₁ ρse₂ e₃ =
   let c₁ = synPrinExp ρe₁
       c₂ = synPrinSet ρse₂
@@ -782,9 +761,9 @@ synShare φ τ ρe₁ ρse₂ e₃ =
             qs ← elabPrinSetExp ρse₂
             wfcond ← wf_type (SecT (AddTop ρse₂) (ShareT φ (AddTop ρse₂) τ') ) m
             subcond  ←  localL terModeL m (chkExp e₃ τ)
-            if (not (isEmpty  qs)) ⩓ (supermode p' p) 
-              then return (SecT (AddTop ρse₂) (ShareT φ (AddTop ρse₂) τ') ) 
-              else 
+            if (not (isEmpty  qs)) ⩓ (supermode p' p)
+              then return (SecT (AddTop ρse₂) (ShareT φ (AddTop ρse₂) τ') )
+              else
                 typeError "synShare: p is not a subset of p' or q is empty" $ frhs
                   [ ("p", pretty p)
                     , ("p'", pretty p'),
@@ -795,24 +774,24 @@ synShare φ τ ρe₁ ρse₂ e₃ =
           todoError
 
 -- Assume φ is in type
-synReveal ∷ Prot → Type → PrinSetExp → PrinExp → Exp → EM Type
+synReveal ∷ STACK ⇒ Prot → Type → PrinSetExp → PrinExp → Exp → EM Type
 synReveal φ τ ρse₁ ρe₂ e₃ =
   let c₁ = synPrinSet ρse₁
       c₂ = synPrinExp ρe₂
       in case τ of
-        SecT loc (ShareT φ loc' τ') → do            
+        SecT loc (ShareT φ loc' τ') → do
             m  ← askL terModeL
             p ←  elabEMode loc
             p' ← elabEMode loc'
             qs ← elabPrinSetExp  (PowPSE (frhs [ρe₂]))
             subcond  ←  localL terModeL m (chkExp e₃ τ)
             if ( (p ≡ p') ⩓ (m ≡ ( p ⊔ (AddTop qs)) ))
-              then return (SecT (AddTop (PowPSE (frhs [ρe₂]))) τ' ) 
+              then return (SecT (AddTop (PowPSE (frhs [ρe₂]))) τ' )
               else todoError
         _ → do
           todoError
 
-synComm ∷  Type → PrinExp → PrinSetExp → Exp → EM Type
+synComm ∷ STACK ⇒  Type → PrinExp → PrinSetExp → Exp → EM Type
 synComm τ ρe₁ ρse₂ e₃ =
   let c₁ = synPrinExp ρe₁
       c₂ = synPrinSet ρse₂
@@ -823,21 +802,21 @@ synComm τ ρe₁ ρse₂ e₃ =
             p' ← elabEMode loc'
             qs ← elabPrinSetExp ρse₂
             subcond  ←  localL terModeL m (chkExp e₃ τ)
-            if (not (isEmpty  qs)) ⩓ (supermode p' p) 
-              then return (SecT (AddTop ρse₂) τ' ) 
+            if (not (isEmpty  qs)) ⩓ (supermode p' p)
+              then return (SecT (AddTop ρse₂) τ' )
               else todoError
         _ → do
           todoError
 
-synMuxIf ∷  Exp → Exp → Exp → EM Type
-synMuxIf e₁ e₂ e₃ =do 
+synMuxIf ∷ STACK ⇒  Exp → Exp → Exp → EM Type
+synMuxIf e₁ e₂ e₃ =do
       m ← askL terModeL
       em ← elabMode m
       τs ← (mapM synExp (frhs [e₁, e₂, e₃]) )
       _ ← (mapM (assertM m) τs)
       pos ← (mapM extractProt τs)
       let ps = list𝐼 (filterMap (\x -> x)  pos) in
-        if (isEmpty ps) then 
+        if (isEmpty ps) then
           do
             case τs of
                     (τ₁ :& (τ₂ :& (τ₃ :& Nil))) → do
@@ -848,7 +827,7 @@ synMuxIf e₁ e₂ e₃ =do
                         todoError
         else
           case ps  of
-            ((p, loc) :& _) → 
+            ((p, loc) :& _) →
               if (and (map (\(p', l) -> (p == p') ⩓  (l == m)) ps)) then
                 do
                   eτs ← (mapM (embedShare p em) τs )
@@ -863,8 +842,8 @@ synMuxIf e₁ e₂ e₃ =do
                 todoError
 
 
-synMuxCase ∷  Exp → 𝐿 (Pat ∧ Exp) → EM Type
-synMuxCase e ψes =do 
+synMuxCase ∷ STACK ⇒  Exp → 𝐿 (Pat ∧ Exp) → EM Type
+synMuxCase e ψes =do
   let c = synExp e in do
     τ  ← c
 
@@ -875,23 +854,23 @@ synMuxCase e ψes =do
       _ ← (mapM (assertM m) τs)
       pos ← (mapM extractProt τs)
       let ps = list𝐼 (filterMap (\x -> x)  pos) in
-        if (isEmpty ps) then 
+        if (isEmpty ps) then
           (joinList τs')
         else
           case ps  of
-            ((p, loc) :& _) → 
+            ((p, loc) :& _) →
               if (and (map (\(p', l) -> (p == p') ⩓  (l == m)) ps)) then
                 do
                   eτs' ← (mapM (embedShare p em) τs' )
                   (joinList eτs')
-                    
+
               else
                 todoError
-    
+
 
 -- Bundles
-synBundleIntro :: (PrinExp ∧ Exp) → EM Type
-synBundleIntro (pe :* e) = 
+synBundleIntro :: STACK ⇒ (PrinExp ∧ Exp) → EM Type
+synBundleIntro (pe :* e) =
   let c = synExp e
   in do
     τ ← c
@@ -910,7 +889,7 @@ synBundleIntro (pe :* e) =
           return (SecT em (ISecT loc τ'))
       _ → todoError
 
-synBundle ∷ 𝐿 (PrinExp ∧ Exp) → EM Type
+synBundle ∷ STACK ⇒ 𝐿 (PrinExp ∧ Exp) → EM Type
 synBundle ρee𝐿 =
   do
     τs ← (mapM synBundleIntro ρee𝐿)
@@ -918,7 +897,7 @@ synBundle ρee𝐿 =
       (τ :& τs') → (mfold τ synBundleUnionHelper τs')
       _ → todoError
 
-synBundleAccess ∷ Exp → PrinExp → EM Type
+synBundleAccess ∷ STACK ⇒ Exp → PrinExp → EM Type
 synBundleAccess e₁ ρe₂ =
   let c₁ = synExp e₁
       c₂ = synPrinExp ρe₂
@@ -946,7 +925,7 @@ synBundleAccess e₁ ρe₂ =
           return (SecT (AddTop (PowPSE (frhs [ρe₂]))) τ₁')
       _  → todoError
 
-synBundleUnion ∷ Exp → Exp → EM Type
+synBundleUnion ∷ STACK ⇒ Exp → Exp → EM Type
 synBundleUnion e₁ e₂ =
   let c₁ = synExp e₁
       c₂ = synExp e₂
@@ -956,7 +935,7 @@ synBundleUnion e₁ e₂ =
     synBundleUnionHelper τ₁ τ₂
 
 
-synBundleUnionHelper ∷ Type → Type → EM Type
+synBundleUnionHelper ∷ STACK ⇒ Type → Type → EM Type
 synBundleUnionHelper τ₁ τ₂ =
 
     case τ₁ of
@@ -990,17 +969,17 @@ synBundleUnionHelper τ₁ τ₂ =
             return  (SecT loc₂ (ISecT q τ))
           _ → todoError
       _ → todoError
-            
+
 -------------------
 --- Expressions ---
 -------------------
 
-chkExp :: Exp → Type → EM ()
+chkExp :: STACK ⇒ Exp → Type → EM ()
 chkExp e τ = chkExpR (extract e) τ
 
-chkExpR :: ExpR → Type → EM ()  
-chkExpR e τ = 
-  do 
+chkExpR :: STACK ⇒ ExpR → Type → EM ()
+chkExpR e τ =
+  do
     m  ← askL terModeL
 
     -- Check it is well formed
@@ -1011,8 +990,8 @@ chkExpR e τ =
       NilE        → checkNil τ
       LamE self𝑂 ψs e → checkLam self𝑂 ψs e τ
       ParE ρse₁ e₂ → checkPar ρse₁ e₂ τ
-      _ →     
-          do 
+      _ →
+          do
             τ' ← synExpR e
             subcond  ← (subtype τ' τ)
             guardErr subcond $
@@ -1023,11 +1002,11 @@ chkExpR e τ =
               ]
 
 
-synExp :: Exp → EM Type
+synExp :: STACK ⇒ Exp → EM Type
 synExp e = synExpR $ extract e
 
 
-synExpR ∷ ExpR → EM Type
+synExpR ∷ STACK ⇒ ExpR → EM Type
 synExpR e = case e of
    -- Variables
   VarE x → synVar x
@@ -1047,14 +1026,14 @@ synExpR e = case e of
   IfE e₁ e₂ e₃ → synIf e₁ e₂ e₃
   CaseE e ψes  → synCase e ψes
 
-  LetE ψ e₁ e₂    → synLet ψ e₁ e₂  
+  LetE ψ e₁ e₂    → synLet ψ e₁ e₂
   AppE e₁ e₂      → synApp e₁ e₂
 
   -- Read and Write
   ReadE τ e    → synRead τ e
   WriteE e₁ e₂ → synWrite e₁ e₂
 
-  
+
   -- References
   RefE e          → synRef e
   RefReadE e      → synRefRead e
@@ -1084,7 +1063,7 @@ synExpR e = case e of
   BundleE ρees         → synBundle ρees
   BundleAccessE e₁ ρe₂ → synBundleAccess e₁ ρe₂
   BundleUnionE e₁ e₂   → synBundleUnion e₁ e₂
-  
+
   _      → undefined
 
 
@@ -1092,12 +1071,11 @@ synExpR e = case e of
 -- Utilities --
 ---------------
 
-asTLM ∷ EM a → TLM a
+asTLM ∷ STACK ⇒ EM a → TLM a
 asTLM eM = do
   γ ← getL ttlsEnvL
   let r = ER { terSource = None, terMode = Top, terEnv = γ }
   evalEMErr r () eM
 
-bindTypeTL ∷ 𝕏 → Type → TLM ()
+bindTypeTL ∷ STACK ⇒ 𝕏 → Type → TLM ()
 bindTypeTL x τ = modifyL ttlsEnvL ((x ↦ τ) ⩌)
-
