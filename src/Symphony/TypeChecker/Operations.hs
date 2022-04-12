@@ -335,7 +335,10 @@ locty_meet locty locty' =
         meet_tyₗ  ← (ty_meet tyₗ ty'ₗ)
         meet_tyᵣ ← (ty_meet tyᵣ ty'ᵣ)
         return (meet_tyₗ :+: meet_tyᵣ)
-    _ → return False 
+    _ →  typeError "meet: locty is a sum type but locty' is not'" $ frhs
+        [ ("locty", pretty locty)
+        , ("locty'", pretty locty')
+        ]
   -- t1 <: t1' t2 <: t2'
   -- -------Sub-Pair
   -- t1 x t2 <: t1' x t2' 
@@ -938,7 +941,7 @@ matchType τ ψ= case ψ of
               [ ("m", pretty m)
               , ("l", pretty l)
               ] 
-            return (\x -> ( 
+          return (\x -> ( 
             do
               mh ←  (bindType τₜ ψ) 
               mt ←  (bindType τ ψₜ)
