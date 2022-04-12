@@ -727,11 +727,11 @@ superlocty_wf sigma m =
     -- WF-Fun: t1 must be well formed and t2 must be well formed
     (τ₁₁ :→: (η :* τ₁₂)) → do
       l ← elabEMode $ effectMode η
-        guardErr (m ≡ l) $
-          typeError "Not well formed m != l" $ frhs
-          [ ("m", pretty m)
-            , ("l", pretty l)
-          ]
+      guardErr (m ≡ l) $
+        typeError "Not well formed m != l" $ frhs
+        [ ("m", pretty m)
+        , ("l", pretty l)
+        ]
       τ₁₁' ← (subty_wf τ₁₁ m)
       τ₁₂' ← (superty_wf τ₁₂ m)
       return (τ₁₁' :→:  (η :* τ₁₂'))
@@ -881,7 +881,7 @@ matchType τ ψ= case ψ of
               [ ("m", pretty m)
               , ("l", pretty l)
               ] 
-           (bindType τₗ ψₗ)
+        (bindType τₗ ψₗ)
     (SecT loc (ShareT _ _ (τₗ  :+: _))) → do
         m ← askL terModeL
         l ← elabEMode loc
@@ -890,7 +890,7 @@ matchType τ ψ= case ψ of
               [ ("m", pretty m)
               , ("l", pretty l)
               ] 
-           (bindType τₗ ψₗ)
+        (bindType τₗ ψₗ)
     _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; type τ is not a sumtype" $ frhs
               [ ("τ", pretty τ)
               ]  
@@ -900,10 +900,10 @@ matchType τ ψ= case ψ of
         l ← elabEMode loc
         guardErr (m ≡ l) $
           typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
-              [ ("m", pretty m)
+          [ ("m", pretty m)
               , ("l", pretty l)
-              ] 
-           (bindType τᵣ ψᵣ)
+          ] 
+        (bindType τᵣ ψᵣ)
     (SecT loc (ShareT _ _ (τₗ  :+: τᵣ))) → do
         m ← askL terModeL
         l ← elabEMode loc
@@ -912,7 +912,7 @@ matchType τ ψ= case ψ of
               [ ("m", pretty m)
               , ("l", pretty l)
               ] 
-           (bindType τᵣ ψᵣ)
+        (bindType τᵣ ψᵣ)
     _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; type τ is not a sumtype" $ frhs
               [ ("τ", pretty τ)
               ] 
