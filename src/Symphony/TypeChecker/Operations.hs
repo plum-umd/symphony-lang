@@ -866,7 +866,7 @@ matchType τ ψ= case ψ of
               [ ("m", pretty m)
               , ("l", pretty l)
               ] 
-          return (\x -> ( 
+        return (\x -> ( 
           do
           ml ←  (bindType τₗ ψₗ) 
           mr ←  (bindType τᵣ ψᵣ)
