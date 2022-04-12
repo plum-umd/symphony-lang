@@ -854,8 +854,8 @@ matchType τ ψ= case ψ of
             do
             mt ←  (bindType (SecT loc (ShareT p loc' (BaseT ℙsT ))) ψ)
             (mt ((bindTo  x (SecT loc (ShareT p loc' (BaseT ℙT )))) y) ) ))
-    _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; the expression is not of type τ" $ frhs
-              [ ("τ", pretty (SecT loc (BaseT ℙsT )))
+    _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; the expression is not of type SecT loc τ" $ frhs
+              [ ("τ", pretty (BaseT ℙsT ))
               ] 
   ProdP ψₗ ψᵣ  →     case τ of
     (SecT loc (τₗ :×: τᵣ)) → do
@@ -872,7 +872,7 @@ matchType τ ψ= case ψ of
           mr ←  (bindType τᵣ ψᵣ)
           (mr (ml x)) ))
     _ → todoError
-  LP ψᵣ → case τ of
+  LP ψₗ → case τ of
     (SecT loc (τₗ  :+: _)) → do
         m ← askL terModeL
         l ← elabEMode loc
@@ -943,8 +943,8 @@ matchType τ ψ= case ψ of
               mh ←  (bindType τₜ ψ) 
               mt ←  (bindType τ ψₜ)
               mt $ mh $ x))
-    _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; the expression is not of type τ" $ frhs
-              [ ("τ", pretty (SecT loc (ListT n τₜ)))
+    _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; the type τ is not of type (SecT loc (ListT n τₜ))" $ frhs
+              [ ("τ", pretty τ)
               ] 
   WildP → return id
 ------------------------------------------------
