@@ -1,7 +1,7 @@
 module Symphony.Interpreter.Types where
 
-import UVMHS
-import AddToUVMHS
+import Symphony.Prelude
+
 import Symphony.Syntax
 import Symphony.Interpreter.Error
 import Symphony.Interpreter.Pretty

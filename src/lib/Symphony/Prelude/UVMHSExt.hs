@@ -1,4 +1,4 @@
-module AddToUVMHS where
+module Symphony.Prelude.UVMHSExt where
 
 import UVMHS
 
@@ -268,3 +268,15 @@ runCont m k = unID $ runContT (ID ∘ k) m
 
 pmapM ∷ (Monad m, Ord b) ⇒ (a → m b) → 𝑃 a → m (𝑃 b)
 pmapM f = pow𝐼 ^∘ (mapM f) ∘ iter
+
+type Except e a = ErrorT e ID a
+
+execExcept ∷ Except e a → e ∨ a
+execExcept = unID ∘ unErrorT
+
+execExceptIO ∷ Pretty e ⇒ Except e a → IO a
+execExceptIO xM = case execExcept xM of
+  Inl e → do
+    pprint e
+    abortIO
+  Inr a → return a

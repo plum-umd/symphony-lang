@@ -2,8 +2,7 @@
 
 module Symphony.Syntax where
 
-import UVMHS
-import AddToUVMHS
+import Symphony.Prelude
 
 import qualified Data.Aeson as JSON
 

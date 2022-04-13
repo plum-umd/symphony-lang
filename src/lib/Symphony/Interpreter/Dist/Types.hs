@@ -1,7 +1,6 @@
 module Symphony.Interpreter.Dist.Types where
 
-import UVMHS
-import AddToUVMHS
+import Symphony.Prelude
 
 import Symphony.Syntax
 import Symphony.Interpreter.Types

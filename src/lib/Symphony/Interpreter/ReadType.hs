@@ -1,7 +1,6 @@
 module Symphony.Interpreter.ReadType where
 
-import UVMHS
-import AddToUVMHS
+import Symphony.Prelude
 
 import Symphony.Config
 import Symphony.Syntax

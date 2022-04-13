@@ -1,6 +1,6 @@
 module Symphony.Interpreter.Primitives where
 
-import UVMHS
+import Symphony.Prelude
 
 import Symphony.Interpreter.Types
 import Symphony.Interpreter.BaseVal
@@ -9,8 +9,6 @@ import Symphony.Interpreter.Pretty ()
 import Symphony.Interpreter.Lens ()
 import Symphony.Syntax
 import Symphony.Interpreter.Error
-
-import AddToUVMHS
 
 primType ∷ (Monad m, MonadReader (ICxt v) m, MonadError IError m, STACK) ⇒ Op → 𝐿 BaseType → m BaseType
 primType op τs = case (op, tohs τs) of

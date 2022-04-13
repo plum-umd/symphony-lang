@@ -1,7 +1,6 @@
 module Symphony.TypeChecker where
 
-import UVMHS
-import AddToUVMHS
+import Symphony.Prelude
 
 import Symphony.Syntax
 import Symphony.TypeChecker.Types
