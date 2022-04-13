@@ -241,8 +241,8 @@ subtype tyS tyT = case tyS of
         mcond ← (superemode locS locT)
         loccond ← (subtype_loc loctyS loctyT)
         return  loccond
-      _ → return False
-  _ → return False
+      _ → return True
+  _ → return True
 
 
 -- Check if tyT >: tyS
