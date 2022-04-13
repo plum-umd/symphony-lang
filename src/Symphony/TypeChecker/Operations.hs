@@ -240,7 +240,7 @@ subtype tyS tyT = case tyS of
       SecT locT loctyT → do
         mcond ← (superemode locS locT)
         loccond ← (subtype_loc loctyS loctyT)
-        return ( loccond)
+        return (mcond ⩓ loccond)
       _ → return False
   _ → return False
 
