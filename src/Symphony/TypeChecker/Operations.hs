@@ -188,7 +188,7 @@ subtype_loc loctyS loctyT = case loctyS of
         loccondₗ ← (subtype_loc loctySₗ loctyTₗ)
         loccondᵣ ← (subtype_loc loctySᵣ loctyTᵣ)
         return (loccondₗ ⩓ loccondᵣ)
-    _ → return False
+    _ → return True
   -- t1 <: t1' t2 <: t2'
   -- -------Sub-Pair
   -- t1 x t2 <: t1' x t2'
