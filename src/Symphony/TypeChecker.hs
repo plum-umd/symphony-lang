@@ -426,7 +426,6 @@ synApp e₁ e₂ =
         m  ← askL terModeL
         l₁ ← elabEMode $ effectMode η
         l₂ ← elabEMode loc
-        subcond  ←  (subtype τ₂ τ₁₁)
         guardErr (m ≡ l₁) $
           typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
           [ ("m", pretty m)
