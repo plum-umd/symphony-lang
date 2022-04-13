@@ -625,8 +625,8 @@ wf_type ty m =
         , ("m'", pretty m')
         ]
       return ()
-    _ → typeError "wf_type: sigma is not well formed" $ frhs
-        [ ("sigma", pretty sigma )
+    _ → typeError "wf_type: ty is not well formed" $ frhs
+        [ ("ty", pretty ty )
         ]
 
 
