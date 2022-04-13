@@ -971,7 +971,7 @@ chkExpR e τ =
             guardErr subcond $
               typeError "checkExpR: e has type τ' which is not a subtype of τ" $ frhs
               [ ("e", pretty e)
-              , ("τ'", pretty τ')
+              , ("τ'", pretty τ)
               , ("τ'", pretty τ')
               ]
 
