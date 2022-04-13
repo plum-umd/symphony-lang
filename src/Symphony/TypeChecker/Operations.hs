@@ -228,7 +228,7 @@ subtype_loc loctyS loctyT = case loctyS of
         mcond ← (superemode locS locT)
         loccond ← (subtype_loc loctyS loctyT)
         return (mcond ⩓ loccond)
-  _ → return False
+  _ → return True
 
 -- Check if tyS <: tyT
 subtype :: STACK ⇒ Type → Type → EM 𝔹
@@ -241,8 +241,8 @@ subtype tyS tyT = case tyS of
         mcond ← (superemode locS locT)
         loccond ← (subtype_loc loctyS loctyT)
         return  loccond
-      _ → return True
-  _ → return True
+      _ → return False
+  _ → return False
 
 
 -- Check if tyT >: tyS
