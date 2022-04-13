@@ -1,3 +1,4 @@
 principal A B C
 
+def main : (unit@all -> unit@{C})@all
 def main () = let x =  true in let y = (par {A, C} •) in let z = (par {A} •) in (if x then y else z)
