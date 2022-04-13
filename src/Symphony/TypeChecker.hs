@@ -1078,4 +1078,7 @@ asTLM eM = do
   evalEMErr r () eM
 
 bindTypeTL ∷ STACK ⇒ 𝕏 → Type → TLM ()
-bindTypeTL x τ = modifyL ttlsEnvL ((x ↦ τ) ⩌)
+bindTypeTL x τ = do
+  
+  _ ← (wf_type τ Top)
+  modifyL ttlsEnvL ((x ↦ τ) ⩌)

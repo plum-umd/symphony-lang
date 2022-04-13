@@ -1,4 +1,4 @@
 principal A B
 
-def main : unit@all -> prins@all
+def main : (unit@all -> prins@all)@all
 def main () = {A, B}

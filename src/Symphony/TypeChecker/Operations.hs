@@ -592,7 +592,9 @@ wf_loctype sigma m =
     ISecT loc locty → do
       _ ← (wf_share_loctype locty m)
       return ()
-    _  → todoError
+    _  → typeError "wf_loctype: sigma is not well formed" $ frhs
+        [ ("sigma", pretty sigma )
+        ]
 
 
 -- Rules to see if some located value is well-formed
@@ -623,7 +625,9 @@ wf_type ty m =
         , ("m'", pretty m')
         ]
       return ()
-    _ → todoError
+    _ → typeError "wf_type: sigma is not well formed" $ frhs
+        [ ("sigma", pretty sigma )
+        ]
 
 
 -- Rules to get the least sub subtype of loctype sigma that is well formed
@@ -672,7 +676,9 @@ sublocty_wf sigma m =
     (ISecT loc loc_ty) → do
       loc_subty ← (share_subloctype_wf loc_ty m)
       (return (ISecT loc loc_subty))
-    x  → todoError
+    _  → typeError "subloctype_wf: sigma is not well structured" $ frhs
+        [ ("sigma", pretty sigma )
+        ]
 
 -- Rules to get the least super supertype of located type that a share can take sigma that is well formed
 share_subloctype_wf :: STACK ⇒ Type → Mode → EM Type
@@ -698,7 +704,9 @@ subty_wf t m =
         , ("m'", pretty m')
         ]
       (return (SecT loc loc_subty))
-    _  → todoError
+    _  → typeError "subtype_wf: t is not well structured" $ frhs
+        [ ("t", pretty t )
+        ]
 
 
 -- Rules to get the least super supertype of loctype sigma that is well formed
@@ -747,7 +755,9 @@ superlocty_wf sigma m =
     (ISecT loc loc_ty) → do
       loc_subty ← (share_superloctype_wf loc_ty m)
       (return (ISecT loc loc_subty))
-    _  → todoError
+    _  → typeError "superloctype_wf: sigma is not well structured" $ frhs
+        [ ("sigma", pretty sigma )
+        ]
 
 -- Rules to get the least super supertype of located type that a share can take sigma that is well formed
 share_superloctype_wf :: STACK ⇒ Type → Mode → EM Type
@@ -769,7 +779,9 @@ superty_wf t m =
         l_inter ← (elabMode (inter_m m l))
         loc_superty ← (superlocty_wf loc_ty m)
         return (SecT l_inter loc_superty)
-    _  → todoError
+    _  → typeError "supertype_wf: t is not well structured" $ frhs
+        [ ("t", pretty t )
+        ]
 
 
 -----------------
