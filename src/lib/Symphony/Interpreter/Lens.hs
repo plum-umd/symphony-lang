@@ -2,7 +2,7 @@ module Symphony.Interpreter.Lens where
 
 import UVMHS
 
-import Symphony.Syntax
+import Symphony.Lang.Syntax
 import Symphony.Interpreter.Types
 
 import qualified Prelude as HS

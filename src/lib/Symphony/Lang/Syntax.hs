@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 
-module Symphony.Syntax where
+module Symphony.Lang.Syntax where
 
 import Symphony.Prelude
 

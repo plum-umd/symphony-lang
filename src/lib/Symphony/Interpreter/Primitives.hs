@@ -2,12 +2,13 @@ module Symphony.Interpreter.Primitives where
 
 import Symphony.Prelude
 
+import Symphony.Lang.Syntax
+
 import Symphony.Interpreter.Types
 import Symphony.Interpreter.BaseVal
 import Symphony.Interpreter.Truncating
 import Symphony.Interpreter.Pretty ()
 import Symphony.Interpreter.Lens ()
-import Symphony.Syntax
 import Symphony.Interpreter.Error
 
 primType ∷ (Monad m, MonadReader (ICxt v) m, MonadError IError m, STACK) ⇒ Op → 𝐿 BaseType → m BaseType

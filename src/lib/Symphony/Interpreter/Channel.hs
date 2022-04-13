@@ -2,7 +2,7 @@ module Symphony.Interpreter.Channel where
 
 import Symphony.Prelude
 
-import Symphony.Syntax
+import Symphony.Lang.Syntax
 import Symphony.Interpreter.Types
 
 import Symphony.Interpreter.Error

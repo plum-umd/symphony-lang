@@ -3,8 +3,8 @@ module Symphony.Interpreter where
 import Symphony.Prelude
 
 import Symphony.Config
-import Symphony.Parser
-import Symphony.Syntax
+import Symphony.Lang.Parser
+import Symphony.Lang.Syntax
 
 import Symphony.Interpreter.Pretty ()
 import Symphony.Interpreter.ReadType

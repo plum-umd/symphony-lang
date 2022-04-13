@@ -3,7 +3,7 @@ module Symphony.Interpreter.ReadType where
 import Symphony.Prelude
 
 import Symphony.Config
-import Symphony.Syntax
+import Symphony.Lang.Syntax
 
 import Symphony.Interpreter.Types
 import Symphony.Interpreter.BaseVal.Types

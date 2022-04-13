@@ -2,7 +2,8 @@ module Symphony.Interpreter.Types where
 
 import Symphony.Prelude
 
-import Symphony.Syntax
+import Symphony.Lang.Syntax
+
 import Symphony.Interpreter.Error
 import Symphony.Interpreter.Pretty
 import Symphony.Interpreter.BaseVal.Types

@@ -2,7 +2,8 @@ module Symphony.Interpreter.Share where
 
 import UVMHS
 
-import Symphony.Syntax
+import Symphony.Lang.Syntax
+
 import Symphony.Interpreter.Types
 import Symphony.Interpreter.Dist.Types
 import Symphony.Interpreter.Pretty ()

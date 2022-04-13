@@ -1,8 +1,9 @@
 module Symphony.Interpreter.BaseVal.Operations where
 
-import UVMHS
+import Symphony.Prelude
 
-import Symphony.Syntax
+import Symphony.Lang.Syntax
+
 import Symphony.Interpreter.Lens
 import Symphony.Interpreter.Types
 import Symphony.Interpreter.Error

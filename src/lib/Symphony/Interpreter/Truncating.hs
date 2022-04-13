@@ -2,7 +2,7 @@ module Symphony.Interpreter.Truncating where
 
 import UVMHS
 
-import Symphony.Syntax
+import Symphony.Lang.Syntax
 
 trNat ∷ ℕ → ℕ → ℕ
 trNat m n = n ÷ (2 ^^ m)

@@ -2,7 +2,8 @@ module Symphony.Interpreter.Yao where
 
 import Symphony.Prelude
 
-import Symphony.Syntax
+import Symphony.Lang.Syntax
+
 import Symphony.Interpreter.Error
 import Symphony.Interpreter.Types
 import Symphony.Interpreter.BaseVal.Types

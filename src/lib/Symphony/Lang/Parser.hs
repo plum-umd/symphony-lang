@@ -1,8 +1,8 @@
-module Symphony.Parser where
+module Symphony.Lang.Parser where
 
-import UVMHS
+import Symphony.Prelude
 
-import Symphony.Syntax
+import Symphony.Lang.Syntax
 import Symphony.Interpreter.Pretty
 
 cpSyntaxVoid ∷ 𝕊 -> CParser TokenBasic ()

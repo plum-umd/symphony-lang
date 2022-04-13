@@ -2,7 +2,8 @@ module Symphony.TypeChecker where
 
 import Symphony.Prelude
 
-import Symphony.Syntax
+import Symphony.Lang.Syntax
+
 import Symphony.TypeChecker.Types
 
 synVar ∷ Var → TM Type

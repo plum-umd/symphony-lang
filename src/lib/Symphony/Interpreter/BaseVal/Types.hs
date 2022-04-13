@@ -2,7 +2,7 @@ module Symphony.Interpreter.BaseVal.Types where
 
 import UVMHS
 
-import Symphony.Syntax
+import Symphony.Lang.Syntax
 import Symphony.Interpreter.Pretty
 
 data BaseVal v =

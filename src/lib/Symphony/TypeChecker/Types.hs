@@ -2,7 +2,7 @@ module Symphony.TypeChecker.Types where
 
 import UVMHS
 
-import Symphony.Syntax
+import Symphony.Lang.Syntax
 
 ----------------------------
 -- Typing Environment (Γ) --
