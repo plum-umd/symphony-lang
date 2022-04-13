@@ -5,7 +5,6 @@ import UVMHS
 import Symphony.Lang.Syntax
 
 import Symphony.Dynamic.Seq.Types
-import Symphony.Dynamic.Seq.Dist.Types
 import Symphony.Dynamic.Seq.Error
 
 withProt ∷ (Monad m, MonadReader (ICxt v) m, MonadError IError m, STACK) ⇒ Prot → (∀ (p ∷ Prot). (Protocol p) ⇒ SProt p → m b) → m b

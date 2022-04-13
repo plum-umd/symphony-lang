@@ -70,14 +70,6 @@ instance (Pretty v, Pretty e) ⇒ Pretty (ValR v e) where
 
     DefaultV → ppCon "⊥"
 
-
----------------
---- Channel ---
----------------
-
-data ChannelStruct = ChannelStruct deriving (Eq,Ord,Show)
-type Channel = ForeignPtr ChannelStruct
-
 ----------------------
 --- EMP FFI Values ---
 ----------------------
@@ -207,7 +199,6 @@ data IState v = IState
   { iStateStore        ∷ (Store v)
   , iStateNextLoc      ∷ ℤ64
   , iStateGen          ∷ R.ChaChaDRG
-  , iStateChannels     ∷ PrinVal ⇰ Channel
   , iStateNextWires    ∷ (𝑃 PrinVal) ⇰ Wire
   , iStateSessionsYao  ∷ 𝑃 PrinVal ⇰ EMPProtocol
   , iStateSessionsSPDZ ∷ 𝑃 PrinVal ⇰ MPSPDZProtocol
@@ -215,7 +206,7 @@ data IState v = IState
   }
 
 ω₀ ∷ R.ChaChaDRG → IState v
-ω₀ g = IState wø (𝕫64 1) g dø dø dø dø null
+ω₀ g = IState wø (𝕫64 1) g dø dø dø null
 
 ------------
 -- OUTPUT --

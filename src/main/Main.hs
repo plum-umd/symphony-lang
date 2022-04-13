@@ -2,17 +2,105 @@ module Main where
 
 import Symphony.Prelude
 import Symphony.Config
+
+import Symphony.Lang.Syntax
 import Symphony.Lang.Parser
 
 import Symphony.Dynamic.Seq
 import Symphony.Dynamic.Seq.Types
 import Symphony.Dynamic.Seq.Seq.Types
-#if DIST
-import Symphony.Dynamic.Seq.Dist.Types
-#endif
+import Symphony.Dynamic.Seq.Seq.Val
 
 import qualified Prelude as HS
 import qualified Crypto.Random as R
+import qualified System.Console.GetOpt as O
+
+data Options = Options
+  { optVersion ∷ 𝔹
+  , optHelp ∷ 𝔹
+  , optRandomSeed ∷ 𝑂 ℕ
+  , optParty ∷ 𝑂 Prin
+  , optTestsPath ∷ 𝕊
+  , optLibPath ∷ 𝕊
+  }
+  deriving (Eq,Ord,Show)
+makeLenses ''Options
+
+options₀ ∷ IO Options
+options₀ = do
+  testsPath ← findFile "tests"
+  libPath   ← findFile "lib"
+  return $ Options
+    { optVersion = False
+    , optHelp = False
+    , optRandomSeed = None
+    , optParty = None
+    , optTestsPath = testsPath
+    , optLibPath = libPath
+    }
+
+usageInfoTop ∷ 𝐿 (O.OptDescr (Options → Options))
+usageInfoTop = frhs
+  [ O.Option ['v'] [chars "version"]
+             (O.NoArg $ update optVersionL True)
+           $ chars "print version"
+  , O.Option ['h'] [chars "help"]
+             (O.NoArg $ update optHelpL True)
+           $ chars "show help"
+  ]
+
+usageInfoRun ∷ 𝐿 (O.OptDescr (Options → Options))
+usageInfoRun = frhs
+  [ O.Option ['P'] [chars "party"]
+             (O.ReqArg (\ s → update optPartyL $ Some $ string s) $ chars "PRIN")
+           $ chars "set current party"
+  , O.Option ['s'] [chars "seed"]
+             (O.ReqArg (\ s → update optRandomSeedL $ Some $ HS.read s) $ chars "NAT")
+           $ chars "set random seed"
+  ]
+
+usageInfoExample ∷ 𝐿 (O.OptDescr (Options → Options))
+usageInfoExample = frhs
+  [ O.Option ['s'] [chars "seed"]
+             (O.ReqArg (\ s → update optRandomSeedL $ Some $ HS.read s) $ chars "NAT")
+           $ chars "set random seed"
+  ]
+
+usageInfoTest ∷ 𝐿 (O.OptDescr (Options → Options))
+usageInfoTest = frhs
+  [ O.Option ['s'] [chars "seed"]
+             (O.ReqArg (\ s → update optRandomSeedL $ Some $ HS.read s) $ chars "NAT")
+           $ chars "set random seed"
+  ]
+
+readPrinVal ∷ 𝕊 → 𝑂 PrinVal
+readPrinVal s = case list $ splitOn𝕊 "." s of
+  ρ :& Nil      → Some $ SinglePV ρ
+  ρ :& n :& Nil → Some $ AccessPV ρ (read𝕊 n)
+  _             → None
+
+initializeEnv ∷ Options → IParams
+initializeEnv os = flip compose θ₀
+  [ update iParamsMeL $ mjoin $ readPrinVal ^$ optParty os ]
+
+parseOptionsSymphony ∷ IO (Options ∧ 𝐿 𝕊)
+parseOptionsSymphony = do
+  as ← iargs
+  let fs :* nos :* ems = parseOptions (usageInfoTop ⧺ usageInfoRun) as
+  eachOn ems out
+  os ← compose fs ^$ options₀
+  when (optVersion os) $ do
+    out $ "symphony version " ⧺ symphony_VERSION
+  when (optVersion os ⩓ optHelp os) $ do
+    out ""
+  when (optHelp os) $ do
+    out "Usage: symphony [<command>] [<arguments>] [<target>]"
+    out ""
+    out $ optUsageInfo "symphony [arguments]" usageInfoTop
+    out $ optUsageInfo "symphony run [arguments] <file>" usageInfoRun
+    out $ optUsageInfo "symphony example [arguments] <name>"  usageInfoExample
+    out $ optUsageInfo "symphony test [arguments]" usageInfoTest
+  return $ os :* nos
 
 symphonyMainExample ∷ IO ()
 symphonyMainExample = do
@@ -68,8 +156,6 @@ symphonyInfo =
 
 symphonyMainInfo ∷ IO ()
 symphonyMainInfo = out symphonyInfo
-
-
 
 symphonyMain ∷ IO ()
 symphonyMain = do
