@@ -1,13 +1,14 @@
 module Main where
 
-import UVMHS
-
+import Symphony.Prelude
 import Symphony.Config
-import Symphony.Interpreter
-import Symphony.Interpreter.Types
-import Symphony.Interpreter.Seq.Types
+import Symphony.Lang.Parser
+
+import Symphony.Dynamic.Seq
+import Symphony.Dynamic.Seq.Types
+import Symphony.Dynamic.Seq.Seq.Types
 #if DIST
-import Symphony.Interpreter.Dist.Types
+import Symphony.Dynamic.Seq.Dist.Types
 #endif
 
 import qualified Prelude as HS
