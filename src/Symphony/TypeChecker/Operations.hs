@@ -171,7 +171,7 @@ subtype_loc loctyS loctyT = case loctyS of
   -- sigma = bty
   -- -------Sub-Refl
   -- sigma <: sigma
-  BaseT bty → return True
+  BaseT bty → return (loctyS ≡ loctyT)
   ShareT pS loc loctyS  → case loctyT of
       ShareT pT loc' loctyT → do
         l ← (elabEMode loc)
@@ -185,8 +185,8 @@ subtype_loc loctyS loctyT = case loctyS of
   (loctySₗ :+: loctySᵣ) → case loctyT of
     (loctyTₗ :+: loctyTᵣ) → do
 
-        loccondₗ ← (subtype_loc loctySₗ loctyTₗ)
-        loccondᵣ ← (subtype_loc loctySᵣ loctyTᵣ)
+        loccondₗ ← (subtype loctySₗ loctyTₗ)
+        loccondᵣ ← (subtype loctySᵣ loctyTᵣ)
         return (loccondₗ ⩓ loccondᵣ)
     _ → return False
   -- t1 <: t1' t2 <: t2'
@@ -194,8 +194,8 @@ subtype_loc loctyS loctyT = case loctyS of
   -- t1 x t2 <: t1' x t2'
   (loctySₗ :×: loctySᵣ) → case loctyT of
     (loctyTₗ :×: loctyTᵣ) → do
-        loccondₗ ← (subtype_loc loctySₗ loctyTₗ)
-        loccondᵣ ← (subtype_loc loctySᵣ loctyTᵣ)
+        loccondₗ ← (subtype loctySₗ loctyTₗ)
+        loccondᵣ ← (subtype loctySᵣ loctyTᵣ)
         return (loccondₗ ⩓ loccondᵣ)
     _ → return False
   (ListT _ τₜ)  →  case loctyT of
@@ -208,27 +208,27 @@ subtype_loc loctyS loctyT = case loctyS of
     (τ₁₁' :→: (η' :* τ₁₂')) → do
         l ← elabEMode $ effectMode η
         l' ← elabEMode $ effectMode η'
-        loccondₗ ← (subtype_loc τ₁₁' τ₁₁)
-        loccondᵣ ← (subtype_loc τ₁₂ τ₁₂')
+        loccondₗ ← (subtype τ₁₁' τ₁₁)
+        loccondᵣ ← (subtype τ₁₂ τ₁₂')
         return ((l ≡ l') ⩓ loccondₗ ⩓ loccondᵣ)
   (RefT None τ) →  case loctyT of
-    (RefT None τ') → (subtype_loc τ τ')
+    (RefT None τ') → (subtype τ τ')
     _  → return False
   (RefT _ τ) → case loctyT of
-    (RefT None τ') → (subtype_loc τ τ')
+    (RefT None τ') → (subtype τ τ')
     _  → return (loctyS == loctyT)
   (ArrT None _ τ) →  case loctyT of
-    (ArrT None _ τ') → (subtype_loc τ τ')
+    (ArrT None _ τ') → (subtype τ τ')
     _  → return False
   (ArrT _ _ τ) → case loctyT of
-    (ArrT None _ τ') → (subtype_loc τ τ')
+    (ArrT None _ τ') → (subtype τ τ')
     _  → return (loctyS == loctyT)
   ISecT locS loctyS  → case loctyT of
       ISecT locT loctyT → do
         mcond ← (superemode locS locT)
-        loccond ← (subtype_loc loctyS loctyT)
+        loccond ← (subtype loctyS loctyT)
         return (mcond ⩓ loccond)
-  _ → return True
+  _ → return False
 
 -- Check if tyS <: tyT
 subtype :: STACK ⇒ Type → Type → EM 𝔹
@@ -240,7 +240,7 @@ subtype tyS tyT = case tyS of
       SecT locT loctyT → do
         mcond ← (superemode locS locT)
         loccond ← (subtype_loc loctyS loctyT)
-        return  loccond
+        return  (mcond ⩓ loccond)
       _ → return False
   _ → return False
 
