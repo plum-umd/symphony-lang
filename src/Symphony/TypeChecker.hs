@@ -252,16 +252,9 @@ synProd eₗ eᵣ =
 checkL ∷ STACK ⇒ Exp → Type → EM ()
 checkL eₗ τ  =
   case τ of
-    (SecT em (τₗ  :+: _)) →
-      let cₗ = synExp eₗ
-      in do
-        τₗ'  ← cₗ
-        subcond  ← subtype τₗ' τₗ
-        guardErr subcond $
-          typeError "checkL: τₗ' is not a subtype of τₗ" $ frhs
-            [ ("τₗ'", pretty τₗ')
-            , ("τₗ", pretty τₗ)
-            ]
+    (SecT em (τₗ  :+: _)) →do
+      _ ← chkExp eₗ τₗ
+      return ()
     _ → typeError "checkL: τ is not annotated correctly as a sumtype" $ frhs [ ("τ'", pretty τ)]
 
 -- gamma |- m e : t |- m t' (already assumed since it is wellformed)
@@ -270,16 +263,9 @@ checkL eₗ τ  =
 checkR ∷ STACK ⇒ Exp → Type → EM ()
 checkR eᵣ τ  =
   case τ of
-    (SecT em (_  :+: τᵣ)) →
-      let cᵣ = synExp eᵣ
-      in do
-        τᵣ'  ← cᵣ
-        subcond  ← subtype τᵣ' τᵣ
-        guardErr subcond $
-          typeError "checkR: τᵣ' is not a subtype of τᵣ" $ frhs
-            [ ("τᵣ'", pretty τᵣ')
-            , ("τᵣ", pretty τᵣ)
-            ]
+    (SecT em (_  :+: τᵣ)) → do
+      _ ← chkExp eᵣ τᵣ
+      return ()
     _ → typeError "checkR: τ is not annotated correctly as a sumtype" $ frhs [ ("τ'", pretty τ)]
 
 -- gamma |- m : t
@@ -416,13 +402,8 @@ checkLam self𝑂 ψs e τ =
                         chkExp e τ₁₂
                       ψ :& Nil → do
                         bind ←  bindType τ₁₁ ψ
-                        τ' ← bind $ synExp e
-                        subcond  ← subtype τ' τ₁₂
-                        guardErr subcond $
-                          typeError "checkPar: τ' is not a subtype of τ₁₂" $ frhs
-                          [ ("τ'", pretty τ')
-                            , ("τ₁₂", pretty τ₁₂)
-                          ]
+                        bind $ chkExp e τ₁₂
+
                       ψ :& ψs → do
                         bind ←  bindType τ₁₁ ψ
                         bind $ checkLam None ψs e τ₁₂
@@ -438,10 +419,8 @@ checkLam self𝑂 ψs e τ =
 synApp ∷ STACK ⇒ Exp → Exp → EM Type
 synApp e₁ e₂ =
   let c₁ = synExp e₁
-      c₂ = synExp e₂
   in do
     τ₁ ← c₁
-    τ₂ ← c₂
     case τ₁ of
       SecT loc (τ₁₁ :→: (η :* τ₁₂)) → do
         m  ← askL terModeL
@@ -458,12 +437,8 @@ synApp e₁ e₂ =
           [ ("m", pretty m)
           , ("l", pretty l₁)
           ]
-        guardErr subcond  $
-          typeError "synApp: ⊢ₘ _ ˡ→ _ ; type τ₂ of e₂ is not τ₁₁" $ frhs
-          [ ("τ₂", pretty τ₂)
-          , ("e₂", pretty e₂)
-          , ("τ₁₁", pretty τ₁₁)
-          ]
+        _ ← chkExp e₂ τ₁₁
+
         return τ₁₂
       _ → typeError "synApp: τ₁ ≢ (_ → _)@_" $ frhs
           [ ("τ₁", pretty τ₁)
