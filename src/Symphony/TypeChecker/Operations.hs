@@ -171,7 +171,7 @@ subtype_loc loctyS loctyT = case loctyS of
   -- sigma = bty
   -- -------Sub-Refl
   -- sigma <: sigma
-  BaseT bty → return (loctyS ≡ loctyT)
+  BaseT bty → return True
   ShareT pS loc loctyS  → case loctyT of
       ShareT pT loc' loctyT → do
         l ← (elabEMode loc)
@@ -187,7 +187,7 @@ subtype_loc loctyS loctyT = case loctyS of
 
         loccondₗ ← (subtype_loc loctySₗ loctyTₗ)
         loccondᵣ ← (subtype_loc loctySᵣ loctyTᵣ)
-        return True
+        return (loccondₗ ⩓ loccondᵣ)
     _ → return False
   -- t1 <: t1' t2 <: t2'
   -- -------Sub-Pair
