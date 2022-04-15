@@ -928,9 +928,9 @@ testParser = do
   -- _tls₅ ← parseIO cpTLs ls₅
   -- out "euclid done"
 
-parseFile ∷ 𝕊 → 𝕊 → IO (𝐿 TL)
-parseFile name path = do
+parseFile ∷ 𝕊 → IO (𝐿 TL)
+parseFile path = do
   s ← fread path
   let ts = tokens s
-  ls ← tokenizeIO lexer name ts
-  parseIO cpTLs name ls
+  ls ← tokenizeIO lexer path ts
+  parseIO cpTLs path ls

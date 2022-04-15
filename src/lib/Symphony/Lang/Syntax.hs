@@ -1,12 +1,6 @@
-{-# LANGUAGE DeriveGeneric #-}
-
 module Symphony.Lang.Syntax where
 
 import Symphony.Prelude
-
-import qualified Data.Aeson as JSON
-
-import GHC.Generics
 
 ----------
 -- Kind --
@@ -238,10 +232,7 @@ protFrSProt = \case
 data IPrecision =
     InfIPr
   | FixedIPr ℕ ℕ -- whole number precision, and decimal precision
-  deriving (Eq,Ord,Show,Generic)
-
-instance JSON.ToJSON IPrecision
-instance JSON.FromJSON IPrecision
+  deriving (Eq,Ord,Show)
 
 iprDefault ∷ IPrecision
 iprDefault = FixedIPr 32 0
@@ -273,10 +264,7 @@ ppIntSymphony p i = concat [pretty i,pretty p]
 
 data FPrecision =
     FixedFPr ℕ ℕ
-  deriving (Eq,Ord,Show,Generic)
-
-instance JSON.ToJSON FPrecision
-instance JSON.FromJSON FPrecision
+  deriving (Eq,Ord,Show)
 
 fprDefault ∷ FPrecision
 fprDefault = FixedFPr 11 53

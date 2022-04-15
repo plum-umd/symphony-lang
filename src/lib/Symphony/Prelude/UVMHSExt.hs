@@ -267,7 +267,16 @@ runCont ∷ Cont r a → (a → r) → r
 runCont m k = unID $ runContT (ID ∘ k) m
 
 pmapM ∷ (Monad m, Ord b) ⇒ (a → m b) → 𝑃 a → m (𝑃 b)
-pmapM f = pow𝐼 ^∘ (mapM f) ∘ iter
+pmapM f = pow𝐼 ^∘ mapM f ∘ iter
+
+withErrorT ∷ Functor m ⇒ (e → e') → ErrorT e m a → ErrorT e' m a
+withErrorT f = ErrorT ∘ map (mapChoice f id) ∘ unErrorT
+
+execErrorTIO ∷ Functor m ⇒ Pretty e ⇒ ErrorT e m a → m (IO a)
+execErrorTIO = map (elimChoice h return) ∘ unErrorT
+  where h e = do
+          pprint e
+          abortIO
 
 type Except e a = ErrorT e ID a
 
@@ -275,8 +284,7 @@ execExcept ∷ Except e a → e ∨ a
 execExcept = unID ∘ unErrorT
 
 execExceptIO ∷ Pretty e ⇒ Except e a → IO a
-execExceptIO xM = case execExcept xM of
-  Inl e → do
-    pprint e
-    abortIO
-  Inr a → return a
+execExceptIO = unID ∘ execErrorTIO
+
+withExcept ∷ (e → e') → Except e a → Except e' a
+withExcept = withErrorT

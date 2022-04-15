@@ -8,16 +8,18 @@ import Symphony.Lang.Parser
 
 import Symphony.Dynamic.Seq.ReadType
 import Symphony.Dynamic.Seq.Types
+import Symphony.Dynamic.Seq.Seq.Types
+import Symphony.Dynamic.Seq.Seq.Val
 import Symphony.Dynamic.Seq.Operations
 import Symphony.Dynamic.Seq.BaseVal
 import Symphony.Dynamic.Seq.Lens
 import Symphony.Dynamic.Seq.Error
 
 import qualified Prelude as HS
-import qualified System.Console.GetOpt as O
 import qualified Crypto.Random as R
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.Binary as B
+import GHC.RTS.Flags (RTSFlags(profilingFlags))
 
 --import Foreign.ForeignPtr
 
@@ -715,23 +717,11 @@ interpTLs = eachWith interpTL
 -- MAIN --
 -- ==== --
 
-interpretFile ∷ (Value v) ⇒ IParams → ITLState v → 𝕊 → 𝕊 → IO (ITLState v)
-interpretFile θ ωtl name path = do
-  tls ← parseFile name path
-  ωtl' :* _ :* () ← din (pdirectory path) $ runITLMIO θ ωtl name $ eachWith interpTL tls
-  return ωtl'
-
-interpretFileMain ∷ (Value v) ⇒ IParams → ITLState v → 𝕊 → 𝕊 → IO v
-interpretFileMain θ ωtl name path = do
-  ωtl' ← interpretFile θ ωtl name path
-  let main = itlStateEnv ωtl' ⋕! var "main"
-  ωtl'' :* _ :* v ← runITLMIO θ ωtl' name $ asTLM $ do
-    bul ← introVal $ BaseV $ Clear BulV
-    evalApp main bul
-  return v
-
-interpMain ∷ (Value v) ⇒ ITLM v v
-interpMain = asTLM $ do
-  main ← interpVar $ var "main"
-  bul  ← introVal $ BaseV $ Clear BulV
-  evalApp main bul
+evalProgram ∷ IParams → ITLState SeqVal → 𝐿 TL → IO SeqVal
+evalProgram θ ω prog = do
+  evalITLMIO θ ω "" $ do
+    interpTLs prog
+    asTLM $ do
+      main ← interpVar $ var "main"
+      bul  ← introVal $ BaseV $ Clear BulV
+      evalApp main bul

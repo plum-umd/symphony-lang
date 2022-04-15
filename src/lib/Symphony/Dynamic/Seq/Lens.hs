@@ -53,40 +53,11 @@ arrTL = prism constr destr
           ArrT n τ → Some (n :* τ)
           _ → None
 
---------------
--- Circuits --
---------------
-
-makeLenses ''Ckt
-makePrisms ''Input
-makePrisms ''Gate
-
 -----------
 -- STATE --
 -----------
 
 makeLenses ''IState
-
-iStateShareInfoNextWireL ∷ (((𝑃 PrinVal) ⇰ Wire) ∧ 𝑃 PrinVal) ⟢ Wire
-iStateShareInfoNextWireL = lens getCkt setCkt
-  where getCkt (ws :* ρvs)   = case lookup𝐷 ws ρvs of
-                             None   → HS.fromIntegral 0
-                             Some w → w
-        setCkt (ws :* ρvs) w = (ρvs ↦ w) ⩌ ws :* ρvs
-
-iStateShareInfoNextWiresL ∷ 𝑃 PrinVal → IState v ⟢ (((𝑃 PrinVal) ⇰ Wire) ∧ 𝑃 PrinVal)
-iStateShareInfoNextWiresL ρvs = lens getCkts setCkts
-  where getCkts st = access iStateNextWiresL st :* ρvs
-        setCkts st (ws :* _ρvs) = update iStateNextWiresL ws st
-
-iStateNextWireL ∷ 𝑃 PrinVal → IState v ⟢ Wire
-iStateNextWireL m = iStateShareInfoNextWireL ⊚ (iStateShareInfoNextWiresL m)
-
-------------
--- OUTPUT --
-------------
-
-makeLenses ''ResEv
 
 --------------------
 -- TOPLEVEL STATE --

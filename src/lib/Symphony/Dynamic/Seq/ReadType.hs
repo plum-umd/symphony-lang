@@ -28,7 +28,7 @@ inputPath ρ fn = do
   ppath ← prinDataPath ρ
   if b
   then io $ findFile $ concat ["input/", ppath, "/", fn]
-  else return $ concat ["data-input/",ppath]
+  else return $ concat ["data/input/",ppath, "/", fn]
 
 outputPath ∷ (STACK) ⇒ PrinVal → 𝕊 → IM v 𝕊
 outputPath ρ fn = do
