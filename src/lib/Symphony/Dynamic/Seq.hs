@@ -27,7 +27,7 @@ import GHC.RTS.Flags (RTSFlags(profilingFlags))
 --- Principal Expressions ---
 -----------------------------
 
-interpPrinExp ∷ (STACK, Value v) ⇒ PrinExp → IM v PrinVal
+interpPrinExp ∷ (STACK) ⇒ PrinExp → IM SeqVal PrinVal
 interpPrinExp = \case
   VarPE x       → elimPrin *$ elimClear *$ elimBase *$ elimVal *$ interpVar x
   AccessPE x n₁ → do
@@ -40,7 +40,7 @@ interpPrinExp = \case
       ]
     return $ AccessPV ρ n₁
 
-interpPrinSetExp ∷ (STACK, Value v) ⇒ PrinSetExp → IM v PrinSetVal
+interpPrinSetExp ∷ (STACK) ⇒ PrinSetExp → IM SeqVal PrinSetVal
 interpPrinSetExp = \case
   VarPSE x   → elimPrinSet *$ elimClear *$ elimBase *$ elimVal *$ interpVar x
   PowPSE ρes → PowPSV ^$ pow ^$ mapM interpPrinExp ρes
@@ -54,7 +54,7 @@ interpPrinSetExp = \case
 --- Variables ---
 -----------------
 
-interpVar ∷ (STACK, Value v) ⇒ Var → IM v v
+interpVar ∷ (STACK) ⇒ Var → IM SeqVal SeqVal
 interpVar x = do
   γ ← askL iCxtEnvL
   case γ ⋕? x of
@@ -68,39 +68,39 @@ interpVar x = do
 --- Primitives ---
 ------------------
 
-interpBul ∷ (STACK, Value v) ⇒ IM v v
+interpBul ∷ (STACK) ⇒ IM SeqVal SeqVal
 interpBul = introVal $ BaseV $ Clear BulV
 
-interpBool ∷ (STACK, Value v) ⇒ 𝔹 → IM v v
+interpBool ∷ (STACK) ⇒ 𝔹 → IM SeqVal SeqVal
 interpBool b = introVal $ BaseV $ Clear $ BoolV b
 
-interpNat ∷ (STACK, Value v) ⇒ IPrecision → ℕ → IM v v
+interpNat ∷ (STACK) ⇒ IPrecision → ℕ → IM SeqVal SeqVal
 interpNat pr n = introVal $ BaseV $ Clear $ NatV pr n
 
-interpInt ∷ (STACK, Value v) ⇒ IPrecision → ℤ → IM v v
+interpInt ∷ (STACK) ⇒ IPrecision → ℤ → IM SeqVal SeqVal
 interpInt pr z = introVal $ BaseV $ Clear $ IntV pr z
 
-interpFlt ∷ (STACK, Value v) ⇒ FPrecision → 𝔻 → IM v v
+interpFlt ∷ (STACK) ⇒ FPrecision → 𝔻 → IM SeqVal SeqVal
 interpFlt pr d = introVal $ BaseV $ Clear $ FltV pr d
 
-interpStr ∷ (STACK, Value v) ⇒ 𝕊 → IM v v
+interpStr ∷ (STACK) ⇒ 𝕊 → IM SeqVal SeqVal
 interpStr s = introVal $ BaseV $ Clear $ StrV s
 
-interpPrin ∷ (STACK, Value v) ⇒ PrinExp → IM v v
+interpPrin ∷ (STACK) ⇒ PrinExp → IM SeqVal SeqVal
 interpPrin ρe =
   let c = interpPrinExp ρe
   in do
     ρv ← c
     introVal $ BaseV $ Clear $ PrinV ρv
 
-interpPrinSet ∷ (STACK, Value v) ⇒ PrinSetExp → IM v v
+interpPrinSet ∷ (STACK) ⇒ PrinSetExp → IM SeqVal SeqVal
 interpPrinSet ρse =
   let c = interpPrinSetExp ρse
   in do
     ρsv ← c
     introVal $ BaseV $ Clear $ PrinSetV ρsv
 
-interpPrim ∷ (STACK, Value v) ⇒ Op → 𝐿 Exp → IM v v
+interpPrim ∷ (STACK) ⇒ Op → 𝐿 Exp → IM SeqVal SeqVal
 interpPrim op es =
   let cs = map interpExp es
   in do
@@ -110,7 +110,7 @@ interpPrim op es =
 --- Products, Sums, and Lists ---
 ---------------------------------
 
-interpProd ∷ (STACK, Value v) ⇒ Exp → Exp → IM v v
+interpProd ∷ (STACK) ⇒ Exp → Exp → IM SeqVal SeqVal
 interpProd eₗ eᵣ =
   let cₗ = interpExp eₗ
       cᵣ = interpExp eᵣ
@@ -119,7 +119,7 @@ interpProd eₗ eᵣ =
     ṽᵣ ← cᵣ
     introVal $ ProdV ṽₗ ṽᵣ
 
-interpL ∷ (STACK, Value v) ⇒ Exp → IM v v
+interpL ∷ (STACK) ⇒ Exp → IM SeqVal SeqVal
 interpL eₗ =
   let cₗ = interpExp eₗ
   in do
@@ -128,7 +128,7 @@ interpL eₗ =
     ṽᵣ  ← interpDefault
     introVal $ SumV bvₜ ṽₗ ṽᵣ
 
-interpR ∷ (STACK, Value v) ⇒ Exp → IM v v
+interpR ∷ (STACK) ⇒ Exp → IM SeqVal SeqVal
 interpR eᵣ =
   let cᵣ = interpExp eᵣ
   in do
@@ -137,10 +137,10 @@ interpR eᵣ =
     ṽᵣ  ← cᵣ
     introVal $ SumV bvₜ ṽₗ ṽᵣ
 
-interpNil ∷ (STACK, Value v) ⇒ IM v v
+interpNil ∷ (STACK) ⇒ IM SeqVal SeqVal
 interpNil = introVal $ ListV Nil
 
-interpCons ∷ (STACK, Value v) ⇒ Exp → Exp → IM v v
+interpCons ∷ (STACK) ⇒ Exp → Exp → IM SeqVal SeqVal
 interpCons eₕ eₜ =
   let cₕ = interpExp eₕ
       cₜ = interpExp eₜ
@@ -149,7 +149,7 @@ interpCons eₕ eₜ =
     ṽs ← elimList *$ elimVal *⋅ cₜ
     introVal $ ListV $ ṽ :& ṽs
 
-interpIf ∷ (STACK, Value v) ⇒ Exp → Exp → Exp → IM v v
+interpIf ∷ (STACK) ⇒ Exp → Exp → Exp → IM SeqVal SeqVal
 interpIf e₁ e₂ e₃ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
@@ -158,7 +158,7 @@ interpIf e₁ e₂ e₃ =
     b ← elimBool *$ elimClear *$ elimBase *$ elimVal *⋅ c₁
     if b then c₂ else c₃
 
-interpCase ∷ (STACK, Value v) ⇒ Exp → 𝐿 (Pat ∧ Exp) → IM v v
+interpCase ∷ (STACK) ⇒ Exp → 𝐿 (Pat ∧ Exp) → IM SeqVal SeqVal
 interpCase e ψes =
   let c  = interpExp e
       fs = mapOn ψes $ \ (ψ :* e') →
@@ -180,7 +180,7 @@ interpCase e ψes =
 --- Functions ---
 -----------------
 
-interpLet ∷ (STACK, Value v) ⇒ Pat → Exp → Exp → IM v v
+interpLet ∷ (STACK) ⇒ Pat → Exp → Exp → IM SeqVal SeqVal
 interpLet ψ e₁ e₂ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
@@ -189,7 +189,7 @@ interpLet ψ e₁ e₂ =
     f  ← bindVal ṽ₁ ψ
     f c₂
 
-interpLam ∷ (STACK, Value v) ⇒ 𝑂 Var → 𝐿 Pat → Exp → IM v v
+interpLam ∷ (STACK) ⇒ 𝑂 Var → 𝐿 Pat → Exp → IM SeqVal SeqVal
 interpLam self𝑂 ψs e = do
   ψ :* ψs' ← error𝑂 (view consL ψs) $
              throwIErrorCxt TypeIError "interpLam: view consL ψs ≡ None" $ frhs
@@ -204,7 +204,7 @@ interpLam self𝑂 ψs e = do
     ψγ ← bindVal ṽ ψ
     compose [localL iCxtEnvL γ, ψγ, selfγ] c'
 
-evalApp ∷ (STACK, Value v) ⇒ v → v → IM v v
+evalApp ∷ (STACK) ⇒ SeqVal → SeqVal → IM SeqVal SeqVal
 evalApp ṽ₁ ṽ₂ = do
   self𝑂 :* f₁ ← elimClo *$ elimVal ṽ₁
   let selfγ = case self𝑂 of
@@ -212,7 +212,7 @@ evalApp ṽ₁ ṽ₂ = do
                 Some self → bindTo self ṽ₁
   f₁ selfγ ṽ₂
 
-interpApp ∷ (STACK, Value v) ⇒ Exp → Exp → IM v v
+interpApp ∷ (STACK) ⇒ Exp → Exp → IM SeqVal SeqVal
 interpApp e₁ e₂ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
@@ -225,7 +225,7 @@ interpApp e₁ e₂ =
 --- Read and Write ---
 ----------------------
 
-interpRead ∷ (STACK, Value v) ⇒ Type → Exp → IM v v
+interpRead ∷ (STACK) ⇒ Type → Exp → IM SeqVal SeqVal
 interpRead τ e =
   let c = interpExp e
   in do
@@ -234,7 +234,7 @@ interpRead τ e =
     path ← inputPath ρ fn
     deserializeVal τ *$ io $ fread path
 
-interpWrite ∷ (STACK, Value v) ⇒ Exp → Exp → IM v v
+interpWrite ∷ (STACK) ⇒ Exp → Exp → IM SeqVal SeqVal
 interpWrite e₁ e₂ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
@@ -250,7 +250,7 @@ interpWrite e₁ e₂ =
 --- Trace ---
 -------------
 
-interpTrace ∷ (STACK, Value v) ⇒ Exp → Exp → IM v v
+interpTrace ∷ (STACK) ⇒ Exp → Exp → IM SeqVal SeqVal
 interpTrace e₁ e₂ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
@@ -262,7 +262,7 @@ interpTrace e₁ e₂ =
 --- References ---
 ------------------
 
-interpRef ∷ (STACK, Value v) ⇒ Exp → IM v v
+interpRef ∷ (STACK) ⇒ Exp → IM SeqVal SeqVal
 interpRef e =
   let c₁ = interpExp e
   in do
@@ -270,7 +270,7 @@ interpRef e =
   r ← io $ newℝMut ṽ
   introVal *$ introLoc (Inl r)
 
-interpRefRead ∷ (STACK, Value v) ⇒ Exp → IM v v
+interpRefRead ∷ (STACK) ⇒ Exp → IM SeqVal SeqVal
 interpRefRead e =
   let c₁ = interpExp e
   in do
@@ -278,7 +278,7 @@ interpRefRead e =
   ṽᵣ ← io $ readℝMut r
   locateVal ṽᵣ
 
-interpRefWrite ∷ (STACK, Value v) ⇒ Exp → Exp → IM v v
+interpRefWrite ∷ (STACK) ⇒ Exp → Exp → IM SeqVal SeqVal
 interpRefWrite e₁ e₂ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
@@ -292,7 +292,7 @@ interpRefWrite e₁ e₂ =
 --- Arrays ---
 --------------
 
-interpArray ∷ (STACK, Value v) ⇒ Exp → Exp → IM v v
+interpArray ∷ (STACK) ⇒ Exp → Exp → IM SeqVal SeqVal
 interpArray e₁ e₂ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
@@ -302,7 +302,7 @@ interpArray e₁ e₂ =
   a  ← io $ vecIMut $ replicate n ṽ₂
   introVal *$ introLoc (Inr a)
 
-interpArrayRead ∷ (STACK, Value v) ⇒ Exp → Exp → IM v v
+interpArrayRead ∷ (STACK) ⇒ Exp → Exp → IM SeqVal SeqVal
 interpArrayRead e₁ e₂ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
@@ -316,7 +316,7 @@ interpArrayRead e₁ e₂ =
     ]
   locateVal ṽᵣ
 
-interpArrayWrite ∷ (STACK, Value v) ⇒ Exp → Exp → Exp → IM v v
+interpArrayWrite ∷ (STACK) ⇒ Exp → Exp → Exp → IM SeqVal SeqVal
 interpArrayWrite e₁ e₂ e₃ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
@@ -332,7 +332,7 @@ interpArrayWrite e₁ e₂ e₃ =
       ]
   return ṽ₃
 
-interpArraySize ∷ (STACK, Value v) ⇒ Exp → IM v v
+interpArraySize ∷ (STACK) ⇒ Exp → IM SeqVal SeqVal
 interpArraySize e = do
   a ← elimArr *$ elimLocRead *$ elimVal *$ interpExp e
   interpNat iprDefault $ nat $ length𝕍Mut a
@@ -341,7 +341,7 @@ interpArraySize e = do
 --- Par ---
 -----------
 
-interpPar ∷ (STACK, Value v) ⇒ PrinSetExp → Exp → IM v v
+interpPar ∷ (STACK) ⇒ PrinSetExp → Exp → IM SeqVal SeqVal
 interpPar ρse₁ e₂ =
   let c₁ = interpPrinSetExp ρse₁
       c₂ = interpExp e₂
@@ -379,7 +379,7 @@ randBaseVal g μ = case μ of
             _ → undefined -- TODO
   _     → undefined -- TODO
 
-interpRand ∷ (STACK, Value v) ⇒ PrinSetExp → BaseType → IM v v
+interpRand ∷ (STACK) ⇒ PrinSetExp → BaseType → IM SeqVal SeqVal
 interpRand ρse μ = do
   m  ← askL iCxtModeL
   m' ← AddTop ^$ elimPSV ^$ interpPrinSetExp ρse
@@ -397,71 +397,64 @@ interpRand ρse μ = do
 --- Share, Reveal, and Send ---
 -------------------------------
 
-modeCheckComm ∷ PrinVal → 𝑃 PrinVal → IM v ()
-modeCheckComm ρv₁ ρvs₂ = do
+modeCheckComm ∷ 𝑃 PrinVal → 𝑃 PrinVal → IM v ()
+modeCheckComm ρvs₁ ρvs₂ = do
   m ← askL iCxtModeL
-  let nonEmpty   = not $ isEmpty ρvs₂
-  let allPresent = (AddTop $ (single𝑃 ρv₁) ∪ ρvs₂) ≡ m
+  let nonEmpty   = not (isEmpty ρvs₁) ⩓ not (isEmpty ρvs₂)
+  let allPresent = (AddTop $ ρvs₁ ∪ ρvs₂) ≡ m
   guardErr nonEmpty $
-    throwIErrorCxt TypeIError "modeCheckComm: ρvs₂ ≡ ø" $ frhs
-    [ ("ρvs₂", pretty ρvs₂)
+    throwIErrorCxt TypeIError "modeCheckComm: ρvs₁ ≡ ø ∨ ρvs₂ ≡ ø" $ frhs
+    [ ("ρvs₁", pretty ρvs₁)
+    , ("ρvs₂", pretty ρvs₂)
     ]
   guardErr allPresent $
-    throwIErrorCxt TypeIError "modeCheckSync: (AddTop $ (single𝑃 ρv₁) ∪ ρvs₂) ≢ m" $ frhs
-    [ ("ρv₁", pretty ρv₁)
+    throwIErrorCxt TypeIError "modeCheckComm: (AddTop $ ρvs₁ ∪ ρvs₂) ≢ m" $ frhs
+    [ ("ρsv₁", pretty ρvs₁)
     , ("ρvs₂", pretty ρvs₂)
     , ("m", pretty m)
     ]
 
-interpShare ∷ (STACK, Value v) ⇒ Prot → Type → PrinExp → PrinSetExp → Exp → IM v v
-interpShare φ τ ρe₁ ρse₂ e₃ =
-  let c₁ = interpPrinExp ρe₁
-      c₂ = interpPrinSetExp ρse₂
-      c₃ = interpExp e₃
-  in do
-    ρvFr  ← c₁
-    ρvsTo ← elimPSV ^$ c₂
-    ṽ     ← c₃
-    modeCheckComm ρvFr ρvsTo
-    shareVal φ ρvFr ρvsTo ṽ τ
-
-interpReveal ∷ (STACK, Value v) ⇒ Prot → Type → PrinSetExp → PrinExp → Exp → IM v v
-interpReveal φ τ ρse₁ ρe₂ e₃ =
+interpShare ∷ (STACK) ⇒ Prot → Type → PrinSetExp → PrinSetExp → Exp → IM SeqVal SeqVal
+interpShare φ τ ρse₁ ρse₂ e₃ =
   let c₁ = interpPrinSetExp ρse₁
-      c₂ = interpPrinExp ρe₂
+      c₂ = interpPrinSetExp ρse₂
       c₃ = interpExp e₃
   in do
     ρvsFr ← elimPSV ^$ c₁
-    ρvTo  ← c₂
+    ρvsTo ← elimPSV ^$ c₂
     ṽ     ← c₃
-    modeCheckComm ρvTo ρvsFr
-    revealVal φ ρvsFr ρvTo ṽ τ
+    modeCheckComm ρvsFr ρvsTo
+    shareValSeq φ ρvsFr ρvsTo ṽ τ
 
-interpComm ∷ (STACK, Value v) ⇒ Type → PrinExp → PrinSetExp → Exp → IM v v
-interpComm τ ρe₁ ρse₂ e₃ =
-  let c₁ = interpPrinExp ρe₁
+interpReveal ∷ (STACK) ⇒ Prot → Type → PrinSetExp → PrinSetExp → Exp → IM SeqVal SeqVal
+interpReveal φ τ ρse₁ ρse₂ e₃ =
+  let c₁ = interpPrinSetExp ρse₁
       c₂ = interpPrinSetExp ρse₂
       c₃ = interpExp e₃
   in do
-    ρvFr  ← c₁
+    ρvsFr ← elimPSV ^$ c₁
     ρvsTo ← elimPSV ^$ c₂
     ṽ     ← c₃
-    modeCheckComm ρvFr ρvsTo
-    commVal ρvFr ρvsTo ṽ τ
+    modeCheckComm ρvsTo ρvsFr
+    revealValSeq φ ρvsFr ρvsTo ṽ τ
 
-interpFlush ∷ (STACK, Value v) ⇒ PrinExp → IM v v
-interpFlush ρe =
-  let c = interpPrinExp ρe
+interpComm ∷ (STACK) ⇒ Type → PrinSetExp → PrinSetExp → Exp → IM SeqVal SeqVal
+interpComm τ ρse₁ ρse₂ e₃ =
+  let c₁ = interpPrinSetExp ρse₁
+      c₂ = interpPrinSetExp ρse₂
+      c₃ = interpExp e₃
   in do
-    ρvThem ← c
-    flushVal ρvThem
-    interpBul
+    ρvsFr ← elimPSV ^$ c₁
+    ρvsTo ← elimPSV ^$ c₂
+    ṽ     ← c₃
+    modeCheckComm ρvsFr ρvsTo
+    commValSeq ρvsFr ρvsTo ṽ τ
 
 ----------------------
 --- MPC Operations ---
 ----------------------
 
-interpMuxIf ∷ (STACK, Value v) ⇒ Exp → Exp → Exp → IM v v
+interpMuxIf ∷ (STACK) ⇒ Exp → Exp → Exp → IM SeqVal SeqVal
 interpMuxIf e₁ e₂ e₃ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
@@ -473,7 +466,7 @@ interpMuxIf e₁ e₂ e₃ =
     ṽ₃    ← mapEnvL iCxtMPCPathConditionL (negṽ₁ :&) c₃
     muxVal ṽ₁ ṽ₂ ṽ₃
 
-interpMuxCase ∷ (STACK, Value v) ⇒ Exp → 𝐿 (Pat ∧ Exp) → IM v v
+interpMuxCase ∷ (STACK) ⇒ Exp → 𝐿 (Pat ∧ Exp) → IM SeqVal SeqVal
 interpMuxCase e ψes =
   let c  = interpExp e
       fs = mapOn ψes $ \ (ψ :* e') →
@@ -493,7 +486,7 @@ interpMuxCase e ψes =
                 ]
     mfold ṽₕ sumVal ṽsₜ
 
-interpProc ∷ (STACK, Value v) ⇒ Exp → IM v v
+interpProc ∷ (STACK) ⇒ Exp → IM SeqVal SeqVal
 interpProc e =
   let c = interpExp e
   in do
@@ -503,7 +496,7 @@ interpProc e =
       c
     mfoldrOnFrom (reverse κ) v₀ $ \ (pcᴿ :* v₁) v₂ → mfoldrOnFrom pcᴿ v₁ $ \ vᵖᶜ acc → muxVal vᵖᶜ acc v₂
 
-interpReturn ∷ (STACK, Value v) ⇒ Exp → IM v v
+interpReturn ∷ (STACK) ⇒ Exp → IM SeqVal SeqVal
 interpReturn e =
   let c = interpExp e
   in do
@@ -516,7 +509,7 @@ interpReturn e =
 --- Bundles ---
 ---------------
 
-interpBundle ∷ (STACK, Value v) ⇒ 𝐿 (PrinExp ∧ Exp) → IM v v
+interpBundle ∷ (STACK) ⇒ 𝐿 (PrinExp ∧ Exp) → IM SeqVal SeqVal
 interpBundle ρee𝐿 =
   let cc𝐿 = map (mapPair interpPrinExp interpExp) ρee𝐿
   in
@@ -525,7 +518,7 @@ interpBundle ρee𝐿 =
     ṽ ← c₂
     return $ ρ ↦ ṽ
 
-interpBundleAccess ∷ (STACK, Value v) ⇒ Exp → PrinExp → IM v v
+interpBundleAccess ∷ (STACK) ⇒ Exp → PrinExp → IM SeqVal SeqVal
 interpBundleAccess e₁ ρe₂ =
   let c₁ = interpExp e₁
       c₂ = interpPrinExp ρe₂
@@ -538,7 +531,7 @@ interpBundleAccess e₁ ρe₂ =
       , ("dom(bdl)", pretty $ keys bdl)
       ]
 
-interpBundleUnion ∷ (STACK, Value v) ⇒ Exp → Exp → IM v v
+interpBundleUnion ∷ (STACK) ⇒ Exp → Exp → IM SeqVal SeqVal
 interpBundleUnion e₁ e₂ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
@@ -551,7 +544,7 @@ interpBundleUnion e₁ e₂ =
 --- Sequencing ---
 ------------------
 
-interpSeq ∷ (STACK, Value v) ⇒ Exp → Exp → IM v v
+interpSeq ∷ (STACK) ⇒ Exp → Exp → IM SeqVal SeqVal
 interpSeq e₁ e₂ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
@@ -563,7 +556,7 @@ interpSeq e₁ e₂ =
 --- Default ---
 ---------------
 
-interpDefault ∷ (STACK, Value v) ⇒ IM v v
+interpDefault ∷ (STACK) ⇒ IM SeqVal SeqVal
 interpDefault = introVal DefaultV
 
 -------------------
@@ -573,10 +566,10 @@ interpDefault = introVal DefaultV
 --wrapInterp ∷ (STACK) ⇒ (ExpR → IM v a) → Exp → IM v a
 --wrapInterp f e = localL iCxtSourceL (Some $ atag e) $ f $ extract e
 
-interpExp ∷ (STACK, Value v) ⇒ Exp → IM v v
+interpExp ∷ (STACK) ⇒ Exp → IM SeqVal SeqVal
 interpExp e = localL iCxtSourceL (Some $ atag e) $ interpExpR $ extract e
 
-interpExpR ∷ (STACK, Value v) ⇒ ExpR → IM v v
+interpExpR ∷ (STACK) ⇒ ExpR → IM SeqVal SeqVal
 interpExpR = \case
   -- Variables
   VarE x → interpVar x
@@ -631,10 +624,9 @@ interpExpR = \case
   RandE ρse μ → interpRand ρse μ
 
   -- Share, Reveal, and Send
-  ShareE φ τ ρe₁ ρse₂ e₃  → interpShare φ τ ρe₁ ρse₂ e₃
-  RevealE φ τ ρse₁ ρe₂ e₃ → interpReveal φ τ ρse₁ ρe₂ e₃
-  SendE τ ρe₁ ρse₂ e₃     → interpComm τ ρe₁ ρse₂ e₃
-  FlushE ρe               → interpFlush ρe
+  ShareE φ τ ρse₁ ρse₂ e₃  → interpShare φ τ ρse₁ ρse₂ e₃
+  RevealE φ τ ρse₁ ρse₂ e₃ → interpReveal φ τ ρse₁ ρse₂ e₃
+  SendE τ ρe₁ ρse₂ e₃      → interpComm τ ρe₁ ρse₂ e₃
 
   -- MPC Operations
   MuxIfE e₁ e₂ e₃ → interpMuxIf e₁ e₂ e₃
@@ -660,7 +652,7 @@ interpExpR = \case
 -- TOP LEVEL --
 ---------------
 
-asTLM ∷ (Value v) ⇒ IM v a → ITLM v a
+asTLM ∷ IM SeqVal a → ITLM SeqVal a
 asTLM xM = mkITLM $ \ θ ωtl →
   let γ       = itlStateEnv ωtl
       ω       = itlStateExp ωtl
@@ -679,7 +671,7 @@ asTLM xM = mkITLM $ \ θ ωtl →
         let ωtl' = update itlStateExpL ω' ωtl in
           Inr $ ωtl' :* o :* x
 
-interpTL ∷ (Value v) ⇒ TL → ITLM v ()
+interpTL ∷ TL → ITLM SeqVal ()
 interpTL tl = case extract tl of
   DeclTL _ _ _ → skip
   DefnTL b x ψs e →
@@ -710,7 +702,7 @@ interpTL tl = case extract tl of
     tls ← io $ parseIO cpTLs path ls
     interpTLs tls
 
-interpTLs ∷ (Value v) ⇒ 𝐿 TL → ITLM v ()
+interpTLs ∷ 𝐿 TL → ITLM SeqVal ()
 interpTLs = eachWith interpTL
 
 -- ==== --

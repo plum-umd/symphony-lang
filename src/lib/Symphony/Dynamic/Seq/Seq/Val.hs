@@ -22,11 +22,6 @@ instance Value SeqVal where
   locateVal  = locateSeqVal
   inPrins    = inPrinsSeq
 
-  shareVal  = shareValSeq
-  commVal   = commValSeq
-  flushVal  = flushValSeq
-  revealVal = revealValSeq
-
   embedEBV  = embedEBVSeq
   primEBV   = primEBVSeq
 
@@ -73,9 +68,9 @@ locateSeqVal ṽ = do
 inPrinsSeq ∷ (STACK) ⇒ 𝑃 PrinVal → IM SeqVal 𝔹
 inPrinsSeq _ρ𝑃 = return True
 
-shareValSeq ∷ (STACK) ⇒ Prot → PrinVal → 𝑃 PrinVal → SeqVal → Type → IM SeqVal SeqVal
-shareValSeq φ ρvFr ρvsTo ṽ τ = do
-  v  ← elimSeqValMode (AddTop $ single𝑃 ρvFr) ṽ
+shareValSeq ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → 𝑃 PrinVal → SeqVal → Type → IM SeqVal SeqVal
+shareValSeq φ ρvsFr ρvsTo ṽ τ = do
+  v  ← elimSeqValMode (AddTop ρvsFr) ṽ
   vˢ ← case v of
          BaseV bv → do
            cbv ← elimClear bv
@@ -85,8 +80,8 @@ shareValSeq φ ρvFr ρvsTo ṽ τ = do
                       throwIErrorCxt TypeIError "shareValSeq: view pairTL τ ≡ None" $ frhs
                       [ ("τ", pretty τ)
                       ]
-           ṽₗˢ ← shareValSeq φ ρvFr ρvsTo ṽₗ τₗ
-           ṽᵣˢ ← shareValSeq φ ρvFr ρvsTo ṽᵣ τᵣ
+           ṽₗˢ ← shareValSeq φ ρvsFr ρvsTo ṽₗ τₗ
+           ṽᵣˢ ← shareValSeq φ ρvsFr ρvsTo ṽᵣ τᵣ
            return $ ProdV ṽₗˢ ṽᵣˢ
          SumV bv ṽₗ ṽᵣ → do
            τₗ :* τᵣ ← error𝑂 (view sumTL τ) $
@@ -95,15 +90,15 @@ shareValSeq φ ρvFr ρvsTo ṽ τ = do
                       ]
            cbv ← elimClear bv
            let bvˢ = Encrypted φ ρvsTo cbv
-           ṽₗˢ ← shareValSeq φ ρvFr ρvsTo ṽₗ τₗ
-           ṽᵣˢ ← shareValSeq φ ρvFr ρvsTo ṽᵣ τᵣ
+           ṽₗˢ ← shareValSeq φ ρvsFr ρvsTo ṽₗ τₗ
+           ṽᵣˢ ← shareValSeq φ ρvsFr ρvsTo ṽᵣ τᵣ
            return $ SumV bvˢ ṽₗˢ ṽᵣˢ
          ListV ṽs → do
            _ :* τ' ← error𝑂 (view listTL τ) $
                      throwIErrorCxt TypeIError "shareValSeq: view listTL τ ≡ None" $ frhs
                       [ ("τ", pretty τ)
                       ]
-           ṽsˢ ← mapM (\ ṽ' → shareValSeq φ ρvFr ρvsTo ṽ' τ') ṽs
+           ṽsˢ ← mapM (\ ṽ' → shareValSeq φ ρvsFr ρvsTo ṽ' τ') ṽs
            return $ ListV ṽsˢ
          LocV _m (Inr a) → do
            _ :* τ' ← error𝑂 (view arrTL τ) $
@@ -112,7 +107,7 @@ shareValSeq φ ρvFr ρvsTo ṽ τ = do
                       ]
            a' ← generateM𝕍Mut (length𝕍Mut a) $ \ i → do
              ṽᵢ ← io $ idx𝕍Mut i a
-             shareValSeq φ ρvFr ρvsTo ṽᵢ τ'
+             shareValSeq φ ρvsFr ρvsTo ṽᵢ τ'
            m ← askL iCxtModeL
            return $ LocV m (Inr a')
          DefaultV → return $ defaultClearValR τ
@@ -120,51 +115,48 @@ shareValSeq φ ρvFr ρvsTo ṽ τ = do
              [ ("v", pretty v) ]
   introSeqValMode (AddTop ρvsTo) vˢ
 
-commValSeq ∷ (STACK) ⇒ PrinVal → 𝑃 PrinVal → SeqVal → Type → IM SeqVal SeqVal
-commValSeq ρvFr ρvsTo ṽ _τ = do
-  v  ← elimSeqValMode (AddTop $ single𝑃 ρvFr) ṽ
+commValSeq ∷ (STACK) ⇒ 𝑃 PrinVal → 𝑃 PrinVal → SeqVal → Type → IM SeqVal SeqVal
+commValSeq ρvsFr ρvsTo ṽ _τ = do
+  v  ← elimSeqValMode (AddTop ρvsFr) ṽ
   vˢ ← case v of
          BaseV bv → do
            cbv ← elimClear bv
            return $ BaseV $ Clear cbv
          ProdV ṽₗ ṽᵣ → do
-           ṽₗˢ ← commValSeq ρvFr ρvsTo ṽₗ _τ
-           ṽᵣˢ ← commValSeq ρvFr ρvsTo ṽᵣ _τ
+           ṽₗˢ ← commValSeq ρvsFr ρvsTo ṽₗ _τ
+           ṽᵣˢ ← commValSeq ρvsFr ρvsTo ṽᵣ _τ
            return $ ProdV ṽₗˢ ṽᵣˢ
          LocV _m (Inr a) → do
            a' ← generateM𝕍Mut (length𝕍Mut a) $ \ i → do
              ṽᵢ ← io $ idx𝕍Mut i a
-             commValSeq ρvFr ρvsTo ṽᵢ _τ
+             commValSeq ρvsFr ρvsTo ṽᵢ _τ
            m ← askL iCxtModeL
            return $ LocV m (Inr a')
          _ → todoCxt
   introSeqValMode (AddTop ρvsTo) vˢ
 
-flushValSeq ∷ (STACK) ⇒ PrinVal → IM SeqVal ()
-flushValSeq _ρvWith = return ()
-
-revealValSeq ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → PrinVal → SeqVal → Type → IM SeqVal SeqVal
-revealValSeq φ ρvsFr ρvTo ṽ _τ = do
+revealValSeq ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → 𝑃 PrinVal → SeqVal → Type → IM SeqVal SeqVal
+revealValSeq φ ρvsFr ρvsTo ṽ _τ = do
   v  ← elimSeqValMode (AddTop ρvsFr) ṽ
   vʳ ← case v of
          BaseV bv → do
            cbv ← elimEncrypted φ ρvsFr bv
            return $ BaseV $ Clear cbv
          ProdV ṽₗ ṽᵣ → do
-           ṽₗˢ ← revealValSeq φ ρvsFr ρvTo ṽₗ _τ
-           ṽᵣˢ ← revealValSeq φ ρvsFr ρvTo ṽᵣ _τ
+           ṽₗˢ ← revealValSeq φ ρvsFr ρvsTo ṽₗ _τ
+           ṽᵣˢ ← revealValSeq φ ρvsFr ρvsTo ṽᵣ _τ
            return $ ProdV ṽₗˢ ṽᵣˢ
          ListV ṽs → do
-           ṽsˢ ← mapM (\ ṽ' → revealValSeq φ ρvsFr ρvTo ṽ' _τ) ṽs
+           ṽsˢ ← mapM (\ ṽ' → revealValSeq φ ρvsFr ρvsTo ṽ' _τ) ṽs
            return $ ListV ṽsˢ
          LocV _m (Inr a) → do
            a' ← generateM𝕍Mut (length𝕍Mut a) $ \ i → do
              ṽᵢ ← io $ idx𝕍Mut i a
-             revealValSeq φ ρvsFr ρvTo ṽᵢ _τ
+             revealValSeq φ ρvsFr ρvsTo ṽᵢ _τ
            m ← askL iCxtModeL
            return $ LocV m (Inr a')
          _ → todoCxt
-  introSeqValMode (AddTop $ single𝑃 ρvTo) vʳ
+  introSeqValMode (AddTop ρvsTo) vʳ
 
 embedEBVSeq ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → ClearBaseVal → IM SeqVal ClearBaseVal
 embedEBVSeq _φ _ρ𝑃 cbv = return cbv

@@ -438,10 +438,9 @@ data ExpR =
 
   | RandE PrinSetExp BaseType                     -- rand ρse μ              /  rand ρse μ
 
-  | ShareE Prot Type PrinExp PrinSetExp Exp       -- share{φ,τ:ρe→ρse} e     /  share{φ,τ:ρe->ρse} e
-  | RevealE Prot Type PrinSetExp PrinExp Exp      -- reveal{φ,τ:ρse→ρe} e    /  reveal{φ,τ:e→e} e
-  | SendE Type PrinExp PrinSetExp Exp             -- send{τ:ρe→ρse} e        /  send{τ:ρe->ρse} e
-  | FlushE PrinExp                                -- flush [ρe]              /  flush [ρe]
+  | ShareE Prot Type PrinSetExp PrinSetExp Exp    -- share{φ,τ:ρse→ρse} e    /  share{φ,τ:ρse->ρse} e
+  | RevealE Prot Type PrinSetExp PrinSetExp Exp   -- reveal{φ,τ:ρse→ρse} e   /  reveal{φ,τ:ρse→ρse} e
+  | SendE Type PrinSetExp PrinSetExp Exp          -- send{τ:ρse→ρse} e       /  send{τ:ρse->ρse} e
 
   | MuxIfE Exp Exp Exp                            -- mux if e then e else e  /  mux if e then e else e
   | MuxCaseE Exp (𝐿 (Pat ∧ Exp))                  -- mux case e {ψ→e;…;ψ→e}  /  mux case e {ψ->e;…;ψ->e}

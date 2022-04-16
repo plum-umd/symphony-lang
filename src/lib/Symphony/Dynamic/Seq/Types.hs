@@ -20,11 +20,6 @@ class (Pretty (EBV v), Pretty v) ⇒ Value v where
   locateVal  ∷ (STACK) ⇒ v → IM v v
   inPrins    ∷ (STACK) ⇒ 𝑃 PrinVal → IM v 𝔹
 
-  shareVal  ∷ (STACK) ⇒ Prot → PrinVal → 𝑃 PrinVal → v → Type → IM v v
-  commVal   ∷ (STACK) ⇒ PrinVal → 𝑃 PrinVal → v → Type → IM v v
-  flushVal  ∷ (STACK) ⇒ PrinVal → IM v ()
-  revealVal ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → PrinVal → v → Type → IM v v
-
   embedEBV ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → ClearBaseVal → IM v (EBV v)
   primEBV  ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → Op → 𝐿 (EBV v) → IM v (EBV v)
 

@@ -627,7 +627,7 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntaxVoid ","
       τ ← pType
       cpSyntaxVoid ":"
-      ρes₁ ← pPrinExp
+      ρes₁ ← pPrinSetExp
       concat [cpSyntaxVoid "→",cpSyntaxVoid "->"]
       ρes₂ ← pPrinSetExp
       cpSyntaxVoid "]"
@@ -660,7 +660,7 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntaxVoid ":"
       ρes₁ ← pPrinSetExp
       concat [cpSyntaxVoid "→",cpSyntaxVoid "->"]
-      ρes₂ ← pPrinExp
+      ρes₂ ← pPrinSetExp
       cpSyntaxVoid "]"
       return $ RevealE φ τ ρes₁ ρes₂
   -- send{τ:P→P} e
@@ -669,18 +669,11 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntaxVoid "["
       τ ← pType
       cpSyntaxVoid ":"
-      ρes₁ ← pPrinExp
+      ρes₁ ← pPrinSetExp
       concat [cpSyntaxVoid "→",cpSyntaxVoid "->"]
       ρes₂ ← pPrinSetExp
       cpSyntaxVoid "]"
       return $ SendE τ ρes₁ ρes₂
-  -- flush [ρe]
-  , fmixTerminal $ do
-      cpSyntaxVoid "flush"
-      cpSyntaxVoid "["
-      ρe ← pPrinExp
-      cpSyntaxVoid "]"
-      return $ FlushE ρe
   -- e:τ
   , fmixPostfix levelASCR $ do
       cpSyntaxVoid ":"
