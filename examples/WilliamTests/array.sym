@@ -1,0 +1,4 @@
+principal A B
+
+def main : (unit@all ->  ( arr{all, 0} unit@all)@all)@all
+def main () =  array[1] •
