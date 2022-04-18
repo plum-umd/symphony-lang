@@ -640,9 +640,7 @@ synArrayRead e₁ e₂ =
               ]
             return τ₁'
           _  →  typeError "synRefRead: τ₂ is not a located natural number" $ frhs
-          [ ("τ₂", prettyτ)
-      
-          ]
+              [ ("τ₂", prettyτ)]
       _  →  typeError "synArrayRead: τ₁ is not a located array" $ frhs
           [ ("τ₁", prettyτ)
       
