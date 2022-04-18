@@ -419,7 +419,7 @@ locty_meet locty locty' =
         return locty
       _  → do
         guardErr (locty ≡ locty') $
-          typeError "join: one is a read-write reference and locty ≢ locty'" $ frhs
+          typeError "join: one is a read-write reference, locty' is not read only, and locty ≢ locty'" $ frhs
             [ ("locty", pretty locty)
             , ("locty'", pretty locty')
             ] 
@@ -456,11 +456,11 @@ locty_meet locty locty' =
         return locty
     _  → do
         guardErr (locty ≡ locty') $
-          typeError "join: one is a read-write reference and locty ≢ locty'" $ frhs
+          typeError "join: one is a read-write reference, locty' is not read only, and locty ≢ locty'" $ frhs
             [ ("locty", pretty locty)
             , ("locty'", pretty locty')
             ] 
-        return ()
+        return locty
   (ISecT loc loc_ty) →  case locty' of
       (ISecT loc' loc_ty') → do
         loc_union ← (union_em loc loc')
@@ -593,7 +593,7 @@ locty_join locty locty' =
         return locty
       _  → do
         guardErr (locty ≡ locty') $
-          typeError "join: one is a read-write reference and locty ≢ locty'" $ frhs
+          typeError "join: one is a read-write reference, locty' is not read/write, and locty ≢ locty'" $ frhs
             [ ("locty", pretty locty)
             , ("locty'", pretty locty')
             ] 
@@ -630,11 +630,11 @@ locty_join locty locty' =
         return locty
     _  → do
         guardErr (locty ≡ locty') $
-          typeError "join: one is a read-write reference and locty ≢ locty'" $ frhs
+          typeError "join: one is a read-write reference. locty' is not read/write, and locty ≢ locty'" $ frhs
             [ ("locty", pretty locty)
             , ("locty'", pretty locty')
             ] 
-        return ()
+        return locty
   (ISecT loc loc_ty) → case locty' of
       (ISecT loc' loc_ty') → do
         loc_inter ← (inter_em loc loc')
