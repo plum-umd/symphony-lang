@@ -393,7 +393,7 @@ locty_meet locty locty' =
   (RefT None τ)  →  case locty' of
     (RefT None τ') → do
         loc_meet ← (locty_meet τ τ')
-        return (RefT locO loc_meet)
+        return (RefT None loc_meet)
     (RefT locO τ') → do
         subcond ← (subtype τ' τ)
         guardErr subcond $
@@ -402,8 +402,8 @@ locty_meet locty locty' =
             , ("τ'", pretty τ')
             ]
         return locty'
-    _  → typeError "join: τ' is not a reference type" $ frhs
-            [ ("τ'", pretty τ')
+    _  → typeError "join: locty' is not a reference type" $ frhs
+            [ ("locty'", pretty locty')
             ]
    -- sigma = ref RW#m t
   -- -------Sub-Refl
@@ -439,8 +439,8 @@ locty_meet locty locty' =
             , ("τ'", pretty τ')
             ]
         return locty'
-    _  → typeError "join: τ' is not an array type" $ frhs
-            [ ("τ'", pretty τ')
+    _  → typeError "join: locty' is not an array type" $ frhs
+            [ ("locty'", pretty locty')
             ]
    -- sigma = ref RW#m t
   -- -------Sub-Refl
@@ -576,8 +576,8 @@ locty_join locty locty' =
             , ("τ'", pretty τ')
             ]
         return locty
-    _  → typeError "join: τ' is not a reference type" $ frhs
-            [ ("τ'", pretty τ')
+    _  → typeError "join: locτy' is not a reference type" $ frhs
+            [ ("locty'", pretty locty')
             ]
     -- sigma = ref RW#m t
   -- -------Sub-Refl
@@ -613,8 +613,8 @@ locty_join locty locty' =
             , ("τ'", pretty τ')
             ]
         return locty
-    _  → typeError "join: τ' is not an array type" $ frhs
-            [ ("τ'", pretty τ')
+    _  → typeError "join: locty' is not an array type" $ frhs
+            [ ("locty'", pretty locty')
             ]
    -- t <: t' 
   -- -------Sub-RefRO
