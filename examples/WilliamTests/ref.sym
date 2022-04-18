@@ -1,0 +1,4 @@
+principal A B
+
+def main : (unit@all ->   ref{(Some all)} unit@all)@all
+def main () = ref •
