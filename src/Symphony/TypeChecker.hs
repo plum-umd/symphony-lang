@@ -571,7 +571,7 @@ synRefWrite e₁ e₂ =
         m  ← askL terModeL
         l₁₁ ← elabEMode loc₁₁
         l₁₂ ← elabEMode loc₁₂
-        guardErr ((m ≡ l₁₁) ⩓ (m ≡ l₂)) $
+        guardErr ((m ≡ l₁₁) ⩓ (m ≡ l₁₂)) $
           typeError "synRefWrite: m /≡ l₁₁ or  m /≡ l₁₂" $ frhs
           [ ("m", pretty m)
           , ("l₁₁", pretty l₁₁)
@@ -579,8 +579,8 @@ synRefWrite e₁ e₂ =
           ]
         (ty_join  τ₁' τ₂)
 
-      _ → TypeError "synRefWrite: τ is not a located reference" $ frhs
-          [ ("τ", pretty τ)
+      _ → TypeError "synRefWrite: τ₁ is not a located reference" $ frhs
+          [ ("τ₁", pretty τ₁)
       
           ]
 
@@ -621,12 +621,12 @@ synArrayRead e₁ e₂ =
     case τ₁ of
       (SecT loc₁ (ArrT _ _ τ₁'))  → do
         m  ← askL terModeL
-        l ← elabEMode loc
+        l₁ ← elabEMode loc₁
         --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
-        guardErr (m ≡ l) $
-          typeError "synRefRead: m /≡ l" $ frhs
+        guardErr (m ≡ l₁) $
+          typeError "synRefRead: m /≡ l₁" $ frhs
           [ ("m", pretty m)
-          , ("l", pretty l)
+          , ("l₁", pretty l₁)
           ]
 
         case τ₂ of
@@ -640,9 +640,9 @@ synArrayRead e₁ e₂ =
               ]
             return τ₁'
           _  →  typeError "synRefRead: τ₂ is not a located natural number" $ frhs
-              [ ("τ₂", pretty τ)]
+              [ ("τ₂", pretty τ₂)]
       _  →  typeError "synArrayRead: τ₁ is not a located array" $ frhs
-          [ ("τ₁", pretty τ)
+          [ ("τ₁", pretty τ₁)
       
           ]
 
@@ -656,7 +656,7 @@ synArrayWrite ∷ STACK ⇒ Exp → Exp → Exp → EM Type
 synArrayWrite e₁ e₂ e₃ =
   let c₁ = synExp e₁
       c₂ = synExp e₂
-      c₃ = synExp e₃ls
+      c₃ = synExp e₃
   in do
     τ₁ ← c₁
     τ₂ ← c₂
@@ -667,7 +667,7 @@ synArrayWrite e₁ e₂ e₃ =
         l₁₁ ← elabEMode loc₁₁
         l₁₂ ← elabEMode loc₁₂
         --  dont need subcond  ←  (subtype τ (SecT m (ArrT _ t')))
-        guardErr ((m ≡ l₁₁) ⩓ (m ≡ l₂)) $
+        guardErr ((m ≡ l₁₁) ⩓ (m ≡ l₁₂)) $
           typeError "synRefWrite: m /≡ l₁₁ or  m /≡ l₁₂" $ frhs
           [ ("m", pretty m)
           , ("l₁₁", pretty l₁₁)
@@ -684,9 +684,9 @@ synArrayWrite e₁ e₂ e₃ =
                 ]
             (ty_join  τ₁' τ₃)
           _  → typeError "synRefRead: τ₂ is not a located natural number" $ frhs
-                [ ("τ₂", prettyτ )]
+                [ ("τ₂", pretty τ₂ )]
       _  →  typeError "synArrayRead: τ₁ is not a located array" $ frhs
-          [ ("τ₁", pretty τ)
+          [ ("τ₁", pretty τ₁)
       
           ]
 
@@ -711,7 +711,7 @@ synArraySize e =
             ]
           return (SecT em (BaseT (ℕT InfIPr)))
       _ →  typeError "synArrayRead: τ₁ is not a located array" $ frhs
-          [ ("τ₁", prettyτ)
+          [ ("τ₁", pretty τ₁)
       
           ]
 
