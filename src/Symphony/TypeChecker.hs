@@ -604,9 +604,10 @@ synArray e₁ e₂ =
           [ ("m", pretty m)
           , ("l", pretty l)
           ]
+        return $ SecT em (ArrT (Some em) 0 τ₂)
       _  →  typeError "synArray: τ₁ is not a located natural number" $ frhs
               [ ("τ₂", pretty τ₂)]
-        return $ SecT em (ArrT (Some em) 0 τ₂)
+    
 
 --  |-m e1 : (arr RO _ t)@m (every array is RO)
 --  |-m e2 : nat@m
