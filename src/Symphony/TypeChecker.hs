@@ -567,19 +567,19 @@ synRefWrite e₁ e₂ =
     τ₁  ← c₁
     τ₂ ← c₂
     case τ₁ of
-      (SecT loc₁ (RefT (Some loc₂) τ₁'))  → do
+      (SecT loc₁₁ (RefT (Some loc₁₂) τ₁'))  → do
         m  ← askL terModeL
-        l₁ ← elabEMode loc₁
-        l₂ ← elabEMode loc₂
-        guardErr ((m ≡ l₁) ⩓ (m ≡ l₂)) $
-          typeError "synRefRead: m /≡ l₁ or  m /≡ l₂" $ frhs
+        l₁₁ ← elabEMode loc₁₁
+        l₁₂ ← elabEMode loc₁₂
+        guardErr ((m ≡ l₁₁) ⩓ (m ≡ l₂)) $
+          typeError "synRefWrite: m /≡ l₁₁ or  m /≡ l₁₂" $ frhs
           [ ("m", pretty m)
-          , ("l₁", pretty l₁)
-          , ("l₂", pretty l₂)
+          , ("l₁₁", pretty l₁₁)
+          , ("l₁₂", pretty l₁₂)
           ]
         (ty_join  τ₁' τ₂)
 
-      _ → TypeError "synRefRead: τ is not a located reference" $ frhs
+      _ → TypeError "synRefWrite: τ is not a located reference" $ frhs
           [ ("τ", prettyτ)
       
           ]
@@ -621,13 +621,14 @@ synArrayRead e₁ e₂ =
     case τ₁ of
       (SecT loc₁ (ArrT _ _ τ₁'))  → do
         m  ← askL terModeL
-        l₁ ← elabEMode loc₁
+        l ← elabEMode loc
         --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
-        guardErr (m ≡ l₁) $
-          typeError "synArrayRead: m /≡ l" $ frhs
+        guardErr (m ≡ l) $
+          typeError "synRefRead: m /≡ l" $ frhs
           [ ("m", pretty m)
-          , ("l", pretty l₁)
+          , ("l", pretty l)
           ]
+
         case τ₂ of
           (SecT loc₂ (BaseT (ℕT _)))  → do
             l₂ ← elabEMode loc₂
@@ -635,14 +636,20 @@ synArrayRead e₁ e₂ =
             guardErr (m ≡ l₂) $
               typeError "synArray: m /≡ l" $ frhs
               [ ("m", pretty m)
-                , ("l", pretty l₂)
+                , ("l₂", pretty l₂)
               ]
             return τ₁'
-          _  → todoError
-      _  → todoError
+          _  →  typeError "synRefRead: τ₂ is not a located natural number" $ frhs
+          [ ("τ₂", prettyτ)
+      
+          ]
+      _  →  typeError "synArrayRead: τ₁ is not a located array" $ frhs
+          [ ("τ₁", prettyτ)
+      
+          ]
 
 
---  |-m e1 : (ref RW#m t)@m
+--  |-m e1 : (arr RW#m t)@m
 --  |-m e2 : nat@m
 --  |-m e3 : t
 -- ------T-Assign
@@ -657,15 +664,16 @@ synArrayWrite e₁ e₂ e₃ =
     τ₂ ← c₂
     τ₃ ← c₃
     case τ₁ of
-      (SecT loc₁ (ArrT (Some loc₂) _ τ₁'))  → do
+      (SecT loc₁₁ (ArrT (Some loc₁₂) _ τ₁'))  → do
         m  ← askL terModeL
-        l₁ ← elabEMode loc₁
-        l₂ ← elabEMode loc₂
-        --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
-        guardErr ((m ≡ l₁) ⩓ (m ≡ l₂)) $
-          typeError "synArrayWrite: m /≡ l" $ frhs
+        l₁₁ ← elabEMode loc₁₁
+        l₁₂ ← elabEMode loc₁₂
+        --  dont need subcond  ←  (subtype τ (SecT m (ArrT _ t')))
+        guardErr ((m ≡ l₁₁) ⩓ (m ≡ l₂)) $
+          typeError "synRefWrite: m /≡ l₁₁ or  m /≡ l₁₂" $ frhs
           [ ("m", pretty m)
-          , ("l", pretty l₁)
+          , ("l₁₁", pretty l₁₁)
+          , ("l₁₂", pretty l₁₂)
           ]
         case τ₂ of
           (SecT loc₂ (BaseT (ℕT _)))  → do
@@ -677,9 +685,16 @@ synArrayWrite e₁ e₂ e₃ =
                   , ("l", pretty l₂)
                 ]
             (ty_join  τ₁' τ₃)
-          _  → todoError
-      _  → todoError
+          _  → typeError "synRefRead: τ₂ is not a located natural number" $ frhs
+                [ ("τ₂", prettyτ)]
+      _  →  typeError "synArrayRead: τ₁ is not a located array" $ frhs
+          [ ("τ₁", prettyτ)
+      
+          ]
 
+--  |-m e1 : (arr RO t)@m (Any array)
+-- ------T-Size
+-- gamma |- m size e1 : nat
 synArraySize ∷ STACK ⇒ Exp → EM Type
 synArraySize e =
   let c = synExp e
@@ -697,7 +712,10 @@ synArraySize e =
             , ("l", pretty l)
             ]
           return (SecT em (BaseT (ℕT InfIPr)))
-      _ → todoError
+      _ →  typeError "synArrayRead: τ₁ is not a located array" $ frhs
+          [ ("τ₁", prettyτ)
+      
+          ]
 
 
 -----------
