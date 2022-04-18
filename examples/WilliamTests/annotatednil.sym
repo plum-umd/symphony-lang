@@ -1,4 +1,4 @@
 principal A B C
 
-def main : unit@all ->  ((list[0] unit@all)@all)
+def main : (unit@all ->  ((list[0] unit@all)@all))@all
 def main () =  []:(list[0] unit@all)@all
