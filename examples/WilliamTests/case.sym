@@ -1,5 +1,5 @@
 principal A B C
 
 def main : (unit@all  -> unit@all)@all 
-def main () =  let a = • in let b = • in case (L a):( unit@all  + unit@all ) {L x →x;R y→y} 
+def main () =  let a = • in let b = • in case (L a):(( unit@all  + unit@all )@all) {L x →x;R y→y} 
 
