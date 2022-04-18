@@ -516,6 +516,9 @@ synAscr e τ = do
 --- References ---
 -------------------
 
+--  |-m e t
+-- ------T-Ref
+-- gamma |- m ref e : t
 synRef ∷ STACK ⇒ Exp → EM Type
 synRef e =
   let c = synExp e
@@ -523,8 +526,11 @@ synRef e =
   τ ← c
   m  ← askL terModeL
   em ← elabMode m
-  return (SecT em (RefT (Some em) τ))
+  return $ SecT em (RefT (Some em) τ))
 
+--  |-m e : (ref RO t)@m
+-- ------T-Deref
+-- gamma |- m !e : t
 synRefRead ∷ STACK ⇒ Exp → EM Type
 synRefRead e =
   let c = synExp e
@@ -532,6 +538,7 @@ synRefRead e =
     τ ← c
     case τ of
       -- None is subtype
+      -- Writes are also read only
       (SecT loc (RefT _ τ'))  → do
         m  ← askL terModeL
         l ← elabEMode loc
@@ -542,10 +549,16 @@ synRefRead e =
           , ("l", pretty l)
           ]
         return τ'
-      _  → todoError
+      _  → typeError "synRefRead: τ is not a located reference" $ frhs
+          [ ("τ", prettyτ)
+      
+          ]
 
 
-
+--  |-m e1 : (ref RW#m t)@m
+--  |-m e2 : t
+-- ------T-Assign
+-- gamma |- m e1 :=e2 : t
 synRefWrite ∷ STACK ⇒ Exp → Exp → EM Type
 synRefWrite e₁ e₂ =
   let c₁ = synExp e₁
@@ -559,14 +572,22 @@ synRefWrite e₁ e₂ =
         l₁ ← elabEMode loc₁
         l₂ ← elabEMode loc₂
         guardErr ((m ≡ l₁) ⩓ (m ≡ l₂)) $
-          typeError "synRefRead: m /≡ l" $ frhs
+          typeError "synRefRead: m /≡ l₁ or  m /≡ l₂" $ frhs
           [ ("m", pretty m)
-          , ("l", pretty l₁)
+          , ("l₁", pretty l₁)
+          , ("l₂", pretty l₂)
           ]
         (ty_join  τ₁' τ₂)
 
-      _ → todoError
+      _ → TypeError "synRefRead: τ is not a located reference" $ frhs
+          [ ("τ", prettyτ)
+      
+          ]
 
+--  |-m e1  int@m
+-- |- m e2 int@m
+-- ------T-Arr
+-- gamma |- m arr e1 e2: t
 synArray ∷ STACK ⇒ Exp → Exp → EM Type
 synArray e₁ e₂ =
   let c₁ = synExp e₁
@@ -584,7 +605,7 @@ synArray e₁ e₂ =
           [ ("m", pretty m)
           , ("l", pretty l)
           ]
-        return (SecT em (ArrT (Some em) 0 τ₂))
+        return $ SecT em (ArrT (Some em) 0 τ₂)
 
 synArrayRead ∷ STACK ⇒ Exp → Exp → EM Type
 synArrayRead e₁ e₂ =

@@ -805,10 +805,9 @@ matchType τ ψ= case ψ of
           m ← askL terModeL
           l ← elabEMode loc
           guardErr (m ≡ l) $
-            typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l meaning τ is not a subtype of τ'" $ frhs
+            typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
               [ ("m", pretty m)
-              , ("τ", pretty τ)
-              , ("τ'", pretty (SecT loc (BaseT (UnitT) )) )
+              , ("l", pretty l)
               ]
           return id
     (SecT loc (ShareT _ _ (BaseT (UnitT) ))) →  do
