@@ -1,4 +1,4 @@
 principal A B C
 
-def main : (unit@{A, B, C} -> (( unit@all + bool@all)@all))@all
-def main () = let a = • in (L a):(( unit@all + bool@all)@all)
+def main : (unit@all -> (( bool@all + unit@all)@all))@all
+def main () = let a = true in (L a):(( bool@all + unit@all)@all)
