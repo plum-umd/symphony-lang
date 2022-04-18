@@ -5,9 +5,7 @@ import Symphony.Prelude
 import Symphony.Lang.Syntax
 
 import Symphony.Dynamic.Par.Types
-import Symphony.Dynamic.Par.BaseVal
 import Symphony.Dynamic.Par.Truncating
-import Symphony.Dynamic.Par.Lens ()
 import Symphony.Dynamic.Par.Error
 
 primType ∷ (Monad m, MonadReader (ICxt v) m, MonadError IError m, STACK) ⇒ Op → 𝐿 BaseType → m BaseType

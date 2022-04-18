@@ -1,12 +1,11 @@
 module Symphony.Dynamic.Par.Yao where
-
+{-
 import Symphony.Prelude
 
 import Symphony.Lang.Syntax
 
 import Symphony.Dynamic.Par.Error
 import Symphony.Dynamic.Par.Types
-import Symphony.Dynamic.Par.BaseVal.Types
 import Symphony.Dynamic.Par.Dist.Types
 import Symphony.Dynamic.Par.Lens
 
@@ -19,7 +18,7 @@ empPublic ∷ ℤ8
 empPublic = HS.fromIntegral 0
 
 whoAmI ∷ IM DistVal PrinVal
-whoAmI = fromSomeCxt *$ askL iCxtMeL
+whoAmI = askL iCxtMeL
 
 otherParty ∷ 𝑃 PrinVal → IM DistVal PrinVal
 otherParty ρs = do
@@ -100,3 +99,4 @@ instance Protocol 'Yao2P where
     case τ of
       𝔹T → BoolV ^$ empSemiBitRecvReveal (list frChans)
       _  → todoCxt
+-}

@@ -1,5 +1,5 @@
 module Symphony.Dynamic.Par.EMP where
-
+{-
 import Symphony.Prelude
 
 import Symphony.Dynamic.Par.Types
@@ -136,3 +136,4 @@ empSemiBitCond ∷ EMPProtocol → EMPBool → EMPBool → EMPBool → IO EMPBoo
 empSemiBitCond π sh₁ sh₂ sh₃ = io $ withForeignPtr π $ \ π_ptr → empTernary sh₁ sh₂ sh₃ (emp_semi_bit_cond π_ptr) emp_semi_bit_destroy
 
 --- TODO: Integers
+-}

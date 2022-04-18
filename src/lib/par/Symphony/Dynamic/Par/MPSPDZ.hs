@@ -1,5 +1,5 @@
 module Symphony.Dynamic.Par.MPSPDZ where
-
+{-
 import UVMHS
 
 import Symphony.Dynamic.Par.Types
@@ -67,3 +67,4 @@ mpspdzIntegerReveal mp party mpz =
   withForeignPtr mp  $ \ mpp  →
   withForeignPtr mpz $ \ mpzp →
   mpspdz_integer_reveal mpp party mpzp
+-}

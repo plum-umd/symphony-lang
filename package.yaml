@@ -64,7 +64,7 @@ data-files:
 
 library:
   source-dirs:
-    - src/lib
+    - src/lib/all
   dependencies:
     - aeson
     - network
@@ -82,17 +82,8 @@ library:
     - vector
   when:
     - condition: flag(dist)
-      exposed-modules:
-        - Symphony.Dynamic.Seq.Channel
-        - Symphony.Dynamic.Seq.Send
-        - Symphony.Dynamic.Seq.EMP
-        - Symphony.Dynamic.Seq.Yao
-        - Symphony.Dynamic.Seq.Share
-        - Symphony.Dynamic.Seq.MPSPDZ
-        - Symphony.Dynamic.Seq.SPDZ
-        - Symphony.Dynamic.Seq.Dist
-        - Symphony.Dynamic.Seq.Dist.Types
-        - Symphony.Dynamic.Seq.Dist.Val
+      source-dirs:
+        - src/lib/par
 
 tests:
   symphony-test:

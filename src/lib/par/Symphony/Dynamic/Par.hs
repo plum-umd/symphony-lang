@@ -9,10 +9,7 @@ import Symphony.Lang.Parser
 import Symphony.Dynamic.Par.ReadType
 import Symphony.Dynamic.Par.Types
 import Symphony.Dynamic.Par.Operations
-import Symphony.Dynamic.Par.BaseVal
-import Symphony.Dynamic.Par.Seq
 import Symphony.Dynamic.Par.Dist
-import Symphony.Dynamic.Par.Lens
 import Symphony.Dynamic.Par.Error
 
 import qualified Prelude as HS
@@ -27,11 +24,11 @@ import Foreign.ForeignPtr
 --- Principal Expressions ---
 -----------------------------
 
-interpPrinExp ∷ (STACK, Value v) ⇒ PrinExp → IM v PrinVal
+interpPrinExp ∷ (STACK) ⇒ PrinExp → IM Val PrinVal
 interpPrinExp = \case
-  VarPE x       → elimPrin *$ elimClear *$ elimBase *$ elimVal *$ interpVar x
+  VarPE x       → elimPrin *$ elimClear *$ elimBase *$ elimKnown *$ interpVar x
   AccessPE x n₁ → do
-    ρ :* n₂ ← elimPrinArr *$ elimPrinSet *$ elimClear *$ elimBase *$ elimVal *$ interpVar x
+    ρ :* n₂ ← elimPrinArr *$ elimPrinSet *$ elimClear *$ elimBase *$ elimKnown *$ interpVar x
     guardErr (0 ≤ n₁ ⩓ n₁ < n₂) $
       throwIErrorCxt TypeIError "interpPrinExp: n₁ ∉ ρ[n₂]" $ frhs
       [ ("n₁", pretty n₁)
@@ -40,9 +37,9 @@ interpPrinExp = \case
       ]
     return $ AccessPV ρ n₁
 
-interpPrinSetExp ∷ (STACK, Value v) ⇒ PrinSetExp → IM v PrinSetVal
+interpPrinSetExp ∷ (STACK) ⇒ PrinSetExp → IM Val PrinSetVal
 interpPrinSetExp = \case
-  VarPSE x   → elimPrinSet *$ elimClear *$ elimBase *$ elimVal *$ interpVar x
+  VarPSE x   → elimPrinSet *$ elimClear *$ elimBase *$ elimKnown *$ interpVar x
   PowPSE ρes → PowPSV ^$ pow ^$ mapM interpPrinExp ρes
   ThisPSE    → do
     m   ← askL iCxtModeL
@@ -54,11 +51,11 @@ interpPrinSetExp = \case
 --- Variables ---
 -----------------
 
-interpVar ∷ (STACK, Value v) ⇒ Var → IM v v
+interpVar ∷ (STACK) ⇒ Var → IM Val Val
 interpVar x = do
   γ ← askL iCxtEnvL
   case γ ⋕? x of
-    Some v → locateVal v
+    Some v → return v
     None   → throwIErrorCxt SyntaxIError "interpVar: x ∉ dom(γ)" $ frhs
              [ ("x", pretty x)
              , ("dom(γ)", pretty $ keys γ)
@@ -68,39 +65,39 @@ interpVar x = do
 --- Primitives ---
 ------------------
 
-interpBul ∷ (STACK, Value v) ⇒ IM v v
-interpBul = introVal $ BaseV $ Clear BulV
+interpBul ∷ (STACK) ⇒ IM Val Val
+interpBul = return $ KnownV $ BaseV $ ClearV BulV
 
-interpBool ∷ (STACK, Value v) ⇒ 𝔹 → IM v v
-interpBool b = introVal $ BaseV $ Clear $ BoolV b
+interpBool ∷ (STACK) ⇒ 𝔹 → IM Val Val
+interpBool b = return $ KnownV $ BaseV $ ClearV $ BoolV b
 
-interpNat ∷ (STACK, Value v) ⇒ IPrecision → ℕ → IM v v
-interpNat pr n = introVal $ BaseV $ Clear $ NatV pr n
+interpNat ∷ (STACK) ⇒ IPrecision → ℕ → IM Val Val
+interpNat pr n = return $ KnownV $ BaseV $ ClearV $ NatV pr n
 
-interpInt ∷ (STACK, Value v) ⇒ IPrecision → ℤ → IM v v
-interpInt pr z = introVal $ BaseV $ Clear $ IntV pr z
+interpInt ∷ (STACK) ⇒ IPrecision → ℤ → IM Val Val
+interpInt pr z = return $ KnownV $ BaseV $ ClearV $ IntV pr z
 
-interpFlt ∷ (STACK, Value v) ⇒ FPrecision → 𝔻 → IM v v
-interpFlt pr d = introVal $ BaseV $ Clear $ FltV pr d
+interpFlt ∷ (STACK) ⇒ FPrecision → 𝔻 → IM Val Val
+interpFlt pr d = return $ KnownV $ BaseV $ ClearV $ FltV pr d
 
-interpStr ∷ (STACK, Value v) ⇒ 𝕊 → IM v v
-interpStr s = introVal $ BaseV $ Clear $ StrV s
+interpStr ∷ (STACK) ⇒ 𝕊 → IM Val Val
+interpStr s = return $ KnownV $ BaseV $ ClearV $ StrV s
 
-interpPrin ∷ (STACK, Value v) ⇒ PrinExp → IM v v
+interpPrin ∷ (STACK) ⇒ PrinExp → IM Val Val
 interpPrin ρe =
   let c = interpPrinExp ρe
   in do
     ρv ← c
-    introVal $ BaseV $ Clear $ PrinV ρv
+    return $ KnownV $ BaseV $ ClearV $ PrinV ρv
 
-interpPrinSet ∷ (STACK, Value v) ⇒ PrinSetExp → IM v v
+interpPrinSet ∷ (STACK) ⇒ PrinSetExp → IM Val Val
 interpPrinSet ρse =
   let c = interpPrinSetExp ρse
   in do
     ρsv ← c
-    introVal $ BaseV $ Clear $ PrinSetV ρsv
+    return $ KnownV $ BaseV $ ClearV $ PrinSetV ρsv
 
-interpPrim ∷ (STACK, Value v) ⇒ Op → 𝐿 Exp → IM v v
+interpPrim ∷ (STACK) ⇒ Op → 𝐿 Exp → IM Val Val
 interpPrim op es =
   let cs = map interpExp es
   in do
@@ -110,55 +107,55 @@ interpPrim op es =
 --- Products, Sums, and Lists ---
 ---------------------------------
 
-interpProd ∷ (STACK, Value v) ⇒ Exp → Exp → IM v v
+interpProd ∷ (STACK) ⇒ Exp → Exp → IM Val Val
 interpProd eₗ eᵣ =
   let cₗ = interpExp eₗ
       cᵣ = interpExp eᵣ
   in do
     ṽₗ ← cₗ
     ṽᵣ ← cᵣ
-    introVal $ ProdV ṽₗ ṽᵣ
+    return $ KnownV $ ProdV ṽₗ ṽᵣ
 
-interpL ∷ (STACK, Value v) ⇒ Exp → IM v v
+interpL ∷ (STACK) ⇒ Exp → IM Val Val
 interpL eₗ =
   let cₗ = interpExp eₗ
   in do
-    bvₜ ← introClear $ BoolV True
+    bvₜ ← return $ ClearV $ BoolV True
     ṽₗ  ← cₗ
     ṽᵣ  ← interpDefault
-    introVal $ SumV bvₜ ṽₗ ṽᵣ
+    return $ KnownV $ SumV bvₜ ṽₗ ṽᵣ
 
-interpR ∷ (STACK, Value v) ⇒ Exp → IM v v
+interpR ∷ (STACK) ⇒ Exp → IM Val Val
 interpR eᵣ =
   let cᵣ = interpExp eᵣ
   in do
-    bvₜ ← introClear $ BoolV False
+    bvₜ ← return $ ClearV $ BoolV False
     ṽₗ  ← interpDefault
     ṽᵣ  ← cᵣ
-    introVal $ SumV bvₜ ṽₗ ṽᵣ
+    return $ KnownV $ SumV bvₜ ṽₗ ṽᵣ
 
-interpNil ∷ (STACK, Value v) ⇒ IM v v
-interpNil = introVal $ ListV Nil
+interpNil ∷ (STACK) ⇒ IM Val Val
+interpNil = return $ KnownV $ ListV Nil
 
-interpCons ∷ (STACK, Value v) ⇒ Exp → Exp → IM v v
+interpCons ∷ (STACK) ⇒ Exp → Exp → IM Val Val
 interpCons eₕ eₜ =
   let cₕ = interpExp eₕ
       cₜ = interpExp eₜ
   in do
     ṽ  ← cₕ
-    ṽs ← elimList *$ elimVal *⋅ cₜ
-    introVal $ ListV $ ṽ :& ṽs
+    ṽs ← elimList *$ elimKnown *⋅ cₜ
+    return $ KnownV $ ListV $ ṽ :& ṽs
 
-interpIf ∷ (STACK, Value v) ⇒ Exp → Exp → Exp → IM v v
+interpIf ∷ (STACK) ⇒ Exp → Exp → Exp → IM Val Val
 interpIf e₁ e₂ e₃ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
       c₃ = interpExp e₃
   in do
-    b ← elimBool *$ elimClear *$ elimBase *$ elimVal *⋅ c₁
+    b ← elimBool *$ elimClear *$ elimBase *$ elimKnown *⋅ c₁
     if b then c₂ else c₃
 
-interpCase ∷ (STACK, Value v) ⇒ Exp → 𝐿 (Pat ∧ Exp) → IM v v
+interpCase ∷ (STACK) ⇒ Exp → 𝐿 (Pat ∧ Exp) → IM Val Val
 interpCase e ψes =
   let c  = interpExp e
       fs = mapOn ψes $ \ (ψ :* e') →
@@ -180,7 +177,7 @@ interpCase e ψes =
 --- Functions ---
 -----------------
 
-interpLet ∷ (STACK, Value v) ⇒ Pat → Exp → Exp → IM v v
+interpLet ∷ (STACK) ⇒ Pat → Exp → Exp → IM Val Val
 interpLet ψ e₁ e₂ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
@@ -189,7 +186,7 @@ interpLet ψ e₁ e₂ =
     f  ← bindVal ṽ₁ ψ
     f c₂
 
-interpLam ∷ (STACK, Value v) ⇒ 𝑂 Var → 𝐿 Pat → Exp → IM v v
+interpLam ∷ (STACK) ⇒ 𝑂 Var → 𝐿 Pat → Exp → IM Val Val
 interpLam self𝑂 ψs e = do
   ψ :* ψs' ← error𝑂 (view consL ψs) $
              throwIErrorCxt TypeIError "interpLam: view consL ψs ≡ None" $ frhs
@@ -200,19 +197,19 @@ interpLam self𝑂 ψs e = do
            else siphon e $ LamE None ψs' e
   γ ← askL iCxtEnvL
   let c' = interpExp e'
-  introVal $ CloV self𝑂 $ NoEq $ \ selfγ ṽ → do
+  return $ KnownV $ CloV self𝑂 $ NoEq $ \ selfγ ṽ → do
     ψγ ← bindVal ṽ ψ
     compose [localL iCxtEnvL γ, ψγ, selfγ] c'
 
-evalApp ∷ (STACK, Value v) ⇒ v → v → IM v v
+evalApp ∷ (STACK) ⇒ Val → Val → IM Val Val
 evalApp ṽ₁ ṽ₂ = do
-  self𝑂 :* f₁ ← elimClo *$ elimVal ṽ₁
+  self𝑂 :* f₁ ← elimClo *$ elimKnown ṽ₁
   let selfγ = case self𝑂 of
                 None      → id
                 Some self → bindTo self ṽ₁
   f₁ selfγ ṽ₂
 
-interpApp ∷ (STACK, Value v) ⇒ Exp → Exp → IM v v
+interpApp ∷ (STACK) ⇒ Exp → Exp → IM Val Val
 interpApp e₁ e₂ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
@@ -225,21 +222,21 @@ interpApp e₁ e₂ =
 --- Read and Write ---
 ----------------------
 
-interpRead ∷ (STACK, Value v) ⇒ Type → Exp → IM v v
+interpRead ∷ (STACK) ⇒ Type → Exp → IM Val Val
 interpRead τ e =
   let c = interpExp e
   in do
-    fn ← elimStr *$ elimClear *$ elimBase *$ elimVal *⋅ c
+    fn ← elimStr *$ elimClear *$ elimBase *$ elimKnown *⋅ c
     ρ  ← singletonMode
     path ← inputPath ρ fn
     deserializeVal τ *$ io $ fread path
 
-interpWrite ∷ (STACK, Value v) ⇒ Exp → Exp → IM v v
+interpWrite ∷ (STACK) ⇒ Exp → Exp → IM Val Val
 interpWrite e₁ e₂ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
   in do
-    fn   ← elimStr *$ elimClear *$ elimBase *$ elimVal *⋅ c₂
+    fn   ← elimStr *$ elimClear *$ elimBase *$ elimKnown *⋅ c₂
     ρ    ← singletonMode
     path ← outputPath ρ fn
     s    ← serializeVal *⋅ c₁
@@ -250,7 +247,7 @@ interpWrite e₁ e₂ =
 --- Trace ---
 -------------
 
-interpTrace ∷ (STACK, Value v) ⇒ Exp → Exp → IM v v
+interpTrace ∷ (STACK) ⇒ Exp → Exp → IM Val Val
 interpTrace e₁ e₂ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
@@ -262,28 +259,28 @@ interpTrace e₁ e₂ =
 --- References ---
 ------------------
 
-interpRef ∷ (STACK, Value v) ⇒ Exp → IM v v
+interpRef ∷ (STACK) ⇒ Exp → IM Val Val
 interpRef e =
   let c₁ = interpExp e
   in do
   ṽ ← c₁
   r ← io $ newℝMut ṽ
-  introVal *$ introLoc (Inl r)
+  KnownV ^$ introLoc (Inl r)
 
-interpRefRead ∷ (STACK, Value v) ⇒ Exp → IM v v
+interpRefRead ∷ (STACK) ⇒ Exp → IM Val Val
 interpRefRead e =
   let c₁ = interpExp e
   in do
-  r ← elimRef *$ elimLocRead *$ elimVal *⋅ c₁
+  r ← elimRef *$ elimLocRead *$ elimKnown *⋅ c₁
   ṽᵣ ← io $ readℝMut r
-  locateVal ṽᵣ
+  return ṽᵣ
 
-interpRefWrite ∷ (STACK, Value v) ⇒ Exp → Exp → IM v v
+interpRefWrite ∷ (STACK) ⇒ Exp → Exp → IM Val Val
 interpRefWrite e₁ e₂ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
   in do
-  r ← elimRef *$ elimLocWrite *$ elimVal *⋅ c₁
+  r ← elimRef *$ elimLocWrite *$ elimKnown *⋅ c₁
   ṽ₂ ← c₂
   io $ writeℝMut r ṽ₂
   return ṽ₂
@@ -292,38 +289,38 @@ interpRefWrite e₁ e₂ =
 --- Arrays ---
 --------------
 
-interpArray ∷ (STACK, Value v) ⇒ Exp → Exp → IM v v
+interpArray ∷ (STACK) ⇒ Exp → Exp → IM Val Val
 interpArray e₁ e₂ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
   in do
-  _pr :* n ← elimNat *$ elimClear *$ elimBase *$ elimVal *⋅ c₁
+  _pr :* n ← elimNat *$ elimClear *$ elimBase *$ elimKnown *⋅ c₁
   ṽ₂ ← c₂
   a  ← io $ vecIMut $ replicate n ṽ₂
-  introVal *$ introLoc (Inr a)
+  KnownV ^$ introLoc (Inr a)
 
-interpArrayRead ∷ (STACK, Value v) ⇒ Exp → Exp → IM v v
+interpArrayRead ∷ (STACK) ⇒ Exp → Exp → IM Val Val
 interpArrayRead e₁ e₂ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
   in do
-  a  ← elimArr *$ elimLocRead *$ elimVal *⋅ c₁
-  _pr :* n ← elimNat *$ elimClear *$ elimBase *$ elimVal *⋅ c₂
+  a  ← elimArr *$ elimLocRead *$ elimKnown *⋅ c₁
+  _pr :* n ← elimNat *$ elimClear *$ elimBase *$ elimKnown *⋅ c₂
   ṽᵣ ← errorIO (idx𝕍Mut (natΩ64 n) a) $
     throwIErrorCxt TypeIError "interpArrayRead: a[n] out of bounds" $ frhs
     [ ("a", pretty a)
     , ("n", pretty n)
     ]
-  locateVal ṽᵣ
+  return ṽᵣ
 
-interpArrayWrite ∷ (STACK, Value v) ⇒ Exp → Exp → Exp → IM v v
+interpArrayWrite ∷ (STACK) ⇒ Exp → Exp → Exp → IM Val Val
 interpArrayWrite e₁ e₂ e₃ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
       c₃ = interpExp e₃
   in do
-  a  ← elimArr *$ elimLocWrite *$ elimVal *⋅ c₁
-  _pr :* n ← elimNat *$ elimClear *$ elimBase *$ elimVal *⋅ c₂
+  a  ← elimArr *$ elimLocWrite *$ elimKnown *⋅ c₁
+  _pr :* n ← elimNat *$ elimClear *$ elimBase *$ elimKnown *⋅ c₂
   ṽ₃ ← c₃
   errorIO (set𝕍Mut (natΩ64 n) ṽ₃ a) $
       throwIErrorCxt TypeIError "interpArrayWrite: a[n] out of bounds" $ frhs
@@ -332,16 +329,16 @@ interpArrayWrite e₁ e₂ e₃ =
       ]
   return ṽ₃
 
-interpArraySize ∷ (STACK, Value v) ⇒ Exp → IM v v
+interpArraySize ∷ (STACK) ⇒ Exp → IM Val Val
 interpArraySize e = do
-  a ← elimArr *$ elimLocRead *$ elimVal *$ interpExp e
+  a ← elimArr *$ elimLocRead *$ elimKnown *$ interpExp e
   interpNat iprDefault $ nat $ length𝕍Mut a
 
 -----------
 --- Par ---
 -----------
 
-interpPar ∷ (STACK, Value v) ⇒ PrinSetExp → Exp → IM v v
+interpPar ∷ (STACK) ⇒ PrinSetExp → Exp → IM Val Val
 interpPar ρse₁ e₂ =
   let c₁ = interpPrinSetExp ρse₁
       c₂ = interpExp e₂
@@ -350,11 +347,11 @@ interpPar ρse₁ e₂ =
     ρ𝑃 ← elimPSV ^$ c₁
     let l = AddTop ρ𝑃
     let m' = m ⊓ l
-    isInPrins ← inPrins ρ𝑃
+    isInPrins ← inPrinsDist ρ𝑃
     if m' ≢ bot ⩓ isInPrins then
       localL iCxtModeL m' c₂
     else
-      return unknownVal
+      return UnknownV
 
 
 -----------
@@ -379,7 +376,7 @@ randBaseVal g μ = case μ of
             _ → undefined -- TODO
   _     → undefined -- TODO
 
-interpRand ∷ (STACK, Value v) ⇒ PrinSetExp → BaseType → IM v v
+interpRand ∷ (STACK) ⇒ PrinSetExp → BaseType → IM Val Val
 interpRand ρse μ = do
   m  ← askL iCxtModeL
   m' ← AddTop ^$ elimPSV ^$ interpPrinSetExp ρse
@@ -391,77 +388,70 @@ interpRand ρse μ = do
   g ← getL iStateGenL
   let v :* g' = randBaseVal g μ
   putL iStateGenL g'
-  introVal $ BaseV $ Clear v
+  return $ KnownV $ BaseV $ ClearV v
 
 -------------------------------
 --- Share, Reveal, and Send ---
 -------------------------------
 
-modeCheckComm ∷ PrinVal → 𝑃 PrinVal → IM v ()
-modeCheckComm ρv₁ ρvs₂ = do
+modeCheckComm ∷ 𝑃 PrinVal → 𝑃 PrinVal → IM Val ()
+modeCheckComm ρvs₁ ρvs₂ = do
   m ← askL iCxtModeL
-  let nonEmpty   = not $ isEmpty ρvs₂
-  let allPresent = (AddTop $ (single𝑃 ρv₁) ∪ ρvs₂) ≡ m
+  let nonEmpty   = not (isEmpty ρvs₁) ⩓ not (isEmpty ρvs₂)
+  let allPresent = (AddTop $ ρvs₁ ∪ ρvs₂) ≡ m
   guardErr nonEmpty $
-    throwIErrorCxt TypeIError "modeCheckComm: ρvs₂ ≡ ø" $ frhs
-    [ ("ρvs₂", pretty ρvs₂)
+    throwIErrorCxt TypeIError "modeCheckComm: ρvs₁ ≡ ø ∨ ρvs₂ ≡ ø" $ frhs
+    [ ("ρvs₁", pretty ρvs₁)
+    , ("ρvs₂", pretty ρvs₂)
     ]
   guardErr allPresent $
-    throwIErrorCxt TypeIError "modeCheckSync: (AddTop $ (single𝑃 ρv₁) ∪ ρvs₂) ≢ m" $ frhs
-    [ ("ρv₁", pretty ρv₁)
+    throwIErrorCxt TypeIError "modeCheckComm: (AddTop $ ρvs₁ ∪ ρvs₂) ≢ m" $ frhs
+    [ ("ρvs₁", pretty ρvs₁)
     , ("ρvs₂", pretty ρvs₂)
     , ("m", pretty m)
     ]
 
-interpShare ∷ (STACK, Value v) ⇒ Prot → Type → PrinExp → PrinSetExp → Exp → IM v v
-interpShare φ τ ρe₁ ρse₂ e₃ =
-  let c₁ = interpPrinExp ρe₁
-      c₂ = interpPrinSetExp ρse₂
-      c₃ = interpExp e₃
-  in do
-    ρvFr  ← c₁
-    ρvsTo ← elimPSV ^$ c₂
-    ṽ     ← c₃
-    modeCheckComm ρvFr ρvsTo
-    shareVal φ ρvFr ρvsTo ṽ τ
-
-interpReveal ∷ (STACK, Value v) ⇒ Prot → Type → PrinSetExp → PrinExp → Exp → IM v v
-interpReveal φ τ ρse₁ ρe₂ e₃ =
+interpShare ∷ (STACK) ⇒ Prot → Type → PrinSetExp → PrinSetExp → Exp → IM Val Val
+interpShare φ τ ρse₁ ρse₂ e₃ =
   let c₁ = interpPrinSetExp ρse₁
-      c₂ = interpPrinExp ρe₂
+      c₂ = interpPrinSetExp ρse₂
       c₃ = interpExp e₃
   in do
     ρvsFr ← elimPSV ^$ c₁
-    ρvTo  ← c₂
+    ρvsTo ← elimPSV ^$ c₂
     ṽ     ← c₃
-    modeCheckComm ρvTo ρvsFr
-    revealVal φ ρvsFr ρvTo ṽ τ
+    modeCheckComm ρvsFr ρvsTo
+    shareVal φ ρvsFr ρvsTo ṽ τ
 
-interpComm ∷ (STACK, Value v) ⇒ Type → PrinExp → PrinSetExp → Exp → IM v v
-interpComm τ ρe₁ ρse₂ e₃ =
-  let c₁ = interpPrinExp ρe₁
+interpReveal ∷ (STACK) ⇒ Prot → Type → PrinSetExp → PrinSetExp → Exp → IM Val Val
+interpReveal φ τ ρse₁ ρse₂ e₃ =
+  let c₁ = interpPrinSetExp ρse₁
       c₂ = interpPrinSetExp ρse₂
       c₃ = interpExp e₃
   in do
-    ρvFr  ← c₁
+    ρvsFr ← elimPSV ^$ c₁
     ρvsTo ← elimPSV ^$ c₂
     ṽ     ← c₃
-    modeCheckComm ρvFr ρvsTo
-    commVal ρvFr ρvsTo ṽ τ
+    modeCheckComm ρvsFr ρvsTo
+    revealVal φ ρvsFr ρvsTo ṽ τ
 
-interpFlush ∷ (STACK, Value v) ⇒ PrinExp → IM v v
-interpFlush ρe =
-  let c = interpPrinExp ρe
+interpComm ∷ (STACK) ⇒ Type → PrinSetExp → PrinSetExp → Exp → IM Val Val
+interpComm τ ρse₁ ρse₂ e₃ =
+  let c₁ = interpPrinSetExp ρse₁
+      c₂ = interpPrinSetExp ρse₂
+      c₃ = interpExp e₃
   in do
-    ρvThem ← c
-    flushVal ρvThem
-    interpBul
+    ρvsFr ← elimPSV ^$ c₁
+    ρvsTo ← elimPSV ^$ c₂
+    ṽ     ← c₃
+    modeCheckComm ρvsFr ρvsTo
+    commVal ρvsFr ρvsTo ṽ τ
 
 ----------------------
 --- MPC Operations ---
 ----------------------
 
-interpMuxIf ∷ (STACK, Value v) ⇒ Exp → Exp → Exp → IM v v
+interpMuxIf ∷ (STACK) ⇒ Exp → Exp → Exp → IM Val Val
 interpMuxIf e₁ e₂ e₃ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
@@ -473,7 +463,7 @@ interpMuxIf e₁ e₂ e₃ =
     ṽ₃    ← mapEnvL iCxtMPCPathConditionL (negṽ₁ :&) c₃
     muxVal ṽ₁ ṽ₂ ṽ₃
 
-interpMuxCase ∷ (STACK, Value v) ⇒ Exp → 𝐿 (Pat ∧ Exp) → IM v v
+interpMuxCase ∷ (STACK) ⇒ Exp → 𝐿 (Pat ∧ Exp) → IM Val Val
 interpMuxCase e ψes =
   let c  = interpExp e
       fs = mapOn ψes $ \ (ψ :* e') →
@@ -493,7 +483,7 @@ interpMuxCase e ψes =
                 ]
     mfold ṽₕ sumVal ṽsₜ
 
-interpProc ∷ (STACK, Value v) ⇒ Exp → IM v v
+interpProc ∷ (STACK) ⇒ Exp → IM Val Val
 interpProc e =
   let c = interpExp e
   in do
@@ -503,7 +493,7 @@ interpProc e =
       c
     mfoldrOnFrom (reverse κ) v₀ $ \ (pcᴿ :* v₁) v₂ → mfoldrOnFrom pcᴿ v₁ $ \ vᵖᶜ acc → muxVal vᵖᶜ acc v₂
 
-interpReturn ∷ (STACK, Value v) ⇒ Exp → IM v v
+interpReturn ∷ (STACK) ⇒ Exp → IM Val Val
 interpReturn e =
   let c = interpExp e
   in do
@@ -516,21 +506,21 @@ interpReturn e =
 --- Bundles ---
 ---------------
 
-interpBundle ∷ (STACK, Value v) ⇒ 𝐿 (PrinExp ∧ Exp) → IM v v
+interpBundle ∷ (STACK) ⇒ 𝐿 (PrinExp ∧ Exp) → IM Val Val
 interpBundle ρee𝐿 =
   let cc𝐿 = map (mapPair interpPrinExp interpExp) ρee𝐿
   in
-  introVal *$ BundleV ^$ dict ^$ mapMOn (iter cc𝐿) $ \ (c₁ :* c₂) → do
+  KnownV ^$ BundleV ^$ dict ^$ mapMOn (iter cc𝐿) $ \ (c₁ :* c₂) → do
     ρ ← c₁
     ṽ ← c₂
     return $ ρ ↦ ṽ
 
-interpBundleAccess ∷ (STACK, Value v) ⇒ Exp → PrinExp → IM v v
+interpBundleAccess ∷ (STACK) ⇒ Exp → PrinExp → IM Val Val
 interpBundleAccess e₁ ρe₂ =
   let c₁ = interpExp e₁
       c₂ = interpPrinExp ρe₂
   in do
-    bdl ← elimBundle *$ elimVal *⋅ c₁
+    bdl ← elimBundle *$ elimKnown *⋅ c₁
     ρ   ← c₂
     error𝑂 (view justL $ bdl ⋕? ρ) $
       throwIErrorCxt TypeIError "interpBundleAccess: ρ ∉ dom(bdl)" $ frhs
@@ -538,20 +528,20 @@ interpBundleAccess e₁ ρe₂ =
       , ("dom(bdl)", pretty $ keys bdl)
       ]
 
-interpBundleUnion ∷ (STACK, Value v) ⇒ Exp → Exp → IM v v
+interpBundleUnion ∷ (STACK) ⇒ Exp → Exp → IM Val Val
 interpBundleUnion e₁ e₂ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
   in do
-    bdl₁ ← elimBundle *$ elimVal *⋅ c₁
-    bdl₂ ← elimBundle *$ elimVal *⋅ c₂
-    introVal $ BundleV $ bdl₁ ⩌ bdl₂
+    bdl₁ ← elimBundle *$ elimKnown *⋅ c₁
+    bdl₂ ← elimBundle *$ elimKnown *⋅ c₂
+    return $ KnownV $ BundleV $ bdl₁ ⩌ bdl₂
 
 ------------------
 --- Sequencing ---
 ------------------
 
-interpSeq ∷ (STACK, Value v) ⇒ Exp → Exp → IM v v
+interpSeq ∷ (STACK) ⇒ Exp → Exp → IM Val Val
 interpSeq e₁ e₂ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
@@ -563,20 +553,20 @@ interpSeq e₁ e₂ =
 --- Default ---
 ---------------
 
-interpDefault ∷ (STACK, Value v) ⇒ IM v v
-interpDefault = introVal DefaultV
+interpDefault ∷ (STACK) ⇒ IM Val Val
+interpDefault = return $ KnownV DefaultV
 
 -------------------
 --- Expressions ---
 -------------------
 
---wrapInterp ∷ (STACK) ⇒ (ExpR → IM v a) → Exp → IM v a
+--wrapInterp ∷ (STACK) ⇒ (ExpR → IM Val a) → Exp → IM Val a
 --wrapInterp f e = localL iCxtSourceL (Some $ atag e) $ f $ extract e
 
-interpExp ∷ (STACK, Value v) ⇒ Exp → IM v v
+interpExp ∷ (STACK) ⇒ Exp → IM Val Val
 interpExp e = localL iCxtSourceL (Some $ atag e) $ interpExpR $ extract e
 
-interpExpR ∷ (STACK, Value v) ⇒ ExpR → IM v v
+interpExpR ∷ (STACK) ⇒ ExpR → IM Val Val
 interpExpR = \case
   -- Variables
   VarE x → interpVar x
@@ -631,10 +621,9 @@ interpExpR = \case
   RandE ρse μ → interpRand ρse μ
 
   -- Share, Reveal, and Send
-  ShareE φ τ ρe₁ ρse₂ e₃  → interpShare φ τ ρe₁ ρse₂ e₃
-  RevealE φ τ ρse₁ ρe₂ e₃ → interpReveal φ τ ρse₁ ρe₂ e₃
-  SendE τ ρe₁ ρse₂ e₃     → interpComm τ ρe₁ ρse₂ e₃
-  FlushE ρe               → interpFlush ρe
+  ShareE φ τ ρes₁ ρse₂ e₃  → interpShare φ τ ρes₁ ρse₂ e₃
+  RevealE φ τ ρse₁ ρes₂ e₃ → interpReveal φ τ ρse₁ ρes₂ e₃
+  SendE τ ρes₁ ρse₂ e₃     → interpComm τ ρes₁ ρse₂ e₃
 
   -- MPC Operations
   MuxIfE e₁ e₂ e₃ → interpMuxIf e₁ e₂ e₃
@@ -660,17 +649,16 @@ interpExpR = \case
 -- TOP LEVEL --
 ---------------
 
-asTLM ∷ (Value v) ⇒ IM v a → ITLM v a
+asTLM ∷ IM Val a → ITLM Val a
 asTLM xM = mkITLM $ \ θ ωtl →
   let γ       = itlStateEnv ωtl
       ω       = itlStateExp ωtl
       ds      = itlStatePrinScope ωtl
       ξ       = compose
-                [ update iCxtParamsL θ
-                , update iCxtEnvL γ
+                [ update iCxtEnvL γ
                 , update iCxtPrinScopeL ds
                 ]
-                ξ₀
+                (ξ₀ θ)
   in do
     rox ← runIM ξ ω xM
     return $ case rox of
@@ -679,7 +667,7 @@ asTLM xM = mkITLM $ \ θ ωtl →
         let ωtl' = update itlStateExpL ω' ωtl in
           Inr $ ωtl' :* o :* x
 
-interpTL ∷ (Value v) ⇒ TL → ITLM v ()
+interpTL ∷ TL → ITLM Val ()
 interpTL tl = case extract tl of
   DeclTL _ _ _ → skip
   DefnTL b x ψs e →
@@ -695,11 +683,11 @@ interpTL tl = case extract tl of
     γρs :* ρScope ← split ^$ mapMOn ρds $ \case
       SinglePD ρ → do
         let ρv = SinglePV ρ
-        ṽ ← asTLM $ introVal $ BaseV $ Clear $ PrinV ρv
+        ṽ ← asTLM $ return $ KnownV $ BaseV $ ClearV $ PrinV ρv
         return $ (var ρ ↦ ṽ) :* single ρv
       ArrayPD ρ n → do
         let ρsv = ArrPSV ρ n
-        ṽ ← asTLM $ introVal $ BaseV $ Clear $ PrinSetV ρsv
+        ṽ ← asTLM $ return $ KnownV $ BaseV $ ClearV $ PrinSetV ρsv
         return $ (var ρ ↦ ṽ) :* elimPSV ρsv
     modifyL itlStateEnvL ((dict γρs) ⩌)
     modifyL itlStatePrinScopeL ((concat ρScope) ∪)
@@ -710,134 +698,18 @@ interpTL tl = case extract tl of
     tls ← io $ parseIO cpTLs path ls
     interpTLs tls
 
-interpTLs ∷ (Value v) ⇒ 𝐿 TL → ITLM v ()
+interpTLs ∷ 𝐿 TL → ITLM Val ()
 interpTLs = eachWith interpTL
 
 -- ==== --
 -- MAIN --
 -- ==== --
 
--------------
--- Options --
--------------
-
-data Options = Options
-  { optVersion ∷ 𝔹
-  , optHelp ∷ 𝔹
-  , optRandomSeed ∷ 𝑂 ℕ
-  , optParty ∷ 𝑂 Prin
-  , optTestsPath ∷ 𝕊
-  , optLibPath ∷ 𝕊
-  }
-  deriving (Eq,Ord,Show)
-makeLenses ''Options
-
-options₀ ∷ IO Options
-options₀ = do
-  testsPath ← findFile "tests"
-  libPath   ← findFile "lib"
-  return $ Options
-    { optVersion = False
-    , optHelp = False
-    , optRandomSeed = None
-    , optParty = None
-    , optTestsPath = testsPath
-    , optLibPath = libPath
-    }
-
-usageInfoTop ∷ 𝐿 (O.OptDescr (Options → Options))
-usageInfoTop = frhs
-  [ O.Option ['v'] [chars "version"]
-             (O.NoArg $ update optVersionL True)
-           $ chars "print version"
-  , O.Option ['h'] [chars "help"]
-             (O.NoArg $ update optHelpL True)
-           $ chars "show help"
-  ]
-
-usageInfoRun ∷ 𝐿 (O.OptDescr (Options → Options))
-usageInfoRun = frhs
-  [ O.Option ['P'] [chars "party"]
-             (O.ReqArg (\ s → update optPartyL $ Some $ string s) $ chars "PRIN")
-           $ chars "set current party"
-  , O.Option ['s'] [chars "seed"]
-             (O.ReqArg (\ s → update optRandomSeedL $ Some $ HS.read s) $ chars "NAT")
-           $ chars "set random seed"
-  ]
-
-usageInfoExample ∷ 𝐿 (O.OptDescr (Options → Options))
-usageInfoExample = frhs
-  [ O.Option ['s'] [chars "seed"]
-             (O.ReqArg (\ s → update optRandomSeedL $ Some $ HS.read s) $ chars "NAT")
-           $ chars "set random seed"
-  ]
-
-usageInfoTest ∷ 𝐿 (O.OptDescr (Options → Options))
-usageInfoTest = frhs
-  [ O.Option ['s'] [chars "seed"]
-             (O.ReqArg (\ s → update optRandomSeedL $ Some $ HS.read s) $ chars "NAT")
-           $ chars "set random seed"
-  ]
-
-readPrinVal ∷ 𝕊 → 𝑂 PrinVal
-readPrinVal s = case list $ splitOn𝕊 "." s of
-  ρ :& Nil      → Some $ SinglePV ρ
-  ρ :& n :& Nil → Some $ AccessPV ρ (read𝕊 n)
-  _             → None
-
-initializeEnv ∷ Options → IParams
-initializeEnv os = flip compose θ₀
-  [ update iParamsMeL $ mjoin $ readPrinVal ^$ optParty os ]
-
-parseOptionsSymphony ∷ IO (Options ∧ 𝐿 𝕊)
-parseOptionsSymphony = do
-  as ← iargs
-  let fs :* nos :* ems = parseOptions (usageInfoTop ⧺ usageInfoRun) as
-  eachOn ems out
-  os ← compose fs ^$ options₀
-  when (optVersion os) $ do
-    out $ "symphony version " ⧺ symphony_VERSION
-  when (optVersion os ⩓ optHelp os) $ do
-    out ""
-  when (optHelp os) $ do
-    out "Usage: symphony [<command>] [<arguments>] [<target>]"
-    out ""
-    out $ optUsageInfo "symphony [arguments]" usageInfoTop
-    out $ optUsageInfo "symphony run [arguments] <file>" usageInfoRun
-    out $ optUsageInfo "symphony example [arguments] <name>"  usageInfoExample
-    out $ optUsageInfo "symphony test [arguments]" usageInfoTest
-  return $ os :* nos
-
-interpretFile ∷ (Value v) ⇒ IParams → ITLState v → 𝕊 → 𝕊 → IO (ITLState v)
-interpretFile θ ωtl name path = do
-  tls ← parseFile name path
-  ωtl' :* _ :* () ← din (pdirectory path) $ runITLMIO θ ωtl name $ eachWith interpTL tls
-  return ωtl'
-
-interpretFileMain ∷ (Value v) ⇒ IParams → ITLState v → 𝕊 → 𝕊 → IO v
-interpretFileMain θ ωtl name path = do
-  ωtl' ← interpretFile θ ωtl name path
-  let main = itlStateEnv ωtl' ⋕! var "main"
-  ωtl'' :* _ :* v ← runITLMIO θ ωtl' name $ asTLM $ do
-    bul ← introVal $ BaseV $ Clear BulV
-    evalApp main bul
-  eachWith finalizeForeignPtr $ values (iStateSessionsYao (itlStateExp ωtl''))
-  return v
-
-interpMain ∷ (Value v) ⇒ ITLM v v
-interpMain = asTLM $ do
-  main ← interpVar $ var "main"
-  bul  ← introVal $ BaseV $ Clear BulV
-  evalApp main bul
-
-interpretSeq ∷ IParams → ITLState SeqVal → 𝕊 → 𝕊 → IO (ITLState SeqVal)
-interpretSeq = interpretFile
-
-interpretSeqMain ∷ IParams → ITLState SeqVal → 𝕊 → 𝕊 → IO SeqVal
-interpretSeqMain = interpretFileMain
-
-interpretDist ∷ IParams → ITLState DistVal → 𝕊 → 𝕊 → IO (ITLState DistVal)
-interpretDist = interpretFile
-
-interpretDistMain ∷ IParams → ITLState DistVal → 𝕊 → 𝕊 → IO DistVal
-interpretDistMain = interpretFileMain
+evalProgram ∷ IParams → ITLState Val → 𝐿 TL → IO Val
+evalProgram θ ω prog = do
+  evalITLMIO θ ω "" $ do
+    interpTLs prog
+    asTLM $ do
+      main ← interpVar $ var "main"
+      bul  ← return $ KnownV $ BaseV $ ClearV BulV
+      evalApp main bul

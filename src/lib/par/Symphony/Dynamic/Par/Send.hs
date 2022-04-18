@@ -5,8 +5,6 @@ import Symphony.Prelude
 import Symphony.Lang.Syntax
 
 import Symphony.Dynamic.Par.Types
-import Symphony.Dynamic.Par.BaseVal
-import Symphony.Dynamic.Par.Lens
 import Symphony.Dynamic.Par.Error
 import Symphony.Dynamic.Par.Channel
 
@@ -34,7 +32,7 @@ portOf ρ₁ ρ₂ = do
 
 mkChannel ∷ (Monad m, MonadReader (ICxt v) m, MonadError IError m, MonadState (IState v) m, MonadIO m, STACK) ⇒ PrinVal → m Channel
 mkChannel them = do
-  me ← fromSomeCxt *$ askL iCxtMeL
+  me ← askL iCxtMeL
   let iAmClient = them < me
   if iAmClient then do
     addr ← addressOf them
@@ -53,6 +51,9 @@ getOrMkChannel them = do
       modifyL iStateChannelsL ((them ↦ chan) ⩌!)
       return chan
     Some chan → return chan
+
+getOrMkChannels ∷ (Monad m, MonadReader (ICxt v) m, MonadError IError m, MonadState (IState v) m, MonadIO m, STACK) ⇒ 𝑃 PrinVal → m (PrinVal ⇰ Channel)
+getOrMkChannels them = map dict $ mapM (\ ρv → map ((↦) ρv) (getOrMkChannel ρv)) $ iter them
 
 ----------------------------
 --- Send / Recv BaseVal ---

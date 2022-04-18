@@ -409,7 +409,7 @@ modeCheckComm ρvs₁ ρvs₂ = do
     ]
   guardErr allPresent $
     throwIErrorCxt TypeIError "modeCheckComm: (AddTop $ ρvs₁ ∪ ρvs₂) ≢ m" $ frhs
-    [ ("ρsv₁", pretty ρvs₁)
+    [ ("ρvs₁", pretty ρvs₁)
     , ("ρvs₂", pretty ρvs₂)
     , ("m", pretty m)
     ]
