@@ -1,4 +1,4 @@
 principal A B
 
-def main : (unit@all-> unit@all * unit@all)@all
+def main : (unit@all-> (unit@all * unit@all)@all)@all
 def main () = let a = • in let b = • in a,b
