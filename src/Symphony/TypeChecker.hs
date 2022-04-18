@@ -526,7 +526,7 @@ synRef e =
   τ ← c
   m  ← askL terModeL
   em ← elabMode m
-  return $ SecT em (RefT (Some em) τ))
+  return $ SecT em (RefT (Some em) τ)
 
 --  |-m e : (ref RO t)@m
 -- ------T-Deref
