@@ -211,16 +211,27 @@ subtype_loc loctyS loctyT = case loctyS of
         loccondₗ ← (subtype τ₁₁' τ₁₁)
         loccondᵣ ← (subtype τ₁₂ τ₁₂')
         return ((l ≡ l') ⩓ loccondₗ ⩓ loccondᵣ)
+        -- t <: t' 
+  -- -------Sub-RefRO
+  -- ref _ t <: ref RO t'
   (RefT None τ) →  case loctyT of
     (RefT None τ') → (subtype τ τ')
     _  → return False
   (RefT _ τ) → case loctyT of
+      -- sigma = refRW#m t
+    -- -------Sub-Refl
+    -- sigma <: sigma
     (RefT None τ') → (subtype τ τ')
     _  → return (loctyS == loctyT)
+    -- -------Sub-RefRO
+  -- ref _ t <: ref RO t
   (ArrT None _ τ) →  case loctyT of
     (ArrT None _ τ') → (subtype τ τ')
     _  → return False
   (ArrT _ _ τ) → case loctyT of
+          -- sigma = refRW#m t
+    -- -------Sub-Refl
+    -- sigma <: sigma
     (ArrT None _ τ') → (subtype τ τ')
     _  → return (loctyS == loctyT)
   ISecT locS loctyS  → case loctyT of
@@ -376,27 +387,80 @@ locty_meet locty locty' =
         join_τ₁₁ ← (locty_join τ₁₁ τ₁₁')
         meet_τ₁₂ ← (locty_meet τ₁₂ τ₁₂')
         return (join_τ₁₁ :→: (η :* meet_τ₁₂))
-
+    -- t <: t' 
+  -- -------Sub-RefRO
+  -- ref _ t <: ref RO t'
   (RefT None τ)  →  case locty' of
-    (RefT _ τ') → do
-        loc_meet ← (locty_meet locty locty')
-        return (RefT None loc_meet)
-    _  → todoError
+    (RefT None τ') → do
+        loc_meet ← (locty_meet τ τ')
+        return (RefT locO loc_meet)
+    (RefT locO τ') → do
+        subcond ← (subtype τ' τ)
+        guardErr subcond $
+          typeError "join: τ' is not a subtype of τ" $ frhs
+            [ ("τ", pretty τ)
+            , ("τ'", pretty τ')
+            ]
+        return locty'
+    _  → typeError "join: τ' is not a reference type" $ frhs
+            [ ("τ'", pretty τ')
+            ]
+   -- sigma = ref RW#m t
+  -- -------Sub-Refl
+  -- sigma <: sigma
   (RefT (Some loc) τ)  →  case locty' of
       (RefT None τ') → do
-        loc_meet ← (locty_meet locty locty')
-        return (RefT None loc_meet)
-      _  → if (locty == locty') then (return locty) else todoError
+        subcond ← (subtype τ τ')
+        guardErr subcond $
+          typeError "join: τ is not a subtype of τ'" $ frhs
+            [ ("τ", pretty τ)
+            , ("τ'", pretty τ')
+            ]
+        return locty
+      _  → do
+        guardErr (locty ≡ locty') $
+          typeError "join: one is a read-write reference and locty ≢ locty'" $ frhs
+            [ ("locty", pretty locty)
+            , ("locty'", pretty locty')
+            ] 
+        return locty
+     -- t <: t' 
+  -- -------Sub-RefRO
+  -- ref _ t <: ref RO t'
   (ArrT None n τ)  →  case locty' of
-    (ArrT _ _ τ') → do
-        loc_meet ← (locty_meet locty locty')
+    (ArrT None _ τ') → do
+        loc_meet ← (locty_join τ τ')
         return (RefT None loc_meet)
-    _  → todoError
+    (ArrT locO _ τ') → do
+        subcond ← (subtype τ' τ)
+        guardErr subcond $
+          typeError "join: τ is not a subtype of τ'" $ frhs
+            [ ("τ", pretty τ)
+            , ("τ'", pretty τ')
+            ]
+        return locty'
+    _  → typeError "join: τ' is not an array type" $ frhs
+            [ ("τ'", pretty τ')
+            ]
+   -- sigma = ref RW#m t
+  -- -------Sub-Refl
+  -- sigma <: sigma
   (ArrT (Some loc) n τ)  →  case locty' of
-      (ArrT None _ τ') → do
-        loc_meet ← (locty_meet locty locty')
-        return (ArrT None n loc_meet)
-      _  → if (locty == locty') then (return locty) else todoError
+    (ArrT None _ τ') → do
+        subcond ← (subtype τ' τ)
+        guardErr subcond $
+          typeError "join: τ is not a subtype of τ'" $ frhs
+            [ ("τ", pretty τ)
+            , ("τ'", pretty τ')
+            ]
+        return locty
+    _  → do
+        guardErr (locty ≡ locty') $
+          typeError "join: one is a read-write reference and locty ≢ locty'" $ frhs
+            [ ("locty", pretty locty)
+            , ("locty'", pretty locty')
+            ] 
+        return ()
   (ISecT loc loc_ty) →  case locty' of
       (ISecT loc' loc_ty') → do
         loc_union ← (union_em loc loc')
@@ -497,25 +561,80 @@ locty_join locty locty' =
         join_τ₁₂ ← (locty_join τ₁₂ τ₁₂')
         return (meet_τ₁₁ :→: (η :* join_τ₁₂))
 
+    -- t <: t' 
+  -- -------Sub-RefRO
+  -- ref _ t <: ref RO t'
   (RefT None τ)  →  case locty' of
-    (RefT locO τ') → do
-        loc_join ← (locty_join locty locty')
-        return (RefT locO loc_join)
-    _  → todoError
+    (RefT None τ') → do
+        loc_join ← (locty_join τ τ')
+        return (RefT None loc_join)
+    (RefT (Some loc) τ') → do
+        subcond ← (subtype τ' τ)
+        guardErr subcond $
+          typeError "join: τ' is not a subtype of τ" $ frhs
+            [ ("τ", pretty τ)
+            , ("τ'", pretty τ')
+            ]
+        return locty
+    _  → typeError "join: τ' is not a reference type" $ frhs
+            [ ("τ'", pretty τ')
+            ]
+    -- sigma = ref RW#m t
+  -- -------Sub-Refl
+  -- sigma <: sigma
   (RefT (Some loc) τ)  →  case locty' of
       (RefT None τ') → do
-        loc_join ← (locty_join locty locty')
-        return (RefT (Some loc) loc_join)
-      _  → if (locty == locty') then (return locty) else todoError
+        subcond ← (subtype τ τ')
+        guardErr subcond $
+          typeError "join: τ is not a subtype of τ'" $ frhs
+            [ ("τ", pretty τ)
+            , ("τ'", pretty τ')
+            ]
+        return locty
+      _  → do
+        guardErr (locty ≡ locty') $
+          typeError "join: one is a read-write reference and locty ≢ locty'" $ frhs
+            [ ("locty", pretty locty)
+            , ("locty'", pretty locty')
+            ] 
+        return locty
+  -- sigma = ref RW#m t
+  -- -------Sub-Refl
+  -- sigma <: sigma
   (ArrT None n τ)  →  case locty' of
+    (ArrT None _ τ') → do
+        loc_join ← (locty_join τ τ')
+        return (ArrT None n loc_join)
     (ArrT locO _ τ') → do
-        loc_join ← (locty_join locty locty')
-        return (ArrT locO n loc_join)
+        subcond ← (subtype τ' τ)
+        guardErr subcond $
+          typeError "join: τ' is not a subtype of τ" $ frhs
+            [ ("τ", pretty τ)
+            , ("τ'", pretty τ')
+            ]
+        return locty
+    _  → typeError "join: τ' is not an array type" $ frhs
+            [ ("τ'", pretty τ')
+            ]
+   -- t <: t' 
+  -- -------Sub-RefRO
+  -- ref _ t <: ref RO t'
   (ArrT (Some loc) n τ)  →  case locty' of
     (ArrT None _ τ') → do
-        loc_join ← (locty_join locty locty')
-        return (ArrT (Some loc) n loc_join)
-    _  → if (locty == locty') then (return locty) else todoError
+        subcond ← (subtype τ τ')
+        guardErr subcond $
+          typeError "join: τ is not a subtype of τ'" $ frhs
+            [ ("τ", pretty τ)
+            , ("τ'", pretty τ')
+            ]
+        return locty
+    _  → do
+        guardErr (locty ≡ locty') $
+          typeError "join: one is a read-write reference and locty ≢ locty'" $ frhs
+            [ ("locty", pretty locty)
+            , ("locty'", pretty locty')
+            ] 
+        return ()
   (ISecT loc loc_ty) → case locty' of
       (ISecT loc' loc_ty') → do
         loc_inter ← (inter_em loc loc')
@@ -583,9 +702,11 @@ wf_loctype sigma m =
         , ("l", pretty l)
         ]
       return ()
+    -- WF-Ref: The component type must be well formed 
     (RefT _ τ')  → do
       _ ← (wf_type τ' m)
       return ()
+    -- WF-Ref: The component type must be well formed 
     (ArrT _ _ τ')  →  do
       _ ← (wf_type τ' m)
       return ()
@@ -667,9 +788,11 @@ sublocty_wf sigma m =
       τ₁₁' ← (superty_wf τ₁₁ m)
       τ₁₂' ← (subty_wf τ₁₂ m)
       return (τ₁₁' :→:  (η :* τ₁₂'))
+    -- WF-Ref: The component type must be well formed 
     (RefT loc τ)  → do
       τ' ← (subty_wf τ m)
       return (RefT loc τ')
+    -- WF-Ref: The component type must be well formed 
     (ArrT loc n τ)  → do
       τ' ← (subty_wf τ m)
       return (ArrT loc n τ')
@@ -746,9 +869,11 @@ superlocty_wf sigma m =
       τ₁₁' ← (subty_wf τ₁₁ m)
       τ₁₂' ← (superty_wf τ₁₂ m)
       return (τ₁₁' :→:  (η :* τ₁₂'))
+    -- WF-Ref: The component type must be well formed 
     (RefT loc τ)  → do
       τ' ← (superty_wf τ m)
       return (RefT loc τ')
+    -- WF-Ref: The component type must be well formed 
     (ArrT loc n τ)  → do
       τ' ← (superty_wf τ m)
       return (ArrT loc n τ')

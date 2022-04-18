@@ -571,6 +571,7 @@ synRefWrite e₁ e₂ =
         m  ← askL terModeL
         l₁₁ ← elabEMode loc₁₁
         l₁₂ ← elabEMode loc₁₂
+        -- Does this due to reflexivity of sub-refl
         guardErr ((m ≡ l₁₁) ⩓ (m ≡ l₁₂)) $
           typeError "synRefWrite: m /≡ l₁₁ or  m /≡ l₁₂" $ frhs
           [ ("m", pretty m)
@@ -660,6 +661,7 @@ synArrayWrite e₁ e₂ e₃ =
     τ₂ ← c₂
     τ₃ ← c₃
     case τ₁ of
+      -- Does this due to reflexivity of sub-refl
       (SecT loc₁₁ (ArrT (Some loc₁₂) _ τ₁'))  → do
         m  ← askL terModeL
         l₁₁ ← elabEMode loc₁₁
