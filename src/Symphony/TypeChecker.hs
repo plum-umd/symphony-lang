@@ -518,7 +518,7 @@ synAscr e τ = do
 
 --  |-m e t
 -- ------T-Ref
--- gamma |- m ref e : t
+-- gamma |- m ref RW#m e : t
 synRef ∷ STACK ⇒ Exp → EM Type
 synRef e =
   let c = synExp e
@@ -584,10 +584,10 @@ synRefWrite e₁ e₂ =
       
           ]
 
---  |-m e1  int@m
--- |- m e2 int@m
+--  |-m e1  nat@m
+-- |- m e2 t
 -- ------T-Arr
--- gamma |- m arr e1 e2: t
+-- gamma |- m arr e1 e2: arr rw#m 0 t
 synArray ∷ STACK ⇒ Exp → Exp → EM Type
 synArray e₁ e₂ =
   let c₁ = synExp e₁
@@ -607,6 +607,10 @@ synArray e₁ e₂ =
           ]
         return $ SecT em (ArrT (Some em) 0 τ₂)
 
+--  |-m e1 : (arr RO _ t)@m (every array is RO)
+--  |-m e2 : nat@m
+-- ------T-Deref
+-- gamma |- m !e : t
 synArrayRead ∷ STACK ⇒ Exp → Exp → EM Type
 synArrayRead e₁ e₂ =
   let c₁ = synExp e₁
@@ -638,11 +642,16 @@ synArrayRead e₁ e₂ =
       _  → todoError
 
 
+--  |-m e1 : (ref RW#m t)@m
+--  |-m e2 : nat@m
+--  |-m e3 : t
+-- ------T-Assign
+-- gamma |- m e1[e2]:=e3 : t
 synArrayWrite ∷ STACK ⇒ Exp → Exp → Exp → EM Type
 synArrayWrite e₁ e₂ e₃ =
   let c₁ = synExp e₁
       c₂ = synExp e₂
-      c₃ = synExp e₃
+      c₃ = synExp e₃ls
   in do
     τ₁ ← c₁
     τ₂ ← c₂
