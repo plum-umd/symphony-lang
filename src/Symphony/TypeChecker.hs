@@ -604,6 +604,8 @@ synArray e₁ e₂ =
           [ ("m", pretty m)
           , ("l", pretty l)
           ]
+       _  →  typeError "synArray: τ₁ is not a located natural number" $ frhs
+              [ ("τ₂", pretty τ₂)]
         return $ SecT em (ArrT (Some em) 0 τ₂)
 
 --  |-m e1 : (arr RO _ t)@m (every array is RO)
@@ -623,7 +625,7 @@ synArrayRead e₁ e₂ =
         l₁ ← elabEMode loc₁
         --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
         guardErr (m ≡ l₁) $
-          typeError "synRefRead: m /≡ l₁" $ frhs
+          typeError "synArrayRead: m /≡ l₁" $ frhs
           [ ("m", pretty m)
           , ("l₁", pretty l₁)
           ]
@@ -638,7 +640,7 @@ synArrayRead e₁ e₂ =
                 , ("l₂", pretty l₂)
               ]
             return τ₁'
-          _  →  typeError "synRefRead: τ₂ is not a located natural number" $ frhs
+          _  →  typeError "synArrayRead: τ₂ is not a located natural number" $ frhs
               [ ("τ₂", pretty τ₂)]
       _  →  typeError "synArrayRead: τ₁ is not a located array" $ frhs
           [ ("τ₁", pretty τ₁)
