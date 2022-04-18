@@ -579,7 +579,7 @@ synRefWrite e₁ e₂ =
           ]
         (ty_join  τ₁' τ₂)
 
-      _ → TypeError "synRefWrite: τ₁ is not a located reference" $ frhs
+      _ → typeError "synRefWrite: τ₁ is not a located reference" $ frhs
            [ ("τ₁", pretty τ₁)]
 
 --  |-m e1  nat@m
