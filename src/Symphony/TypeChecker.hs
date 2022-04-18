@@ -550,7 +550,7 @@ synRefRead e =
           ]
         return τ'
       _  → typeError "synRefRead: τ is not a located reference" $ frhs
-          [ ("τ", prettyτ)
+          [ ("τ", pretty τ)
       
           ]
 
@@ -580,7 +580,7 @@ synRefWrite e₁ e₂ =
         (ty_join  τ₁' τ₂)
 
       _ → TypeError "synRefWrite: τ is not a located reference" $ frhs
-          [ ("τ", prettyτ)
+          [ ("τ", pretty τ)
       
           ]
 
@@ -640,9 +640,9 @@ synArrayRead e₁ e₂ =
               ]
             return τ₁'
           _  →  typeError "synRefRead: τ₂ is not a located natural number" $ frhs
-              [ ("τ₂", prettyτ)]
+              [ ("τ₂", pretty τ)]
       _  →  typeError "synArrayRead: τ₁ is not a located array" $ frhs
-          [ ("τ₁", prettyτ)
+          [ ("τ₁", pretty τ)
       
           ]
 
@@ -678,15 +678,15 @@ synArrayWrite e₁ e₂ e₃ =
             l₂ ← elabEMode loc₂
             em ← elabMode m
             guardErr (m ≡ l₂) $
-              typeError "synArrayWrite: m /≡ l" $ frhs
+              typeError "synArrayWrite: m /≡ l₂" $ frhs
                 [ ("m", pretty m)
-                  , ("l", pretty l₂)
+                  , ("l₂", pretty l₂)
                 ]
             (ty_join  τ₁' τ₃)
           _  → typeError "synRefRead: τ₂ is not a located natural number" $ frhs
-                [ ("τ₂", prettyτ)]
+                [ ("τ₂", prettyτ )]
       _  →  typeError "synArrayRead: τ₁ is not a located array" $ frhs
-          [ ("τ₁", prettyτ)
+          [ ("τ₁", pretty τ)
       
           ]
 
