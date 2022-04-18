@@ -1,0 +1,4 @@
+principal A B
+
+def main : (bool@all ->  ( ref{all} bool@all)@all)@all
+def main () = (ref true):=false
