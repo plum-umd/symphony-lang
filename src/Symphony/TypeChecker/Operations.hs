@@ -199,7 +199,7 @@ subtype_loc loctyS loctyT = case loctyS of
         return (loccondₗ ⩓ loccondᵣ)
     _ → return False
   (ListT _ τₜ)  →  case loctyT of
-    (ListT _ τₜ') → (subtype_loc τₜ τₜ')
+    (ListT _ τₜ') → (subtype τₜ τₜ')
     _ → return False
   -- t1' <: t1 t2 <: t2'
   -- -------Sub-Fun
