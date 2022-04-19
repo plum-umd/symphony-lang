@@ -668,7 +668,7 @@ joinList τs =
 
 -- Rules to see if any located value is well-formed
 wf_cleartext_loctype :: STACK ⇒ Type → Mode → EM ()
-wf_loctype sigma m =
+wf_cleartext_loctype sigma m =
   case sigma of
      -- WF-Base (Based off WF-INT)
     BaseT bt → return ()
