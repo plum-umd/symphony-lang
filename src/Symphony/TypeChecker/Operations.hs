@@ -717,7 +717,7 @@ wf_cleartext_type ty m =
      --   ]
     SecT em' locty → do
       m' ← (elabEMode em')
-      wfcond ← (wf_loctype locty m')
+      wfcond ← (wf_cleartext_loctype locty m')
       guardErr (supermode m m') $
         typeError "m is not a superset of m'" $ frhs
         [ ("m", pretty m)
@@ -731,7 +731,7 @@ wf_cleartext_type ty m =
 
 -- Rules to see if some located value is well-formed
 wf_share_loctype :: Type → Mode → Prot → Mode → EM ()
-wf_share_loctype sigma p l=
+wf_share_loctype sigma m p l=
   case sigma of
     BaseT bt → return ()
     (loctyₗ :+: loctyᵣ) → do
