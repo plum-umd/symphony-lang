@@ -812,7 +812,7 @@ synShare φ τ ρe₁ ρse₂ e₃ =
           typeError "synShare: p union q /= m" $ frhs
             [  
               ("p", pretty p)
-              ("q", pretty (AddTop qs))
+              , ("q", pretty (AddTop qs))
             ]  
 
         (makeCleartextType (AddTop ρse₂) τ)
