@@ -785,7 +785,7 @@ wf_type ty m =
         , ("m'", pretty m')
         ]
       l ← (elabEMode loc)
-      wfcond ← (wf_share_loctype1 sharety m' p l)
+      wfcond ← (wf_share_loctype loc_ty m' p l)
       return ()
     SecT em' locty → do
       m' ← (elabEMode em')
