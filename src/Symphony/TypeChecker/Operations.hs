@@ -736,7 +736,7 @@ wf_share_loctype sigma m p l=
     BaseT bt → return ()
     (loctyₗ :+: loctyᵣ) → do
       _ ← (wf_share_type loctyₗ m p l)
-      _ ← (wf_type loctyᵣ m p l)
+      _ ← (wf_share_type loctyᵣ m p l)
       return ()
     _  → do
       todoError
