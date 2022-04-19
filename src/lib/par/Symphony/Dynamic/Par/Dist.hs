@@ -40,129 +40,125 @@ inPrinsDist ρ𝑃 = do
 -------------
 
 shareVal ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → 𝑃 PrinVal → Val → Type → IM Val Val
-shareVal φ ρvsFr ρvsTo ṽ τ = undefined
-{-  do
+shareVal φ ρvsFr ρvsTo ṽ τ = do
   me ← askL iCxtMeL
   when (me ∈ ρvsFr) $ do
-    chansTo ← getOrMkChannels ρvsTo
-    shareValTo φ ρvsFr chansTo ṽ
+    shareValSend φ ρvsFr ρvsTo ṽ
   if me ∈ ρvsTo then do
-    chansFr ← getOrMkChannels ρvsFr
-    shareValFr φ chansFr ρvsTo τ
+    shareValRecv φ ρvsFr ρvsTo τ
   else return unknownValDist
 
-shareValTo ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → (PrinVal ⇰ Channel) → Val → IM Val ()
-shareValTo φ ρvsFr chansTo ṽ = do
-  v ← elimValDist ṽ
+shareValSend ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → 𝑃 PrinVal → Val → IM Val ()
+shareValSend φ ρvsFr ρvsTo ṽ = do
+  v ← elimKnown ṽ
   case v of
-    BaseV bv → do
-      elimBaseVal φ ρvsFr (sendShareValClear φ ρvsFr chansTo) (sendShareValEnc φ ρvsFr chansTo) bv
+    BaseV bv    → elimBaseVal ρvsFr (shareSend φ ρvsFr ρvsTo) (reshareSend φ ρvsFr ρvsTo) bv
+    ProdV ṽ₁ ṽ₂ → do
+      shareValSend φ ρvsFr ρvsTo ṽ₁
+      shareValSend φ ρvsFr ρvsTo ṽ₂
     _ → todoCxt
 
-sendShareValClear ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → (PrinVal ⇰ Channel) → ClearBaseVal → IM Val ()
-sendShareValClear φ ρvsFr chansTo cbv = undefined
-
-shareValFr ∷ (STACK) ⇒ Prot → (PrinVal ⇰ Channel) → 𝑃 PrinVal → Type → IM Val Val
-shareValFr φ chansFr ρvsTo τ = undefined
+shareValRecv ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → 𝑃 PrinVal → Type → IM Val Val
+shareValRecv φₑ ρvsFr ρvsTo τ = do
   v ← case τ of
-        BaseT bτ → do
-          exsh ← ExShare φˢ ^$ recvShare φˢ ρvsC chansFr bτ
-          return $ BaseV $ Encrypted (protFrSProt φˢ) ρvsC exsh
+        SecT _ (BaseT bτ)                → BaseV ^$ EncV ρvsTo ^$ shareRecv φₑ ρvsFr ρvsTo bτ -- TODO(ins): rough and ready
+        ShareT φₐ _ (BaseT bτ) | φₑ ≡ φₐ → BaseV ^$ EncV ρvsTo ^$ reshareRecv φₐ ρvsFr ρvsTo bτ
+        τ₁ :×: τ₂ → do
+          ṽ₁ ← shareValRecv φₑ ρvsFr ρvsTo τ₁
+          ṽ₂ ← shareValRecv φₑ ρvsFr ρvsTo τ₂
+          return $ ProdV ṽ₁ ṽ₂
         _ → todoCxt
-  introValDist v
--}
+  return $ KnownV v
+
+shareSend ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → 𝑃 PrinVal → ClearBaseVal → IM Val ()
+shareSend φ ρvsFr ρvsTo cbv = case φ of
+  GMWP → shareSendGmw ρvsFr ρvsTo cbv
+  _    → todoCxt
+
+reshareSend ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → 𝑃 PrinVal → EncBaseVal → IM Val ()
+reshareSend φ ρvsFr ρvsTo ebv = case φ of
+  GMWP → do
+    gmw ← elimGmw ebv
+    reshareSendGmw ρvsFr ρvsTo gmw
+  _    → todoCxt
+
+shareRecv ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → 𝑃 PrinVal → BaseType → IM Val EncBaseVal
+shareRecv φ ρvsFr ρvsTo bτ = case φ of
+  GMWP → GmwV ^$ shareRecvGmw ρvsTo ρvsFr bτ
+  _    → todoCxt
+
+reshareRecv ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → 𝑃 PrinVal → BaseType → IM Val EncBaseVal
+reshareRecv φ ρvsFr ρvsTo bτ = case φ of
+  GMWP → GmwV ^$ reshareRecvGmw ρvsTo ρvsFr bτ
+  _    → todoCxt
+
 ------------
 --- Comm ---
 ------------
 
 commVal ∷ (STACK) ⇒ 𝑃 PrinVal → 𝑃 PrinVal → Val → Type → IM Val Val
-commVal ρvFr ρvsTo ṽ τ = undefined
-{-
-  do
-  me ← askL iCxtMeL
-  when (me ≡ ρvFr) $ do
-    chansTo ← pmapM getOrMkChannel ρvsTo
-    sendValDist chansTo ṽ
-  if me ∈ ρvsTo then do
-    chanFr ← getOrMkChannel ρvFr
-    recvValDist chanFr τ
-  else return unknownValDist
+commVal ρvFr ρvsTo ṽ τ = todoCxt
 
-sendValDist ∷ (STACK) ⇒ 𝑃 Channel → Val → IM Val ()
-sendValDist chansTo ṽ = do
-  v ← elimValDist ṽ
-  case v of
-    BaseV bv → do
-      cbv ← elimClear bv
-      eachWith (\ chanTo → sendClearBaseVal chanTo cbv) chansTo
-    _ → todoCxt
-
-recvValDist ∷ (STACK) ⇒ Channel → Type → IM Val Val
-recvValDist chanFr τ = do
-  v ← case τ of
-        BaseT bτ → do
-          cbv ← recvClearBaseVal chanFr bτ
-          BaseV ^$ introClear cbv
-        _ → todoCxt
-  introValDist v
-
---- Flush
-
-flushValDist ∷ (STACK) ⇒ PrinVal → IM Val ()
-flushValDist ρvOther = do
-  chan ← getOrMkChannel ρvOther
-  channelFlush chan
--}
 --------------
 --- Reveal ---
 --------------
 
 revealVal ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → 𝑃 PrinVal → Val → Type → IM Val Val
-revealVal φ ρvsFr ρvsTo ṽ τ = undefined
-{-  withProt φ $ \ φˢ → do
+revealVal φ ρvsFr ρvsTo ṽ τ = do
   me ← askL iCxtMeL
   when (me ∈ ρvsFr) $ do
-    chanTo ← getOrMkChannel ρvTo
-    sendRevealValDist φˢ ρvsFr chanTo ṽ
-  if me ≡ ρvTo then do
-    chansFr ← pmapM getOrMkChannel ρvsFr
-    recvRevealValDist φˢ chansFr τ
+    revealValSend φ ρvsFr ρvsTo ṽ
+  if me ∈ ρvsTo then do
+    revealValRecv φ ρvsFr ρvsTo τ
   else return unknownValDist
 
-sendRevealValDist ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → Channel → Val → IM Val ()
-sendRevealValDist φ ρvsC chanTo ṽ = do
-  v ← elimValDist ṽ
+revealValSend ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → 𝑃 PrinVal → Val → IM Val ()
+revealValSend φ ρvsFr ρvsTo ṽ = do
+  v ← elimKnown ṽ
   case v of
-    BaseV bv → do
-      exsh ← elimEncrypted (protFrSProt φˢ) ρvsC bv
-      sh   ← elimExShare φˢ exsh
-      sendReveal φˢ ρvsC chanTo sh
+    BaseV bv    → do
+      ebv ← elimEnc ρvsFr bv
+      revealSend φ ρvsFr ρvsTo ebv
+    ProdV ṽ₁ ṽ₂ → do
+      revealValSend φ ρvsFr ρvsTo ṽ₁
+      revealValSend φ ρvsFr ρvsTo ṽ₂
     _ → todoCxt
 
-recvRevealValDist ∷ (STACK, Protocol p) ⇒ SProt p → 𝑃 Channel → Type → IM Val Val
-recvRevealValDist φˢ chansFr τ = do
+revealValRecv ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → 𝑃 PrinVal → Type → IM Val Val
+revealValRecv φ ρvsFr ρvsTo τ = do
   v ← case τ of
-        BaseT bτ → do
-          cbv ← recvReveal φˢ chansFr bτ
-          return $ BaseV $ Clear cbv
+        BaseT bτ  → BaseV ^$ ClearV ^$ revealRecv φ ρvsFr ρvsTo bτ
+        τ₁ :×: τ₂ → do
+          ṽ₁ ← revealValRecv φ ρvsFr ρvsTo τ₁
+          ṽ₂ ← revealValRecv φ ρvsFr ρvsTo τ₂
+          return $ ProdV ṽ₁ ṽ₂
         _ → todoCxt
-  introValDist v
--}
+  return $ KnownV v
+
+revealSend ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → 𝑃 PrinVal → EncBaseVal → IM Val ()
+revealSend φ ρvsFr ρvsTo ebv = case φ of
+  GMWP → do
+    gmw ← elimGmw ebv
+    revealSendGmw ρvsFr ρvsTo gmw
+  _ → todoCxt
+
+revealRecv ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → 𝑃 PrinVal → BaseType → IM Val ClearBaseVal
+revealRecv φ ρvsFr ρvsTo bτ = case φ of
+  GMWP → revealRecvGmw ρvsFr ρvsTo bτ
+  _    → todoCxt
+
 --- Embed
 
 embedEBVDist ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → ClearBaseVal → IM Val EncBaseVal
-embedEBVDist φ ρvsC cbv = undefined
-{-  withProt φ $ \ φˢ → do
-  sh ← embed φˢ ρvsC cbv
-  return $ ExShare φˢ sh -}
+embedEBVDist φ ρvs cbv = case φ of
+  GMWP → GmwV ^$ embedGmw ρvs cbv
+  _ → todoCxt
 
 --- Prim
 
 primEBVDist ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → Op → 𝐿 EncBaseVal → IM Val EncBaseVal
-primEBVDist φ ρvsC op ebvs = case φ of
+primEBVDist φ ρvs op ebvs = case φ of
   GMWP → do
-    gmwSession ← getOrMkGmwSession ρvsC
     shs ← mapM elimGmw ebvs
-    sh  ← io $ primGmw gmwSession op shs
-    return $ GmwV sh
+    GmwV ^$ primGmw ρvs op shs
   _ → todoCxt

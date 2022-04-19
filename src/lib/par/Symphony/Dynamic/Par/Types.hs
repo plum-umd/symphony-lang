@@ -7,7 +7,6 @@ import Symphony.Lang.Parser
 
 import Symphony.Dynamic.Par.Error
 import Symphony.Dynamic.Par.Channel
-import Symphony.Dynamic.Par.GMW
 
 import qualified Crypto.Random as R
 import Foreign.ForeignPtr (ForeignPtr)
@@ -96,6 +95,9 @@ data ICxt v = ICxt
 -----------
 -- STATE --
 -----------
+
+type GmwSession = ()
+type Gmw = ()
 
 -- Interpreter State
 -- ω ∈ state
@@ -226,6 +228,17 @@ instance Pretty BaseVal where
        , ppPun "}"
        ]) $
       pretty bv
+
+elimBaseVal ∷ (STACK) ⇒ 𝑃 PrinVal → (ClearBaseVal → IM Val a) → (EncBaseVal → IM Val a) → BaseVal → IM Val a
+elimBaseVal ρvsₑ kC kE = \case
+  ClearV cbv    → kC cbv
+  EncV ρvsₐ ebv → do
+    guardErr (ρvsₑ ≡ ρvsₐ) $
+      throwIErrorCxt TypeIError "elimEncrypted: ρvsₑ ≢ ρvsₐ" $ frhs
+      [ ("ρvsₑ", pretty ρvsₑ)
+      , ("ρvsₐ", pretty ρvsₐ)
+      ]
+    kE ebv
 
 elimClear ∷ (STACK) ⇒ BaseVal → IM Val ClearBaseVal
 elimClear = \case
@@ -447,8 +460,8 @@ mkGmwSession ρvs = do
   modifyL iStateSessionsGmwL ((ρvs ↦ π) ⩌!)
   return π
 
-getOrMkGmwSession ∷ 𝑃 PrinVal → IM Val GmwSession
-getOrMkGmwSession ρvs = do
+getOrMkSessionGmw ∷ 𝑃 PrinVal → IM Val GmwSession
+getOrMkSessionGmw ρvs = do
   π𝑂 ← getGmwSession ρvs
   case π𝑂 of
     None   → mkGmwSession ρvs
@@ -509,3 +522,5 @@ arrTL = prism constr destr
         destr = \case
           ArrT n τ → Some (n :* τ)
           _ → None
+
+-- GMW
