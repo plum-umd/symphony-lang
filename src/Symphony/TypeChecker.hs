@@ -785,8 +785,8 @@ makeEncryptedType em φ sigma =
   case sigma of
     BaseT bt → return (SecT em (ShareT φ em sigma))
     (loctyₗ :+: loctyᵣ) → do
-      loctyₗ' ← (makeShareableType em φ loctyₗ)
-      loctyᵣ' ← (makeShareableType em φ loctyᵣ)
+      loctyₗ' ← (makeEncryptedType em φ loctyₗ)
+      loctyᵣ' ← (makeEncryptedType em φ loctyᵣ)
       return (SecT em (ShareT φ em (loctyₗ' :+: loctyᵣ')))
     _  → typeError "makeShareType: sigma is not shareable to made encryped" $ frhs
                   [ ("sigma", pretty sigma)
@@ -804,11 +804,9 @@ synShare φ τ ρe₁ ρse₂ e₃ =
         cleartextτ ← (makeCleartextType (AddTop (PowPSE (frhs [ρe₁]))) τ)
         wfcond ← wf_type cleartextτ m
         subcond  ←  localL terModeL m (chkExp e₃ τ)
-        guardErr (not (isEmpty  qs)) ⩓ (supermode p' p) $
-          typeError "synShare: p is not a subset of p' or q is empty" $ frhs
-            [ ("p", pretty p)
-            , ("p'", pretty p')
-            , ("q", pretty qs)
+        guardErr (not (isEmpty  qs)) $
+          typeError "synShare: q is empty" $ frhs
+            [  ("q", pretty qs)
             ]  
         (makeCleartextType (AddTop ρse₂) τ)
 
