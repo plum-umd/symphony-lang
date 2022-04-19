@@ -1,0 +1,4 @@
+principal A B
+
+def main : (unit@all ->  nat@all)@all
+def main () =  let a = array[1n] • in size a
