@@ -763,7 +763,7 @@ wf_share_type ty m p l =
         [ ("m", pretty m)
         , ("m'", pretty m')
         ]
-      wfcond ← (wf_share_loctype sharety m' p l)
+      wfcond ← (wf_share_loctype loc_ty m' p l)
       return ()
     _ → typeError "wf_type: ty is not well formed" $ frhs
         [ ("ty", pretty ty )
