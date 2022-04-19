@@ -768,33 +768,49 @@ checkPar ρse₁ e₂ τ=
       wfcond ← (wf_type τ  (AddTop pø))
       return ()
 
+makeCleartextType :: EMode → Type → EM Type
+makeCleartextType em sigma =
+  case sigma of
+    BaseT bt → return (SecT em sigma)
+    (loctyₗ :+: loctyᵣ) → do
+      loctyₗ' ← (makeShareableType loctyₗ m)
+      loctyᵣ' ← (makeShareableType loctyᵣ m)
+      return (SecT em (loctyₗ' :+: loctyᵣ'))
+    _  → typeError "makeShareType: sigma is not shareable to made cleartext" $ frhs
+                  [ ("sigma", pretty sigma)
+                  ]
+
+makeEncryptedType :: EMode → Prot  → Type → EM Type
+makeEncryptedType em φ sigma =
+  case sigma of
+    BaseT bt → return (SecT em (ShareT φ em sigma))
+    (loctyₗ :+: loctyᵣ) → do
+      loctyₗ' ← (makeShareableType loctyₗ m)
+      loctyᵣ' ← (makeShareableType loctyᵣ m)
+      return (SecT em (ShareT φ em (loctyₗ' :+: loctyᵣ')))
+    _  → typeError "makeShareType: sigma is not shareable to made encryped" $ frhs
+                  [ ("sigma", pretty sigma)
+                  ]
 
 synShare ∷ STACK ⇒  Prot → Type → PrinExp → PrinSetExp → Exp → EM Type
 synShare φ τ ρe₁ ρse₂ e₃ =
   let c₁ = synPrinExp ρe₁
       c₂ = synPrinSet ρse₂
       c₃ = synExp e₃
-      in case τ of
-
-        SecT loc' τ' → do
-
-            m  ← askL terModeL
-            p ←  elabEMode (AddTop (PowPSE (frhs [ρe₁])))
-            p' ← elabEMode loc'
-            qs ← elabPrinSetExp ρse₂
-            wfcond ← wf_type (SecT (AddTop ρse₂) (ShareT φ (AddTop ρse₂) τ') ) m
-            subcond  ←  localL terModeL m (chkExp e₃ τ)
-            if (not (isEmpty  qs)) ⩓ (supermode p' p)
-              then return (SecT (AddTop ρse₂) (ShareT φ (AddTop ρse₂) τ') )
-              else
-                typeError "synShare: p is not a subset of p' or q is empty" $ frhs
-                  [ ("p", pretty p)
-                    , ("p'", pretty p'),
-                    ("q", pretty qs)
-                  ]
-
-        _ → do
-          todoError
+      do
+        m  ← askL terModeL
+        p ←  elabEMode (AddTop (PowPSE (frhs [ρe₁])))
+        qs ← elabPrinSetExp ρse₂
+        cleartextτ ← (makeCleartextType (AddTop (PowPSE (frhs [ρe₁]))) τ)
+        wfcond ← wf_type cleartextτ m
+        subcond  ←  localL terModeL m (chkExp e₃ τ)
+        guardErr (not (isEmpty  qs)) ⩓ (supermode p' p) $
+        typeError "synShare: p is not a subset of p' or q is empty" $ frhs
+            [ ("p", pretty p)
+            , ("p'", pretty p')
+            , ("q", pretty qs)
+            ]  
+        (makeCleartextType (AddTop ρse₂) τ)
 
 -- Assume φ is in type
 synReveal ∷ STACK ⇒ Prot → Type → PrinSetExp → PrinExp → Exp → EM Type
