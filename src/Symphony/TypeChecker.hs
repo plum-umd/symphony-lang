@@ -773,8 +773,8 @@ makeCleartextType em sigma =
   case sigma of
     BaseT bt → return (SecT em sigma)
     (loctyₗ :+: loctyᵣ) → do
-      loctyₗ' ← (makeShareableType loctyₗ m)
-      loctyᵣ' ← (makeShareableType loctyᵣ m)
+      loctyₗ' ← (makeCleartextType em loctyₗ )
+      loctyᵣ' ← (makeCleartextType em loctyᵣ)
       return (SecT em (loctyₗ' :+: loctyᵣ'))
     _  → typeError "makeShareType: sigma is not shareable to made cleartext" $ frhs
                   [ ("sigma", pretty sigma)
@@ -785,8 +785,8 @@ makeEncryptedType em φ sigma =
   case sigma of
     BaseT bt → return (SecT em (ShareT φ em sigma))
     (loctyₗ :+: loctyᵣ) → do
-      loctyₗ' ← (makeShareableType loctyₗ m)
-      loctyᵣ' ← (makeShareableType loctyᵣ m)
+      loctyₗ' ← (makeShareableType em φ loctyₗ)
+      loctyᵣ' ← (makeShareableType em φ loctyᵣ)
       return (SecT em (ShareT φ em (loctyₗ' :+: loctyᵣ')))
     _  → typeError "makeShareType: sigma is not shareable to made encryped" $ frhs
                   [ ("sigma", pretty sigma)
