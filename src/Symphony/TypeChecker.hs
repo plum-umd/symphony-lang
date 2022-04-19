@@ -801,13 +801,18 @@ synShare φ τ ρe₁ ρse₂ e₃ =
         m  ← askL terModeL
         p ←  elabEMode (AddTop (PowPSE (frhs [ρe₁])))
         qs ← elabPrinSetExp ρse₂
-        cleartextτ ← (makeCleartextType (AddTop (PowPSE (frhs [ρe₁]))) τ)
-        wfcond ← wf_type cleartextτ m
-        subcond  ←  localL terModeL m (chkExp e₃ τ)
         guardErr (not (isEmpty  qs)) $
           typeError "synShare: q is empty" $ frhs
             [  ("q", pretty qs)
             ]  
+        cleartextτ ← (makeCleartextType (AddTop (PowPSE (frhs [ρe₁]))) τ)
+      --  wfcond ← wf_type cleartextτ m
+        subcond  ←  localL terModeL m (chkExp e₃ τ)
+        guardErr (p ⊔ (AddTop qs) ≢  m) $
+          typeError "synShare: p union q /= m" $ frhs
+            [  ("q", pretty qs)
+            ]  
+
         (makeCleartextType (AddTop ρse₂) τ)
 
 -- Assume φ is in type
