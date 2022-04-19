@@ -810,7 +810,9 @@ synShare φ τ ρe₁ ρse₂ e₃ =
         subcond  ←  localL terModeL m (chkExp e₃ cleartextτ)
         guardErr (p ⊔ (AddTop qs) ≢  m) $
           typeError "synShare: p union q /= m" $ frhs
-            [  ("q", pretty qs)
+            [  
+              ("p", pretty p)
+              ("q", pretty (AddTop qs))
             ]  
 
         (makeCleartextType (AddTop ρse₂) τ)
