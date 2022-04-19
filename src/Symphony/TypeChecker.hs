@@ -814,7 +814,7 @@ synShare φ τ ρe₁ ρse₂ e₃ =
               ("p", pretty p)
               , ("q", pretty (AddTop qs))
               , ("puq", pretty (p ⊔ (AddTop qs)))
-              , ("m", m)
+              , ("m", pretty m)
             ]  
 
         (makeCleartextType (AddTop ρse₂) τ)
