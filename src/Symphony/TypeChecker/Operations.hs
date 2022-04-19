@@ -709,7 +709,7 @@ wf_loctype sigma m =
 
 -- Rules to see if a cleartext type is well formed
 wf_cleartext_type :: STACK ⇒ Type → Mode → EM ()
-wf_type ty m =
+wf_cleartext_type ty m =
   case ty of
     -- WF-Loc
   --  SecT em' (ShareT p loc loc_ty) → typeError "wf_type: ty is not well formed cleartext type. ty is an encrypted sharetype" $ frhs
