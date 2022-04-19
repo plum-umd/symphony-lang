@@ -805,7 +805,7 @@ synShare φ τ ρe₁ ρse₂ e₃ =
         wfcond ← wf_type cleartextτ m
         subcond  ←  localL terModeL m (chkExp e₃ τ)
         guardErr (not (isEmpty  qs)) ⩓ (supermode p' p) $
-        typeError "synShare: p is not a subset of p' or q is empty" $ frhs
+          typeError "synShare: p is not a subset of p' or q is empty" $ frhs
             [ ("p", pretty p)
             , ("p'", pretty p')
             , ("q", pretty qs)
