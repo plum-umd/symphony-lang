@@ -667,35 +667,25 @@ joinList τs =
 -----------------
 
 -- Rules to see if any located value is well-formed
-wf_loctype :: STACK ⇒ Type → Mode → EM ()
+wf_cleartext_loctype :: STACK ⇒ Type → Mode → EM ()
 wf_loctype sigma m =
   case sigma of
      -- WF-Base (Based off WF-INT)
     BaseT bt → return ()
-    ShareT p loc locty → do
-      _ ← (wf_share_loctype locty m)
-      l ← (elabEMode loc)
-      -- WF-Enc
-      return ()
-    -- WF-Sum: t1 must be well formed and t2 must be well formed
-    (loctyₗ :+: loctyᵣ) → do
-      _ ← (wf_type loctyₗ m)
-      _ ← (wf_type loctyᵣ m)
-      return ()
     -- WF-Prod: t1 must be well formed and t2 must be well formed
     (loctyₗ :×: loctyᵣ)  → do
-      _ ← (wf_type loctyₗ m)
-      _ ← (wf_type loctyᵣ m)
+      _ ← (wf_cleartext_type loctyₗ m)
+      _ ← (wf_cleartext_type loctyᵣ m)
       return ()
     (ListT _ τₜ)  → do
-      _ ← (wf_type τₜ m)
+      _ ← (wf_cleartext_type τₜ m)
       return ()
     -- WF-Fun: m must be same as mode, t1 must be well formed and t2 must be well formed
     (τ₁₁ :→: (η :* τ₁₂)) → do
       m  ← askL terModeL
       l ← elabEMode $ effectMode η
-      _ ← (wf_type τ₁₁ m)
-      _ ← (wf_type τ₁₂ m)
+      _ ← (wf_cleartext_type τ₁₁ m)
+      _ ← (wf_cleartext_type τ₁₂ m)
       guardErr (m ≡ l) $
         typeError "Not well formed m != l" $ frhs
         [ ("m", pretty m)
@@ -704,47 +694,107 @@ wf_loctype sigma m =
       return ()
     -- WF-Ref: The component type must be well formed 
     (RefT _ τ')  → do
-      _ ← (wf_type τ' m)
+      _ ← (wf_cleartext_type τ' m)
       return ()
     -- WF-Ref: The component type must be well formed 
     (ArrT _ _ τ')  →  do
-      _ ← (wf_type τ' m)
+      _ ← (wf_cleartext_type τ' m)
       return ()
     ISecT loc locty → do
-      _ ← (wf_share_loctype locty m)
+ --     _ ← (wf_share_loctype locty m)
       return ()
-    _  → typeError "wf_loctype: sigma is not well formed" $ frhs
+    _  → typeError "wf_loctype: sigma is not well formed cleartext located type" $ frhs
         [ ("sigma", pretty sigma )
+        ]
+
+-- Rules to see if a cleartext type is well formed
+wf_cleartext_type :: STACK ⇒ Type → Mode → EM ()
+wf_type ty m =
+  case ty of
+    -- WF-Loc
+  --  SecT em' (ShareT p loc loc_ty) → typeError "wf_type: ty is not well formed cleartext type. ty is an encrypted sharetype" $ frhs
+    --    [ ("ty", pretty ty )
+     --   ]
+    SecT em' locty → do
+      m' ← (elabEMode em')
+      wfcond ← (wf_loctype locty m')
+      guardErr (supermode m m') $
+        typeError "m is not a superset of m'" $ frhs
+        [ ("m", pretty m)
+        , ("m'", pretty m')
+        ]
+      return ()
+    _ → typeError "wf_type: ty is not well formed encrypted type" $ frhs
+        [ ("ty", pretty ty )
         ]
 
 
 -- Rules to see if some located value is well-formed
-wf_share_loctype :: STACK ⇒ Type → Mode → EM ()
-wf_share_loctype sigma m =
+wf_share_loctype :: Type → Mode → Prot → Mode → EM ()
+wf_share_loctype sigma p l=
   case sigma of
     BaseT bt → return ()
     (loctyₗ :+: loctyᵣ) → do
-      _ ← (wf_type loctyₗ m)
-      _ ← (wf_type loctyᵣ m)
+      _ ← (wf_share_type loctyₗ m p l)
+      _ ← (wf_type loctyᵣ m p l)
       return ()
     _  → do
       todoError
 
-
--- Rules to see if the type is well formed
-wf_type :: STACK ⇒ Type → Mode → EM ()
-wf_type ty m =
+wf_share_type :: Type → Mode →  Prot → Mode → EM ()
+wf_share_type ty m p l =
   case ty of
-
     -- WF-Loc
-    SecT em' locty → do
-      m' ← (elabEMode em')
-      wfcond ← (wf_loctype locty m')
+    SecT em' (ShareT p' loc loc_ty) → do
       guardErr (supermode m m') $
         typeError "m is not a superet of m'" $ frhs
         [ ("m", pretty m)
         , ("m'", pretty m')
         ]
+      l' ← (elabEMode loc)
+      m' ← (elabEMode em')
+      guardErr (l ≡ l') $
+        typeError "Not well formed encrypted type l != l'" $ frhs
+        [ ("l", pretty l)
+        , ("l'", pretty l')
+        ]
+      guardErr (m ≡ m') $
+        typeError "Not well formed encrypted type m != m'" $ frhs
+        [ ("m", pretty m)
+        , ("m'", pretty m')
+        ]
+      wfcond ← (wf_share_loctype sharety m' p l)
+      return ()
+    _ → typeError "wf_type: ty is not well formed" $ frhs
+        [ ("ty", pretty ty )
+        ]
+
+
+
+-- Rules to see if the type is well formed in terms of a good AST (Share rules)
+wf_type :: Type → Mode → EM ()
+wf_type ty m =
+  case ty of
+
+    -- WF-Loc
+    SecT em' (ShareT p loc loc_ty) → do
+      guardErr (supermode m m') $
+        typeError "m is not a superet of m'" $ frhs
+        [ ("m", pretty m)
+        , ("m'", pretty m')
+        ]
+      l ← (elabEMode loc)
+      m' ← (elabEMode em')
+      wfcond ← (wf_share_loctype1 sharety m' p l)
+      return ()
+    SecT em' locty → do
+      guardErr (supermode m m') $
+        typeError "m is not a superet of m'" $ frhs
+        [ ("m", pretty m)
+        , ("m'", pretty m')
+        ]
+      m' ← (elabEMode em')
+      wfcond ← (wf_cleartext_loctype locty m')
       return ()
     _ → typeError "wf_type: ty is not well formed" $ frhs
         [ ("ty", pretty ty )
