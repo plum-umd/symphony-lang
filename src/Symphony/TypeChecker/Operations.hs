@@ -717,12 +717,12 @@ wf_cleartext_type ty m =
      --   ]
     SecT em' locty → do
       m' ← (elabEMode em')
-      wfcond ← (wf_cleartext_loctype locty m')
       guardErr (supermode m m') $
         typeError "m is not a superset of m'" $ frhs
         [ ("m", pretty m)
         , ("m'", pretty m')
         ]
+      wfcond ← (wf_cleartext_loctype locty m')
       return ()
     _ → typeError "wf_type: ty is not well formed encrypted type" $ frhs
         [ ("ty", pretty ty )
@@ -746,13 +746,13 @@ wf_share_type ty m p l =
   case ty of
     -- WF-Loc
     SecT em' (ShareT p' loc loc_ty) → do
+      m' ← (elabEMode em')
       guardErr (supermode m m') $
         typeError "m is not a superet of m'" $ frhs
         [ ("m", pretty m)
         , ("m'", pretty m')
         ]
       l' ← (elabEMode loc)
-      m' ← (elabEMode em')
       guardErr (l ≡ l') $
         typeError "Not well formed encrypted type l != l'" $ frhs
         [ ("l", pretty l)
@@ -778,22 +778,22 @@ wf_type ty m =
 
     -- WF-Loc
     SecT em' (ShareT p loc loc_ty) → do
+      m' ← (elabEMode em')
       guardErr (supermode m m') $
         typeError "m is not a superet of m'" $ frhs
         [ ("m", pretty m)
         , ("m'", pretty m')
         ]
       l ← (elabEMode loc)
-      m' ← (elabEMode em')
       wfcond ← (wf_share_loctype1 sharety m' p l)
       return ()
     SecT em' locty → do
+      m' ← (elabEMode em')
       guardErr (supermode m m') $
         typeError "m is not a superet of m'" $ frhs
         [ ("m", pretty m)
         , ("m'", pretty m')
         ]
-      m' ← (elabEMode em')
       wfcond ← (wf_cleartext_loctype locty m')
       return ()
     _ → typeError "wf_type: ty is not well formed" $ frhs
