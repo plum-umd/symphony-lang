@@ -796,8 +796,8 @@ synShare ∷ STACK ⇒  Prot → Type → PrinExp → PrinSetExp → Exp → EM 
 synShare φ τ ρe₁ ρse₂ e₃ =
   let c₁ = synPrinExp ρe₁
       c₂ = synPrinSet ρse₂
-      c₃ = synExp e₃
-      do
+      c₃ = synExp e₃ 
+      in do
         m  ← askL terModeL
         p ←  elabEMode (AddTop (PowPSE (frhs [ρe₁])))
         qs ← elabPrinSetExp ρse₂
