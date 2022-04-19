@@ -817,7 +817,7 @@ synShare φ τ ρe₁ ρse₂ e₃ =
               , ("m", pretty m)
             ]  
 
-        (makeCleartextType (AddTop ρse₂) τ)
+        (makeEncryptedType (AddTop ρse₂) τ)
 
 -- Assume φ is in type
 synReveal ∷ STACK ⇒ Prot → Type → PrinSetExp → PrinExp → Exp → EM Type
