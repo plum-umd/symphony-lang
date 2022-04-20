@@ -504,7 +504,7 @@ locty_join locty locty' =
       , ("locty'", pretty locty')
       ]
     return locty
-  ShareT p loc locty  → (case locty' of
+  ShareT p loc locty  → case locty' of
     ShareT p' loc' locty' →
       do
         l ← (elabEMode loc)
