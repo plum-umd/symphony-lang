@@ -824,7 +824,7 @@ sublocty_wf sigma m =
     -- WF-Base (Based off WF-INT)
     BaseT bt → return sigma
     ShareT p loc loc_ty  → do
-      loc_subty ← (subty_wf locty m)
+      loc_subty ← (subty_wf loc_ty m)
       return (ShareT p loc loc_subty)
     -- WF-Sum: t1 must be well formed and t2 must be well formed
     (loctyₗ :+: loctyᵣ) → do
