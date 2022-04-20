@@ -335,7 +335,7 @@ locty_meet locty locty' =
             [ ("p", pretty p)
             , ("p'", pretty p')
             , ("l", pretty l)
-            . ("l'", pretty l')
+            , ("l'", pretty l')
             ]
       
         loc_meet ← (locty_meet locty locty')
@@ -514,7 +514,7 @@ locty_join locty locty' =
             [ ("p", pretty p)
             , ("p'", pretty p')
             , ("l", pretty l)
-            . ("l'", pretty l')
+            , ("l'", pretty l')
             ]
       
         loc_join ← (locty_join locty locty')
@@ -824,6 +824,7 @@ sublocty_wf sigma m =
     -- WF-Base (Based off WF-INT)
     BaseT bt → return sigma
     ShareT p loc loc_ty  → do
+      loc_subty ← (subty_wf locty m)
       return (ShareT p loc loc_subty)
     -- WF-Sum: t1 must be well formed and t2 must be well formed
     (loctyₗ :+: loctyᵣ) → do
