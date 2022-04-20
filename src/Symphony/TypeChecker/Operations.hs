@@ -171,13 +171,16 @@ subtype_loc loctyS loctyT = case loctyS of
   -- sigma = bty
   -- -------Sub-Refl
   -- sigma <: sigma
+  -- sigma = bty^phi
+  -- -------Sub-Refl
+  -- sigma <: sigma
   BaseT bty → return (loctyS ≡ loctyT)
   ShareT pS loc loctyS  → case loctyT of
       ShareT pT loc' loctyT → do
         l ← (elabEMode loc)
         l' ← (elabEMode loc')
         loccond ← (subtype_loc loctyS loctyT)
-        return ((l == l') ⩓ (pS == pT) ⩓ loccond)
+        return ((l ≡ l') ⩓ (pS ≡ pT) ⩓ loccond)
       _  → return False
   -- t1 <: t1' t2 <: t2'
   -- -------Sub-Sum
@@ -327,15 +330,21 @@ locty_meet locty locty' =
       do
         l ← (elabEMode loc)
         l' ← (elabEMode loc')
-        if ((p == p') ⩓ (l == l'))
-          then (
-            do
-              loc_meet ← (locty_meet locty locty')
-              return (ShareT p loc loc_meet)
-          )
-        else todoError
+        guardErr ((p  ≡ p') ⩓ (l  ≡ l'))$
+          typeError "meet: ⊢ₘ _ ˡ→ _ ; p ≢ p' or l ≢  l'" $ frhs
+            [ ("p", pretty p)
+            , ("p'", pretty p')
+            , ("l", pretty l)
+            . ("l'", ptryyu l'd)
+            ]
+      
+        loc_meet ← (locty_meet locty locty')
+        return (ShareT p loc loc_meet)
 
-    _  → todoError
+    _  → typeError "meet: locty is a share type but locty' is not'" $ frhs
+        [ ("locty", pretty locty)
+        , ("locty'", pretty locty')
+        ]
     )
   -- t1 <: t1' t2 <: t2'
   -- -------Sub-Sum
@@ -500,16 +509,21 @@ locty_join locty locty' =
       do
         l ← (elabEMode loc)
         l' ← (elabEMode loc')
-        if ((p == p') ⩓ (l == l'))
-          then (
-            do
-              loc_join ← (locty_join locty locty')
-              return (ShareT p loc loc_join)
-          )
-        else todoError
+        guardErr ((p  ≡ p') ⩓ (l  ≡ l'))$
+          typeError "join: ⊢ₘ _ ˡ→ _ ; p ≢ p' or l ≢  l'" $ frhs
+            [ ("p", pretty p)
+            , ("p'", pretty p')
+            , ("l", pretty l)
+            . ("l'", ptryyu l'd)
+            ]
+      
+        loc_join ← (locty_join locty locty')
+        return (ShareT p loc loc_join)
 
-    _  → todoError
-    )
+    _  → typeError "join: locty is a share type but locty' is not'" $ frhs
+        [ ("locty", pretty locty)
+        , ("locty'", pretty locty')
+        ]
   -- t1 <: t1' t2 <: t2'
   -- -------Sub-Sum
   -- t1 + t2 <: t1' + t2'
@@ -739,7 +753,9 @@ wf_share_loctype sigma m p l=
       _ ← (wf_share_type loctyᵣ m p l)
       return ()
     _  → do
-      todoError
+      typeError "wf_share_loctype: sigma is not well formed encrypted type" $ frhs
+        [ ("sigma", pretty sigma)
+        ]
 
 wf_share_type :: Type → Mode →  Prot → Mode → EM ()
 wf_share_type ty m p l =
@@ -748,7 +764,7 @@ wf_share_type ty m p l =
     SecT em' (ShareT p' loc loc_ty) → do
       m' ← (elabEMode em')
       guardErr (supermode m m') $
-        typeError "m is not a superet of m'" $ frhs
+        typeError "m is not a superset of m'" $ frhs
         [ ("m", pretty m)
         , ("m'", pretty m')
         ]
@@ -808,13 +824,7 @@ sublocty_wf sigma m =
     -- WF-Base (Based off WF-INT)
     BaseT bt → return sigma
     ShareT p loc loc_ty  → do
-        l ← (elabEMode loc)
-        if (l == m) then
-          do
-            loc_subty ← (share_subloctype_wf loc_ty m)
-            return (ShareT p loc loc_subty)
-        else
-          todoError
+      return (ShareT p loc loc_subty)
     -- WF-Sum: t1 must be well formed and t2 must be well formed
     (loctyₗ :+: loctyᵣ) → do
       loctyₗ' ← (subty_wf loctyₗ m)
@@ -1007,15 +1017,6 @@ matchType τ ψ= case ψ of
               , ("l", pretty l)
               ]
           return id
-    (SecT loc (ShareT _ _ (BaseT  ℙsT )))   → do
-          m ← askL terModeL
-          l ← elabEMode loc
-          guardErr (m ≡ l) $
-            typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
-              [ ("m", pretty m)
-              , ("l", pretty l)
-              ]
-          return id
     _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; {} is not of type τ" $ frhs
               [ ("τ", pretty τ)
               ]
@@ -1032,18 +1033,6 @@ matchType τ ψ= case ψ of
             do
             mt ← (bindType  (SecT loc (BaseT ℙsT )) ψ)
             (mt  ((bindTo  x (SecT loc (BaseT ℙT ))) y)) ))
-    (SecT loc (ShareT p loc' (BaseT  ℙsT )))  → do
-          m ← askL terModeL
-          l ← elabEMode loc
-          guardErr (m ≡ l) $
-            typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
-              [ ("m", pretty m)
-              , ("l", pretty l)
-              ]
-          return (\y -> (
-            do
-            mt ←  (bindType (SecT loc (ShareT p loc' (BaseT ℙsT ))) ψ)
-            (mt ((bindTo  x (SecT loc (ShareT p loc' (BaseT ℙT )))) y) ) ))
     _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; the expression is not of type SecT loc τ" $ frhs
               [ ("τ", pretty (BaseT ℙsT ))
               ]
@@ -1137,6 +1126,8 @@ matchType τ ψ= case ψ of
               [ ("τ", pretty τ)
               ]
   WildP → return id
+
+
 ------------------------------------------------
 -- Static Evaluation of Principal Expressions --
 ------------------------------------------------
