@@ -792,11 +792,14 @@ makeEncryptedType em φ sigma =
                   [ ("sigma", pretty sigma)
                   ]
 
+--  |-m e : cleartext type @p
+--  q != empty set and p union q = m and p is a principal
+-- ------T-Share
+-- gamma |- m share[p -> q] e : cleartext type that gets encrypted by q @ q
 synShare ∷ STACK ⇒  Prot → Type → PrinExp → PrinSetExp → Exp → EM Type
 synShare φ τ ρe₁ ρse₂ e₃ =
   let c₁ = synPrinExp ρe₁
-      c₂ = synPrinSet ρse₂
-      c₃ = synExp e₃ 
+      c₂ = synPrinSet ρse₂ 
       in do
         m  ← askL terModeL
         p ←  elabEMode (AddTop (PowPSE (frhs [ρe₁])))
@@ -819,23 +822,32 @@ synShare φ τ ρe₁ ρse₂ e₃ =
 
         (makeEncryptedType (AddTop ρse₂) φ τ)
 
--- Assume φ is in type
+---  |-m e : encrypted by p type @p
+--  q != empty set since it is a principal and p union q = m
+-- ------T-Share
+-- gamma |- m share[p -> q] e : cleartext type@ q
 synReveal ∷ STACK ⇒ Prot → Type → PrinSetExp → PrinExp → Exp → EM Type
 synReveal φ τ ρse₁ ρe₂ e₃ =
   let c₁ = synPrinSet ρse₁
       c₂ = synPrinExp ρe₂
-      in case τ of
-        SecT loc (ShareT φ loc' τ') → do
-            m  ← askL terModeL
-            p ←  elabEMode loc
-            p' ← elabEMode loc'
-            qs ← elabPrinSetExp  (PowPSE (frhs [ρe₂]))
-            subcond  ←  localL terModeL m (chkExp e₃ τ)
-            if ( (p ≡ p') ⩓ (m ≡ ( p ⊔ (AddTop qs)) ))
-              then return (SecT (AddTop (PowPSE (frhs [ρe₂]))) τ' )
-              else todoError
-        _ → do
-          todoError
+      in do
+        m  ← askL terModeL
+        ps ← elabPrinSetExp ρse₁
+        q ←  elabEMode (AddTop (PowPSE (frhs [ρe₂])))
+        encryptedτ ← (makeEncryptedType (AddTop ρse₁) φ τ) 
+        subcond  ←  localL terModeL m (chkExp e₃ encryptedτ)
+        guardErr ((AddTop ps) ⊔ q  ≡  m ) $
+          typeError "synShare: p union q /= m" $ frhs
+            [  
+              ("p", pretty (Addtop ps))
+              , ("q", pretty qs)
+              , ("puq", pretty ((AddTop ps) ⊔ qs))
+              , ("m", pretty m)
+            ]  
+
+        (makeCleartextType (AddTop (PowPSE (frhs [ρe₂]))) τ)
+        
+
 
 synComm ∷ STACK ⇒  Type → PrinExp → PrinSetExp → Exp → EM Type
 synComm τ ρe₁ ρse₂ e₃ =
