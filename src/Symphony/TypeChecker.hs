@@ -848,23 +848,34 @@ synReveal φ τ ρse₁ ρe₂ e₃ =
         (makeCleartextType (AddTop (PowPSE (frhs [ρe₂]))) τ)
         
 
-
-synComm ∷ STACK ⇒  Type → PrinExp → PrinSetExp → Exp → EM Type
-synComm τ ρe₁ ρse₂ e₃ =
+--  |-m e : cleartext type @p
+--  q != empty set and p union q = m and p is a principal
+-- ------T-Share
+-- gamma |- m share[p -> q] e : cleartext type @ q
+synComm∷ STACK ⇒  Prot → Type → PrinExp → PrinSetExp → Exp → EM Type
+synComm φ τ ρe₁ ρse₂ e₃ =
   let c₁ = synPrinExp ρe₁
-      c₂ = synPrinSet ρse₂
-      in case τ of
-        SecT loc' τ' → do
-            m  ← askL terModeL
-            p ←  elabEMode (AddTop (PowPSE (frhs [ρe₁])))
-            p' ← elabEMode loc'
-            qs ← elabPrinSetExp ρse₂
-            subcond  ←  localL terModeL m (chkExp e₃ τ)
-            if (not (isEmpty  qs)) ⩓ (supermode p' p)
-              then return (SecT (AddTop ρse₂) τ' )
-              else todoError
-        _ → do
-          todoError
+      c₂ = synPrinSet ρse₂ 
+      in do
+        m  ← askL terModeL
+        p ←  elabEMode (AddTop (PowPSE (frhs [ρe₁])))
+        qs ← elabPrinSetExp ρse₂
+        guardErr (not (isEmpty  qs)) $
+          typeError "synShare: q is empty" $ frhs
+            [  ("q", pretty qs)
+            ]  
+        cleartextτ ← (makeCleartextType (AddTop (PowPSE (frhs [ρe₁]))) τ)
+      --  wfcond ← wf_type cleartextτ m
+        subcond  ←  localL terModeL m (chkExp e₃ cleartextτ)
+        guardErr (p ⊔ (AddTop qs)  ≡  m ) $
+          typeError "synShare: p union q /= m" $ frhs
+            [  
+              ("p", pretty p)
+              , ("q", pretty (AddTop qs))
+              , ("puq", pretty (p ⊔ (AddTop qs)))
+              , ("m", pretty m)
+            ]  
+        (makeCleartextType (AddTop ρse₂) τ)
 
 synMuxIf ∷ STACK ⇒  Exp → Exp → Exp → EM Type
 synMuxIf e₁ e₂ e₃ =do
