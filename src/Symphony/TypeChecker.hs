@@ -839,9 +839,9 @@ synReveal φ τ ρse₁ ρe₂ e₃ =
         guardErr ((AddTop ps) ⊔ q  ≡  m ) $
           typeError "synShare: p union q /= m" $ frhs
             [  
-              ("p", pretty (Addtop ps))
-              , ("q", pretty qs)
-              , ("puq", pretty ((AddTop ps) ⊔ qs))
+              ("p", pretty (AddTop ps))
+              , ("qs", pretty q)
+              , ("puq", pretty ((AddTop ps) ⊔ q))
               , ("m", pretty m)
             ]  
 
