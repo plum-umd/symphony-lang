@@ -335,7 +335,7 @@ locty_meet locty locty' =
             [ ("p", pretty p)
             , ("p'", pretty p')
             , ("l", pretty l)
-            . ("l'", ptryyu l'd)
+            . ("l'", pretty l')
             ]
       
         loc_meet ← (locty_meet locty locty')
@@ -514,7 +514,7 @@ locty_join locty locty' =
             [ ("p", pretty p)
             , ("p'", pretty p')
             , ("l", pretty l)
-            . ("l'", ptryyu l'd)
+            . ("l'", pretty l')
             ]
       
         loc_join ← (locty_join locty locty')
