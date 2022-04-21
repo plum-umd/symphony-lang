@@ -1,5 +1,5 @@
 module Symphony.Dynamic.Par.Send where
-
+{-
 import Symphony.Prelude
 
 import Symphony.Lang.Syntax
@@ -98,3 +98,4 @@ recvClearBaseVal chanFr = \case
             _ → throwIErrorCxt NotImplementedIError "TODO" empty𝐿
       return $ IntV pr z
     _ → throwIErrorCxt NotImplementedIError "TODO" empty𝐿
+-}

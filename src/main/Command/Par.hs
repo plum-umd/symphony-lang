@@ -8,7 +8,7 @@ import Options
 import Symphony.Lang.Syntax
 import Symphony.Lang.Parser
 -- TODO(ins): Should remove CPP here and instead add stub module for Par to Symphony library
-#if DIST
+#ifdef PAR
 import Symphony.Dynamic.Par
 import Symphony.Dynamic.Par.Types
 #endif
@@ -89,7 +89,7 @@ runPar opts args = do
                None      → R.drgNew
                Some seed → return $ R.drgNewSeed $ R.seedFromInteger $ HS.fromIntegral seed
       ρvMe ← io $ parsePartyIO me
-#if DIST
+#ifdef PAR
       v ← io $ evalProgram (θ₀ ρvMe) (ωtl₀ prg) evalProgram
       return $ pretty v
 #else

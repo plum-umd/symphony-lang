@@ -33,62 +33,62 @@ primType op τs = case (op, tohs τs) of
 
 evalPrimClearBaseVal ∷ (Monad m, MonadReader (ICxt v) m, MonadError IError m, STACK) ⇒ Op → 𝐿 ClearBaseVal → m ClearBaseVal
 evalPrimClearBaseVal o vs = case (o,tohs vs) of
-  (OrO     ,[BoolV b₁, BoolV b₂])                   → return $ BoolV    $ b₁ ⩔ b₂
-  (PlusO   ,[NatV pr₁ n₁, NatV pr₂ n₂]) | pr₁ ≡ pr₂ → return $ NatV pr₁ $ trPrNat pr₁ $ n₁ + n₂
-  (PlusO   ,[IntV pr₁ i₁, IntV pr₂ i₂]) | pr₁ ≡ pr₂ → return $ IntV pr₁ $ trPrInt pr₁ $ i₁ + i₂
-  (AndO    ,[BoolV b₁  ,BoolV b₂  ])                → return $ BoolV   $ b₁ ⩓ b₂
-  (NotO    ,[BoolV b])                              → return $ BoolV   $ not b
-  (PlusO   ,[BoolV b₁  ,BoolV b₂  ])                → return $ BoolV   $ b₁ ⩔ b₂
-  (PlusO   ,[NatV p₁ n₁,NatV p₂ n₂])         |p₁≡p₂→ return $ NatV p₁ $ trPrNat p₁ $ n₁ + n₂
-  (PlusO   ,[IntV p₁ i₁,IntV p₂ i₂])         |p₁≡p₂→ return $ IntV p₁ $ trPrInt p₁ $ i₁ + i₂
-  (PlusO   ,[FltV p₁ f₁,FltV p₂ f₂])         |p₁≡p₂→ return $ FltV p₁ $ f₁ + f₂
-  (PlusO   ,[PrinSetV ρvs₁, PrinSetV ρvs₂])        → return $ PrinSetV $ PowPSV $ (elimPSV ρvs₁) ∪ (elimPSV ρvs₂)
-  (MinusO  ,[NatV p₁ n₁,NatV p₂ n₂])         |p₁≡p₂→ return $ NatV p₁ $ trPrNat p₁ $ buPrNat p₁ n₁ - n₂
-  (MinusO  ,[IntV p₁ i₁,IntV p₂ i₂])         |p₁≡p₂→ return $ IntV p₁ $ trPrInt p₁ $ i₁ - i₂
-  (MinusO  ,[FltV p₁ f₁,FltV p₂ f₂])         |p₁≡p₂→ return $ FltV p₁ $ f₁ - f₂
-  (TimesO  ,[NatV p₁ n₁,NatV p₂ n₂])         |p₁≡p₂→ return $ NatV p₁ $ trPrNat p₁ $ n₁ × n₂
-  (TimesO  ,[IntV p₁ i₁,IntV p₂ i₂])         |p₁≡p₂→ return $ IntV p₁ $ trPrInt p₁ $ i₁ × i₂
-  (TimesO  ,[FltV p₁ f₁,FltV p₂ f₂])         |p₁≡p₂→ return $ FltV p₁ $ f₁ × f₂
-  (ExpO    ,[NatV p₁ n₁,NatV p₂ n₂])         |p₁≡p₂→ return $ NatV p₁ $ trPrNat p₁ $ n₁ ^^ n₂
-  (ExpO    ,[IntV p₁ i₁,NatV p₂ n₂])         |p₁≡p₂→ return $ IntV p₁ $ trPrInt p₁ $ i₁ ^^ n₂
-  (ExpO    ,[FltV p₁ f₁,FltV p₂ f₂])         |p₁≡p₂→ return $ FltV p₁ $ f₁ ^ f₂
-  (DivO    ,[NatV p₁ n₁,NatV p₂ n₂])         |p₁≡p₂→ return $ NatV p₁ $ trPrNat p₁ $ if n₂ ≡ 0     then n₁ else n₁ ⌿ n₂
-  (DivO    ,[IntV p₁ i₁,IntV p₂ i₂])         |p₁≡p₂→ return $ IntV p₁ $ trPrInt p₁ $ if i₂ ≡ int 0 then i₁ else i₁ ⌿ i₂
-  (DivO    ,[FltV p₁ f₁,FltV p₂ f₂])         |p₁≡p₂→ return $ FltV p₁ $              if f₂ ≡ 0.0   then f₁ else f₁ / f₂
-  (ModO    ,[NatV p₁ n₁,NatV p₂ n₂])         |p₁≡p₂→ return $ NatV p₁ $ trPrNat p₁ $ if n₂ ≡ 0     then n₁ else n₁ ÷ n₂
-  (ModO    ,[IntV p₁ i₁,IntV p₂ i₂])         |p₁≡p₂→ return $ IntV p₁ $ trPrInt p₁ $ if i₂ ≡ int 0 then i₁ else i₁ ÷ i₂
-  (EqO     ,[BoolV b₁  ,BoolV b₂  ])               → return $ BoolV   $ b₁ ≡ b₂
-  (EqO     ,[NatV p₁ n₁,NatV p₂ n₂])         |p₁≡p₂→ return $ BoolV   $ n₁ ≡ n₂
-  (EqO     ,[IntV p₁ i₁,IntV p₂ i₂])         |p₁≡p₂→ return $ BoolV   $ i₁ ≡ i₂
-  (EqO     ,[FltV p₁ f₁,FltV p₂ f₂])         |p₁≡p₂→ return $ BoolV   $ f₁ ≡ f₂
-  (EqO     ,[PrinV ρev₁, PrinV ρev₂])              → return $ BoolV   $ ρev₁ ≡ ρev₂
-  (LTO     ,[NatV p₁ n₁,NatV p₂ n₂])         |p₁≡p₂→ return $ BoolV   $ n₁ < n₂
-  (LTO     ,[IntV p₁ i₁,IntV p₂ i₂])         |p₁≡p₂→ return $ BoolV   $ i₁ < i₂
-  (LTO     ,[FltV p₁ f₁,FltV p₂ f₂])         |p₁≡p₂→ return $ BoolV   $ f₁ < f₂
-  (GTO     ,[NatV p₁ n₁,NatV p₂ n₂])         |p₁≡p₂→ return $ BoolV   $ n₁ > n₂
-  (GTO     ,[IntV p₁ i₁,IntV p₂ i₂])         |p₁≡p₂→ return $ BoolV   $ i₁ > i₂
-  (GTO     ,[FltV p₁ f₁,FltV p₂ f₂])         |p₁≡p₂→ return $ BoolV   $ f₁ > f₂
-  (LTEO    ,[NatV p₁ n₁,NatV p₂ n₂])         |p₁≡p₂→ return $ BoolV   $ n₁ ≤ n₂
-  (LTEO    ,[IntV p₁ i₁,IntV p₂ i₂])         |p₁≡p₂→ return $ BoolV   $ i₁ ≤ i₂
-  (LTEO    ,[FltV p₁ f₁,FltV p₂ f₂])         |p₁≡p₂→ return $ BoolV   $ f₁ ≤ f₂
-  (GTEO    ,[NatV p₁ n₁,NatV p₂ n₂])         |p₁≡p₂→ return $ BoolV   $ n₁ ≥ n₂
-  (GTEO    ,[IntV p₁ i₁,IntV p₂ i₂])         |p₁≡p₂→ return $ BoolV   $ i₁ ≥ i₂
-  (GTEO    ,[FltV p₁ f₁,FltV p₂ f₂])         |p₁≡p₂→ return $ BoolV   $ f₁ ≥ f₂
-  (CondO   ,[BoolV b,BoolV b₁  ,BoolV b₂  ])      → return $ BoolV   $ if b then b₁ else b₂
-  (CondO   ,[BoolV b,NatV p₁ n₁,NatV p₂ n₂])|p₁≡p₂→ return $ NatV p₁ $ if b then n₁ else n₂
-  (CondO   ,[BoolV b,IntV p₁ i₁,IntV p₂ i₂])|p₁≡p₂→ return $ IntV p₁ $ if b then i₁ else i₂
-  (CondO   ,[BoolV b,FltV p₁ f₁,FltV p₂ f₂])|p₁≡p₂→ return $ FltV p₁ $ if b then f₁ else f₂
-  (AbsO    ,[IntV p i])                             → return $ NatV p  $ zabs i
-  (LogO    ,[FltV p f])                             → return $ FltV p  $ logBase 2.0 f
-  (SqrtO   ,[FltV p f])                             → return $ FltV p  $ root f
-  (NatO p₁ ,[NatV _ n])                            → return $ NatV p₁ $ trPrNat p₁ n
-  (NatO p₁ ,[IntV _ i])                            → return $ NatV p₁ $ trPrNat p₁ $ natΩ i
-  (IntO p₁ ,[IntV _ i])                            → return $ IntV p₁ $ trPrInt p₁ i
-  (IntO p₁ ,[NatV _ n])                            → return $ IntV p₁ $ trPrInt p₁ $ int n
-  (FltO p₁ ,[NatV _ n])                            → return $ FltV p₁ $ dbl n
-  (FltO p₁ ,[IntV _ i])                            → return $ FltV p₁ $ dbl i
-  (FltO p₁ ,[FltV _ d])                            → return $ FltV p₁ $ d
-  (CeilO p₁,[FltV _ f])                            → return $ IntV p₁ $ ceiling f
+  (OrO     ,[BoolCV b₁, BoolCV b₂])                   → return $ BoolCV    $ b₁ ⩔ b₂
+  (PlusO   ,[NatCV pr₁ n₁, NatCV pr₂ n₂]) | pr₁ ≡ pr₂ → return $ NatCV pr₁ $ trPrNat pr₁ $ n₁ + n₂
+  (PlusO   ,[IntCV pr₁ i₁, IntCV pr₂ i₂]) | pr₁ ≡ pr₂ → return $ IntCV pr₁ $ trPrInt pr₁ $ i₁ + i₂
+  (AndO    ,[BoolCV b₁  ,BoolCV b₂  ])                → return $ BoolCV   $ b₁ ⩓ b₂
+  (NotO    ,[BoolCV b])                              → return $ BoolCV   $ not b
+  (PlusO   ,[BoolCV b₁  ,BoolCV b₂  ])                → return $ BoolCV   $ b₁ ⩔ b₂
+  (PlusO   ,[NatCV p₁ n₁,NatCV p₂ n₂])         |p₁≡p₂→ return $ NatCV p₁ $ trPrNat p₁ $ n₁ + n₂
+  (PlusO   ,[IntCV p₁ i₁,IntCV p₂ i₂])         |p₁≡p₂→ return $ IntCV p₁ $ trPrInt p₁ $ i₁ + i₂
+  (PlusO   ,[FltCV p₁ f₁,FltCV p₂ f₂])         |p₁≡p₂→ return $ FltCV p₁ $ f₁ + f₂
+  (PlusO   ,[PrinSetCV ρvs₁, PrinSetCV ρvs₂])        → return $ PrinSetCV $ PowPSV $ (elimPSV ρvs₁) ∪ (elimPSV ρvs₂)
+  (MinusO  ,[NatCV p₁ n₁,NatCV p₂ n₂])         |p₁≡p₂→ return $ NatCV p₁ $ trPrNat p₁ $ buPrNat p₁ n₁ - n₂
+  (MinusO  ,[IntCV p₁ i₁,IntCV p₂ i₂])         |p₁≡p₂→ return $ IntCV p₁ $ trPrInt p₁ $ i₁ - i₂
+  (MinusO  ,[FltCV p₁ f₁,FltCV p₂ f₂])         |p₁≡p₂→ return $ FltCV p₁ $ f₁ - f₂
+  (TimesO  ,[NatCV p₁ n₁,NatCV p₂ n₂])         |p₁≡p₂→ return $ NatCV p₁ $ trPrNat p₁ $ n₁ × n₂
+  (TimesO  ,[IntCV p₁ i₁,IntCV p₂ i₂])         |p₁≡p₂→ return $ IntCV p₁ $ trPrInt p₁ $ i₁ × i₂
+  (TimesO  ,[FltCV p₁ f₁,FltCV p₂ f₂])         |p₁≡p₂→ return $ FltCV p₁ $ f₁ × f₂
+  (ExpO    ,[NatCV p₁ n₁,NatCV p₂ n₂])         |p₁≡p₂→ return $ NatCV p₁ $ trPrNat p₁ $ n₁ ^^ n₂
+  (ExpO    ,[IntCV p₁ i₁,NatCV p₂ n₂])         |p₁≡p₂→ return $ IntCV p₁ $ trPrInt p₁ $ i₁ ^^ n₂
+  (ExpO    ,[FltCV p₁ f₁,FltCV p₂ f₂])         |p₁≡p₂→ return $ FltCV p₁ $ f₁ ^ f₂
+  (DivO    ,[NatCV p₁ n₁,NatCV p₂ n₂])         |p₁≡p₂→ return $ NatCV p₁ $ trPrNat p₁ $ if n₂ ≡ 0     then n₁ else n₁ ⌿ n₂
+  (DivO    ,[IntCV p₁ i₁,IntCV p₂ i₂])         |p₁≡p₂→ return $ IntCV p₁ $ trPrInt p₁ $ if i₂ ≡ int 0 then i₁ else i₁ ⌿ i₂
+  (DivO    ,[FltCV p₁ f₁,FltCV p₂ f₂])         |p₁≡p₂→ return $ FltCV p₁ $              if f₂ ≡ 0.0   then f₁ else f₁ / f₂
+  (ModO    ,[NatCV p₁ n₁,NatCV p₂ n₂])         |p₁≡p₂→ return $ NatCV p₁ $ trPrNat p₁ $ if n₂ ≡ 0     then n₁ else n₁ ÷ n₂
+  (ModO    ,[IntCV p₁ i₁,IntCV p₂ i₂])         |p₁≡p₂→ return $ IntCV p₁ $ trPrInt p₁ $ if i₂ ≡ int 0 then i₁ else i₁ ÷ i₂
+  (EqO     ,[BoolCV b₁  ,BoolCV b₂  ])               → return $ BoolCV   $ b₁ ≡ b₂
+  (EqO     ,[NatCV p₁ n₁,NatCV p₂ n₂])         |p₁≡p₂→ return $ BoolCV   $ n₁ ≡ n₂
+  (EqO     ,[IntCV p₁ i₁,IntCV p₂ i₂])         |p₁≡p₂→ return $ BoolCV   $ i₁ ≡ i₂
+  (EqO     ,[FltCV p₁ f₁,FltCV p₂ f₂])         |p₁≡p₂→ return $ BoolCV   $ f₁ ≡ f₂
+  (EqO     ,[PrinCV ρev₁, PrinCV ρev₂])              → return $ BoolCV   $ ρev₁ ≡ ρev₂
+  (LTO     ,[NatCV p₁ n₁,NatCV p₂ n₂])         |p₁≡p₂→ return $ BoolCV   $ n₁ < n₂
+  (LTO     ,[IntCV p₁ i₁,IntCV p₂ i₂])         |p₁≡p₂→ return $ BoolCV   $ i₁ < i₂
+  (LTO     ,[FltCV p₁ f₁,FltCV p₂ f₂])         |p₁≡p₂→ return $ BoolCV   $ f₁ < f₂
+  (GTO     ,[NatCV p₁ n₁,NatCV p₂ n₂])         |p₁≡p₂→ return $ BoolCV   $ n₁ > n₂
+  (GTO     ,[IntCV p₁ i₁,IntCV p₂ i₂])         |p₁≡p₂→ return $ BoolCV   $ i₁ > i₂
+  (GTO     ,[FltCV p₁ f₁,FltCV p₂ f₂])         |p₁≡p₂→ return $ BoolCV   $ f₁ > f₂
+  (LTEO    ,[NatCV p₁ n₁,NatCV p₂ n₂])         |p₁≡p₂→ return $ BoolCV   $ n₁ ≤ n₂
+  (LTEO    ,[IntCV p₁ i₁,IntCV p₂ i₂])         |p₁≡p₂→ return $ BoolCV   $ i₁ ≤ i₂
+  (LTEO    ,[FltCV p₁ f₁,FltCV p₂ f₂])         |p₁≡p₂→ return $ BoolCV   $ f₁ ≤ f₂
+  (GTEO    ,[NatCV p₁ n₁,NatCV p₂ n₂])         |p₁≡p₂→ return $ BoolCV   $ n₁ ≥ n₂
+  (GTEO    ,[IntCV p₁ i₁,IntCV p₂ i₂])         |p₁≡p₂→ return $ BoolCV   $ i₁ ≥ i₂
+  (GTEO    ,[FltCV p₁ f₁,FltCV p₂ f₂])         |p₁≡p₂→ return $ BoolCV   $ f₁ ≥ f₂
+  (CondO   ,[BoolCV b,BoolCV b₁  ,BoolCV b₂  ])      → return $ BoolCV   $ if b then b₁ else b₂
+  (CondO   ,[BoolCV b,NatCV p₁ n₁,NatCV p₂ n₂])|p₁≡p₂→ return $ NatCV p₁ $ if b then n₁ else n₂
+  (CondO   ,[BoolCV b,IntCV p₁ i₁,IntCV p₂ i₂])|p₁≡p₂→ return $ IntCV p₁ $ if b then i₁ else i₂
+  (CondO   ,[BoolCV b,FltCV p₁ f₁,FltCV p₂ f₂])|p₁≡p₂→ return $ FltCV p₁ $ if b then f₁ else f₂
+  (AbsO    ,[IntCV p i])                             → return $ NatCV p  $ zabs i
+  (LogO    ,[FltCV p f])                             → return $ FltCV p  $ logBase 2.0 f
+  (SqrtO   ,[FltCV p f])                             → return $ FltCV p  $ root f
+  (NatO p₁ ,[NatCV _ n])                            → return $ NatCV p₁ $ trPrNat p₁ n
+  (NatO p₁ ,[IntCV _ i])                            → return $ NatCV p₁ $ trPrNat p₁ $ natΩ i
+  (IntO p₁ ,[IntCV _ i])                            → return $ IntCV p₁ $ trPrInt p₁ i
+  (IntO p₁ ,[NatCV _ n])                            → return $ IntCV p₁ $ trPrInt p₁ $ int n
+  (FltO p₁ ,[NatCV _ n])                            → return $ FltCV p₁ $ dbl n
+  (FltO p₁ ,[IntCV _ i])                            → return $ FltCV p₁ $ dbl i
+  (FltO p₁ ,[FltCV _ d])                            → return $ FltCV p₁ $ d
+  (CeilO p₁,[FltCV _ f])                            → return $ IntCV p₁ $ ceiling f
   _ → throwIErrorCxt NotImplementedIError "interpPrim" $ frhs
     [ ("o",pretty o)
     , ("vs",pretty vs)

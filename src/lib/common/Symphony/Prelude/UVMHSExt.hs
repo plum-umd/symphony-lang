@@ -5,6 +5,9 @@ import UVMHS
 import qualified Prelude as HS
 import qualified Data.Vector.Mutable as VBM
 import qualified Data.IORef as IOR
+import qualified Foreign.ForeignPtr as F
+import qualified Foreign.Ptr as Ptr
+
 
 instance (POrd a) ⇒ POrd (AddTop a) where
   _          ⊑ Top        = True
@@ -265,6 +268,9 @@ cont f = ContT $ \ c → ID (f (unID ∘ c))
 
 runCont ∷ Cont r a → (a → r) → r
 runCont m k = unID $ runContT (ID ∘ k) m
+
+withForeignPtrs :: [F.ForeignPtr a] -> ([Ptr.Ptr a] -> IO b) -> IO b
+withForeignPtrs xs f = runCont (mapM (cont ∘ F.withForeignPtr) xs) f
 
 pmapM ∷ (Monad m, Ord b) ⇒ (a → m b) → 𝑃 a → m (𝑃 b)
 pmapM f = pow𝐼 ^∘ mapM f ∘ iter

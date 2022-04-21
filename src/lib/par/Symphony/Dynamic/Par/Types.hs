@@ -6,7 +6,9 @@ import Symphony.Lang.Syntax
 import Symphony.Lang.Parser
 
 import Symphony.Dynamic.Par.Error
-import Symphony.Dynamic.Par.Channel
+import Symphony.Dynamic.Par.Prg.Types
+import Symphony.Dynamic.Par.Channel.Types
+import Symphony.Dynamic.Par.GMW
 
 import qualified Crypto.Random as R
 import Foreign.ForeignPtr (ForeignPtr)
@@ -34,21 +36,25 @@ data BaseVal =
   | EncV (𝑃 PrinVal) EncBaseVal
 
 data ClearBaseVal =
-    BulV
-  | BoolV 𝔹
-  | NatV IPrecision ℕ
-  | IntV IPrecision ℤ
-  | FltV FPrecision 𝔻
-  | StrV 𝕊
-  | PrinV PrinVal
-  | PrinSetV PrinSetVal
+    BulCV
+  | BoolCV 𝔹
+  | NatCV IPrecision ℕ
+  | IntCV IPrecision ℤ
+  | FltCV FPrecision 𝔻
+  | StrCV 𝕊
+  | PrinCV PrinVal
+  | PrinSetCV PrinSetVal
   deriving (Eq, Ord, Show)
 
 data EncBaseVal =
-    GmwV Gmw
-  | YaoV Yao
+    BulEV EncBul
+  | BoolEV EncBool
 
-type Yao = ()
+data EncBul =
+    GmwEBul
+
+data EncBool =
+    GmwEB GmwBool
 
 -----------------
 -- ENVIRONMENT --
@@ -73,8 +79,10 @@ type Store v = 𝑉 v
 -- Interpreter Params
 -- θ ∈ params
 data IParams = IParams
-  { iParamsIsExample ∷ 𝔹
+  { iParamsName      ∷ 𝕊
   , iParamsMe        ∷ PrinVal
+  , iParamsPrg       ∷ Prg
+  , iParamsChannels  ∷ PrinVal ⇰ Channel
   } deriving (Eq, Ord, Show)
 
 -------------
@@ -96,18 +104,13 @@ data ICxt v = ICxt
 -- STATE --
 -----------
 
-type GmwSession = ()
-type Gmw = ()
-
 -- Interpreter State
 -- ω ∈ state
 data IState v = IState
-  { iStateStore        ∷ (Store v)
-  , iStateNextLoc      ∷ ℤ64
-  , iStateGen          ∷ R.ChaChaDRG
-  , iStateChannels     ∷ PrinVal ⇰ Channel
-  , iStateSessionsGmw  ∷ 𝑃 PrinVal ⇰ GmwSession
-  , iStateMPCCont      ∷ 𝐿 (𝐿 v ∧ v)
+  { iStateNextLoc ∷ ℤ64
+  , iStateStore   ∷ (Store v)
+  , iStateGmws    ∷ 𝑃 PrinVal ⇰ Gmw
+  , iStateMPCCont ∷ 𝐿 (𝐿 v ∧ v)
   }
 
 ------------
@@ -122,18 +125,6 @@ instance Null IOut where null = IOut
 instance Append IOut where IOut ⧺ IOut = IOut
 instance Monoid IOut
 
---------------------
--- TOPLEVEL STATE --
---------------------
-
--- ωtl ∈ tl-state
-data ITLState v = ITLState
-  { itlStateEnv       ∷ (Env v)
-  , itlStatePrinScope ∷ 𝑃 PrinVal
-  , itlStateNextId    ∷ ℕ
-  , itlStateExp       ∷ (IState v)
-  }
-
 ----------------------
 -- EXPRESSION MONAD --
 ----------------------
@@ -145,21 +136,6 @@ newtype IM v a = IM { unIM ∷ RWST (ICxt v) IOut (IState v) (ErrorT IError IO) 
   , MonadReader (ICxt v)
   , MonadWriter IOut
   , MonadState (IState v)
-  , MonadError IError
-  , MonadIO
-  )
-
---------------------
--- TOPLEVEL MONAD --
---------------------
-
-newtype ITLM v a = ITLM { unITLM ∷ RWST IParams IOut (ITLState v) (ErrorT IError IO) a }
-  deriving
-  ( Functor
-  , Return,Bind,Monad
-  , MonadReader IParams
-  , MonadWriter IOut
-  , MonadState (ITLState v)
   , MonadError IError
   , MonadIO
   )
@@ -256,21 +232,25 @@ elimEnc ρsₑ = \case
       ]
     return ebv
 
-metaBaseVal ∷ (STACK) ⇒ BaseVal → 𝑂 (Prot ∧ 𝑃 PrinVal)
-metaBaseVal = \case
-  ClearV _cbv        → None
-  EncV ρ𝑃 (GmwV _gmw) → Some $ GMWP  :* ρ𝑃
-  EncV ρ𝑃 (YaoV _gmw) → Some $ YaoNP :* ρ𝑃
+metaProt ∷ (STACK) ⇒ EncBaseVal → Prot
+metaProt = \case
+  BulEV GmwEBul    → GMWP
+  BoolEV (GmwEB _) → GMWP
 
-metaMeet ∷ (STACK) ⇒ 𝑂 (Prot ∧ 𝑃 PrinVal) → 𝑂 (Prot ∧ 𝑃 PrinVal) → 𝑂 (Prot ∧ 𝑃 PrinVal)
+metaBaseVal ∷ (STACK) ⇒ BaseVal → 𝑂 (𝑃 PrinVal ∧ Prot)
+metaBaseVal = \case
+  ClearV _cbv → None
+  EncV ρ𝑃 ebv → Some $ ρ𝑃 :* metaProt ebv
+
+metaMeet ∷ (STACK) ⇒ 𝑂 (𝑃 PrinVal ∧ Prot) → 𝑂 (𝑃 PrinVal ∧ Prot) → 𝑂 (𝑃 PrinVal ∧ Prot)
 metaMeet meta₁ meta₂ = case (meta₁, meta₂) of
   (None      , None      ) → None
   (Some _φρ𝑃₁, None      ) → meta₁
   (None      , Some _φρ𝑃₂) → meta₂
   (Some _φρ𝑃₁, Some _φρ𝑃₂) → meta₁
 
-metaBaseVals ∷ (STACK) ⇒ 𝐿 BaseVal → 𝑂 (Prot ∧ 𝑃 PrinVal)
-metaBaseVals = foldFromWith None $ \ bv acc → metaMeet (metaBaseVal bv) acc
+metaBaseVals ∷ (STACK) ⇒ 𝐿 BaseVal → 𝑂 (𝑃 PrinVal ∧ Prot)
+metaBaseVals = foldFromWith None $ \ bv → metaMeet (metaBaseVal bv)
 
 -- ClearBaseVal
 
@@ -278,64 +258,64 @@ makePrisms ''ClearBaseVal
 
 instance Pretty ClearBaseVal where
   pretty = \case
-    BulV         → ppCon "•"
-    BoolV b      → pretty b
-    NatV p n     → ppNatSymphony p n
-    IntV p i     → ppIntSymphony p i
-    FltV p d     → ppFltSymphony p d
-    StrV s       → pretty s
-    PrinV ρv     → pretty ρv
-    PrinSetV ρsv → pretty ρsv
+    BulCV         → ppCon "•"
+    BoolCV b      → pretty b
+    NatCV p n     → ppNatSymphony p n
+    IntCV p i     → ppIntSymphony p i
+    FltCV p d     → ppFltSymphony p d
+    StrCV s       → pretty s
+    PrinCV ρv     → pretty ρv
+    PrinSetCV ρsv → pretty ρsv
 
 elimBool ∷ (STACK) ⇒ ClearBaseVal → IM Val 𝔹
-elimBool cbv = error𝑂 (view boolVL cbv) $
+elimBool cbv = error𝑂 (view boolCVL cbv) $
                throwIErrorCxt TypeIError "elimBool: view boolVL cbv ≡ None" $ frhs
                [ ("cbv", pretty cbv)
                ]
 
 elimNat ∷ (STACK) ⇒ ClearBaseVal → IM Val (IPrecision ∧ ℕ)
-elimNat cbv = error𝑂 (view natVL cbv) $
+elimNat cbv = error𝑂 (view natCVL cbv) $
               throwIErrorCxt TypeIError "elimNat: view natVL cbv ≡ None" $ frhs
               [ ("cbv", pretty cbv)
               ]
 
 elimStr ∷ (STACK) ⇒ ClearBaseVal → IM Val 𝕊
-elimStr cbv = error𝑂 (view strVL cbv) $
+elimStr cbv = error𝑂 (view strCVL cbv) $
               throwIErrorCxt TypeIError "elimStr: view strVL cbv ≡ None" $ frhs
               [ ("cbv", pretty cbv)
               ]
 
 elimPrin ∷ (STACK) ⇒ ClearBaseVal → IM Val PrinVal
-elimPrin cbv = error𝑂 (view prinVL cbv) $
+elimPrin cbv = error𝑂 (view prinCVL cbv) $
                throwIErrorCxt TypeIError "elimPrin: view prinVL cbv ≡ None" $ frhs
                [ ("cbv", pretty cbv)
                ]
 
 elimPrinSet ∷ (STACK) ⇒ ClearBaseVal → IM Val PrinSetVal
-elimPrinSet cbv = error𝑂 (view prinSetVL cbv) $
+elimPrinSet cbv = error𝑂 (view prinSetCVL cbv) $
                   throwIErrorCxt TypeIError "elimPrinSet: view prinSetVL cbv ≡ None" $ frhs
                   [ ("cbv", pretty cbv)
                   ]
 
 typeFrClearBaseVal ∷ ClearBaseVal → BaseType
 typeFrClearBaseVal = \case
-  BulV          → UnitT
-  BoolV _b      → 𝔹T
-  NatV pr _n    → ℕT pr
-  IntV pr _i    → ℤT pr
-  FltV pr _f    → 𝔽T pr
-  StrV _s       → 𝕊T
-  PrinV _ρv     → ℙT
-  PrinSetV _ρsv → ℙsT
+  BulCV          → UnitT
+  BoolCV _b      → 𝔹T
+  NatCV pr _n    → ℕT pr
+  IntCV pr _i    → ℤT pr
+  FltCV pr _f    → 𝔽T pr
+  StrCV _s       → 𝕊T
+  PrinCV _ρv     → ℙT
+  PrinSetCV _ρsv → ℙsT
 
 defaultClearBaseVal ∷ BaseType → ClearBaseVal
 defaultClearBaseVal = \case
-  UnitT → BulV
-  𝔹T    → BoolV null
-  ℕT pr → NatV pr null
-  ℤT pr → IntV pr null
-  𝔽T pr → FltV pr null
-  𝕊T    → StrV null
+  UnitT → BulCV
+  𝔹T    → BoolCV null
+  ℕT pr → NatCV pr null
+  ℤT pr → IntCV pr null
+  𝔽T pr → FltCV pr null
+  𝕊T    → StrCV null
   ℙT    → undefined -- TODO
   ℙsT   → undefined -- TODO
 
@@ -345,22 +325,46 @@ makePrisms ''EncBaseVal
 
 instance Pretty EncBaseVal where
   pretty ebv = case ebv of
-    GmwV gmw → prettyProt GMWP gmw
-    YaoV yao → prettyProt YaoNP yao
-    where prettyProt φ sh =
-            ppPostF concat levelMODE
-            (ppSetBotLevel $ concat
-             [ ppPun "⌈"
-             , pretty φ
-             , ppPun "⌉"
-             ]) $
-            pretty sh
+    BulEV bul     → pretty bul
+    BoolEV b      → pretty b
 
-elimGmw ∷ EncBaseVal → IM Val Gmw
-elimGmw ebv = error𝑂 (view gmwVL ebv) $
-              throwIErrorCxt TypeIError "elimGmw: view gmwVL ebv ≡ None" $ frhs
-              [ ("ebv", pretty ebv)
-              ]
+prettyProt ∷ (Pretty a) ⇒ Prot → a → Doc
+prettyProt φ x =
+  ppPostF concat levelMODE
+  (ppSetBotLevel $ concat
+    [ ppPun "⌈"
+    , pretty φ
+    , ppPun "⌉"
+    ]) $
+  pretty x
+
+-- EncBul
+
+makePrisms ''EncBul
+
+instance Pretty EncBul where
+  pretty ebul = case ebul of
+    GmwEBul → prettyProt GMWP UnitT
+
+elimGmwBul ∷ EncBul → IM Val ()
+elimGmwBul ebul = error𝑂 (view gmwEBulL ebul) $
+                   throwIErrorCxt TypeIError "elimGmwEBul: view gmwEBulL ebul ≡ None" $ frhs
+                   [ ("ebul", pretty ebul)
+                   ]
+
+-- EncBool
+
+makePrisms ''EncBool
+
+instance Pretty EncBool where
+  pretty eb = case eb of
+    GmwEB b → prettyProt GMWP b
+
+elimGmwBool ∷ EncBool → IM Val GmwBool
+elimGmwBool eb = error𝑂 (view gmwEBL eb) $
+               throwIErrorCxt TypeIError "elimGmwBool: view gmwEBL eb ≡ None" $ frhs
+               [ ("eb", pretty eb)
+               ]
 
 -- IParams
 
@@ -368,8 +372,8 @@ makeLenses ''IParams
 
 makePrettySum ''IParams
 
-θ₀ ∷ PrinVal → IParams
-θ₀ ρv = IParams False ρv
+θ₀ ∷ 𝕊 → PrinVal → Prg → (PrinVal ⇰ Channel) → IParams
+θ₀ = IParams
 
 -- ICxt
 
@@ -383,11 +387,25 @@ makePrettySum ''ICxt
 instance HasLens (ICxt v) (𝑂 SrcCxt) where
   hasLens = iCxtSourceL
 
-iCxtIsExampleL ∷ ICxt v ⟢ 𝔹
-iCxtIsExampleL = iParamsIsExampleL ⊚ iCxtParamsL
-
 iCxtMeL ∷ ICxt v ⟢ PrinVal
 iCxtMeL = iParamsMeL ⊚ iCxtParamsL
+
+iCxtPrgL ∷ ICxt v ⟢ Prg
+iCxtPrgL = iParamsPrgL ⊚ iCxtParamsL
+
+iCxtChannelsL ∷ ICxt v ⟢ (PrinVal ⇰ Channel)
+iCxtChannelsL = iParamsChannelsL ⊚ iCxtParamsL
+
+getPrg ∷ (STACK) ⇒ IM Val Prg
+getPrg = askL iCxtPrgL
+
+getChannel ∷ (STACK) ⇒ PrinVal → IM Val Channel
+getChannel ρv = do
+  chans ← askL iCxtChannelsL
+  fromSomeCxt $ chans ⋕? ρv
+
+getChannels ∷ (STACK) ⇒ 𝑃 PrinVal → IM Val (PrinVal ⇰ Channel)
+getChannels ρvs = dict ^$ mapM (\ ρv → (ρv ↦) ^$ getChannel ρv) $ iter ρvs
 
 -- IState
 
@@ -395,43 +413,46 @@ makeLenses ''IState
 
 makePrettySum ''IState
 
-ω₀ ∷ R.ChaChaDRG → IState v
-ω₀ g = IState wø (𝕫64 1) g dø dø null
+ω₀ ∷ IState v
+ω₀ = IState (𝕫64 1) wø dø null
+
+getGmw ∷ (STACK) ⇒ 𝑃 PrinVal → IM Val (𝑂 Gmw)
+getGmw ρvs = do
+  gmws ← getL iStateGmwsL
+  return $ gmws ⋕? ρvs
+
+mkGmw ∷ (STACK) ⇒ 𝑃 PrinVal → IM Val Gmw
+mkGmw ρvs = do
+  me ← askL iCxtMeL
+  chans ← getChannels ρvs
+  gmw ← gmwCreate me chans
+  modifyL iStateGmwsL ((ρvs ↦ gmw) ⩌!)
+  return gmw
+
+getOrMkGmw ∷ (STACK) ⇒ 𝑃 PrinVal → IM Val Gmw
+getOrMkGmw ρvs = do
+  gmw𝑂 ← getGmw ρvs
+  case gmw𝑂 of
+    None     → mkGmw ρvs
+    Some gmw → return gmw
 
 -- IOut
 
 makePrettySum ''IOut
 
--- ITLState
-
-makeLenses ''ITLState
-
-makePrettySum ''ITLState
-
-ωtl₀ ∷ R.ChaChaDRG → ITLState v
-ωtl₀ g = ITLState dø pø 0 (ω₀ g)
-
 -- IM
 
-mkIM ∷ (ICxt v → IState v → IO (IError ∨ (IState v ∧ IOut ∧ a))) → IM v a
-mkIM f = IM $ mkRWST $ ErrorT ∘∘ f
+--mkIM ∷ (ICxt v → IState v → IO (IError ∨ (IState v ∧ IOut ∧ a))) → IM v a
+--mkIM f = IM $ mkRWST $ ErrorT ∘∘ f
 
-runIM ∷ ICxt v → IState v → IM v a → IO (IError ∨ (IState v ∧ IOut ∧ a))
-runIM ξ ω = unErrorT ∘ runRWST ξ ω ∘ unIM
+runIM ∷ IParams → IM v a → IO (IError ∨ (IState v ∧ IOut ∧ a))
+runIM θ = unErrorT ∘ runRWST (ξ₀ θ) ω₀ ∘ unIM
 
--- ITLM
-
-mkITLM ∷ (IParams → ITLState v → IO (IError ∨ (ITLState v ∧ IOut ∧ a))) → ITLM v a
-mkITLM f = ITLM $ mkRWST $ \ θ ωtl → ErrorT $ f θ ωtl
-
-runITLM ∷ IParams → ITLState v → ITLM v a → IO (IError ∨ (ITLState v ∧ IOut ∧ a))
-runITLM θ ωtl xM = unErrorT $ runRWST θ ωtl $ unITLM xM
-
-runITLMIO ∷ IParams → ITLState v → 𝕊 → ITLM v a → IO (ITLState v ∧ IOut ∧ a)
-runITLMIO θ ωtl name xM = runITLM θ ωtl xM ≫= \case
+runIMIO ∷ IParams → IM v a → IO (IState v ∧ IOut ∧ a)
+runIMIO θ xM = runIM θ xM ≫= \case
   Inr x → return x
   Inl e → do
-    pprint $ ppHorizontal [ppErr ">",ppBD $ ppString name]
+    pprint $ ppHorizontal [ppErr ">", ppBD $ ppString (iParamsName θ)]
     printError e
     abortIO
 
@@ -443,29 +464,11 @@ printError (IError rsO cs rc rm) = pprint $ ppVertical $ concat
   , single𝐼 $ pretty cs
   ]
 
-evalITLM ∷ IParams → ITLState v → ITLM v a → IO (IError ∨ a)
-evalITLM θ ωtl = mapp snd ∘ runITLM θ ωtl
+evalIM ∷ IParams → IM v a → IO (IError ∨ a)
+evalIM θ = mapp snd ∘ runIM θ
 
-evalITLMIO ∷ IParams → ITLState v → 𝕊 → ITLM v a → IO a
-evalITLMIO θ ωtl name = map snd ∘ runITLMIO θ ωtl name
-
-getGmwSession ∷ 𝑃 PrinVal → IM Val (𝑂 GmwSession)
-getGmwSession ρvs = do
-  πs ← getL iStateSessionsGmwL
-  return $ πs ⋕? ρvs
-
-mkGmwSession ∷ 𝑃 PrinVal → IM Val GmwSession
-mkGmwSession ρvs = do
-  π ← todoCxt
-  modifyL iStateSessionsGmwL ((ρvs ↦ π) ⩌!)
-  return π
-
-getOrMkSessionGmw ∷ 𝑃 PrinVal → IM Val GmwSession
-getOrMkSessionGmw ρvs = do
-  π𝑂 ← getGmwSession ρvs
-  case π𝑂 of
-    None   → mkGmwSession ρvs
-    Some π → return π
+evalIMIO ∷ IParams → IM v a → IO a
+evalIMIO = mapp snd ∘ runIMIO
 
 -- PrinVal
 
@@ -522,5 +525,3 @@ arrTL = prism constr destr
         destr = \case
           ArrT n τ → Some (n :* τ)
           _ → None
-
--- GMW

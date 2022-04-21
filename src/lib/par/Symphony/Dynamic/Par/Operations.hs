@@ -156,21 +156,21 @@ matchVal ṽ = \case
   VarP x → return $ bindTo x ṽ
   BulP → do
     v ← lift $ elimKnown ṽ
-    abort𝑂 $ view (bulVL ⊚ clearVL ⊚ baseVL) v
+    abort𝑂 $ view (bulCVL ⊚ clearVL ⊚ baseVL) v
     return id
   EPrinSetP → do
     v ← lift $ elimKnown ṽ
-    ρsv ← abort𝑂 $ view (prinSetVL ⊚ clearVL ⊚ baseVL) v
+    ρsv ← abort𝑂 $ view (prinSetCVL ⊚ clearVL ⊚ baseVL) v
     let ρ𝑃 = elimPSV ρsv
     abort𝑂 $ view empty𝑃L ρ𝑃
     return id
   NEPrinSetP x₁ ψ₂ → do
     v ← lift $ elimKnown ṽ
-    ρsv ← abort𝑂 $ view (prinSetVL ⊚ clearVL ⊚ baseVL) v
+    ρsv ← abort𝑂 $ view (prinSetCVL ⊚ clearVL ⊚ baseVL) v
     let ρ𝑃 = elimPSV ρsv
     ρ :* ρs ← abort𝑂 $ view nonEmpty𝑃L ρ𝑃
-    ṽ₁ ← lift $ return $ KnownV $ BaseV $ ClearV $ PrinV ρ
-    ṽ₂ ← lift $ return $ KnownV $ BaseV $ ClearV $ PrinSetV $ PowPSV ρs
+    ṽ₁ ← lift $ return $ KnownV $ BaseV $ ClearV $ PrinCV ρ
+    ṽ₂ ← lift $ return $ KnownV $ BaseV $ ClearV $ PrinSetCV $ PowPSV ρs
     let f₁ = bindTo x₁ ṽ₁
     f₂ ← matchVal ṽ₂ ψ₂
     return $ compose [ f₂, f₁ ]
@@ -206,7 +206,7 @@ matchVal ṽ = \case
   NEBundleP x₁ ψ₂ ψ₃ → do
     v ← lift $ elimKnown ṽ
     ρ :* ṽ₂ :* ρtoṽ ← abort𝑂 $ view (nonEmpty𝐷L ⊚ bundleVL) v
-    ṽ₁ ← lift $ return $ KnownV $ BaseV $ ClearV $ PrinV ρ
+    ṽ₁ ← lift $ return $ KnownV $ BaseV $ ClearV $ PrinCV ρ
     ṽ₃ ← lift $ return $ KnownV $ BundleV ρtoṽ
     let f₁ = bindTo x₁ ṽ₁
     f₂ ← matchVal ṽ₂ ψ₂
@@ -263,7 +263,7 @@ embedBaseVals bvs = do
   let meta = metaBaseVals bvs
   case meta of
     None           → Inl                ^$ mapM elimClear bvs
-    Some (φ :* ρ𝑃) → Inr ∘ (φ :* ρ𝑃 :*) ^$ mapM (embedBaseVal φ ρ𝑃) bvs
+    Some (ρ𝑃 :* φ) → Inr ∘ (φ :* ρ𝑃 :*) ^$ mapM (embedBaseVal φ ρ𝑃) bvs
 
 primBaseVal ∷ (STACK) ⇒ Op → 𝐿 BaseVal → IM Val BaseVal
 primBaseVal op bvs = do

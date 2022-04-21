@@ -19,7 +19,6 @@ import qualified Prelude as HS
 import qualified Crypto.Random as R
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.Binary as B
-import GHC.RTS.Flags (RTSFlags(profilingFlags))
 
 --import Foreign.ForeignPtr
 

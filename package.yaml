@@ -40,10 +40,9 @@ default-extensions:
   - CPP
 
 flags:
-  dist:
+  par:
     default: false
     manual: true
-
 
 ghc-options:
   - -Wall
@@ -64,7 +63,8 @@ data-files:
 
 library:
   source-dirs:
-    - src/lib/all
+    - src/lib/common
+    - src/lib/seq
   dependencies:
     - aeson
     - network
@@ -81,9 +81,11 @@ library:
     - text
     - vector
   when:
-    - condition: flag(dist)
+    - condition: flag(par)
       source-dirs:
         - src/lib/par
+      extra-libraries:
+        - symphony
 
 tests:
   symphony-test:
@@ -107,3 +109,8 @@ executables:
       - cryptonite
       - symphony
       - uvmhs
+    when:
+      - condition: flag(par)
+        extra-libraries:
+          - symphony
+        cpp-options: -DPAR

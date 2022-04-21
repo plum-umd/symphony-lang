@@ -13,8 +13,10 @@ dataPath ∷ 𝕊 → IO 𝕊
 dataPath = string ^∘ getDataFileName ∘ chars
 
 findFile ∷ 𝕊 → IO 𝕊
-findFile relative = do
-  relativeExists ← pexists relative
-  if relativeExists
-  then return relative
-  else dataPath relative
+findFile path = do
+  pkgPath ← dataPath path
+  existsPath ← pexists path
+  existsPkgPath ← pexists pkgPath
+  if existsPath then return path
+  else if existsPkgPath then return pkgPath
+  else return path

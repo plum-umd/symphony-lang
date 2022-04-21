@@ -23,43 +23,41 @@ primRead s = case HS.reads $ chars s of
   _         → None
 
 inputPath ∷ (STACK) ⇒ PrinVal → 𝕊 → IM v 𝕊
-inputPath ρ fn = do
-  b ← askL iCxtIsExampleL
-  ppath ← prinDataPath ρ
-  if b
-  then io $ findFile $ concat ["input/", ppath, "/", fn]
-  else return $ concat ["data-input/",ppath]
+inputPath ρ file = do
+  ρPath ← prinDataPath ρ
+  io $ findFile $ concat [ inputDir , "/", ρPath , "/", file ]
+  where inputDir = "input"
 
 outputPath ∷ (STACK) ⇒ PrinVal → 𝕊 → IM v 𝕊
-outputPath ρ fn = do
-  b ← askL iCxtIsExampleL
-  ppath ← prinDataPath ρ
-  let path = concat ["output/", ppath, "/", fn]
+outputPath ρ file = do
+  ρPath ← prinDataPath ρ
+  path  ← io $ findFile $ concat [ outputDir, "/", ρPath, "/", file ]
   io $ dtouch $ pdirectory path
   return path
+  where outputDir = "output"
 
 parseBaseVal ∷ (STACK) ⇒ BaseType → 𝕊 → IM v (𝕊 ∧ ClearBaseVal)
 parseBaseVal bτ s = case bτ of
   UnitT → do
     s' :* () ← error𝑂 (primRead @() s) $
                throwIErrorCxt TypeIError "parseInputType: UnitT: could not parse" null
-    return $ s' :* BulV
+    return $ s' :* BulCV
   𝔹T    → do
     s' :* b ← error𝑂 (primRead @𝔹 s) $
               throwIErrorCxt TypeIError "parseInputType: 𝔹T: could not parse" null
-    return $ s' :* BoolV b
+    return $ s' :* BoolCV b
   ℕT pr → do
     s' :* n ← error𝑂 (primRead @ℕ s) $
               throwIErrorCxt TypeIError "parseInputType: ℕT: could not parse" null
-    return $ s' :* NatV pr n
+    return $ s' :* NatCV pr n
   ℤT pr → do
     s' :* z ← error𝑂 (primRead @ℤ s) $
               throwIErrorCxt TypeIError "parseInputType: ℤT: could not parse" null
-    return $ s' :* IntV pr z
+    return $ s' :* IntCV pr z
   𝔽T pr → do
     s' :* d ← error𝑂 (primRead @𝔻 s) $
               throwIErrorCxt TypeIError "parseInputType: 𝔽T: could not parse" null
-    return $ s' :* FltV pr d
+    return $ s' :* FltCV pr d
   𝕊T    → todoCxt
   ℙT    → todoCxt
   ℙsT   → todoCxt

@@ -11,6 +11,7 @@ import Symphony.Dynamic.Par.Types
 import Symphony.Dynamic.Par.Operations
 import Symphony.Dynamic.Par.Dist
 import Symphony.Dynamic.Par.Error
+import Symphony.Dynamic.Par.Prg
 
 import qualified Prelude as HS
 import qualified System.Console.GetOpt as O
@@ -66,36 +67,36 @@ interpVar x = do
 ------------------
 
 interpBul ∷ (STACK) ⇒ IM Val Val
-interpBul = return $ KnownV $ BaseV $ ClearV BulV
+interpBul = return $ KnownV $ BaseV $ ClearV BulCV
 
 interpBool ∷ (STACK) ⇒ 𝔹 → IM Val Val
-interpBool b = return $ KnownV $ BaseV $ ClearV $ BoolV b
+interpBool b = return $ KnownV $ BaseV $ ClearV $ BoolCV b
 
 interpNat ∷ (STACK) ⇒ IPrecision → ℕ → IM Val Val
-interpNat pr n = return $ KnownV $ BaseV $ ClearV $ NatV pr n
+interpNat pr n = return $ KnownV $ BaseV $ ClearV $ NatCV pr n
 
 interpInt ∷ (STACK) ⇒ IPrecision → ℤ → IM Val Val
-interpInt pr z = return $ KnownV $ BaseV $ ClearV $ IntV pr z
+interpInt pr z = return $ KnownV $ BaseV $ ClearV $ IntCV pr z
 
 interpFlt ∷ (STACK) ⇒ FPrecision → 𝔻 → IM Val Val
-interpFlt pr d = return $ KnownV $ BaseV $ ClearV $ FltV pr d
+interpFlt pr d = return $ KnownV $ BaseV $ ClearV $ FltCV pr d
 
 interpStr ∷ (STACK) ⇒ 𝕊 → IM Val Val
-interpStr s = return $ KnownV $ BaseV $ ClearV $ StrV s
+interpStr s = return $ KnownV $ BaseV $ ClearV $ StrCV s
 
 interpPrin ∷ (STACK) ⇒ PrinExp → IM Val Val
 interpPrin ρe =
   let c = interpPrinExp ρe
   in do
     ρv ← c
-    return $ KnownV $ BaseV $ ClearV $ PrinV ρv
+    return $ KnownV $ BaseV $ ClearV $ PrinCV ρv
 
 interpPrinSet ∷ (STACK) ⇒ PrinSetExp → IM Val Val
 interpPrinSet ρse =
   let c = interpPrinSetExp ρse
   in do
     ρsv ← c
-    return $ KnownV $ BaseV $ ClearV $ PrinSetV ρsv
+    return $ KnownV $ BaseV $ ClearV $ PrinSetCV ρsv
 
 interpPrim ∷ (STACK) ⇒ Op → 𝐿 Exp → IM Val Val
 interpPrim op es =
@@ -120,7 +121,7 @@ interpL ∷ (STACK) ⇒ Exp → IM Val Val
 interpL eₗ =
   let cₗ = interpExp eₗ
   in do
-    bvₜ ← return $ ClearV $ BoolV True
+    bvₜ ← return $ ClearV $ BoolCV True
     ṽₗ  ← cₗ
     ṽᵣ  ← interpDefault
     return $ KnownV $ SumV bvₜ ṽₗ ṽᵣ
@@ -129,7 +130,7 @@ interpR ∷ (STACK) ⇒ Exp → IM Val Val
 interpR eᵣ =
   let cᵣ = interpExp eᵣ
   in do
-    bvₜ ← return $ ClearV $ BoolV False
+    bvₜ ← return $ ClearV $ BoolCV False
     ṽₗ  ← interpDefault
     ṽᵣ  ← cᵣ
     return $ KnownV $ SumV bvₜ ṽₗ ṽᵣ
@@ -358,26 +359,26 @@ interpPar ρse₁ e₂ =
 --- Rand --
 -----------
 
-randBaseVal ∷ (R.DRG g) ⇒ g → BaseType → ClearBaseVal ∧ g
-randBaseVal g μ = case μ of
-  UnitT → BulV :* g
-  𝔹T    → mapFst BoolV $ frhs $ R.withRandomBytes g (HS.fromIntegral 1) (even ∘ (B.decode @ℕ8) ∘ BSL.fromStrict)
-  ℕT pr → case pr of
-            FixedIPr wPr dPr | wPr + dPr ≡ 8  → mapFst ((NatV pr) ∘ HS.fromIntegral) $ frhs $ R.withRandomBytes g (HS.fromIntegral 1) ((B.decode @ℕ8) ∘ BSL.fromStrict)
-            FixedIPr wPr dPr | wPr + dPr ≡ 16 → mapFst ((NatV pr) ∘ HS.fromIntegral) $ frhs $ R.withRandomBytes g (HS.fromIntegral 2) ((B.decode @ℕ16) ∘ BSL.fromStrict)
-            FixedIPr wPr dPr | wPr + dPr ≡ 32 → mapFst ((NatV pr) ∘ HS.fromIntegral) $ frhs $ R.withRandomBytes g (HS.fromIntegral 4) ((B.decode @ℕ32) ∘ BSL.fromStrict)
-            FixedIPr wPr dPr | wPr + dPr ≡ 64 → mapFst ((NatV pr) ∘ HS.fromIntegral) $ frhs $ R.withRandomBytes g (HS.fromIntegral 8) ((B.decode @ℕ64) ∘ BSL.fromStrict)
-            _ → undefined -- TODO
-  ℤT pr → case pr of
-            FixedIPr wPr dPr | wPr + dPr ≡ 8  → mapFst ((IntV pr) ∘ HS.fromIntegral) $ frhs $ R.withRandomBytes g (HS.fromIntegral 1) ((B.decode @ℤ8) ∘ BSL.fromStrict)
-            FixedIPr wPr dPr | wPr + dPr ≡ 16 → mapFst ((IntV pr) ∘ HS.fromIntegral) $ frhs $ R.withRandomBytes g (HS.fromIntegral 2) ((B.decode @ℤ16) ∘ BSL.fromStrict)
-            FixedIPr wPr dPr | wPr + dPr ≡ 32 → mapFst ((IntV pr) ∘ HS.fromIntegral) $ frhs $ R.withRandomBytes g (HS.fromIntegral 4) ((B.decode @ℤ32) ∘ BSL.fromStrict)
-            FixedIPr wPr dPr | wPr + dPr ≡ 64 → mapFst ((IntV pr) ∘ HS.fromIntegral) $ frhs $ R.withRandomBytes g (HS.fromIntegral 8) ((B.decode @ℤ64) ∘ BSL.fromStrict)
-            _ → undefined -- TODO
-  _     → undefined -- TODO
+rand ∷ Prg → BaseType → IM Val ClearBaseVal
+rand prg bτ = case bτ of
+  UnitT → return BulCV
+  𝔹T    → BoolCV ^$ prgRandBool prg
+{-  ℕT pr → case pr of
+    FixedIPr wPr dPr | wPr + dPr ≡ 8  → NatCV pr ^$ prgRandNat8  prg
+    FixedIPr wPr dPr | wPr + dPr ≡ 16 → NatCV pr ^$ prgRandNat16 prg
+    FixedIPr wPr dPr | wPr + dPr ≡ 32 → NatCV pr ^$ prgRandNat32 prg
+    FixedIPr wPr dPr | wPr + dPr ≡ 64 → NatCV pr ^$ prgRandNat64 prg
+    _ → todoCxt -}
+{-  ℤT pr → case pr of
+    FixedIPr wPr dPr | wPr + dPr ≡ 8   → IntCV pr ^$ prgRandInt8 prg
+    FixedIPr wPr dPr | wPr + dPr ≡ 16  → IntCV pr ^$ prgRandInt16 prg
+    FixedIPr wPr dPr | wPr + dPr ≡ 32  → IntCV pr ^$ prgRandInt32 prg
+    FixedIPr wPr dPr | wPr + dPr ≡ 64  → IntCV pr ^$ prgRandInt64 prg
+    _ → todoCxt -}
+  _ → todoCxt
 
 interpRand ∷ (STACK) ⇒ PrinSetExp → BaseType → IM Val Val
-interpRand ρse μ = do
+interpRand ρse bτ = do
   m  ← askL iCxtModeL
   m' ← AddTop ^$ elimPSV ^$ interpPrinSetExp ρse
   guardErr (m ≡ m') $
@@ -385,10 +386,9 @@ interpRand ρse μ = do
     [ ("m", pretty m)
     , ("m'", pretty m')
     ]
-  g ← getL iStateGenL
-  let v :* g' = randBaseVal g μ
-  putL iStateGenL g'
-  return $ KnownV $ BaseV $ ClearV v
+  prg ← getPrg
+  cbv ← rand prg bτ
+  return $ KnownV $ BaseV $ ClearV cbv
 
 -------------------------------
 --- Share, Reveal, and Send ---
@@ -418,10 +418,14 @@ interpShare φ τ ρse₁ ρse₂ e₃ =
       c₃ = interpExp e₃
   in do
     ρvsFr ← elimPSV ^$ c₁
+    ρvFr  ← error𝑂 (view one𝑃L ρvsFr) $
+            throwIErrorCxt TypeIError "interpShare: view one𝑃L ρvsFr ≡ None" $ frhs
+            [ ("ρvsFr", pretty ρvsFr)
+            ]
     ρvsTo ← elimPSV ^$ c₂
     ṽ     ← c₃
     modeCheckComm ρvsFr ρvsTo
-    shareVal φ ρvsFr ρvsTo ṽ τ
+    share φ ρvFr ρvsTo ṽ τ
 
 interpReveal ∷ (STACK) ⇒ Prot → Type → PrinSetExp → PrinSetExp → Exp → IM Val Val
 interpReveal φ τ ρse₁ ρse₂ e₃ =
@@ -431,9 +435,13 @@ interpReveal φ τ ρse₁ ρse₂ e₃ =
   in do
     ρvsFr ← elimPSV ^$ c₁
     ρvsTo ← elimPSV ^$ c₂
+    ρvTo  ← error𝑂 (view one𝑃L ρvsTo) $
+            throwIErrorCxt TypeIError "interpReveal: view one𝑃L ρvsTo ≡ None" $ frhs
+            [ ("ρvsTo", pretty ρvsTo)
+            ]
     ṽ     ← c₃
     modeCheckComm ρvsFr ρvsTo
-    revealVal φ ρvsFr ρvsTo ṽ τ
+    reveal φ ρvsFr ρvTo ṽ τ
 
 interpComm ∷ (STACK) ⇒ Type → PrinSetExp → PrinSetExp → Exp → IM Val Val
 interpComm τ ρse₁ ρse₂ e₃ =
@@ -648,7 +656,7 @@ interpExpR = \case
 ---------------
 -- TOP LEVEL --
 ---------------
-
+{-
 asTLM ∷ IM Val a → ITLM Val a
 asTLM xM = mkITLM $ \ θ ωtl →
   let γ       = itlStateEnv ωtl
@@ -667,9 +675,9 @@ asTLM xM = mkITLM $ \ θ ωtl →
         let ωtl' = update itlStateExpL ω' ωtl in
           Inr $ ωtl' :* o :* x
 
-interpTL ∷ TL → ITLM Val ()
+interpTL ∷ TL → (IM Val a → IM Val a)
 interpTL tl = case extract tl of
-  DeclTL _ _ _ → skip
+  DeclTL _ _ _    → skip
   DefnTL b x ψs e →
     let e' =
           if b
@@ -683,11 +691,11 @@ interpTL tl = case extract tl of
     γρs :* ρScope ← split ^$ mapMOn ρds $ \case
       SinglePD ρ → do
         let ρv = SinglePV ρ
-        ṽ ← asTLM $ return $ KnownV $ BaseV $ ClearV $ PrinV ρv
+        ṽ ← asTLM $ return $ KnownV $ BaseV $ ClearV $ PrinCV ρv
         return $ (var ρ ↦ ṽ) :* single ρv
       ArrayPD ρ n → do
         let ρsv = ArrPSV ρ n
-        ṽ ← asTLM $ return $ KnownV $ BaseV $ ClearV $ PrinSetV ρsv
+        ṽ ← asTLM $ return $ KnownV $ BaseV $ ClearV $ PrinSetCV ρsv
         return $ (var ρ ↦ ṽ) :* elimPSV ρsv
     modifyL itlStateEnvL ((dict γρs) ⩌)
     modifyL itlStatePrinScopeL ((concat ρScope) ∪)
@@ -700,16 +708,28 @@ interpTL tl = case extract tl of
 
 interpTLs ∷ 𝐿 TL → ITLM Val ()
 interpTLs = eachWith interpTL
+-}
+
+interpTL ∷ TL → IM Val a → IM Val a
+interpTL tl xM = case extract tl of
+  DeclTL _ _ _    → xM
+  DefnTL b x ψs e → do
+    v ← interpExp $ buildLam (atag tl) x ψs e
+    mapEnvL iCxtEnvL ((x ↦ v) ⩌) xM
+    where buildLam = if b then buildUnfixedLambda else buildLambda
+
+
+interpTLs ∷ 𝐿 TL → IM Val a → IM Val a
+interpTLs = compose ∘ map interpTL
 
 -- ==== --
 -- MAIN --
 -- ==== --
 
-evalProgram ∷ IParams → ITLState Val → 𝐿 TL → IO Val
-evalProgram θ ω prog = do
-  evalITLMIO θ ω "" $ do
-    interpTLs prog
-    asTLM $ do
+evalProgram ∷ IParams → 𝐿 TL → IO Val
+evalProgram θ prog =
+  evalIMIO θ $ do
+    interpTLs prog $ do
       main ← interpVar $ var "main"
-      bul  ← return $ KnownV $ BaseV $ ClearV BulV
+      bul  ← return $ KnownV $ BaseV $ ClearV BulCV
       evalApp main bul
