@@ -39,13 +39,11 @@ instance Pretty CommandParseError where
 runCommand ∷ Command → 𝐿 𝕊 → ErrorT CommandRunError IO Doc
 runCommand cmd args = case cmd of
   Seq opts → withErrorT SeqRunErr $ runSeq opts args
-  Par opts → withErrorT ParRunErr $ runPar opts args
+  Par opts → io $ runPar opts args
 
 data CommandRunError =
       SeqRunErr SeqRunError
-    | ParRunErr ParRunError
 
 instance Pretty CommandRunError where
   pretty err = case err of
     SeqRunErr err → pretty err
-    ParRunErr err → pretty err

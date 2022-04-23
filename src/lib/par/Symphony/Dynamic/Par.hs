@@ -1,4 +1,4 @@
-module Symphony.Dynamic.Par where
+module Symphony.Dynamic.Par ( module Symphony.Dynamic.Par ) where
 
 import Symphony.Prelude
 
@@ -7,7 +7,7 @@ import Symphony.Lang.Syntax
 import Symphony.Lang.Parser
 
 import Symphony.Dynamic.Par.ReadType
-import Symphony.Dynamic.Par.Types
+import Symphony.Dynamic.Par.Types as Symphony.Dynamic.Par
 import Symphony.Dynamic.Par.Operations
 import Symphony.Dynamic.Par.Dist
 import Symphony.Dynamic.Par.Error

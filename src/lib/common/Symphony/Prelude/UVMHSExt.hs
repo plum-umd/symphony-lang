@@ -294,3 +294,9 @@ execExceptIO = unID ∘ execErrorTIO
 
 withExcept ∷ (e → e') → Except e a → Except e' a
 withExcept = withErrorT
+
+mapKM𝐷 ∷ ∀ m k v₁ v₂ . (Monad m, Ord k) ⇒ (k → v₁ → m v₂) → (k ⇰ v₁) → m (k ⇰ v₂)
+mapKM𝐷 f d = dict ^$ mapMOn (iter d) $ \ (k :* v) → (k ↦) ^$ f k v
+
+mapKMOn𝐷 ∷ ∀ m k v₁ v₂ . (Monad m, Ord k) ⇒ (k ⇰ v₁) → (k → v₁ → m v₂) → m (k ⇰ v₂)
+mapKMOn𝐷 = flip mapKM𝐷

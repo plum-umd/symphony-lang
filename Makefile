@@ -20,7 +20,7 @@ extern/uvmhs/stack.yaml:
 .PHONY: build
 build: extern/uvmhs/stack.yaml .stack-work
 	stack build
-#	stack build --flag symphony:par --extra-lib-dirs=$(CURDIR)/extern/symphony-runtime/target/debug
+#        stack build --flag symphony:par --extra-lib-dirs=$(CURDIR)/extern/symphony-runtime/target/debug
 
 build-profile: .stack-work
 	stack build --profile

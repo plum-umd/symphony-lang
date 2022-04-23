@@ -17,10 +17,23 @@ import Symphony.Dynamic.Par.Channel.Types as Symphony.Dynamic.Par.Channel
 foreign import ccall unsafe "&channel_destroy" channel_destroy ∷ FinalizerPtr CChannel
 
 foreign import ccall unsafe "tcp_channel_create_client" tcp_channel_create_client ∷ CAddr → CPort → IO (Ptr CChannel)
+
 tcpChannelCreateClient ∷ (Monad m, MonadIO m) ⇒ Addr → Port → m Channel
 tcpChannelCreateClient addr port = io $ Channel ^$ withCString hsaddr $ \ caddr → newForeignPtr channel_destroy *$ tcp_channel_create_client caddr cport
   where hsaddr = T.unpack $ tohs addr
         cport  = CUShort $ tohs port
+
+foreign import ccall unsafe "tcp_channel_create_server" tcp_channel_create_server ∷ CAddr → CPort → IO (Ptr CChannel)
+
+tcpChannelCreateServer ∷ (Monad m, MonadIO m) ⇒ Addr → Port → m Channel
+tcpChannelCreateServer addr port = io $ Channel ^$ withCString hsaddr $ \ caddr → newForeignPtr channel_destroy *$ tcp_channel_create_server caddr cport
+  where hsaddr = T.unpack $ tohs addr
+        cport  = CUShort $ tohs port
+
+foreign import ccall unsafe "local_channel_create" local_channel_create ∷ IO (Ptr CChannel)
+
+localChannelCreate ∷ IO Channel
+localChannelCreate = io $ Channel ^$ newForeignPtr channel_destroy *$ local_channel_create
 
 {-
 tohsPort ∷ ℕ16 → CPort
@@ -41,9 +54,6 @@ foreign import ccall unsafe "symphony/channel.h recv_all" recv_all ∷ Ptr () �
 foreign import ccall unsafe "symphony/channel.h flush" flush ∷ Ptr () → IO ()
 
 -}
-
-tcpChannelCreateServer ∷ (Monad m, MonadIO m) ⇒ ℕ16 → m Channel
-tcpChannelCreateServer port = undefined --io $ Channel ^$ newForeignPtr channel_destroy *$ tcp_channel_create_server (tohsPort port)
 
 channelSendAll ∷ (Monad m, MonadIO m) ⇒ Channel → Ptr a → ℕ64 → m ()
 channelSendAll chan buf size = undefined --io $ withForeignPtr chan $ \ chan_ptr → send_all chan_ptr buf (tohsCSize size)

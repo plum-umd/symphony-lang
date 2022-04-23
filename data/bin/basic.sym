@@ -1,5 +1,3 @@
-principal A B
-
 -- gmw ≡ semi-honest, N-party, boolean sharing
 
 def main () = par {A,B}
