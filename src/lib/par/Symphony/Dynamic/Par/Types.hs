@@ -147,7 +147,7 @@ makePrisms ''Val
 instance Pretty Val where
   pretty = \case
     KnownV v → pretty v
-    UnknownV → ppCon "⋆"
+    UnknownV → ppCon "★"
 
 elimKnown ∷ Val → IM Val ValR
 elimKnown ṽ = error𝑂 (view knownVL ṽ) $

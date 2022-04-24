@@ -656,59 +656,6 @@ interpExpR = \case
 ---------------
 -- TOP LEVEL --
 ---------------
-{-
-asTLM ∷ IM Val a → ITLM Val a
-asTLM xM = mkITLM $ \ θ ωtl →
-  let γ       = itlStateEnv ωtl
-      ω       = itlStateExp ωtl
-      ds      = itlStatePrinScope ωtl
-      ξ       = compose
-                [ update iCxtEnvL γ
-                , update iCxtPrinScopeL ds
-                ]
-                (ξ₀ θ)
-  in do
-    rox ← runIM ξ ω xM
-    return $ case rox of
-      Inl r → Inl r
-      Inr (ω' :* o :* x) →
-        let ωtl' = update itlStateExpL ω' ωtl in
-          Inr $ ωtl' :* o :* x
-
-interpTL ∷ TL → (IM Val a → IM Val a)
-interpTL tl = case extract tl of
-  DeclTL _ _ _    → skip
-  DefnTL b x ψs e →
-    let e' =
-          if b
-          then buildUnfixedLambda (atag tl) x ψs e
-          else buildLambda (atag tl) x ψs e
-        c  = interpExp e'
-    in do
-      v ← asTLM c
-      modifyL itlStateEnvL ((x ↦ v) ⩌)
-  PrinTL ρds → do
-    γρs :* ρScope ← split ^$ mapMOn ρds $ \case
-      SinglePD ρ → do
-        let ρv = SinglePV ρ
-        ṽ ← asTLM $ return $ KnownV $ BaseV $ ClearV $ PrinCV ρv
-        return $ (var ρ ↦ ṽ) :* single ρv
-      ArrayPD ρ n → do
-        let ρsv = ArrPSV ρ n
-        ṽ ← asTLM $ return $ KnownV $ BaseV $ ClearV $ PrinSetCV ρsv
-        return $ (var ρ ↦ ṽ) :* elimPSV ρsv
-    modifyL itlStateEnvL ((dict γρs) ⩌)
-    modifyL itlStatePrinScopeL ((concat ρScope) ∪)
-  ImportTL path → do
-    s ← io $ fread path
-    let ts = tokens s
-    ls ← io $ tokenizeIO lexer path ts
-    tls ← io $ parseIO cpTLs path ls
-    interpTLs tls
-
-interpTLs ∷ 𝐿 TL → ITLM Val ()
-interpTLs = eachWith interpTL
--}
 
 interpTL ∷ TL → IM Val a → IM Val a
 interpTL tl xM = case extract tl of
@@ -717,7 +664,17 @@ interpTL tl xM = case extract tl of
     v ← interpExp $ buildLam (atag tl) x ψs e
     mapEnvL iCxtEnvL ((x ↦ v) ⩌) xM
     where buildLam = if b then buildUnfixedLambda else buildLambda
-
+  PrinTL ρds → do
+    γρs :* ρScope ← split ^$ mapMOn ρds $ \case
+      SinglePD ρ → do
+        let ρv = SinglePV ρ
+        let ṽ  = KnownV $ BaseV $ ClearV $ PrinCV ρv
+        return $ (var ρ ↦ ṽ) :* single ρv
+      ArrayPD ρ n → do
+        let ρsv = ArrPSV ρ n
+        let ṽ   = KnownV $ BaseV $ ClearV $ PrinSetCV ρsv
+        return $ (var ρ ↦ ṽ) :* elimPSV ρsv
+    mapEnvL iCxtEnvL ((dict γρs) ⩌) $ mapEnvL iCxtPrinScopeL ((concat ρScope) ∪) xM
 
 interpTLs ∷ 𝐿 TL → IM Val a → IM Val a
 interpTLs = compose ∘ map interpTL

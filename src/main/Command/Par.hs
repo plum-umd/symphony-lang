@@ -104,7 +104,7 @@ portOf ∷ ℕ → ℕ → ℕ → ℕ16
 portOf n ρ₁ ρ₂ = HS.fromIntegral $ basePort + offset
   where basePort = 12345
         offset   = n × ρ₁ + ρ₂ - gauss
-        gauss    = ((ρ₁ + 1) × (ρ₂ + 2)) `HS.div` 2
+        gauss    = ((ρ₁ + 1) × (ρ₁ + 2)) `HS.div` 2
 
 mkChannel ∷ ℕ → ℕ → 𝕊 → ℕ → 𝕊 → IO Channel
 mkChannel n ρMe hostMe ρThem hostThem =
@@ -118,7 +118,7 @@ mkChannel n ρMe hostMe ρThem hostThem =
       tcpChannelCreateClient hostThem port
 
 openChannel ∷ 𝐿 PrinVal → PrinVal → 𝕊 → PrinVal → 𝕊 → IO (PrinVal ⇰ Channel)
-openChannel parties ρvMe hostMe ρvThem hostThem = (ρvMe ↦) ^$ mkChannel n id₁ hostMe id₂ hostThem
+openChannel parties ρvMe hostMe ρvThem hostThem = (ρvThem ↦) ^$ mkChannel n id₁ hostMe id₂ hostThem
   where n   = count parties
         id₁ = fromSome $ ids ⋕? ρvMe
         id₂ = fromSome $ ids ⋕? ρvThem
@@ -145,7 +145,6 @@ runPar opts args = do
 #ifdef PAR
       v ← io $ evalProgram (θ₀ name party prg channels) program
       return $ pretty v
-      exitIO
 #else
       io $ out "Symphony compiled without parallel support."
       io $ abortIO

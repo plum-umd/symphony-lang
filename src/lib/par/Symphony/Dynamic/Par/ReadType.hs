@@ -44,7 +44,7 @@ parseBaseVal bτ s = case bτ of
     return $ s' :* BulCV
   𝔹T    → do
     s' :* b ← error𝑂 (primRead @𝔹 s) $
-              throwIErrorCxt TypeIError "parseInputType: 𝔹T: could not parse" null
+              throwIErrorCxt TypeIError "parseInputType: 𝔹T: could not parse" $ frhs [ ("s", pretty s) ]
     return $ s' :* BoolCV b
   ℕT pr → do
     s' :* n ← error𝑂 (primRead @ℕ s) $

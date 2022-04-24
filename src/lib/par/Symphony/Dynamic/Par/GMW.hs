@@ -24,7 +24,7 @@ gmwCreate me chans = io $
   withForeignPtrs cchans $ \ cchan_ptrs →
   withArrayLen cchan_ptrs $ \ len_cchans cchans_ptr →
   Gmw ^$ newForeignPtr gmw_delete *$ gmw_create cme (HS.fromIntegral len_cchans) cchans_ptr
-  where cme    = undefined
+  where cme    = HS.fromIntegral $ fromSome $ idsFr (keys chans) ⋕? me
         cchans = tohs $ list $ map (unChannel ∘ snd) $ iter chans
 
 foreign import ccall unsafe "&gmw_bool_delete" gmw_bool_delete ∷ FinalizerPtr CGmwBool
