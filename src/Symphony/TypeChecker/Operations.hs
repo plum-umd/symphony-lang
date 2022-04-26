@@ -237,7 +237,7 @@ subtype_loc loctyS loctyT = case loctyS of
     -- -------Sub-Refl
     -- sigma <: sigma
     (RefT None τ') → (subtype τ τ')
-    _  → (eq_type loctyS loctyT)
+    _  → (eq_locty loctyS loctyT)
     -- -------Sub-RefRO
   -- ref _ t <: ref RO t
   (ArrT None _ τ) →  case loctyT of
@@ -248,7 +248,7 @@ subtype_loc loctyS loctyT = case loctyS of
     -- -------Sub-Refl
     -- sigma <: sigma
     (ArrT None _ τ') → (subtype τ τ')
-    _  → (eq_type loctyS loctyT)
+    _  → (eq_locty loctyS loctyT)
   ISecT locS loctyS  → case loctyT of
       ISecT locT loctyT → do
         mcond ← (superemode locS locT)
