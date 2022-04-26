@@ -1,4 +1,4 @@
 principal A B
 
 def main : (unit@all -> unit@{A})@all 
-def main () = par {A, B} (share YaoNP, (unit:{B → {A}}) •)
+def main () = par {A, B} (share (YaoNP, (unit:{B → {A}})) •)
