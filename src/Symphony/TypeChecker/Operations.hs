@@ -760,7 +760,7 @@ locty_join locty locty' =
             , ("τ'", pretty τ')
             ]
         return locty
-      _  → do
+    _  → do
         eqcond ← (eq_loctype locty locty' )
         guardErr eqcond $
           typeError "join: one is a read-write reference. locty' is not read/write, and locty ≢ locty'" $ frhs
