@@ -393,7 +393,7 @@ eq_locty locty locty' =
         l ← elabEMode loc
         l' ← elabEMode loc'
         loccond ← (eq_type τ τ')
-        return ((l ≡ l') ⩓ loccondₗ
+        return (l ≡ l') ⩓ loccondₗ
       _  → return False
     ISecT loc locty'  → case loctyT of
       ISecT loc' locty' → do
