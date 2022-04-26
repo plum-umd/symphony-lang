@@ -242,7 +242,7 @@ synPrim op es =
             -- The encrypted location may not be necessary as wwe already asserted m
             -- But well formed don't disallow it so we'll keep it
             ((p, loc) :& _) → do
-               guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (l ≡ m)) ps)) $
+              guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (l ≡ m)) ps)) $
                 typeError "Not all protocols/encryptions are the same as p#loc" $ frhs
                   [ ("ρ", pretty p)
                   , ("loc'", pretty ρτ)
