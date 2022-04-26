@@ -350,7 +350,7 @@ eq_locty locty locty' =
         l ← (elabEMode loc)
         l' ← (elabEMode loc')
         return ((p  ≡ p') ⩓ (l  ≡ l'))$
-    _  → return False
+  _  → return False
 
   (tyₗ :+: tyᵣ) → case locty' of
     (ty'ₗ :+: ty'ᵣ) → do
