@@ -325,16 +325,8 @@ pType = cpNewContext "type" $ mixfix $ concat
   -- ∀ α:κ,…,α:κ | c,…,c. τ
   , mixPrefix levelLAM $ do
       concat [cpSyntaxVoid "∀", cpSyntaxVoid "forall"]
-      ακs ← cpManySepBy (cpSyntaxVoid ",") $ do
-        α ← pTVar
-        cpSyntaxVoid ":"
-        κ ← pKind
-        return $ α :* κ
-      cs ← ifNone Nil ^$ cpOptional $ do
-        cpSyntaxVoid "|"
-        cpManySepBy (cpSyntaxVoid ",") pConstr
-      cpSyntaxVoid "."
-      return $ ForallT ακs cs
+      α ← pTVar
+      return $ ForallT α 
   -- τ@ρse
   , mixPostfix levelMODE $ do
       cpSyntaxVoid "@"
