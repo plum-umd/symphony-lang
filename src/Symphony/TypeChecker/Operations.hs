@@ -361,7 +361,7 @@ eq_locty locty locty' =
       (ty'ₗ :×: ty'ᵣ) → do
 
         loccondₗ  ← (eq_type tyₗ ty'ₗ)
-        loccondᵣ ← eq_type tyᵣ ty'ᵣ)
+        loccondᵣ ← (eq_type tyᵣ ty'ᵣ)
         return (loccondₗ ⩓ loccondᵣ)
       _ →   return False
 
