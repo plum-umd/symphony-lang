@@ -400,7 +400,7 @@ eq_locty locty locty' =
         l ← elabEMode loc
         l' ← elabEMode loc'
         loccond ← (eq_type locty locty')
-        return ((l ≡ l') ⩓ loccondₗ
+        return (l ≡ l') ⩓ loccondₗ
       _ → return False
 
 
