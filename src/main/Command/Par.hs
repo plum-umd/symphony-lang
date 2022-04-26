@@ -108,14 +108,14 @@ portOf n ρ₁ ρ₂ = HS.fromIntegral $ basePort + offset
 
 mkChannel ∷ ℕ → ℕ → 𝕊 → ℕ → 𝕊 → IO Channel
 mkChannel n ρMe hostMe ρThem hostThem =
-  if ρMe ≡ ρThem then localChannelCreate
+  if ρMe ≡ ρThem then channelNewLocal
   else let iAmServer = ρMe < ρThem in
     if iAmServer then do
       let port = portOf n ρMe ρThem
-      tcpChannelCreateServer hostMe port
+      channelNewTcpServer hostMe port
     else do
       let port = portOf n ρThem ρMe
-      tcpChannelCreateClient hostThem port
+      channelNewTcpClient hostThem port
 
 openChannel ∷ 𝐿 PrinVal → PrinVal → 𝕊 → PrinVal → 𝕊 → IO (PrinVal ⇰ Channel)
 openChannel parties ρvMe hostMe ρvThem hostThem = (ρvThem ↦) ^$ mkChannel n id₁ hostMe id₂ hostThem

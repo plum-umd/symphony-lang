@@ -14,26 +14,26 @@ import qualified Data.Text as T
 
 import Symphony.Dynamic.Par.Channel.Types as Symphony.Dynamic.Par.Channel
 
-foreign import ccall unsafe "&channel_destroy" channel_destroy ∷ FinalizerPtr CChannel
+foreign import ccall unsafe "channel_new_local" channel_new_local ∷ IO (Ptr CChannel)
 
-foreign import ccall unsafe "tcp_channel_create_client" tcp_channel_create_client ∷ CAddr → CPort → IO (Ptr CChannel)
+channelNewLocal ∷ IO Channel
+channelNewLocal = io $ Channel ^$ newForeignPtr channel_drop *$ channel_new_local
 
-tcpChannelCreateClient ∷ (Monad m, MonadIO m) ⇒ Addr → Port → m Channel
-tcpChannelCreateClient addr port = io $ Channel ^$ withCString hsaddr $ \ caddr → newForeignPtr channel_destroy *$ tcp_channel_create_client caddr cport
+foreign import ccall unsafe "channel_new_tcp_client" channel_new_tcp_client ∷ CAddr → CPort → IO (Ptr CChannel)
+
+channelNewTcpClient ∷ (Monad m, MonadIO m) ⇒ Addr → Port → m Channel
+channelNewTcpClient addr port = io $ Channel ^$ withCString hsaddr $ \ caddr → newForeignPtr channel_drop *$ channel_new_tcp_client caddr cport
   where hsaddr = T.unpack $ tohs addr
         cport  = CUShort $ tohs port
 
-foreign import ccall unsafe "tcp_channel_create_server" tcp_channel_create_server ∷ CAddr → CPort → IO (Ptr CChannel)
+foreign import ccall unsafe "channel_new_tcp_server" channel_new_tcp_server ∷ CAddr → CPort → IO (Ptr CChannel)
 
-tcpChannelCreateServer ∷ (Monad m, MonadIO m) ⇒ Addr → Port → m Channel
-tcpChannelCreateServer addr port = io $ Channel ^$ withCString hsaddr $ \ caddr → newForeignPtr channel_destroy *$ tcp_channel_create_server caddr cport
+channelNewTcpServer ∷ (Monad m, MonadIO m) ⇒ Addr → Port → m Channel
+channelNewTcpServer addr port = io $ Channel ^$ withCString hsaddr $ \ caddr → newForeignPtr channel_drop *$ channel_new_tcp_server caddr cport
   where hsaddr = T.unpack $ tohs addr
         cport  = CUShort $ tohs port
 
-foreign import ccall unsafe "local_channel_create" local_channel_create ∷ IO (Ptr CChannel)
-
-localChannelCreate ∷ IO Channel
-localChannelCreate = io $ Channel ^$ newForeignPtr channel_destroy *$ local_channel_create
+foreign import ccall unsafe "&channel_drop" channel_drop ∷ FinalizerPtr CChannel
 
 {-
 tohsPort ∷ ℕ16 → CPort

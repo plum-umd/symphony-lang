@@ -425,7 +425,7 @@ mkGmw ∷ (STACK) ⇒ 𝑃 PrinVal → IM Val Gmw
 mkGmw ρvs = do
   me ← askL iCxtMeL
   chans ← getChannels ρvs
-  gmw ← gmwCreate me chans
+  gmw ← gmwProtocolNew me chans
   modifyL iStateGmwsL ((ρvs ↦ gmw) ⩌!)
   return gmw
 

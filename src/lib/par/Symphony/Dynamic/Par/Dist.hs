@@ -73,7 +73,7 @@ shareRecv φ ρvFr ρvsTo τ = KnownV ^$ case τ of
     GMWP :* 𝔹T    → BoolEV ^$ GmwEB ^$ do
       gmw  ← getOrMkGmw ρvsTo
       chan ← getChannel ρvFr
-      gmwShareRecvBool gmw chan
+      gmwShareRecvGmwBool gmw chan
     _ → todoCxt
   τ₁ :×: τ₂ → do
     ṽ₁ ← shareRecv φ ρvFr ρvsTo τ₁
@@ -114,7 +114,7 @@ revealSend φ ρvsFr ρvTo ṽ = do
           gmw  ← getOrMkGmw ρvsFr
           chan ← getChannel ρvTo
           b    ← elimGmwBool eb
-          gmwRevealSendBool gmw chan b
+          gmwRevealSendGmwBool gmw chan b
         _ → todoCxt
     ProdV ṽ₁ ṽ₂ → do
       revealSend φ ρvsFr ρvTo ṽ₁
@@ -142,7 +142,7 @@ embedEBVDist φ ρvs cbv = case φ :* cbv of
   GMWP :* BulCV    → return $ BulEV GmwEBul
   GMWP :* BoolCV b → do
     gmw ← getOrMkGmw ρvs
-    BoolEV ^$ GmwEB ^$ gmwLitBool gmw b
+    BoolEV ^$ GmwEB ^$ gmwBoolConstant gmw b
   _ → todoCxt
 
 --- Prim
@@ -153,5 +153,5 @@ primEBVDist φ ρvs op ebvs = case φ :* op :* tohs ebvs of
     gmw ← getOrMkGmw ρvs
     b1 ← elimGmwBool eb1
     b2 ← elimGmwBool eb2
-    BoolEV ^$ GmwEB ^$ gmwAndBool gmw b1 b2
+    BoolEV ^$ GmwEB ^$ gmwBoolAnd gmw b1 b2
   _ → todoCxt
