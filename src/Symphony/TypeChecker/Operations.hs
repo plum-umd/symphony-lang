@@ -572,7 +572,7 @@ eq_type ty ty' = case ty of
           [ ("ty'", pretty ty' )
           ]
 
-  _  → typeError "wf_type: ty is not well formed" $ frhs
+  _  → typeError "eq_type: ty is not well formed" $ frhs
         [ ("ty", pretty ty )
         ]
 
@@ -587,7 +587,7 @@ ty_meet ty ty' = case ty of
         return (SecT loc_union loc_meet)
       ty' → todoError)
 
-  x  → typeError "wf_type: ty is not well formed" $ frhs
+  _  → typeError "ty_meet: ty is not well formed" $ frhs
         [ ("ty", pretty ty )
         ]
 
@@ -841,7 +841,7 @@ wf_cleartext_type ty m =
         ]
       wfcond ← (wf_cleartext_loctype locty m')
       return ()
-    _ → typeError "wf_type: ty is not well formed encrypted type" $ frhs
+    _ → typeError "wf_cleartext_type: ty is not well formed encrypted type" $ frhs
         [ ("ty", pretty ty )
         ]
 
@@ -884,7 +884,7 @@ wf_share_type ty m p l =
         ]
       wfcond ← (wf_share_loctype loc_ty m' p l)
       return ()
-    _ → typeError "wf_type: ty is not well formed" $ frhs
+    _ → typeError "wf_share_type: ty is not well formed" $ frhs
         [ ("ty", pretty ty )
         ]
 
