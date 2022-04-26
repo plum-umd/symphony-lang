@@ -820,7 +820,7 @@ wf_cleartext_loctype sigma m =
     ISecT loc locty → do
  --     _ ← (wf_share_loctype locty m)
       return ()
-    _  → typeError "wf_loctype: sigma is not well formed cleartext located type" $ frhs
+    _  → typeError "wf_cleartext_loctype: sigma is not well formed cleartext located type" $ frhs
         [ ("sigma", pretty sigma )
         ]
 
