@@ -245,7 +245,7 @@ synPrim op es =
                guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (l ≡ m)) ps)) $
                 typeError "Not all protocols/encryptions are the same as p#loc" $ frhs
                   [ ("ρ", pretty p)
-                    , ("loc'", pretty ρτ)
+                  , ("loc'", pretty ρτ)
                   ]
               return $ SecT em $ ShareT p em $ BaseT bt
            
