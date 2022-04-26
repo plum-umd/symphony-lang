@@ -326,7 +326,7 @@ union_m l l' = case l of
 eq_locty :: STACK ⇒ Type  → Type  → EM 𝔹
 eq_locty locty locty' =
   case locty of
-    BaseT bty → return locty ≡ locty' 
+    BaseT bty → return (locty ≡ locty') 
     ShareT p loc locty  → case locty' of
       ShareT p' loc' locty' → do
         l ← (elabEMode loc)
