@@ -342,69 +342,69 @@ eq_locty :: STACK ⇒ Type  → Type  → EM 𝔹
 eq_locty locty locty' =
   case locty of
 
-  BaseT bty → do
-    return locty ≡ locty' 
-  ShareT p loc locty  → case locty' of
-    ShareT p' loc' locty' →
-      do
-        l ← (elabEMode loc)
-        l' ← (elabEMode loc')
-        return ((p  ≡ p') ⩓ (l  ≡ l'))$
-  _  → return False
+    BaseT bty → do
+      return locty ≡ locty' 
+    ShareT p loc locty  → case locty' of
+      ShareT p' loc' locty' →
+        do
+          l ← (elabEMode loc)
+          l' ← (elabEMode loc')
+          return ((p  ≡ p') ⩓ (l  ≡ l'))$
+      _  → return False
 
-  (tyₗ :+: tyᵣ) → case locty' of
-    (ty'ₗ :+: ty'ᵣ) → do
+    (tyₗ :+: tyᵣ) → case locty' of
+      (ty'ₗ :+: ty'ᵣ) → do
 
         loccondₗ  ← (eq_type tyₗ ty'ₗ)
         loccondᵣ ← (ty_type tyᵣ ty'ᵣ)
         return (loccondₗ ⩓ loccondᵣ)
-    _ →  return False
+      _ →  return False
 
-  (tyₗ :×: tyᵣ) → case locty' of
-    (ty'ₗ :×: ty'ᵣ) → do
+    (tyₗ :×: tyᵣ) → case locty' of
+      (ty'ₗ :×: ty'ᵣ) → do
 
         loccondₗ  ← (eq_type tyₗ ty'ₗ)
         loccondᵣ ← eq_type tyᵣ ty'ᵣ)
         return (loccondₗ ⩓ loccondᵣ)
-    _ →   return False
+      _ →   return False
 
-  (ListT n τₜ)  →  case locty' of
-    (ListT n' τₜ') → (eq_type tₜ tₜ')
-    _ → return False
- (τ₁₁ :→: (η :* τ₁₂)) → case loctyT of
-    (τ₁₁' :→: (η' :* τ₁₂')) → do
+    (ListT n τₜ)  →  case locty' of
+      (ListT n' τₜ') → (eq_type tₜ tₜ')
+      _ → return False
+    (τ₁₁ :→: (η :* τ₁₂)) → case loctyT of
+      (τ₁₁' :→: (η' :* τ₁₂')) → do
         l ← elabEMode $ effectMode η
         l' ← elabEMode $ effectMode η'
         loccondₗ ← (eq_type τ₁₁' τ₁₁)
         loccondᵣ ← (eq_type τ₁₂ τ₁₂')
         return ((l ≡ l') ⩓ loccondₗ ⩓ loccondᵣ)
-  (RefT None τ) → case loctyT of
-    (RefT None τ') → (eq_type τ τ')
-    _  → return False
-  (RefT (Some loc) τ) →  case loctyT of
-    (RefT (Some loc') τ') → do
-      l ← elabEMode loc
-      l' ← elabEMode loc'
-      loccond ← (eq_type τ τ')
-      return ((l ≡ l') ⩓ loccondₗ
-    _  → return False
-  (ArrT None _ τ) →  case loctyT of
-    (ArrT None _ τ') → (subtype τ τ')
-    _  → return False
-  (ArrT (Some loc) _ τ) → case loctyT of
-    (ArrT (Some loc') _ τ') → do
-      l ← elabEMode loc
-      l' ← elabEMode loc'
-      loccond ← (eq_type τ τ')
-      return ((l ≡ l') ⩓ loccondₗ
-    _  → return False
-  ISecT loc locty'  → case loctyT of
+    (RefT None τ) → case loctyT of
+      (RefT None τ') → (eq_type τ τ')
+      _  → return False
+    (RefT (Some loc) τ) →  case loctyT of
+      (RefT (Some loc') τ') → do
+        l ← elabEMode loc
+        l' ← elabEMode loc'
+        loccond ← (eq_type τ τ')
+        return ((l ≡ l') ⩓ loccondₗ
+      _  → return False
+    (ArrT None _ τ) →  case loctyT of
+      (ArrT None _ τ') → (subtype τ τ')
+      _  → return False
+    (ArrT (Some loc) _ τ) → case loctyT of
+      (ArrT (Some loc') _ τ') → do
+        l ← elabEMode loc
+        l' ← elabEMode loc'
+        loccond ← (eq_type τ τ')
+        return ((l ≡ l') ⩓ loccondₗ
+      _  → return False
+    ISecT loc locty'  → case loctyT of
       ISecT loc' locty' → do
-      l ← elabEMode loc
-      l' ← elabEMode loc'
-      loccond ← (eq_type locty locty')
-      return ((l ≡ l') ⩓ loccondₗ
-  _ → return False
+        l ← elabEMode loc
+        l' ← elabEMode loc'
+        loccond ← (eq_type locty locty')
+        return ((l ≡ l') ⩓ loccondₗ
+      _ → return False
 
 
 -----------------
