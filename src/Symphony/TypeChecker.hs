@@ -245,7 +245,7 @@ synPrim op es =
               guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (l ≡ m)) ps)) $
                 typeError "Not all protocols/encryptions are the same as p#loc" $ frhs
                   [ ("ρ", pretty p)
-                  , ("loc'", pretty ρτ)
+                  , ("loc'", pretty m)
                   ]
               return $ SecT em $ ShareT p em $ BaseT bt
            
@@ -477,7 +477,7 @@ synRead τ e =
   let c = synExp e
   in do
     m ← askL terModeL
-    τ' ← makeCleartextType τ
+    τ' ← makeCleartextType τ m
     τ'' ← c
     guardErr ((map psize m) ≡ (AddTop 1)) $
       typeError "synRead: ⊢ₘ ; |m| ≢  1" $ frhs
@@ -971,7 +971,7 @@ synBundleIntro (pe :* e) =
     m  ← askL terModeL
     em ← elabMode m
     case τ of
-      (SecT loc (ShareT τ') ) → todoError
+      (SecT loc (ShareT _ _ _) ) → todoError
       (SecT loc τ' ) → do
           p ←  elabEMode (AddTop (PowPSE (frhs [pe])))
           p' ← elabEMode loc
@@ -999,7 +999,7 @@ synBundleAccess e₁ ρe₂ =
     τ₁ ← c₁
     τ₂ ← c₂
     case τ₁ of
-      (SecT loc₁ (ISecT loc₁' (ShareT τ₁') ))  → todoError
+      (SecT loc₁ (ISecT loc₁' (ShareT _ _ _) ))  → todoError
       (SecT loc₁ (ISecT loc₁' τ₁'))  → do
         m  ← askL terModeL
         l₁ ← elabEMode loc₁
