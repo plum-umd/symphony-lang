@@ -336,11 +336,12 @@ data Type =
   | ArrT (𝑂 EMode) ℕ Type                       --  arr[P,n] τ                 /  arr[P,n] τ
   | Type :→: (Effect ∧ Type)                    --  τ →{η} τ                   /  τ ->{η} τ
   | (𝕏 ∧ Type ∧ 𝐿 Constr) :→†: (Effect ∧ Type)  --  (x : τ | c,…,c) →{η} τ     /  (x : τ | c,…,c) ->{η} τ
-  | ForallT (𝐿 (TVar ∧ Kind)) (𝐿 Constr) Type   --  ∀ α:κ,…,α:κ | c,…,c. τ     /  forall α:κ,…,α:κ | c,…,c. τ
+  | ForallT TVar Type   --  ∀ α:κ,…,α:κ | c,…,c. τ     /  forall α:κ,…,α:κ | c,…,c. τ
   | SecT EMode Type                             --  τ{P}                       /  τ{P}
   | SSecT EMode Type                            --  τ{ssec:P}                  /  τ{ssec:P}
   | ISecT EMode Type                            --  τ{bundle:P}                /  τ{bundle:P}
   | ShareT Prot EMode Type                      --  τ{φ:P}                     /  τ{φ:P}
+  | RecT TVar Type
   deriving (Eq,Ord,Show)
 makePrettySum ''Type
 
@@ -478,6 +479,10 @@ data ExpR =
   | SeqE Exp Exp                                  -- e;e                     / e;e
 
   | DefaultE                                      -- _|_                     /  ⊥
+  
+  | Fold Exp
+  | Unfold Exp
+
   deriving (Eq,Ord,Show)
   -- [e₁;…;eₙ] ≜ e₁ ∷ ⋯ ∷ eₙ ∷ []
 makePrettySum ''ExpR
