@@ -1,0 +1,4 @@
+principal A B
+
+def main : (unit@all ->  unit@all)@all
+def main () =  let a = ref • in !a
