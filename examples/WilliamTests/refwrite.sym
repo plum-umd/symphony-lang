@@ -1,4 +1,4 @@
 principal A B
 
 def main : (unit@all ->  bool@all)@all
-def main () = (ref true):=false
+def main () = (!(ref true)):=false
