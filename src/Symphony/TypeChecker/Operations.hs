@@ -45,23 +45,50 @@ extractProt τ =
     l ← elabEMode loc
     return (Some (p, l))
   (SecT _ _)  → return None
-  _ → todoError
+  _ →   typeError "ExtractProt: τ is mot well formed type" $ frhs
+                  [ ("τ", pretty τ)
+                  ]
 
 assertM :: STACK ⇒ Mode → Type → EM ()
 assertM m τ =
   case τ of
     (SecT loc _)  →  do
           l ← elabEMode loc
-          if (m == l) then return () else todoError
-    _  → todoError
+          guardErr (m ≡ l)  $
+            typeError "ExtractProt: m \≡ l" $ frhs
+                  [ ("m", pretty m)
+                  , ("l", pretty l)
+                  ]
+          return ()
+    _  → typeError "AssertM: τ is not well formed type" $ frhs
+                  [ ("τ", pretty τ)
+                  ]
 
+
+assertM :: STACK ⇒ Mode → Type → EM ()
+assertM m τ =
+  case τ of
+    (SecT loc _)  →  do
+          l ← elabEMode loc
+          guardErr (m ≡ l)  $
+            typeError "ExtractProt: m \≡ l" $ frhs
+                  [ ("m", pretty m)
+                  , ("l", pretty l)
+                  ]
+          return ()
+    _  → typeError "AssertM: τ is not well formed type" $ frhs
+                  [ ("τ", pretty τ)
+                  ]
+                  
 -- Extracts basetype
 extractBase :: STACK ⇒ Type → EM BaseType
 extractBase τ =
    case τ of
      (SecT _ (BaseT bτ))  → return bτ
      (SecT _ (ShareT _ _ (BaseT bτ)))  →  return bτ
-     _ → todoError
+     _ → typeError "ExtractProt: τ is not a well formed base type" $ frhs
+                  [ ("τ", pretty τ)
+                  ]
 
 embedShare :: STACK ⇒  Prot → EMode → Type → EM Type
 embedShare φ l τ =
@@ -225,7 +252,7 @@ subtype_loc loctyS loctyT = case loctyS of
     -- -------Sub-Refl
     -- sigma <: sigma
     (RefT None τ') → (subtype τ τ')
-    _  → return (loctyS == loctyT)
+    _  → (eq_type loctyS loctyT)
     -- -------Sub-RefRO
   -- ref _ t <: ref RO t
   (ArrT None _ τ) →  case loctyT of
@@ -236,7 +263,7 @@ subtype_loc loctyS loctyT = case loctyS of
     -- -------Sub-Refl
     -- sigma <: sigma
     (ArrT None _ τ') → (subtype τ τ')
-    _  → return (loctyS == loctyT)
+    _  → (eq_type loctyS loctyT)
   ISecT locS loctyS  → case loctyT of
       ISecT locT loctyT → do
         mcond ← (superemode locS locT)
@@ -307,6 +334,78 @@ union_m l l' = case l of
   AddTop ps → case l' of
       Top → Top
       AddTop ps'  →  AddTop(ps ∪ ps')
+-----------------
+--- Join functions ---
+-----------------
+-- Checks if two located types are equal
+eq_locty :: STACK ⇒ Type  → Type  → EM 𝔹
+eq_locty locty locty' =
+  case locty of
+
+  BaseT bty → do
+    return locty ≡ locty' 
+  ShareT p loc locty  → case locty' of
+    ShareT p' loc' locty' →
+      do
+        l ← (elabEMode loc)
+        l' ← (elabEMode loc')
+        return ((p  ≡ p') ⩓ (l  ≡ l'))$
+    _  → return False
+
+  (tyₗ :+: tyᵣ) → case locty' of
+    (ty'ₗ :+: ty'ᵣ) → do
+
+        loccondₗ  ← (eq_type tyₗ ty'ₗ)
+        loccondᵣ ← (ty_type tyᵣ ty'ᵣ)
+        return (loccondₗ ⩓ loccondᵣ)
+    _ →  return False
+
+  (tyₗ :×: tyᵣ) → case locty' of
+    (ty'ₗ :×: ty'ᵣ) → do
+
+        loccondₗ  ← (eq_type tyₗ ty'ₗ)
+        loccondᵣ ← eq_type tyᵣ ty'ᵣ)
+        return (loccondₗ ⩓ loccondᵣ)
+    _ →   return False
+
+  (ListT n τₜ)  →  case locty' of
+    (ListT n' τₜ') → (eq_type tₜ tₜ')
+    _ → return False
+ (τ₁₁ :→: (η :* τ₁₂)) → case loctyT of
+    (τ₁₁' :→: (η' :* τ₁₂')) → do
+        l ← elabEMode $ effectMode η
+        l' ← elabEMode $ effectMode η'
+        loccondₗ ← (eq_type τ₁₁' τ₁₁)
+        loccondᵣ ← (eq_type τ₁₂ τ₁₂')
+        return ((l ≡ l') ⩓ loccondₗ ⩓ loccondᵣ)
+  (RefT None τ) → case loctyT of
+    (RefT None τ') → (eq_type τ τ')
+    _  → return False
+  (RefT (Some loc) τ) →  case loctyT of
+    (RefT (Some loc') τ') → do
+      l ← elabEMode loc
+      l' ← elabEMode loc'
+      loccond ← (eq_type τ τ')
+      return ((l ≡ l') ⩓ loccondₗ
+    _  → return False
+  (ArrT None _ τ) →  case loctyT of
+    (ArrT None _ τ') → (subtype τ τ')
+    _  → return False
+  (ArrT (Some loc) _ τ) → case loctyT of
+    (ArrT (Some loc') _ τ') → do
+      l ← elabEMode loc
+      l' ← elabEMode loc'
+      loccond ← (eq_type τ τ')
+      return ((l ≡ l') ⩓ loccondₗ
+    _  → return False
+  ISecT loc locty'  → case loctyT of
+      ISecT loc' locty' → do
+      l ← elabEMode loc
+      l' ← elabEMode loc'
+      loccond ← (eq_type locty locty')
+      return ((l ≡ l') ⩓ loccondₗ
+  _ → return False
+
 
 -----------------
 --- Join functions ---
@@ -427,7 +526,8 @@ locty_meet locty locty' =
             ]
         return locty
       _  → do
-        guardErr (locty ≡ locty') $
+        eqcond ← (eq_type locty locty')
+        guardErr eqcond $
           typeError "join: one is a read-write reference, locty' is not read only, and locty ≢ locty'" $ frhs
             [ ("locty", pretty locty)
             , ("locty'", pretty locty')
@@ -464,7 +564,8 @@ locty_meet locty locty' =
             ]
         return locty
     _  → do
-        guardErr (locty ≡ locty') $
+        eqcond ← (eq_type locty locty')
+        guardErr eqcond $
           typeError "join: one is a read-write reference, locty' is not read only, and locty ≢ locty'" $ frhs
             [ ("locty", pretty locty)
             , ("locty'", pretty locty')
@@ -478,6 +579,23 @@ locty_meet locty locty' =
       ty' → todoError
   _ → todoError
 
+eq_type :: STACK ⇒ Type  → Type  → EM 𝔹
+eq_type ty ty' = case ty of
+  SecT loc loc_ty → case ty' of
+      SecT loc' loc_ty' → do
+        l ← elabEMode loc
+        l' ← elabEMode loc'
+        eqcond ← eq_eq loc loc_ty'
+        return ((l  ≡ l') ⩓ eqcond)
+      _ → typeError "ty' is not a located type" $ frhs
+          [ ("ty'", pretty ty' )
+          ]
+
+  _  → typeError "wf_type: ty is not well formed" $ frhs
+        [ ("ty", pretty ty )
+        ]
+
+
 -- Finds join of two types
 ty_meet :: STACK ⇒ Type  → Type  → EM Type
 ty_meet ty ty' = case ty of
@@ -488,7 +606,9 @@ ty_meet ty ty' = case ty of
         return (SecT loc_union loc_meet)
       ty' → todoError)
 
-  x  → todoError
+  x  → typeError "wf_type: ty is not well formed" $ frhs
+        [ ("ty", pretty ty )
+        ]
 
 -- Finds join of two located types
 locty_join :: STACK ⇒ Type  → Type  → EM Type
@@ -606,7 +726,8 @@ locty_join locty locty' =
             ]
         return locty
       _  → do
-        guardErr (locty ≡ locty') $
+        eqcond ← (eq_loctype locty locty' )
+        guardErr eqcond $
           typeError "join: one is a read-write reference, locty' is not read/write, and locty ≢ locty'" $ frhs
             [ ("locty", pretty locty)
             , ("locty'", pretty locty')
@@ -642,8 +763,9 @@ locty_join locty locty' =
             , ("τ'", pretty τ')
             ]
         return locty
-    _  → do
-        guardErr (locty ≡ locty') $
+      _  → do
+        eqcond ← (eq_loctype locty locty' )
+        guardErr eqcond $
           typeError "join: one is a read-write reference. locty' is not read/write, and locty ≢ locty'" $ frhs
             [ ("locty", pretty locty)
             , ("locty'", pretty locty')

@@ -196,34 +196,59 @@ synPrinSet ρse =
     return $ SecT em $ BaseT ℙsT
   _    →  typeError "Must be a set of literals" $ frhs [("ρse", pretty ρse)]
 
+T-Op
+--m <= m_i since it could be a subtype which means
+-- but it is guaranteed m_i >= m since it is well formed so m = m
+
+-- If there is one but not all cleartext, all of them get converted to the same phi
+-- gamma |- m e1 : sigma1^phi@m
+-- gamma |- m e2 : sigma2^phi@m
+-- ....
+-- gamma |- m en : sigman^pih@mn
+-- phi must be well formed
+-- op [sigma1, sigma2 ... sigman] : sigma
+-- --------
+-- gamma|- m op [e1, e2, ..., en] : : sigma^phi@m
+
 synPrim ∷ STACK ⇒ Op → 𝐿 Exp → EM Type
 synPrim op es =
   if (isEmpty es) then
      do
        m ← askL terModeL
        em ← elabMode m
-       bt ← (primType op (empty𝐿 ))
-       return (SecT em (BaseT bt))
+       -- the return type
+       bt ← primType op $ empty𝐿
+       return $ SecT em $ BaseT bt
   else
     do
       m ← askL terModeL
       em ← elabMode m
-      τs ← (mapM synExp es)
-      _ ← (mapM (assertM m) τs)
-      pos ← (mapM extractProt τs)
-      bs ← (mapM extractBase τs)
+      τs ← mapM synExp es
+      -- Checks it ends with m (all types are well formed so no need to worry about)
+      _ ← mapM (assertM m) τs
+      -- Gets protocol options (Some p if encrypted, None if cleartext)
+      pos ← mapM extractProt τs
+      bs ← mapM extractBase τs
+      -- The return type
       bt ← (primType op bs)
-      let ps = list𝐼 (filterMap (\x -> x)  pos) in
+      let ps = list𝐼 (filterMap id pos) in
+        -- If all are cleartext, return the return type
         if (isEmpty ps) then
-          return (SecT em (BaseT bt))
+          return $ SecT em $ BaseT bt 
         else
           case ps  of
-            ((p, loc) :& _) →
-              if (and (map (\(p', l) -> (p == p') ⩓  (l == m)) ps)) then
-                return (SecT em (ShareT p em (BaseT bt)))
-              else
-                todoError
-
+            -- Check that all protocols and encrpyted locations are the same and equal to m
+            -- meaning the protoocl is well formed
+            -- The encrypted location may not be necessary as wwe already asserted m
+            -- But well formed don't disallow it so we'll keep it
+            ((p, loc) :& _) → do
+               guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (l ≡ m)) ps)) $
+                typeError "Not all protocols/encryptions are the same as p#loc" $ frhs
+                  [ ("ρ", pretty p)
+                    , ("loc'", pretty ρτ)
+                  ]
+              return $ SecT em $ ShareT p em $ BaseT bt
+           
 
 ---------------------------------
 --- Products, Sums, and Lists ---
@@ -452,13 +477,13 @@ synRead τ e =
   let c = synExp e
   in do
     m ← askL terModeL
-    wfcond ← (wf_type τ m)
-    τ' ← c
-    guardErr ((map psize m) == (AddTop 1)) $
+    τ' ← makeCleartextType τ
+    τ'' ← c
+    guardErr ((map psize m) ≡ (AddTop 1)) $
       typeError "synRead: ⊢ₘ ; |m| ≢  1" $ frhs
       [ ("m", pretty m)
       ]
-    case τ' of
+    case τ'' of
       (SecT loc (BaseT 𝕊T))  →
         do
           l ← elabEMode loc
@@ -467,7 +492,7 @@ synRead τ e =
               [ ("m", pretty m)
                 , ("l", pretty l)
               ]
-          return τ
+          return τ'
       _ →  typeError "synRead: ; e not a string" (frhs [("e", pretty e)])
 
 
@@ -943,10 +968,10 @@ synBundleIntro (pe :* e) =
   let c = synExp e
   in do
     τ ← c
-    _ ← assertShareable τ
     m  ← askL terModeL
     em ← elabMode m
     case τ of
+      (SecT loc (ShareT τ') ) → todoError
       (SecT loc τ' ) → do
           p ←  elabEMode (AddTop (PowPSE (frhs [pe])))
           p' ← elabEMode loc
@@ -974,6 +999,7 @@ synBundleAccess e₁ ρe₂ =
     τ₁ ← c₁
     τ₂ ← c₂
     case τ₁ of
+      (SecT loc₁ (ISecT loc₁' (ShareT τ₁') ))  → todoError
       (SecT loc₁ (ISecT loc₁' τ₁'))  → do
         m  ← askL terModeL
         l₁ ← elabEMode loc₁
