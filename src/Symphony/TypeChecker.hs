@@ -477,7 +477,7 @@ synRead τ e =
   let c = synExp e
   in do
     m ← askL terModeL
-    em ← elabEMode m
+    em ← elabMode m
     τ' ← makeCleartextType em τ
     τ'' ← c
     guardErr ((map psize m) ≡ (AddTop 1)) $
