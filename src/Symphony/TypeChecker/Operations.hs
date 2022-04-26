@@ -65,21 +65,6 @@ assertM m τ =
                   ]
 
 
-assertM :: STACK ⇒ Mode → Type → EM ()
-assertM m τ =
-  case τ of
-    (SecT loc _)  →  do
-          l ← elabEMode loc
-          guardErr (m ≡ l)  $
-            typeError "ExtractProt: m != l" $ frhs
-                  [ ("m", pretty m)
-                  , ("l", pretty l)
-                  ]
-          return ()
-    _  → typeError "AssertM: τ is not well formed type" $ frhs
-                  [ ("τ", pretty τ)
-                  ]
-                  
 -- Extracts basetype
 extractBase :: STACK ⇒ Type → EM BaseType
 extractBase τ =
