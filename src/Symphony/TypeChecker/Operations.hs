@@ -367,7 +367,7 @@ eq_locty locty locty' =
         l ← elabEMode loc
         l' ← elabEMode loc'
         loccond ← (eq_type τ τ')
-        return (l ≡ l') ⩓ loccond
+        return ((l ≡ l') ⩓ loccond)
       _  → return False
     (ArrT None _ τ) →  case locty' of
       (ArrT None _ τ') → (subtype τ τ')
@@ -377,14 +377,14 @@ eq_locty locty locty' =
         l ← elabEMode loc
         l' ← elabEMode loc'
         loccond ← (eq_type τ τ')
-        return (l ≡ l') ⩓ loccond
+        return ((l ≡ l') ⩓ loccond)
       _  → return False
     ISecT loc locty'  → case locty' of
       ISecT loc' locty' → do
         l ← elabEMode loc
         l' ← elabEMode loc'
         loccond ← (eq_type locty locty')
-        return (l ≡ l') ⩓ loccond
+        return ((l ≡ l') ⩓ loccond)
       _ → return False
 
 
@@ -566,7 +566,7 @@ eq_type ty ty' = case ty of
       SecT loc' loc_ty' → do
         l ← elabEMode loc
         l' ← elabEMode loc'
-        eqcond ← eq_loctype loc_ty'
+        eqcond ← (eq_locty loc_ty loc_ty')
         return ((l  ≡ l') ⩓ eqcond)
       _ → typeError "ty' is not a located type" $ frhs
           [ ("ty'", pretty ty' )
@@ -745,7 +745,7 @@ locty_join locty locty' =
             ]
         return locty
     _  → do
-        eqcond ← (eq_loccty locty locty' )
+        eqcond ← (eq_locty locty locty' )
         guardErr eqcond $
           typeError "join: one is a read-write reference. locty' is not read/write, and locty ≢ locty'" $ frhs
             [ ("locty", pretty locty)
