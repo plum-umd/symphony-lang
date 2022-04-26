@@ -347,9 +347,8 @@ eq_locty locty locty' =
       ShareT p' loc' locty' → do
         l ← (elabEMode loc)
         l' ← (elabEMode loc')
-        return ((p  ≡ p') ⩓ (l  ≡ l'))$
+        return ((p  ≡ p') ⩓ (l  ≡ l')) 
       _  → return False
-{-
     (tyₗ :+: tyᵣ) → case locty' of
       (ty'ₗ :+: ty'ᵣ) → do
 
@@ -403,7 +402,7 @@ eq_locty locty locty' =
         loccond ← (eq_type locty locty')
         return ((l ≡ l') ⩓ loccondₗ
       _ → return False
--}
+
 
 -----------------
 --- Join functions ---
