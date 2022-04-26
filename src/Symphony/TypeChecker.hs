@@ -196,7 +196,7 @@ synPrinSet ρse =
     return $ SecT em $ BaseT ℙsT
   _    →  typeError "Must be a set of literals" $ frhs [("ρse", pretty ρse)]
 
-T-Op
+-- T-Op
 --m <= m_i since it could be a subtype which means
 -- but it is guaranteed m_i >= m since it is well formed so m = m
 
