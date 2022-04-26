@@ -226,7 +226,7 @@ spec = do
           t = (SecT c (BaseT UnitT))
           t' = (BaseT UnitT)
           m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A") ])))
-          expr =  (ReadE  t (nullExp (StrE "Test")) )
+          expr =  (ReadE  t' (nullExp (StrE "Test")) )
           x  = (evalEM (ER {terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
