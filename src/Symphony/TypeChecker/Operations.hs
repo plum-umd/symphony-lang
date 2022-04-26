@@ -55,7 +55,7 @@ assertM m τ =
     (SecT loc _)  →  do
           l ← elabEMode loc
           guardErr (m ≡ l)  $
-            typeError "ExtractProt: m \≡ l" $ frhs
+            typeError "ExtractProt: m != l" $ frhs
                   [ ("m", pretty m)
                   , ("l", pretty l)
                   ]
@@ -71,7 +71,7 @@ assertM m τ =
     (SecT loc _)  →  do
           l ← elabEMode loc
           guardErr (m ≡ l)  $
-            typeError "ExtractProt: m \≡ l" $ frhs
+            typeError "ExtractProt: m != l" $ frhs
                   [ ("m", pretty m)
                   , ("l", pretty l)
                   ]
