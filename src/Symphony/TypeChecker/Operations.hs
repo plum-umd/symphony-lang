@@ -1105,7 +1105,7 @@ loc_type_subst x sigma ty =
       return (ArrT loc n τ')
     (ISecT loc loc_ty) → do
       loc_ty' ← (type_subst x loc_ty ty)
-      (return (ISecT loc loc_subty'))
+      (return (ISecT loc loc_ty'))
     _  → typeError "loc_type_subst: sigma is not well structured" $ frhs
         [ ("sigma", pretty sigma )
         ]
@@ -1115,8 +1115,8 @@ type_subst x ty ty' =
   case ty of
     -- WF-Loc
     SecT em locty → do
-      loc_ty' ← (loc_type_subst x loc_ty ty')
-      return (SecT em' locty')
+      loc_y' ← (loc_type_subst x locty ty')
+      return (SecT em locty')
     VarT x'  → if x ≡ x' then ty' else ty 
     RecT x' ty'' → if x ≡ x' then ty else (loc_type_subst ty'' ty') 
     ForallT x' ty'' → if x ≡ x' then ty else (loc_type_subst ty'' ty') 
