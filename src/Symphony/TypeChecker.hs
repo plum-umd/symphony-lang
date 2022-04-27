@@ -1101,8 +1101,8 @@ synFold τ e = do
   checkFold e τ
   return τ
 
-synUnfold ∷ STACK ⇒ Exp → Type → EM ()
-synUnfold e τ=
+synUnfold ∷ STACK ⇒Type →  Exp →  EM ()
+synUnfold τ e =
  case τ of
     (RecT a τ')   →  do
       _  ← chkExp e substtype
