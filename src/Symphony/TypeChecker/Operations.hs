@@ -1117,9 +1117,9 @@ type_subst x ty ty' =
     SecT em locty → do
       locty' ← (loc_type_subst x locty ty')
       return (SecT em locty')
-    VarT x'  → if x ≡ x' then ty' else ty 
-    RecT x' ty'' → if x ≡ x' then ty else (loc_type_subst ty'' ty') 
-    ForallT x' ty'' → if x ≡ x' then ty else (loc_type_subst ty'' ty') 
+    VarT x'  → return (if x ≡ x' then ty' else ty) 
+    RecT x' ty'' → return (if x ≡ x' then ty else (loc_type_subst ty'' ty') )
+    ForallT x' ty'' → return (if x ≡ x' then ty else (loc_type_subst ty'' ty') )
     _ → typeError "type_subst: ty is not well structured" $ frhs
         [ ("ty", pretty ty )
         ]
