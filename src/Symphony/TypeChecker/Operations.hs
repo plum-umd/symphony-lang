@@ -1072,7 +1072,7 @@ superty_wf t m =
         [ ("t", pretty t )
         ]
 
-loc_type_subst ::  STACK ⇒ Var   → Type → EM Type
+loc_type_subst ::  STACK ⇒ Var   → Type → Type → EM Type
 loc_type_subst x sigma ty =
   case sigma of
     -- WF-Base (Based off WF-INT)
@@ -1115,7 +1115,7 @@ type_subst x ty ty' =
   case ty of
     -- WF-Loc
     SecT em locty → do
-      loc_y' ← (loc_type_subst x locty ty')
+      locty' ← (loc_type_subst x locty ty')
       return (SecT em locty')
     VarT x'  → if x ≡ x' then ty' else ty 
     RecT x' ty'' → if x ≡ x' then ty else (loc_type_subst ty'' ty') 
