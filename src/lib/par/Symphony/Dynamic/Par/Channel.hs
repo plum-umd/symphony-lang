@@ -8,6 +8,8 @@ import Foreign.Ptr
 import Foreign.ForeignPtr
 import Foreign.Marshal.Alloc
 
+import Symphony.Lang.Syntax
+
 import qualified Prelude as HS
 import qualified Data.Word as W
 import qualified Data.Text as T
@@ -35,47 +37,56 @@ channelNewTcpServer addr port = io $ Channel ^$ withCString hsaddr $ \ caddr →
 
 foreign import ccall unsafe "&channel_drop" channel_drop ∷ FinalizerPtr CChannel
 
-{-
-tohsPort ∷ ℕ16 → CPort
-tohsPort = CUShort ∘ tohs
+foreign import ccall unsafe "channel_send_all" channel_send_all ∷ Ptr CChannel → Ptr a → CSize → IO ()
 
-tohsAddr ∷ 𝕊 → HS.String
-tohsAddr = T.unpack ∘ tohs
+channelSendAll ∷ (Monad m, MonadIO m) ⇒ Channel → Ptr a → CSize → m ()
+channelSendAll chan buf len = io $ withForeignPtr cchan $ \ chan_ptr → channel_send_all chan_ptr buf len
+  where cchan = unChannel chan
 
-tohsCSize ∷ ℕ64 → CSize
-tohsCSize = CSize ∘ tohs
+channelSendStorable ∷ forall a m . (Monad m, MonadIO m, Storable a) ⇒ Channel → a → m ()
+channelSendStorable chan v = io $ do
+  alloca $ \ buf → do
+    poke buf v
+    channelSendAll chan buf len
+  where len = CSize $ HS.fromIntegral $ sizeOf v
 
+foreign import ccall unsafe "channel_recv_all" channel_recv_all ∷ Ptr CChannel → Ptr a → CSize → IO ()
 
-foreign import ccall unsafe "symphony/tcp_channel.h tcp_channel_create_server" tcp_channel_create_server ∷ CPort → IO (Ptr ())
+channelRecvAll ∷ (Monad m, MonadIO m) ⇒ Channel → Ptr a → CSize → m ()
+channelRecvAll chan buf len = io $ withForeignPtr cchan $ \ chan_ptr → channel_recv_all chan_ptr buf len
+  where cchan = unChannel chan
 
-
-foreign import ccall unsafe "symphony/channel.h send_all" send_all ∷ Ptr () → Ptr a → CSize → IO ()
-foreign import ccall unsafe "symphony/channel.h recv_all" recv_all ∷ Ptr () → Ptr a → CSize → IO ()
-foreign import ccall unsafe "symphony/channel.h flush" flush ∷ Ptr () → IO ()
-
--}
-
-channelSendAll ∷ (Monad m, MonadIO m) ⇒ Channel → Ptr a → ℕ64 → m ()
-channelSendAll chan buf size = undefined --io $ withForeignPtr chan $ \ chan_ptr → send_all chan_ptr buf (tohsCSize size)
-
-channelRecvAll ∷ (Monad m, MonadIO m) ⇒ Channel → Ptr a → ℕ64 → m ()
-channelRecvAll chan buf size = undefined --io $ withForeignPtr chan $ \ chan_ptr → recv_all chan_ptr buf (tohsCSize size)
-
-channelFlush ∷ (Monad m, MonadIO m) ⇒ Channel → m ()
-channelFlush chan = undefined --io $ withForeignPtr chan $ \ chan_ptr → flush chan_ptr
+channelRecvStorable ∷ forall a m . (Monad m, MonadIO m, Storable a) ⇒ Channel → m a
+channelRecvStorable chan = io $ do
+  alloca $ \ buf → do
+    channelRecvAll chan buf len
+    peek buf
+  where len = CSize $ HS.fromIntegral $ sizeOf (undefined ∷ a)
 
 -- Convenience
 
-channelSendStorable ∷ forall a m . (Monad m, MonadIO m, Storable a) ⇒ Channel → a → m ()
-channelSendStorable chan v = undefined {-io $ withForeignPtr chan $ \ chan_ptr →
-  alloca $ \ buf → do
-    poke buf v
-    send_all chan_ptr buf size
-  where size = CSize $ HS.fromIntegral $ sizeOf v -}
+channelSendBool ∷ (Monad m, MonadIO m) ⇒ Channel → 𝔹 → m ()
+channelSendBool = channelSendStorable @𝔹
 
-channelRecvStorable ∷ forall a m . (Monad m, MonadIO m, Storable a) ⇒ Channel → m a
-channelRecvStorable chan = undefined {-io $ withForeignPtr chan $ \ chan_ptr →
-  alloca $ \ buf → do
-    recv_all chan_ptr buf size
-    peek buf
-  where size = CSize $ HS.fromIntegral $ sizeOf (undefined ∷ a) -}
+channelRecvBool ∷ (Monad m, MonadIO m) ⇒ Channel → m 𝔹
+channelRecvBool = channelRecvStorable @𝔹
+
+channelSendNat ∷ (Monad m, MonadIO m) ⇒ Channel → IPrecision → ℕ → m ()
+channelSendNat chan pr n = case pr of
+  FixedIPr wPr dPr | wPr + dPr ≡ 8 → channelSendStorable @ℕ8 chan $ HS.fromIntegral n
+  _                                → undefined
+
+channelRecvNat ∷ (Monad m, MonadIO m) ⇒ Channel → IPrecision → m ℕ
+channelRecvNat chan pr = case pr of
+  FixedIPr wPr dPr | wPr + dPr ≡ 8 → HS.fromIntegral ^$ channelRecvStorable @ℕ8 chan
+  _                                → undefined
+
+channelSendInt ∷ (Monad m, MonadIO m) ⇒ Channel → IPrecision → ℤ → m ()
+channelSendInt chan pr n = case pr of
+  FixedIPr wPr dPr | wPr + dPr ≡ 8 → channelSendStorable @ℤ8 chan $ HS.fromIntegral n
+  _                                → undefined
+
+channelRecvInt ∷ (Monad m, MonadIO m) ⇒ Channel → IPrecision → m ℤ
+channelRecvInt chan pr = case pr of
+  FixedIPr wPr dPr | wPr + dPr ≡ 8 → HS.fromIntegral ^$ channelRecvStorable @ℤ8 chan
+  _                                → undefined

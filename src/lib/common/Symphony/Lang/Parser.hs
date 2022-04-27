@@ -316,22 +316,16 @@ pType = cpNewContext "type" $ mixfix $ concat
   , mixInfixL levelPLUS $ do concat [cpSyntaxVoid "+"] ; return (:+:)
   -- τ × τ
   , mixInfixL levelTIMES $ do concat [cpSyntaxVoid "×",cpSyntaxVoid "*"] ; return (:×:)
-  -- list[n] τ
+  -- list τ
   , mixPrefix levelAPP $ do
       cpSyntaxVoid "list"
-      cpSyntaxVoid "["
-      n ← natΩ ^$ cpInteger
-      cpSyntaxVoid "]"
-      return $ ListT n
+      return $ ListT
   -- ref τ
   , mixPrefix levelAPP $ do cpSyntaxVoid "ref" ; return RefT
   -- arr τ
   , mixPrefix levelAPP $ do
       cpSyntaxVoid "array"
-      cpSyntaxVoid "["
-      n ← natΩ ^$ cpInteger
-      cpSyntaxVoid "]"
-      return $ ArrT n
+      return $ ArrT
   -- τ →{η} τ
   , mixInfixR levelARROW $ do
       concat [cpSyntaxVoid "→",cpSyntaxVoid "->"]

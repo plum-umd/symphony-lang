@@ -130,6 +130,15 @@ mkChannels ρvMe s = dict ^$ mapM (\ (ρvThem :* hostThem) → openChannel parti
         config  = fromSome $ mjoin $ map parseConfig s
         hostMe  = fromSome $ (assoc config) ⋕? ρvMe
 
+configPorts ∷ ℕ16 → 𝐿 Port
+configPorts n = list $ map ((+) $ HS.fromIntegral 23000) $ upTo n
+
+mkConfigs ∷ 𝑂 𝕊 → (PrinVal ⇰ (Addr ∧ Port))
+mkConfigs s = dict $ map (\ ((ρ :* a) :* p) → ρ ↦ (a :* p)) $ fromSome $ zipSameLength config (configPorts n)
+--  zipSameLength config (configPorts $ count config)
+  where config = fromSome $ mjoin $ map parseConfig s
+        n      = count config
+
 runPar ∷ OptionsPar → 𝐿 𝕊 → IO Doc
 runPar opts args = do
   when (optParHelp opts) $ io $ do
@@ -140,10 +149,11 @@ runPar opts args = do
       let name = pbasename path
       party    ← return $ mkParty (optParParty opts)
       prg      ← mkPrg (optParSeed opts)
+      let configs = mkConfigs (optParConfig opts)
       channels ← mkChannels party (optParConfig opts)
       program  ← io $ parseFile path
 #ifdef PAR
-      v ← io $ evalProgram (θ₀ name party prg channels) program
+      v ← io $ evalProgram (θ₀ name party prg channels configs) program
       return $ pretty v
 #else
       io $ out "Symphony compiled without parallel support."

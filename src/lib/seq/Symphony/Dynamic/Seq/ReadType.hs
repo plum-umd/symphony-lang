@@ -70,12 +70,12 @@ parseInputType τ s = case τ of
     s' :* cbv ← parseBaseVal bτ s
     ṽ ← introVal $ BaseV $ Clear cbv
     return $ s' :* ṽ
-  ListT _n τ' → do
+  ListT τ' → do
     ṽs ← mapM (snd ^∘ parseInputType τ') $ list $ filter (not ∘ isEmpty) $ splitOn𝕊 "\n" s
     (null :*) ^$ introVal $ ListV ṽs
-  ArrT n τ' → do
+  ArrT τ' → do
     ṽs ← mapM (snd ^∘ parseInputType τ') $ list $ filter (not ∘ isEmpty) $ splitOn𝕊 "\n" s
-    a ← io $ new𝕍Mut (natΩ64 n)
+    a ← io $ new𝕍Mut $ count ṽs
     eachOn (withIndex ṽs) $ \ (i :* ṽᵢ) → io $ set𝕍Mut i ṽᵢ a
     m ← askL iCxtModeL
     (null :*) ^$ introVal $ LocV m (Inr a)

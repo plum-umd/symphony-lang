@@ -27,9 +27,9 @@ import Foreign.ForeignPtr
 
 interpPrinExp ∷ (STACK) ⇒ PrinExp → IM Val PrinVal
 interpPrinExp = \case
-  VarPE x       → elimPrin *$ elimClear *$ elimBase *$ elimKnown *$ interpVar x
+  VarPE x       → elimPrin *$ elimBase *$ elimKnown *$ interpVar x
   AccessPE x n₁ → do
-    ρ :* n₂ ← elimPrinArr *$ elimPrinSet *$ elimClear *$ elimBase *$ elimKnown *$ interpVar x
+    ρ :* n₂ ← elimPrinArr *$ elimPrinSet *$ elimBase *$ elimKnown *$ interpVar x
     guardErr (0 ≤ n₁ ⩓ n₁ < n₂) $
       throwIErrorCxt TypeIError "interpPrinExp: n₁ ∉ ρ[n₂]" $ frhs
       [ ("n₁", pretty n₁)
@@ -40,7 +40,7 @@ interpPrinExp = \case
 
 interpPrinSetExp ∷ (STACK) ⇒ PrinSetExp → IM Val PrinSetVal
 interpPrinSetExp = \case
-  VarPSE x   → elimPrinSet *$ elimClear *$ elimBase *$ elimKnown *$ interpVar x
+  VarPSE x   → elimPrinSet *$ elimBase *$ elimKnown *$ interpVar x
   PowPSE ρes → PowPSV ^$ pow ^$ mapM interpPrinExp ρes
   ThisPSE    → do
     m   ← askL iCxtModeL
@@ -67,36 +67,33 @@ interpVar x = do
 ------------------
 
 interpBul ∷ (STACK) ⇒ IM Val Val
-interpBul = return $ KnownV $ BaseV $ ClearV BulCV
+interpBul = return $ KnownV $ BaseV BulV
 
 interpBool ∷ (STACK) ⇒ 𝔹 → IM Val Val
-interpBool b = return $ KnownV $ BaseV $ ClearV $ BoolCV b
+interpBool b = return $ KnownV $ BaseV $ BoolV $ ClearBV b
 
 interpNat ∷ (STACK) ⇒ IPrecision → ℕ → IM Val Val
-interpNat pr n = return $ KnownV $ BaseV $ ClearV $ NatCV pr n
+interpNat pr n = return $ KnownV $ BaseV $ NatV pr $ ClearNV n
 
 interpInt ∷ (STACK) ⇒ IPrecision → ℤ → IM Val Val
-interpInt pr z = return $ KnownV $ BaseV $ ClearV $ IntCV pr z
-
-interpFlt ∷ (STACK) ⇒ FPrecision → 𝔻 → IM Val Val
-interpFlt pr d = return $ KnownV $ BaseV $ ClearV $ FltCV pr d
+interpInt pr z = return $ KnownV $ BaseV $ IntV pr $ ClearZV z
 
 interpStr ∷ (STACK) ⇒ 𝕊 → IM Val Val
-interpStr s = return $ KnownV $ BaseV $ ClearV $ StrCV s
+interpStr s = return $ KnownV $ BaseV $ StrV s
 
 interpPrin ∷ (STACK) ⇒ PrinExp → IM Val Val
 interpPrin ρe =
   let c = interpPrinExp ρe
   in do
     ρv ← c
-    return $ KnownV $ BaseV $ ClearV $ PrinCV ρv
+    return $ KnownV $ BaseV $ PrinV ρv
 
 interpPrinSet ∷ (STACK) ⇒ PrinSetExp → IM Val Val
 interpPrinSet ρse =
   let c = interpPrinSetExp ρse
   in do
     ρsv ← c
-    return $ KnownV $ BaseV $ ClearV $ PrinSetCV ρsv
+    return $ KnownV $ BaseV $ PrinSetV ρsv
 
 interpPrim ∷ (STACK) ⇒ Op → 𝐿 Exp → IM Val Val
 interpPrim op es =
@@ -121,7 +118,7 @@ interpL ∷ (STACK) ⇒ Exp → IM Val Val
 interpL eₗ =
   let cₗ = interpExp eₗ
   in do
-    bvₜ ← return $ ClearV $ BoolCV True
+    let bvₜ = ClearBV True
     ṽₗ  ← cₗ
     ṽᵣ  ← interpDefault
     return $ KnownV $ SumV bvₜ ṽₗ ṽᵣ
@@ -130,7 +127,7 @@ interpR ∷ (STACK) ⇒ Exp → IM Val Val
 interpR eᵣ =
   let cᵣ = interpExp eᵣ
   in do
-    bvₜ ← return $ ClearV $ BoolCV False
+    let bvₜ = ClearBV False
     ṽₗ  ← interpDefault
     ṽᵣ  ← cᵣ
     return $ KnownV $ SumV bvₜ ṽₗ ṽᵣ
@@ -153,7 +150,7 @@ interpIf e₁ e₂ e₃ =
       c₂ = interpExp e₂
       c₃ = interpExp e₃
   in do
-    b ← elimBool *$ elimClear *$ elimBase *$ elimKnown *⋅ c₁
+    b ← elimClearBV *$ elimBool *$ elimBase *$ elimKnown *⋅ c₁
     if b then c₂ else c₃
 
 interpCase ∷ (STACK) ⇒ Exp → 𝐿 (Pat ∧ Exp) → IM Val Val
@@ -227,7 +224,7 @@ interpRead ∷ (STACK) ⇒ Type → Exp → IM Val Val
 interpRead τ e =
   let c = interpExp e
   in do
-    fn ← elimStr *$ elimClear *$ elimBase *$ elimKnown *⋅ c
+    fn ← elimStr *$ elimBase *$ elimKnown *⋅ c
     ρ  ← singletonMode
     path ← inputPath ρ fn
     deserializeVal τ *$ io $ fread path
@@ -237,7 +234,7 @@ interpWrite e₁ e₂ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
   in do
-    fn   ← elimStr *$ elimClear *$ elimBase *$ elimKnown *⋅ c₂
+    fn   ← elimStr *$ elimBase *$ elimKnown *⋅ c₂
     ρ    ← singletonMode
     path ← outputPath ρ fn
     s    ← serializeVal *⋅ c₁
@@ -295,7 +292,8 @@ interpArray e₁ e₂ =
   let c₁ = interpExp e₁
       c₂ = interpExp e₂
   in do
-  _pr :* n ← elimNat *$ elimClear *$ elimBase *$ elimKnown *⋅ c₁
+  _pr :* nat ← elimNat *$ elimBase *$ elimKnown *⋅ c₁
+  n ← elimClearNV nat
   ṽ₂ ← c₂
   a  ← io $ vecIMut $ replicate n ṽ₂
   KnownV ^$ introLoc (Inr a)
@@ -306,7 +304,8 @@ interpArrayRead e₁ e₂ =
       c₂ = interpExp e₂
   in do
   a  ← elimArr *$ elimLocRead *$ elimKnown *⋅ c₁
-  _pr :* n ← elimNat *$ elimClear *$ elimBase *$ elimKnown *⋅ c₂
+  _pr :* nat ← elimNat *$ elimBase *$ elimKnown *⋅ c₂
+  n ← elimClearNV nat
   ṽᵣ ← errorIO (idx𝕍Mut (natΩ64 n) a) $
     throwIErrorCxt TypeIError "interpArrayRead: a[n] out of bounds" $ frhs
     [ ("a", pretty a)
@@ -321,7 +320,8 @@ interpArrayWrite e₁ e₂ e₃ =
       c₃ = interpExp e₃
   in do
   a  ← elimArr *$ elimLocWrite *$ elimKnown *⋅ c₁
-  _pr :* n ← elimNat *$ elimClear *$ elimBase *$ elimKnown *⋅ c₂
+  _pr :* nat ← elimNat *$ elimBase *$ elimKnown *⋅ c₂
+  n ← elimClearNV nat
   ṽ₃ ← c₃
   errorIO (set𝕍Mut (natΩ64 n) ṽ₃ a) $
       throwIErrorCxt TypeIError "interpArrayWrite: a[n] out of bounds" $ frhs
@@ -359,10 +359,10 @@ interpPar ρse₁ e₂ =
 --- Rand --
 -----------
 
-rand ∷ Prg → BaseType → IM Val ClearBaseVal
+rand ∷ Prg → BaseType → IM Val BaseVal
 rand prg bτ = case bτ of
-  UnitT → return BulCV
-  𝔹T    → BoolCV ^$ prgRandBool prg
+  UnitT → return BulV
+  𝔹T    → BoolV ^$ ClearBV ^$ prgRandBool prg
 {-  ℕT pr → case pr of
     FixedIPr wPr dPr | wPr + dPr ≡ 8  → NatCV pr ^$ prgRandNat8  prg
     FixedIPr wPr dPr | wPr + dPr ≡ 16 → NatCV pr ^$ prgRandNat16 prg
@@ -387,8 +387,8 @@ interpRand ρse bτ = do
     , ("m'", pretty m')
     ]
   prg ← getPrg
-  cbv ← rand prg bτ
-  return $ KnownV $ BaseV $ ClearV cbv
+  bv ← rand prg bτ
+  return $ KnownV $ BaseV bv
 
 -------------------------------
 --- Share, Reveal, and Send ---
@@ -425,7 +425,7 @@ interpShare φ τ ρse₁ ρse₂ e₃ =
     ρvsTo ← elimPSV ^$ c₂
     ṽ     ← c₃
     modeCheckComm ρvsFr ρvsTo
-    share φ ρvFr ρvsTo ṽ τ
+    shareVal φ ρvFr ρvsTo ṽ τ
 
 interpReveal ∷ (STACK) ⇒ Prot → Type → PrinSetExp → PrinSetExp → Exp → IM Val Val
 interpReveal φ τ ρse₁ ρse₂ e₃ =
@@ -441,7 +441,7 @@ interpReveal φ τ ρse₁ ρse₂ e₃ =
             ]
     ṽ     ← c₃
     modeCheckComm ρvsFr ρvsTo
-    reveal φ ρvsFr ρvTo ṽ τ
+    revealVal φ ρvsFr ρvTo ṽ τ
 
 interpComm ∷ (STACK) ⇒ Type → PrinSetExp → PrinSetExp → Exp → IM Val Val
 interpComm τ ρse₁ ρse₂ e₃ =
@@ -450,10 +450,14 @@ interpComm τ ρse₁ ρse₂ e₃ =
       c₃ = interpExp e₃
   in do
     ρvsFr ← elimPSV ^$ c₁
+    ρvFr  ← error𝑂 (view one𝑃L ρvsFr) $
+            throwIErrorCxt TypeIError "interpComm: view one𝑃L ρvsFr ≡ None" $ frhs
+            [ ("ρvsFr", pretty ρvsFr)
+            ]
     ρvsTo ← elimPSV ^$ c₂
     ṽ     ← c₃
     modeCheckComm ρvsFr ρvsTo
-    commVal ρvsFr ρvsTo ṽ τ
+    commVal ρvFr ρvsTo ṽ τ
 
 ----------------------
 --- MPC Operations ---
@@ -584,7 +588,6 @@ interpExpR = \case
   BoolE b     → interpBool b
   NatE pr n   → interpNat pr n
   IntE pr z   → interpInt pr z
-  FltE pr d   → interpFlt pr d
   StrE s      → interpStr s
   PrinSetE es → interpPrinSet es
   PrimE op es → interpPrim op es
@@ -668,11 +671,11 @@ interpTL tl xM = case extract tl of
     γρs :* ρScope ← split ^$ mapMOn ρds $ \case
       SinglePD ρ → do
         let ρv = SinglePV ρ
-        let ṽ  = KnownV $ BaseV $ ClearV $ PrinCV ρv
+        let ṽ  = KnownV $ BaseV $ PrinV ρv
         return $ (var ρ ↦ ṽ) :* single ρv
       ArrayPD ρ n → do
         let ρsv = ArrPSV ρ n
-        let ṽ   = KnownV $ BaseV $ ClearV $ PrinSetCV ρsv
+        let ṽ   = KnownV $ BaseV $ PrinSetV ρsv
         return $ (var ρ ↦ ṽ) :* elimPSV ρsv
     mapEnvL iCxtEnvL ((dict γρs) ⩌) $ mapEnvL iCxtPrinScopeL ((concat ρScope) ∪) xM
 
@@ -688,5 +691,5 @@ evalProgram θ prog =
   evalIMIO θ $ do
     interpTLs prog $ do
       main ← interpVar $ var "main"
-      bul  ← return $ KnownV $ BaseV $ ClearV BulCV
+      bul  ← return $ KnownV $ BaseV BulV
       evalApp main bul

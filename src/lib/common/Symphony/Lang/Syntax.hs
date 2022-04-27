@@ -256,10 +256,10 @@ instance Pretty IPrecision where
                ]
         ]
 
-ppNatSymphony ∷ IPrecision → ℕ → Doc
+ppNatSymphony ∷ (Pretty a) ⇒ IPrecision → a → Doc
 ppNatSymphony p n = concat [pretty n,ppLit "n",pretty p]
 
-ppIntSymphony ∷ IPrecision → ℤ → Doc
+ppIntSymphony ∷ (Pretty a) ⇒ IPrecision → a → Doc
 ppIntSymphony p i = concat [pretty i,pretty p]
 
 data FPrecision =
@@ -310,9 +310,9 @@ data Type =
   | BaseT BaseType
   | Type :+: Type                               --  τ + τ                      /  τ + τ
   | Type :×: Type                               --  τ × τ                      /  τ * τ
-  | ListT ℕ Type                                --  list[n] τ                  /  list[n] τ
+  | ListT Type                                  --  list τ                     /  list τ
   | RefT Type                                   --  ref τ                      /  ref τ
-  | ArrT ℕ Type                                 --  arr[n] τ                   /  arr[n] τ
+  | ArrT Type                                   --  arr τ                      /  arr τ
   | Type :→: (Effect ∧ Type)                    --  τ →{η} τ                   /  τ ->{η} τ
   | (𝕏 ∧ Type ∧ 𝐿 Constr) :→†: (Effect ∧ Type)  --  (x : τ | c,…,c) →{η} τ     /  (x : τ | c,…,c) ->{η} τ
   | ForallT (𝐿 (TVar ∧ Kind)) (𝐿 Constr) Type   --  ∀ α:κ,…,α:κ | c,…,c. τ     /  forall α:κ,…,α:κ | c,…,c. τ

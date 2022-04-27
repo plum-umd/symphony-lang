@@ -94,14 +94,14 @@ shareValSeq φ ρvsFr ρvsTo ṽ τ = do
            ṽᵣˢ ← shareValSeq φ ρvsFr ρvsTo ṽᵣ τᵣ
            return $ SumV bvˢ ṽₗˢ ṽᵣˢ
          ListV ṽs → do
-           _ :* τ' ← error𝑂 (view listTL τ) $
+           τ' ← error𝑂 (view listTL τ) $
                      throwIErrorCxt TypeIError "shareValSeq: view listTL τ ≡ None" $ frhs
                       [ ("τ", pretty τ)
                       ]
            ṽsˢ ← mapM (\ ṽ' → shareValSeq φ ρvsFr ρvsTo ṽ' τ') ṽs
            return $ ListV ṽsˢ
          LocV _m (Inr a) → do
-           _ :* τ' ← error𝑂 (view arrTL τ) $
+           τ' ← error𝑂 (view arrTL τ) $
                      throwIErrorCxt TypeIError "shareValSeq: view arrTL τ ≡ None" $ frhs
                       [ ("τ", pretty τ)
                       ]

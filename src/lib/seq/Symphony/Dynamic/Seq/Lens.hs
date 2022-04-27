@@ -39,18 +39,18 @@ sumTL = prism constr destr
           τ₁ :+: τ₂ → Some $ τ₁ :* τ₂
           _ → None
 
-listTL ∷ Type ⌲ (ℕ ∧ Type)
+listTL ∷ Type ⌲ Type
 listTL = prism constr destr
-  where constr (n :* τ) = ListT n τ
+  where constr τ = ListT τ
         destr = \case
-          ListT n τ → Some (n :* τ)
+          ListT τ → Some τ
           _ → None
 
-arrTL ∷ Type ⌲ (ℕ ∧ Type)
+arrTL ∷ Type ⌲ Type
 arrTL = prism constr destr
-  where constr (n :* τ) = ArrT n τ
+  where constr τ = ArrT τ
         destr = \case
-          ArrT n τ → Some (n :* τ)
+          ArrT τ → Some τ
           _ → None
 
 -----------

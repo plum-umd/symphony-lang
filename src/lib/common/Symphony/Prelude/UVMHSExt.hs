@@ -6,6 +6,7 @@ import qualified Prelude as HS
 import qualified Data.Vector.Mutable as VBM
 import qualified Data.IORef as IOR
 import qualified Foreign.ForeignPtr as F
+import qualified Foreign.C.String as F
 import qualified Foreign.Ptr as Ptr
 
 
@@ -271,6 +272,9 @@ runCont m k = unID $ runContT (ID ∘ k) m
 
 withForeignPtrs :: [F.ForeignPtr a] -> ([Ptr.Ptr a] -> IO b) -> IO b
 withForeignPtrs xs f = runCont (mapM (cont ∘ F.withForeignPtr) xs) f
+
+withCStrings :: [HS.String] -> ([F.CString] -> IO b) -> IO b
+withCStrings xs f = runCont (mapM (cont ∘ F.withCString) xs) f
 
 pmapM ∷ (Monad m, Ord b) ⇒ (a → m b) → 𝑃 a → m (𝑃 b)
 pmapM f = pow𝐼 ^∘ mapM f ∘ iter

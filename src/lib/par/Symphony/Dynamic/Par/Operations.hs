@@ -36,7 +36,7 @@ singletonMode = do
 
 defaultClearValR ∷ (STACK) ⇒ Type → ValR
 defaultClearValR = \case
-  BaseT bτ → BaseV $ ClearV $ defaultClearBaseVal bτ
+  BaseT bτ → BaseV $ defaultBaseVal bτ
   _        → undefined --TODO
 
 ------------------------
@@ -120,30 +120,28 @@ elimBundle v = error𝑂 (view bundleVL v) $
 --- Operations on Values ---
 ----------------------------
 
-matchLClear ∷ (STACK) ⇒ BaseVal → Val → Pat → FailT (IM Val) (IM Val Val → IM Val Val)
-matchLClear bvₜ ṽₗ ψₗ = do
-  cbvₜ ← abort𝑂 $ view clearVL bvₜ
-  bₜ   ← lift $ elimBool cbvₜ
+matchLClear ∷ (STACK) ⇒ BoolVal → Val → Pat → FailT (IM Val) (IM Val Val → IM Val Val)
+matchLClear boolₜ ṽₗ ψₗ = do
+  bₜ ← abort𝑂 $ view clearBVL boolₜ
   if bₜ then matchVal ṽₗ ψₗ else abort
 
-matchLEnc ∷ (STACK) ⇒ BaseVal → Val → Pat → FailT (IM Val) (IM Val Val → IM Val Val)
-matchLEnc bvₜ ṽₗ ψₗ = do
-  ṽₜ ← lift $ return $ KnownV $ BaseV bvₜ
+matchLEnc ∷ (STACK) ⇒ BoolVal → Val → Pat → FailT (IM Val) (IM Val Val → IM Val Val)
+matchLEnc boolₜ ṽₗ ψₗ = do
+  ṽₜ ← lift $ return $ KnownV $ BaseV $ BoolV boolₜ
   fₗ ← matchVal ṽₗ ψₗ
   return $ \ xM → do
     ṽₗᵒ ← mapEnvL iCxtMPCPathConditionL (ṽₜ :&) $ fₗ xM
     ṽᵣᵒ ← return $ KnownV $ DefaultV
     muxVal ṽₜ ṽₗᵒ ṽᵣᵒ
 
-matchRClear ∷ (STACK) ⇒ BaseVal → Val → Pat → FailT (IM Val) (IM Val Val → IM Val Val)
-matchRClear bvₜ ṽᵣ ψᵣ = do
-  cbvₜ ← abort𝑂 $ view clearVL bvₜ
-  bₜ   ← lift $ elimBool cbvₜ
+matchRClear ∷ (STACK) ⇒ BoolVal → Val → Pat → FailT (IM Val) (IM Val Val → IM Val Val)
+matchRClear boolₜ ṽᵣ ψᵣ = do
+  bₜ ← abort𝑂 $ view clearBVL boolₜ
   if not bₜ then matchVal ṽᵣ ψᵣ else abort
 
-matchREnc ∷ (STACK) ⇒ BaseVal → Val → Pat → FailT (IM Val) (IM Val Val → IM Val Val)
-matchREnc bvₜ ṽᵣ ψᵣ = do
-  ṽₜ ← lift $ return $ KnownV $ BaseV bvₜ
+matchREnc ∷ (STACK) ⇒ BoolVal → Val → Pat → FailT (IM Val) (IM Val Val → IM Val Val)
+matchREnc boolₜ ṽᵣ ψᵣ = do
+  ṽₜ ← lift $ return $ KnownV $ BaseV $ BoolV boolₜ
   negṽₜ ← lift $ primVal NotO $ ṽₜ :& Nil
   fᵣ ← matchVal ṽᵣ ψᵣ
   return $ \ xM → do
@@ -156,21 +154,21 @@ matchVal ṽ = \case
   VarP x → return $ bindTo x ṽ
   BulP → do
     v ← lift $ elimKnown ṽ
-    abort𝑂 $ view (bulCVL ⊚ clearVL ⊚ baseVL) v
+    abort𝑂 $ view (bulVL ⊚ baseVL) v
     return id
   EPrinSetP → do
     v ← lift $ elimKnown ṽ
-    ρsv ← abort𝑂 $ view (prinSetCVL ⊚ clearVL ⊚ baseVL) v
+    ρsv ← abort𝑂 $ view (prinSetVL ⊚ baseVL) v
     let ρ𝑃 = elimPSV ρsv
     abort𝑂 $ view empty𝑃L ρ𝑃
     return id
   NEPrinSetP x₁ ψ₂ → do
     v ← lift $ elimKnown ṽ
-    ρsv ← abort𝑂 $ view (prinSetCVL ⊚ clearVL ⊚ baseVL) v
+    ρsv ← abort𝑂 $ view (prinSetVL ⊚ baseVL) v
     let ρ𝑃 = elimPSV ρsv
     ρ :* ρs ← abort𝑂 $ view nonEmpty𝑃L ρ𝑃
-    ṽ₁ ← lift $ return $ KnownV $ BaseV $ ClearV $ PrinCV ρ
-    ṽ₂ ← lift $ return $ KnownV $ BaseV $ ClearV $ PrinSetCV $ PowPSV ρs
+    ṽ₁ ← lift $ return $ KnownV $ BaseV $ PrinV ρ
+    ṽ₂ ← lift $ return $ KnownV $ BaseV $ PrinSetV $ PowPSV ρs
     let f₁ = bindTo x₁ ṽ₁
     f₂ ← matchVal ṽ₂ ψ₂
     return $ compose [ f₂, f₁ ]
@@ -206,7 +204,7 @@ matchVal ṽ = \case
   NEBundleP x₁ ψ₂ ψ₃ → do
     v ← lift $ elimKnown ṽ
     ρ :* ṽ₂ :* ρtoṽ ← abort𝑂 $ view (nonEmpty𝐷L ⊚ bundleVL) v
-    ṽ₁ ← lift $ return $ KnownV $ BaseV $ ClearV $ PrinCV ρ
+    ṽ₁ ← lift $ return $ KnownV $ BaseV $ PrinV ρ
     ṽ₃ ← lift $ return $ KnownV $ BundleV ρtoṽ
     let f₁ = bindTo x₁ ṽ₁
     f₂ ← matchVal ṽ₂ ψ₂
@@ -252,25 +250,6 @@ sumVal ṽ₁ ṽ₂ = do
       return $ BaseV bv
     _ → todoCxt
   return $ KnownV v
-
-embedBaseVal ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → BaseVal → IM Val EncBaseVal
-embedBaseVal φ ρ𝑃 = \case
-  ClearV cbv → embedEBVDist φ ρ𝑃 cbv
-  bv         → elimEnc ρ𝑃 bv
-
-embedBaseVals ∷ (STACK) ⇒ 𝐿 BaseVal → IM Val (𝐿 ClearBaseVal ∨ Prot ∧ 𝑃 PrinVal ∧ 𝐿 EncBaseVal)
-embedBaseVals bvs = do
-  let meta = metaBaseVals bvs
-  case meta of
-    None           → Inl                ^$ mapM elimClear bvs
-    Some (ρ𝑃 :* φ) → Inr ∘ (φ :* ρ𝑃 :*) ^$ mapM (embedBaseVal φ ρ𝑃) bvs
-
-primBaseVal ∷ (STACK) ⇒ Op → 𝐿 BaseVal → IM Val BaseVal
-primBaseVal op bvs = do
-  bvsₑ ← embedBaseVals bvs
-  case bvsₑ of
-    Inl cbvs              → ClearV  ^$ evalPrimClearBaseVal op cbvs
-    Inr (φ :* ρ𝑃 :* ebvs) → EncV ρ𝑃 ^$ primEBVDist φ ρ𝑃 op ebvs
 
 primVal ∷ (STACK) ⇒ Op → 𝐿 Val → IM Val Val
 primVal op ṽs = do
