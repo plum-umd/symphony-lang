@@ -442,7 +442,7 @@ synTLamE x e  =
   let c = synExp e
   in do
     τ ← c
-    return ForallT x τ
+    return $ ForallT x τ
 
 --  |-m e1 ( t1 m -> t2)
 --  |-m e2 t₂
@@ -475,7 +475,7 @@ synApp e₁ e₂ =
           [ ("τ₁", pretty τ₁)
           ]
 
-synTAppE ∷ STACK ⇒ TVar → Type → EM Type
+synTAppE ∷ STACK ⇒ TVar → Exp → EM Type
 synTAppE x e =
   let c = synExp e
   in do
@@ -1096,16 +1096,16 @@ checkFold e τ=
       return ()
     _  → typeError "checkFold: Type is given is not a recursive type" $ frhs [ ("τ'", pretty τ)]
 
-synFold :: STACK ⇒  Type →  Exp → EM ()
+synFold :: STACK ⇒  Type →  Exp → EM Type
 synFold τ e = do
   checkFold e τ
   return τ
 
-synUnfold ∷ STACK ⇒Type →  Exp →  EM ()
+synUnfold ∷ STACK ⇒Type →  Exp →  EM Type
 synUnfold τ e =
  case τ of
     (RecT a τ')   →  do
-      _  ← chkExp e substtype
+      _  ← chkExp e τ
       (type_subst a τ τ')
     _  → typeError "synUnfold: Type given is not a recursive type" $ frhs [ ("τ'", pretty τ)]
 
@@ -1130,7 +1130,7 @@ chkExpR e τ =
       NilE        → checkNil τ
       LamE self𝑂 ψs e → checkLam self𝑂 ψs e τ
       ParE ρse₁ e₂ → checkPar ρse₁ e₂ τ
-      FoldE e → checkFold e
+      FoldE τ e → checkFold e τ
       --UnfoldE e → synUnfold e
       _ →
           do
