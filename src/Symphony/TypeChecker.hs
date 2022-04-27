@@ -437,6 +437,13 @@ checkLam self𝑂 ψs e τ =
       Some self → (bindTo self τ) (checkLam None ψs e τ)
     _  → typeError "checkLam: Not annotated correctly" $ frhs [ ("τ'", pretty τ)]
 
+synTLamE ∷ STACK ⇒ TVar→ Exp → EM Type
+synTLamE x e  ==
+  let c = synExp e
+  in do
+    τ ← c
+    return ForallT x τ
+
 --  |-m e1 ( t1 m -> t2)
 --  |-m e2 t₂
 -- ------T-FunExp
@@ -468,6 +475,16 @@ synApp e₁ e₂ =
           [ ("τ₁", pretty τ₁)
           ]
 
+synTAppE ∷ STACK ⇒ TVar → Type → EM Type
+synTAppE x e =
+  let c = synExp e
+  in do
+    τ ← c
+    case τ of
+      (ForallT x τ₁) → (type_subst x τ₁ τ)
+      _ → typeError " e has type τ which is not a forall type " $ frhs 
+            [ ("e", pretty e)
+            , ("τ'", pretty τ)]
 ----------------------
 --- Read and Write ---
 ----------------------
@@ -1067,6 +1084,33 @@ synBundleUnionHelper τ₁ τ₂ =
       _ → todoError
 
 -------------------
+--- Recursive Types ---
+-------------------
+
+checkFold ∷ STACK ⇒ Exp → Type → EM ()
+checkFold e τ=
+ case τ of
+    (RecT a τ')   →  do
+      substtype ←  type_subst a τ τ'
+      _  ← chkExp e substtype
+      return ()
+    _  → typeError "checkFold: Type is given is not a recursive type" $ frhs [ ("τ'", pretty τ)]
+
+synFold :: STACK ⇒  Type →  Exp → EM ()
+synFold τ e = do
+  checkFold e τ
+  return τ
+
+synUnfold ∷ STACK ⇒ Exp → Type → EM ()
+synUnfold e τ=
+ case τ of
+    (RecT a τ')   →  do
+      _  ← chkExp e substtype
+      (type_subst a τ τ')
+    _  → typeError "synUnfold: Type given is not a recursive type" $ frhs [ ("τ'", pretty τ)]
+
+
+-------------------
 --- Expressions ---
 -------------------
 
@@ -1086,6 +1130,8 @@ chkExpR e τ =
       NilE        → checkNil τ
       LamE self𝑂 ψs e → checkLam self𝑂 ψs e τ
       ParE ρse₁ e₂ → checkPar ρse₁ e₂ τ
+      FoldE e → checkFold e
+      --UnfoldE e → synUnfold e
       _ →
           do
             τ' ← synExpR e
@@ -1160,6 +1206,8 @@ synExpR e = case e of
   BundleAccessE e₁ ρe₂ → synBundleAccess e₁ ρe₂
   BundleUnionE e₁ e₂   → synBundleUnion e₁ e₂
 
+  FoldE τ e → synFold τ e 
+  UnfoldE  τ e → synUnfold τ e
   _      → undefined
 
 

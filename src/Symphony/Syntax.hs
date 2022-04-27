@@ -480,8 +480,8 @@ data ExpR =
 
   | DefaultE                                      -- _|_                     /  ⊥
   
-  | Fold Exp
-  | Unfold Exp
+  | Fold Type Exp
+  | Unfold Type Exp
 
   deriving (Eq,Ord,Show)
   -- [e₁;…;eₙ] ≜ e₁ ∷ ⋯ ∷ eₙ ∷ []

@@ -1072,7 +1072,57 @@ superty_wf t m =
         [ ("t", pretty t )
         ]
 
+loc_type_subst ::  STACK ⇒ Var   → Type → EM Type
+loc_type_subst x sigma ty =
+  case sigma of
+    -- WF-Base (Based off WF-INT)
+    BaseT bt → return sigma
+    ShareT p loc loc_ty  → (type_subst x loc_ty ty)
+    -- WF-Sum: t1 must be well formed and t2 must be well formed
+    (loctyₗ :+: loctyᵣ) → do
+      loctyₗ' ← (type_subst x loctyₗ ty)
+      loctyᵣ' ← (type_subst x loctyᵣ ty)
+      return (loctyₗ' :+: loctyᵣ')
+    (loctyₗ :×: loctyᵣ)  → do
+      loctyₗ' ← (type_subst x loctyₗ ty)
+      loctyᵣ' ← (type_subst x loctyᵣ ty)
+      return (loctyₗ' :×: loctyᵣ')
+    (ListT n τₜ)  → do
+      τₜ' ←  (type_subst x τₜ ty)
+      return (ListT n τₜ')
+    -- WF-Fun: m must be same as mode, t1 must be well formed and t2 must be well formed
+    (τ₁₁ :→: (η :* τ₁₂)) → do
+      τ₁₁' ←  (type_subst x τ₁₁ ty)
+      τ₁₂' ← (type_subst x τ₁₂ ty)
+      return (τ₁₁' :→:  (η :* τ₁₂'))
+    -- WF-Ref: The component type must be well formed 
+    (RefT loc τ)  → do
+      τ' ← (type_subst x τ ty)
+      return (RefT loc τ')
+    -- WF-Ref: The component type must be well formed 
+    (ArrT loc n τ)  → do
+      τ' ← (type_subst x τ ty)
+      return (ArrT loc n τ')
+    (ISecT loc loc_ty) → do
+      loc_ty' ← (type_subst x loc_ty ty)
+      (return (ISecT loc loc_subty'))
+    _  → typeError "loc_type_subst: sigma is not well structured" $ frhs
+        [ ("sigma", pretty sigma )
+        ]
 
+type_subst ::  STACK ⇒ Var   → Type → Type → EM Type
+type_subst x ty ty' =
+  case ty of
+    -- WF-Loc
+    SecT em locty → do
+      loc_ty' ← (loc_type_subst x loc_ty ty')
+      return (SecT em' locty')
+    TVar x'  → if x ≡ x' then ty' else ty 
+    RecT x' ty'' → if x ≡ x' then ty else (loc_type_subst ty'' ty') 
+    ForallT x' ty'' → if x ≡ x' then ty else (loc_type_subst ty'' ty') 
+    _ → typeError "type_subst: ty is not well structured" $ frhs
+        [ ("ty", pretty ty )
+        ]
 -----------------
 --- Bind Typing ---
 -----------------
