@@ -438,7 +438,7 @@ checkLam self𝑂 ψs e τ =
     _  → typeError "checkLam: Not annotated correctly" $ frhs [ ("τ'", pretty τ)]
 
 synTLamE ∷ STACK ⇒ TVar→ Exp → EM Type
-synTLamE x e  ==
+synTLamE x e  =
   let c = synExp e
   in do
     τ ← c
