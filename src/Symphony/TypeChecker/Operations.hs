@@ -1112,10 +1112,10 @@ get_intersect_loc_type x sigma m m' =
       return (inter_m  m₁₁ m₁₂)
     -- WF-Ref: The component type must be well formed 
     (RefT _ τ')  → 
-      (get_intersect_type x τₜ m m')
+      (get_intersect_type x τ' m m')
     -- WF-Ref: The component type must be well formed 
     (ArrT _ _ τ')  →  
-      (get_intersect_type x τₜ m m')
+      (get_intersect_type x τ' m m')
     ISecT loc locty → 
       (get_intersect_type x locty m m')
     _  → typeError "get_intersect_loctype: sigma is not well formed located type" $ frhs
@@ -1128,15 +1128,15 @@ get_intersect_type x τ m m' =
    case  τ of 
     SecT em'' sigma →  do
       m''  ← elabEMode em''
-      (get_intersect_type a sigma m m'')
+      (get_intersect_type x sigma m m'')
     VarT a → do
       return (if (x ≡ a) then m' else m)
     -- WF-Rec
     RecT a τ → do
-      if (x ≡ a) then (return m) else (get_intersect_type a τ m m')
+      if (x ≡ a) then (return m) else (get_intersect_type x τ m m')
     -- WF-Poly
     ForallT a τ → do
-      if (x ≡ a) then (return m) else (get_intersect_type a τ m m')
+      if (x ≡ a) then (return m) else (get_intersect_type x τ m m')
     _  → typeError "get_intersect_type: τ is not well formed type" $ frhs
       [ ("τ", pretty τ  )
       ]
@@ -1181,7 +1181,7 @@ sublocty_wf sigma m bigM=
       τ' ← (subty_wf τ m bigM)
       return (ArrT loc n τ')
     (ISecT loc loc_ty) → do
-      loc_subty ← (subloctype_wf loc_ty m bigM)
+      loc_subty ← (sublocty_wf loc_ty m bigM)
       (return (ISecT loc loc_subty))
     _  → typeError "subloctype_wf: sigma is not well structured" $ frhs
         [ ("sigma", pretty sigma )
@@ -1211,6 +1211,7 @@ subty_wf t m bigM =
               [ ("m", pretty m)
               , ("m'", pretty m')
               ]
+            return t
         None → typeError "M does not contain alpha'" $ frhs
           [ ("M", pretty bigM)
           , ("a", pretty a)
@@ -1316,7 +1317,7 @@ superty_wf t m bigM=
           ]
     -- WF-Rec
     RecT a τ → do
-      m'  ← (get_intersect a τ m m)
+      m'  ← (get_intersect_type a τ m m)
       guardErr (supermode m m') $
         typeError "m is not a superset of m'" $ frhs
           [ ("m", pretty m)
@@ -1325,7 +1326,7 @@ superty_wf t m bigM=
       (superty_wf τ m' ((a ↦ m') ⩌ bigM))
     -- WF-Poly
     ForallT a τ → do
-      m'  ← (get_intersect a τ m m)
+      m'  ← (get_intersect_type a τ m m)
       guardErr (supermode m m') $
         typeError "m is not a superset of m'" $ frhs
           [ ("m", pretty m)
