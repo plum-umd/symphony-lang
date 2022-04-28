@@ -1293,7 +1293,7 @@ superlocty_wf sigma m bigM =
 
 
 -- Rules to get the least super supertype of type t that is well formed
-superty_wf :: STACK ⇒ Type  → Mode  → (Env Mode) →  EM Type
+superty_wf :: STACK ⇒ Type  → Mode  → (𝕏 ⇰ Mode) →  EM Type
 superty_wf t m bigM=
     case t of
     SecT loc loc_ty → do
