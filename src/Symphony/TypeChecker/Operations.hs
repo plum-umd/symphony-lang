@@ -1302,7 +1302,7 @@ share_superloctype_wf sigma m M =
     _  → todoError
 
 -- Rules to get the least super supertype of type t that is well formed
-superty_wf :: STACK ⇒ Type  → Mode  → EM Type``
+superty_wf :: STACK ⇒ Type  → Mode  → EM Type
 superty_wf t m =
     case t of
     SecT loc loc_ty → do
