@@ -344,7 +344,7 @@ synIf e₁ e₂ e₃ =
     τ₃ ← c₃
     m ← askL terModeL
     em  ← elabMode m
-    subcond ← subtype τ₁ $ SecT em (BaseT 𝔹T) pø 
+    subcond ← subtype τ₁ (SecT em (BaseT 𝔹T)) pø 
     guardErr subcond $
       typeError "synIf: e₁ is not of type bool @ m" $ frhs
           [ ("m", pretty m),
@@ -1145,7 +1145,7 @@ chkExpR e τ =
     m  ← askL terModeL
 
     -- Check it is well formed
-    wfcond ← (wf_type τ m dø :)
+    wfcond ← (wf_type τ m dø)
     case e of
       LE eₗ        → checkL eₗ τ
       RE eᵣ        → checkR eᵣ τ
@@ -1245,5 +1245,5 @@ asTLM eM = do
 
 bindTypeTL ∷ STACK ⇒ 𝕏 → Type → TLM ()
 bindTypeTL x τ = do 
-  _ ← asTLM $ (wf_type τ Top dø :)
+  _ ← asTLM $ (wf_type τ Top dø)
   modifyL ttlsEnvL ((x ↦ τ) ⩌)
