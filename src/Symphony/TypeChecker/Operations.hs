@@ -204,7 +204,7 @@ subtype_loc loctyS loctyT d = case loctyS of
   _ → return False
 
 -- Check if tyS <: tyT
-subtype :: STACK ⇒ Type → Type → 𝑃 (TVar ∧ TVar) →  EM 𝔹
+subtype :: STACK ⇒ Type → Type → 𝑃 (TVar, TVar) →  EM 𝔹
 subtype tyS tyT d = case tyS of
     -- sigma <: sigma' m ⊇ m'
   -- -------Sub-Loc
@@ -241,7 +241,7 @@ subtype tyS tyT d = case tyS of
 
 
 -- Check if tyT >: tyS
-supertype :: STACK ⇒ Type → Type →  𝑃 (TVar ∧ TVar)  → EM 𝔹
+supertype :: STACK ⇒ Type → Type →  𝑃 (TVar, TVar)  → EM 𝔹
 supertype tyT tyS = subtype tyS tyT
 
 -- Checks if emT ⊇ emS
@@ -367,16 +367,16 @@ eq_type ty ty' = case ty of
       _ → typeError "ty' is not a located type" $ frhs
           [ ("ty'", pretty ty' )
           ]
-  VarT a → case loc_ty of
+  VarT a → case ty' of
       VarT a' → do
         return (a ≡ a')
       _ → return False
-  RecT a τ → case loc_ty of
+  RecT a τ → case ty' of
       RecT a' τ' → do
         eqcond ← (eq_type τ τ')
         return ((a ≡ a') ⩓ eqcond)
       _ → return False
-  ForallT a τ → case loc_ty of
+  ForallT a τ → case ty' of
       ForallT a' τ' → do
         eqcond ← (eq_type τ τ')
         return ((a ≡ a') ⩓ eqcond)
@@ -572,7 +572,7 @@ ty_meet ty ty' = case ty of
         [ ("ty", pretty ty )
         , ("ty'", pretty ty' )
         ]
-  VarT a → case tyT of
+  VarT a → case ty' of
       VarT a' → do
         guardErr (a ≡ a') $
           typeError "ty_meet: ⊢ₘ _ ˡ→ _ ; a ≢ a'" $ frhs
@@ -584,7 +584,7 @@ ty_meet ty ty' = case ty of
         [ ("ty", pretty ty )
         , ("ty'", pretty ty' )
         ]
-  RecT a τ → case tyT of
+  RecT a τ → case ty' of
       RecT a' τ' → do
         subcond ← (subtype ty ty' pø)
         subcond' ← (subtype ty' ty pø)
@@ -601,7 +601,7 @@ ty_meet ty ty' = case ty of
         [ ("ty", pretty ty )
         , ("ty'", pretty ty' )
         ]
-  ForallT a τ → case tyT of
+  ForallT a τ → case ty' of
       ForallT a' τ' → do
         meet ← (ty_meet τ τ')
         guardErr (a ≡ a') $
@@ -609,7 +609,7 @@ ty_meet ty ty' = case ty of
             [ ("a", pretty a)
             , ("a''", pretty a')
             ]
-        return $ ForAllT a meet
+        return $ ForallT a meet
       _ → typeError "ty_meet: ty is a polymorphic type while ty' is not" $ frhs
             [ ("ty", pretty ty )
             , ("ty'", pretty ty' )
@@ -818,13 +818,13 @@ ty_join ty ty' = case ty of
         subcond' ← (subtype ty' ty pø)
         if subcond then
           return ty
-        else 
+        else do 
           guardErr subcond' $
             typeError "ty_join: ⊢ₘ _ ˡ→ _ ; a ≢ a'" $ frhs
               [ ("a", pretty a)
               , ("a''", pretty a')
               ]
-        return ty'
+          return ty'
       _ → typeError "ty_meet: ty is a recursive type while ty' is not" $ frhs
         [ ("ty", pretty ty )
         , ("ty'", pretty ty' )
@@ -1123,7 +1123,7 @@ get_intersect_loc_type x sigma m m' =
         ]
 
 -- Rules to see if the type is well formed in terms of a good AST (Share rules)
-get_intersect_type :: Type → Mode → Mode → (𝕏 ⇰ Mode) → EM Mode
+get_intersect_type :: TVar  → Type → Mode → Mode → (𝕏 ⇰ Mode) → EM Mode
 get_intersect_type x τ m m' =
    case  τ of 
     SecT em'' sigma →  do
