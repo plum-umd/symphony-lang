@@ -221,7 +221,7 @@ subtype tyS tyT d = case tyS of
         -- -------Sub-Var
          -- a <: a
          -- TODO: correct later
-        return ((a ≡ a') or ( (a, a') ∈ d)) 
+        return ((a ≡ a') ⩔ ( (a, a') ∈ d)) 
       _ → return False
   -- D, a <: b |- t1 <: t2
   -- --------------------------- Rec-Sub
@@ -229,7 +229,7 @@ subtype tyS tyT d = case tyS of
   RecT a τ → case tyT of
       RecT a' τ' → do
         subcond ← (subtype τ τ' ((single𝑃  (a, a')) ∪ d))
-        return ((a ≡ a') ⩔ subcond)
+        return ((a ≡ a') ⩓ subcond)
       _ → return False
   -- D, a = b |- t <: t'
   -- -------Sub-ForAll
@@ -604,7 +604,7 @@ ty_meet ty ty' = case ty of
                 [ ("a", pretty a)
                 , ("a''", pretty a')
                 ]
-        return $ ForallT a meet
+            return $ ForallT a meet
   ForallT a τ → case ty' of
       ForallT a' τ' → do
         subcond ← (subtype ty ty' pø)
@@ -622,7 +622,7 @@ ty_meet ty ty' = case ty of
                 [ ("a", pretty a)
                 , ("a''", pretty a')
                 ]
-        return $ ForallT a meet
+            return $ ForallT a meet
   _  → typeError "ty_meet: ty is not well formed" $ frhs
         [ ("ty", pretty ty )
         ]
@@ -838,7 +838,7 @@ ty_join ty ty' = case ty of
                 [ ("a", pretty a)
                 , ("a''", pretty a')
                 ]
-        return $ RecT a join
+            return $ RecT a join
   ForallT a τ → case ty' of
       ForallT a' τ' → do
         subcond ← (subtype ty ty' pø)
@@ -856,7 +856,7 @@ ty_join ty ty' = case ty of
                 [ ("a", pretty a)
                 , ("a''", pretty a')
                 ]
-        return $ ForallT a join
+            return $ ForallT a join
       _ → typeError "ty_join: ty is a polymorphic type while ty' is not" $ frhs
             [ ("ty", pretty ty )
             , ("ty'", pretty ty' )
@@ -1243,7 +1243,8 @@ subty_wf t m bigM =
           [ ("m", pretty m)
           , ("m'", pretty m')
           ]
-      (RecT a (subty_wf τ m' ((a ↦ m') ⩌ bigM)))
+      subty ← (subty_wf τ m' ((a ↦ m') ⩌ bigM))
+      return (RecT a subty )
     -- WF-Poly
     ForallT a τ → do
       m'  ← (get_intersect_type a τ m m)
@@ -1252,7 +1253,8 @@ subty_wf t m bigM =
           [ ("m", pretty m)
           , ("m'", pretty m')
           ]
-      (ForallT a (subty_wf τ m' ((a ↦ m') ⩌ bigM)))
+      subty ← (subty_wf τ m' ((a ↦ m') ⩌ bigM))
+      return (ForallT a subty )
     _  → typeError "subtype_wf: t is not well structured" $ frhs
         [ ("t", pretty t )
         ]
