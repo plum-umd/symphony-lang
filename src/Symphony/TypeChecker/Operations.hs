@@ -125,7 +125,7 @@ eModeEqual loc loc' =
 -----------------
 
 -- Check if loctyS <: loctyT
-subtype_loc :: STACK ⇒ Type → Type → 𝑃 (TVar ∧ TVar) → EM 𝔹
+subtype_loc :: STACK ⇒ Type → Type →  𝑃 (TVar, TVar)  → EM 𝔹
 subtype_loc loctyS loctyT d = case loctyS of
   -- sigma = bty
   -- -------Sub-Refl
