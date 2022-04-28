@@ -878,8 +878,8 @@ synReveal φ τ ρse₁ ρe₂ e₃ =
 
 --  |-m e : cleartext type @p
 --  q != empty set and p union q = m and p is a principal
--- ------T-Share
--- gamma |- m share[p -> q] e : cleartext type @ q
+-- ------T-Comm
+-- gamma |- m comm[p -> q] e : cleartext type @ q
 synComm∷ STACK ⇒  Type → PrinExp → PrinSetExp → Exp → EM Type
 synComm τ ρe₁ ρse₂ e₃ =
   let c₁ = synPrinExp ρe₁

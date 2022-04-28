@@ -204,6 +204,7 @@ subtype_loc loctyS loctyT d = case loctyS of
   _ → return False
 
 -- Check if tyS <: tyT
+  -- d represents a set where if it contains (a,b) a = b or a <: b
 subtype :: STACK ⇒ Type → Type → 𝑃 (TVar, TVar) →  EM 𝔹
 subtype tyS tyT d = case tyS of
     -- sigma <: sigma' m ⊇ m'
@@ -219,7 +220,8 @@ subtype tyS tyT d = case tyS of
       VarT a' → do
         -- -------Sub-Var
          -- a <: a
-        return ((a ≡ a') ⩓ ( (a, a') ∈ d)) 
+         -- TODO: correct later
+        return ((a ≡ a') or ( (a, a') ∈ d)) 
       _ → return False
   -- D, a <: b |- t1 <: t2
   -- --------------------------- Rec-Sub
@@ -227,14 +229,14 @@ subtype tyS tyT d = case tyS of
   RecT a τ → case tyT of
       RecT a' τ' → do
         subcond ← (subtype τ τ' ((single𝑃  (a, a')) ∪ d))
-        return ((a ≡ a') ⩓ subcond)
+        return ((a ≡ a') ⩔ subcond)
       _ → return False
-  -- t <: t'
+  -- D, a = b |- t <: t'
   -- -------Sub-ForAll
-  -- mu a.t <: mu a.t'
+  -- D |- forall a.t <: forall a.t'
   ForallT a τ → case tyT of
       ForallT a' τ' → do
-        subcond ← (subtype τ τ' d)
+        subcond ← (subtype τ τ' ((single𝑃  (a, a')) ∪ d))
         return ((a ≡ a') ⩓ subcond)
       _ → return False
   _ → return False
@@ -356,6 +358,7 @@ eq_locty locty locty'=
         return ((l ≡ l') ⩓ loccond)
       _ → return False
 
+-- Possibly add alpha equivalence in the future
 eq_type :: STACK ⇒ Type  → Type  → EM 𝔹
 eq_type ty ty' = case ty of
   SecT loc loc_ty → case ty' of
@@ -590,30 +593,36 @@ ty_meet ty ty' = case ty of
         subcond' ← (subtype ty' ty pø)
         if subcond then
           return ty
-        else do
-          guardErr subcond' $
-            typeError "ty_meet: ⊢ₘ _ ˡ→ _ ; a ≢ a'" $ frhs
-              [ ("a", pretty a)
-              , ("a''", pretty a')
-              ]
-          return ty'
-      _ → typeError "ty_meet: ty is a recursive type while ty' is not" $ frhs
-        [ ("ty", pretty ty )
-        , ("ty'", pretty ty' )
-        ]
+        else 
+          if subcond' then
+            return ty'
+          else do 
+            
+            meet ← (ty_meet τ τ')
+            guardErr (a ≡ a') $
+              typeError "ty_join: ⊢ₘ _ ˡ→ _ ; a ≢ a'" $ frhs
+                [ ("a", pretty a)
+                , ("a''", pretty a')
+                ]
+        return $ ForallT a meet
   ForallT a τ → case ty' of
       ForallT a' τ' → do
-        meet ← (ty_meet τ τ')
-        guardErr (a ≡ a') $
-          typeError "ty_meet: ⊢ₘ _ ˡ→ _ ; a ≢ a'" $ frhs
-            [ ("a", pretty a)
-            , ("a''", pretty a')
-            ]
+        subcond ← (subtype ty ty' pø)
+        subcond' ← (subtype ty' ty pø)
+        if subcond then
+          return ty
+        else 
+          if subcond' then
+            return ty'
+          else do 
+            
+            meet ← (ty_meet τ τ')
+            guardErr (a ≡ a') $
+              typeError "ty_join: ⊢ₘ _ ˡ→ _ ; a ≢ a'" $ frhs
+                [ ("a", pretty a)
+                , ("a''", pretty a')
+                ]
         return $ ForallT a meet
-      _ → typeError "ty_meet: ty is a polymorphic type while ty' is not" $ frhs
-            [ ("ty", pretty ty )
-            , ("ty'", pretty ty' )
-            ]
   _  → typeError "ty_meet: ty is not well formed" $ frhs
         [ ("ty", pretty ty )
         ]
@@ -818,25 +827,35 @@ ty_join ty ty' = case ty of
         subcond' ← (subtype ty' ty pø)
         if subcond then
           return ty
-        else do 
-          guardErr subcond' $
-            typeError "ty_join: ⊢ₘ _ ˡ→ _ ; a ≢ a'" $ frhs
-              [ ("a", pretty a)
-              , ("a''", pretty a')
-              ]
-          return ty'
-      _ → typeError "ty_meet: ty is a recursive type while ty' is not" $ frhs
-        [ ("ty", pretty ty )
-        , ("ty'", pretty ty' )
-        ]
+        else 
+          if subcond' then
+            return ty'
+          else do 
+            
+            join ← (ty_join τ τ')
+            guardErr (a ≡ a') $
+              typeError "ty_join: ⊢ₘ _ ˡ→ _ ; a ≢ a'" $ frhs
+                [ ("a", pretty a)
+                , ("a''", pretty a')
+                ]
+        return $ RecT a join
   ForallT a τ → case ty' of
       ForallT a' τ' → do
-        join ← (ty_join τ τ')
-        guardErr (a ≡ a') $
-          typeError "ty_join: ⊢ₘ _ ˡ→ _ ; a ≢ a'" $ frhs
-            [ ("a", pretty a)
-            , ("a''", pretty a')
-            ]
+        subcond ← (subtype ty ty' pø)
+        subcond' ← (subtype ty' ty pø)
+        if subcond then
+          return ty
+        else 
+          if subcond' then
+            return ty'
+          else do 
+            
+            join ← (ty_join τ τ')
+            guardErr (a ≡ a') $
+              typeError "ty_join: ⊢ₘ _ ˡ→ _ ; a ≢ a'" $ frhs
+                [ ("a", pretty a)
+                , ("a''", pretty a')
+                ]
         return $ ForallT a join
       _ → typeError "ty_join: ty is a polymorphic type while ty' is not" $ frhs
             [ ("ty", pretty ty )
@@ -1224,7 +1243,7 @@ subty_wf t m bigM =
           [ ("m", pretty m)
           , ("m'", pretty m')
           ]
-      (subty_wf τ m' ((a ↦ m') ⩌ bigM))
+      (RecT a (subty_wf τ m' ((a ↦ m') ⩌ bigM)))
     -- WF-Poly
     ForallT a τ → do
       m'  ← (get_intersect_type a τ m m)
@@ -1233,7 +1252,7 @@ subty_wf t m bigM =
           [ ("m", pretty m)
           , ("m'", pretty m')
           ]
-      (subty_wf τ m' ((a ↦ m') ⩌ bigM))
+      (ForallT a (subty_wf τ m' ((a ↦ m') ⩌ bigM)))
     _  → typeError "subtype_wf: t is not well structured" $ frhs
         [ ("t", pretty t )
         ]
@@ -1324,7 +1343,7 @@ superty_wf t m bigM=
           [ ("m", pretty m)
           , ("m'", pretty m')
           ]
-      (superty_wf τ m' ((a ↦ m') ⩌ bigM))
+      (RecT a (superty_wf τ m' ((a ↦ m') ⩌ bigM)))
     -- WF-Poly
     ForallT a τ → do
       m'  ← (get_intersect_type a τ m m)
@@ -1334,7 +1353,7 @@ superty_wf t m bigM=
           , ("m'", pretty m')
 
           ]
-      (superty_wf τ m' ((a ↦ m') ⩌ bigM))
+      (ForAll a (superty_wf τ m' ((a ↦ m') ⩌ bigM)))
     _  → typeError "supertype_wf: t is not well structured" $ frhs
         [ ("t", pretty t )
         ]
@@ -1562,6 +1581,7 @@ listToSet mylist = pow𝐼 (iter mylist)
 elabPrinExp ∷ STACK ⇒ PrinExp → EM PrinVal
 elabPrinExp ρe = case  ρe of
   VarPE x       → return (SinglePV (𝕩name x))
+  -- get rid of
   AccessPE x n₁ → return (AccessPV (𝕩name x) n₁)
 
 elabPrinSetExp ∷ STACK ⇒ PrinSetExp → EM (𝑃 PrinVal)
@@ -1570,7 +1590,7 @@ elabPrinSetExp ρse = case  ρse of
     pvl ← (mapM elabPrinExp ρel )
     (let ρvs = (listToSet pvl) in (return ρvs))
 
-  x → todoError
+  _ → todoError
 
 
 elabEMode ∷ STACK ⇒ EMode → EM Mode
