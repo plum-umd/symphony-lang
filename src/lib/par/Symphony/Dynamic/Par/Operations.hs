@@ -48,12 +48,6 @@ introLoc ℓ = do
   m ← askL iCxtModeL
   return $ LocV m ℓ
 
-elimBase ∷ (STACK) ⇒ ValR → IM Val BaseVal
-elimBase v = error𝑂 (view baseVL v) $
-             throwIErrorCxt TypeIError "elimBase: view baseVL v ≡ None" $ frhs
-             [ ("v", pretty v)
-             ]
-
 elimList ∷ (STACK) ⇒ ValR → IM Val (𝐿 Val)
 elimList v = error𝑂 (view listVL v) $
              throwIErrorCxt TypeIError "elimList: view listVL v ≡ None" $ frhs

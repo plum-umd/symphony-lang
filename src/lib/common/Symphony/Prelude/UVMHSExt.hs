@@ -86,19 +86,19 @@ class DCmpable (a ∷ k → ★) where
 logBase ∷ 𝔻 → 𝔻 → 𝔻
 logBase = HS.logBase
 
-impLookup𝐷 ∷ Ord k ⇒ (k ⇰ v) → k → v
+impLookup𝐷 ∷ (STACK) ⇒ Ord k ⇒ (k ⇰ v) → k → v
 impLookup𝐷 d k =
   case lookup𝐷 d k of
     None   → impossible
     Some v → v
 
-(⩌!) ∷ Ord k ⇒ (k ⇰ v) → (k ⇰ v) → k ⇰ v
+(⩌!) ∷ (STACK) ⇒ Ord k ⇒ (k ⇰ v) → (k ⇰ v) → k ⇰ v
 d₁ ⩌! d₂ = unionWith (\ _ _ → impossible) d₁ d₂
 
-unionsUniq ∷ (Ord k, ToIter (k ⇰ v) t) => t -> k ⇰ v
+unionsUniq ∷ (STACK) ⇒ (Ord k, ToIter (k ⇰ v) t) => t -> k ⇰ v
 unionsUniq = unionsWith (\ _ _ → impossible)
 
-fromSome ∷ 𝑂 a → a
+fromSome ∷ (STACK) ⇒ 𝑂 a → a
 fromSome = \case
   None   → impossible
   Some v → v
@@ -182,7 +182,7 @@ repeat𝑉 z v = spvec𝐼 $ replicateI z $ \ z' → z' :* v
 instance (Pretty a) ⇒ Pretty (𝑉 a) where
   pretty = ppCollection (ppPun "[|") (ppPun "|]") (ppPun ";") ∘ map pretty ∘ iter
 
-impossible ∷ a
+impossible ∷ (STACK) ⇒ a
 impossible = assert False undefined
 
 foldmap ∷ (ToIter a t) ⇒ b → (a → b → b ∧ c) → t → b ∧ 𝐼 c

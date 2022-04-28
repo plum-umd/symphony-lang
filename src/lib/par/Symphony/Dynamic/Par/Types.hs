@@ -40,6 +40,10 @@ data BaseVal =
   | PrinV PrinVal
   | PrinSetV PrinSetVal
 
+data BaseMeta =
+    ClearMeta
+  | EncMeta Prot (𝑃 PrinVal)
+
 data BoolVal =
     ClearBV 𝔹
   | EncBV (𝑃 PrinVal) EncBool
@@ -192,6 +196,12 @@ instance Pretty ValR where
                            ]
 
     DefaultV → ppCon "⊥"
+
+elimBase ∷ ValR → IM Val BaseVal
+elimBase v = error𝑂 (view baseVL v) $
+             throwIErrorCxt TypeIError "elimBase: view baseVL v ≣ None" $ frhs
+             [ ("v", pretty v)
+             ]
 
 -- TODO: Move intro/elim forms from Operations.hs here
 

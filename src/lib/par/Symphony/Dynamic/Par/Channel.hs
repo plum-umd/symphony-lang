@@ -73,20 +73,20 @@ channelRecvBool = channelRecvStorable @𝔹
 
 channelSendNat ∷ (Monad m, MonadIO m) ⇒ Channel → IPrecision → ℕ → m ()
 channelSendNat chan pr n = case pr of
-  FixedIPr wPr dPr | wPr + dPr ≡ 8 → channelSendStorable @ℕ8 chan $ HS.fromIntegral n
-  _                                → undefined
+  FixedIPr wPr dPr | wPr + dPr ≡ 32 → channelSendStorable @ℕ32 chan $ HS.fromIntegral n
+  _                                 → undefined
 
 channelRecvNat ∷ (Monad m, MonadIO m) ⇒ Channel → IPrecision → m ℕ
 channelRecvNat chan pr = case pr of
-  FixedIPr wPr dPr | wPr + dPr ≡ 8 → HS.fromIntegral ^$ channelRecvStorable @ℕ8 chan
-  _                                → undefined
+  FixedIPr wPr dPr | wPr + dPr ≡ 32 → HS.fromIntegral ^$ channelRecvStorable @ℕ32 chan
+  _                                 → undefined
 
 channelSendInt ∷ (Monad m, MonadIO m) ⇒ Channel → IPrecision → ℤ → m ()
 channelSendInt chan pr n = case pr of
-  FixedIPr wPr dPr | wPr + dPr ≡ 8 → channelSendStorable @ℤ8 chan $ HS.fromIntegral n
-  _                                → undefined
+  FixedIPr wPr dPr | wPr + dPr ≡ 32 → channelSendStorable @ℤ32 chan $ HS.fromIntegral n
+  _                                 → undefined
 
 channelRecvInt ∷ (Monad m, MonadIO m) ⇒ Channel → IPrecision → m ℤ
 channelRecvInt chan pr = case pr of
-  FixedIPr wPr dPr | wPr + dPr ≡ 8 → HS.fromIntegral ^$ channelRecvStorable @ℤ8 chan
-  _                                → undefined
+  FixedIPr wPr dPr | wPr + dPr ≡ 32 → HS.fromIntegral ^$ channelRecvStorable @ℤ32 chan
+  _                                 → undefined

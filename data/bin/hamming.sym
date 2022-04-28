@@ -28,6 +28,6 @@ def main () = par {A,B}
   let shareA = share [gmw, list ℤ#32 : {A} → {A,B}] inputA in
   let shareB = share [gmw, list ℤ#32 : {B} → {A,B}] inputB in
 
-  let hammingList = reveal [gmw, ℕ#32 : {A,B} → {A}] (hammingList strA strB 0n) in
-  let hammingArr  = reveal [gmw, ℕ#32 : {A,B} → {A}] (hammingArr strA strB 0n) in
+  let hammingList = reveal [gmw, ℕ#32 : {A,B} → {A}] (hammingList shareA shareB) in
+  let hammingArr  = reveal [gmw, ℕ#32 : {A,B} → {A}] (hammingArr shareA shareB) in
   par {A} (hammingList, hammingArr)

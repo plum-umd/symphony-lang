@@ -66,6 +66,13 @@ shareSendVal φ ρvFr ρvsTo ṽ = do
     ProdV ṽ₁ ṽ₂ → do
       shareSendVal φ ρvFr ρvsTo ṽ₁
       shareSendVal φ ρvFr ρvsTo ṽ₂
+    ListV ṽs → do
+      commSendVal ρvFr ρvsTo $ KnownV $ BaseV $ NatV iprDefault $ ClearNV $ count ṽs
+      eachWith (shareSendVal φ ρvFr ρvsTo) ṽs
+    LocV _m (Inr a) → do
+      commSendVal ρvFr ρvsTo $ KnownV $ BaseV $ NatV iprDefault $ ClearNV $ HS.fromIntegral $ length𝕍Mut a
+      ṽs ← io $ values𝕍Mut a
+      eachWith (shareSendVal φ ρvFr ρvsTo) ṽs
     _           → todoCxt
 
 shareRecvVal ∷ (STACK) ⇒ Prot → PrinVal → 𝑃 PrinVal → Type → IM Val Val
@@ -84,6 +91,20 @@ shareRecvVal φ ρvFr ρvsTo τ = KnownV ^$ case τ of
     ṽ₁ ← shareRecvVal φ ρvFr ρvsTo τ₁
     ṽ₂ ← shareRecvVal φ ρvFr ρvsTo τ₂
     return $ ProdV ṽ₁ ṽ₂
+  ListT τ' → do
+    _ :* len_nat ← elimNat *$ elimBase *$ elimKnown *$ commRecvVal ρvFr ρvsTo $ BaseT $ ℕT iprDefault
+    len ← elimClearNV len_nat
+    let ṽM = shareRecvVal φ ρvFr ρvsTo τ'
+    ṽs ← list ^$ exchange $ replicate len ṽM
+    return $ ListV ṽs
+  ArrT τ' → do
+    _ :* len_nat ← elimNat *$ elimBase *$ elimKnown *$ commRecvVal ρvFr ρvsTo $ BaseT $ ℕT iprDefault
+    len ← elimClearNV len_nat
+    let ṽM = shareRecvVal φ ρvFr ρvsTo τ'
+    ṽs ← exchange $ replicate len ṽM
+    a ← io $ vecIMut ṽs
+    m ← askL iCxtModeL
+    return $ LocV m (Inr a)
   _         → todoCxt
 
 ------------

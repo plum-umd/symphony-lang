@@ -4,7 +4,7 @@ import Symphony.Prelude
 import qualified Prelude as HS
 import Foreign.ForeignPtr (newForeignPtr, withForeignPtr, ForeignPtr, FinalizerPtr)
 import Foreign.Ptr (Ptr)
-import Foreign.C.Types (CSize(..), CBool(..), CUChar(..), CChar(..))
+import Foreign.C.Types (CSize(..), CBool(..), CUInt(..), CInt(..))
 import Foreign.Marshal.Array (withArrayLen, withArray)
 import Foreign.Marshal.Utils (toBool, fromBool)
 import qualified Data.Text as T
@@ -34,6 +34,8 @@ binaryPtr op elim v₁ v₂ =
   withForeignPtr v₁ $ \ v₁ →
   withForeignPtr v₂ $ \ v₂ →
   newForeignPtr elim *$ op v₁ v₂
+
+
 
 reifyPtr ∷ (Ptr a → IO b) → ForeignPtr a → IO b
 reifyPtr reify v =
@@ -167,57 +169,57 @@ gmwRevealSendGmwBool gmw chan share = do
 --- GMW Natural (Unsigned Int) ---
 ----------------------------------
 
-foreign import ccall unsafe "gmw_nat8_new" gmw_nat8_new ∷ Ptr CGmw → CUChar → IO (Ptr CGmwNat)
+foreign import ccall unsafe "gmw_nat32_new" gmw_nat32_new ∷ Ptr CGmw → CUInt → IO (Ptr CGmwNat)
 
 gmwNatNew ∷ (Monad m, MonadIO m) ⇒ Gmw → IPrecision → ℕ → m GmwNat
 gmwNatNew gmw pr share = case pr of
-  FixedIPr wPr dPr | wPr + dPr ≡ 8 → io $ GmwNat ^$ gmwReflect gmw_nat8_new gmw_nat_drop gmw $ HS.fromIntegral share
+  FixedIPr wPr dPr | wPr + dPr ≡ 32 → io $ GmwNat ^$ gmwReflect gmw_nat32_new gmw_nat_drop gmw $ HS.fromIntegral share
   _                                → undefined
 
-foreign import ccall unsafe "gmw_nat8_constant" gmw_nat8_constant ∷ Ptr CGmw → CUChar → IO (Ptr CGmwNat)
+foreign import ccall unsafe "gmw_nat32_constant" gmw_nat32_constant ∷ Ptr CGmw → CUInt → IO (Ptr CGmwNat)
 
 gmwNatConstant ∷ (Monad m, MonadIO m) ⇒ Gmw → IPrecision → ℕ → m GmwNat
 gmwNatConstant gmw pr value = case pr of
-  FixedIPr wPr dPr | wPr + dPr ≡ 8 → io $ GmwNat ^$ gmwReflect gmw_nat8_constant gmw_nat_drop gmw $ HS.fromIntegral value
+  FixedIPr wPr dPr | wPr + dPr ≡ 32 → io $ GmwNat ^$ gmwReflect gmw_nat32_constant gmw_nat_drop gmw $ HS.fromIntegral value
   _                                → undefined
 
-foreign import ccall unsafe "gmw_nat8_reify" gmw_nat8_reify ∷ Ptr CGmw → Ptr CGmwNat → IO CUChar
+foreign import ccall unsafe "gmw_nat32_reify" gmw_nat32_reify ∷ Ptr CGmw → Ptr CGmwNat → IO CUInt
 
 gmwNatReify ∷ (Monad m, MonadIO m) ⇒ Gmw → IPrecision → GmwNat → m ℕ
 gmwNatReify gmw pr share = case pr of
-  FixedIPr wPr dPr | wPr + dPr ≡ 8 → io $ HS.fromIntegral ^$ gmwReify gmw_nat8_reify gmw (unGmwNat share)
+  FixedIPr wPr dPr | wPr + dPr ≡ 32 → io $ HS.fromIntegral ^$ gmwReify gmw_nat32_reify gmw (unGmwNat share)
   _                                → undefined
 
 foreign import ccall unsafe "&gmw_nat_drop" gmw_nat_drop ∷ FinalizerPtr CGmwNat
 
 -- Delegation --
 
-foreign import ccall unsafe "gmw_share_send_nat8" gmw_share_send_nat8 ∷ Ptr CPrg → Ptr (Ptr CChannel) → CSize → CUChar → IO ()
+foreign import ccall unsafe "gmw_share_send_nat32" gmw_share_send_nat32 ∷ Ptr CPrg → Ptr (Ptr CChannel) → CSize → CUInt → IO ()
 
 gmwShareSendNat ∷ (Monad m, MonadIO m) ⇒ Prg → 𝐿 Channel → IPrecision → ℕ → m ()
 gmwShareSendNat prg chans pr input = case pr of
-  FixedIPr wPr dPr | wPr + dPr ≡ 8 → io $ gmwShareSend gmw_share_send_nat8 prg chans $ HS.fromIntegral input
+  FixedIPr wPr dPr | wPr + dPr ≡ 32 → io $ gmwShareSend gmw_share_send_nat32 prg chans $ HS.fromIntegral input
   _                                → undefined
 
-foreign import ccall unsafe "gmw_share_recv_nat8" gmw_share_recv_nat8 ∷ Ptr CChannel → IO CUChar
+foreign import ccall unsafe "gmw_share_recv_nat32" gmw_share_recv_nat32 ∷ Ptr CChannel → IO CUInt
 
 gmwShareRecvNat ∷ (Monad m, MonadIO m) ⇒ Channel → IPrecision → m ℕ
 gmwShareRecvNat chan pr = case pr of
-  FixedIPr wPr dPr | wPr + dPr ≡ 8 → io $ HS.fromIntegral ^$ gmwShareRecv gmw_share_recv_nat8 chan
+  FixedIPr wPr dPr | wPr + dPr ≡ 32 → io $ HS.fromIntegral ^$ gmwShareRecv gmw_share_recv_nat32 chan
   _                                → undefined
 
-foreign import ccall unsafe "gmw_reveal_send_nat8" gmw_reveal_send_nat8 ∷ Ptr CChannel → CUChar → IO ()
+foreign import ccall unsafe "gmw_reveal_send_nat32" gmw_reveal_send_nat32 ∷ Ptr CChannel → CUInt → IO ()
 
 gmwRevealSendNat ∷ (Monad m, MonadIO m) ⇒ Channel → IPrecision → ℕ → m ()
 gmwRevealSendNat chan pr output = case pr of
-  FixedIPr wPr dPr | wPr + dPr ≡ 8 → io $ gmwRevealSend gmw_reveal_send_nat8 chan $ HS.fromIntegral output
+  FixedIPr wPr dPr | wPr + dPr ≡ 32 → io $ gmwRevealSend gmw_reveal_send_nat32 chan $ HS.fromIntegral output
   _                                → undefined
 
-foreign import ccall unsafe "gmw_reveal_recv_nat8" gmw_reveal_recv_nat8 ∷ Ptr (Ptr CChannel) → CSize → IO CUChar
+foreign import ccall unsafe "gmw_reveal_recv_nat32" gmw_reveal_recv_nat32 ∷ Ptr (Ptr CChannel) → CSize → IO CUInt
 
 gmwRevealRecvNat ∷ (Monad m, MonadIO m) ⇒ 𝐿 Channel → IPrecision → m ℕ
 gmwRevealRecvNat chans pr = case pr of
-  FixedIPr wPr dPr | wPr + dPr ≡ 8 → io $ HS.fromIntegral ^$ gmwRevealRecv gmw_reveal_recv_nat8 chans
+  FixedIPr wPr dPr | wPr + dPr ≡ 32 → io $ HS.fromIntegral ^$ gmwRevealRecv gmw_reveal_recv_nat32 chans
   _                                → undefined
 
 gmwShareRecvGmwNat ∷ (Monad m, MonadIO m) ⇒ Gmw → Channel → IPrecision → m GmwNat
@@ -234,57 +236,57 @@ gmwRevealSendGmwNat gmw chan pr share = do
 --- GMW Integer (Signed Int) ---
 --------------------------------
 
-foreign import ccall unsafe "gmw_int8_new" gmw_int8_new ∷ Ptr CGmw → CChar → IO (Ptr CGmwInt)
+foreign import ccall unsafe "gmw_int32_new" gmw_int32_new ∷ Ptr CGmw → CInt → IO (Ptr CGmwInt)
 
 gmwIntNew ∷ (Monad m, MonadIO m) ⇒ Gmw → IPrecision → ℤ → m GmwInt
 gmwIntNew gmw pr share = case pr of
-  FixedIPr wPr dPr | wPr + dPr ≡ 8 → io $ GmwInt ^$ gmwReflect gmw_int8_new gmw_int_drop gmw $ HS.fromIntegral share
+  FixedIPr wPr dPr | wPr + dPr ≡ 32 → io $ GmwInt ^$ gmwReflect gmw_int32_new gmw_int_drop gmw $ HS.fromIntegral share
   _                                → undefined
 
-foreign import ccall unsafe "gmw_int8_constant" gmw_int8_constant ∷ Ptr CGmw → CChar → IO (Ptr CGmwInt)
+foreign import ccall unsafe "gmw_int32_constant" gmw_int32_constant ∷ Ptr CGmw → CInt → IO (Ptr CGmwInt)
 
 gmwIntConstant ∷ (Monad m, MonadIO m) ⇒ Gmw → IPrecision → ℤ → m GmwInt
 gmwIntConstant gmw pr value = case pr of
-  FixedIPr wPr dPr | wPr + dPr ≡ 8 → io $ GmwInt ^$ gmwReflect gmw_int8_constant gmw_int_drop gmw $ HS.fromIntegral value
+  FixedIPr wPr dPr | wPr + dPr ≡ 32 → io $ GmwInt ^$ gmwReflect gmw_int32_constant gmw_int_drop gmw $ HS.fromIntegral value
   _                                → undefined
 
-foreign import ccall unsafe "gmw_int8_reify" gmw_int8_reify ∷ Ptr CGmw → Ptr CGmwInt → IO CChar
+foreign import ccall unsafe "gmw_int32_reify" gmw_int32_reify ∷ Ptr CGmw → Ptr CGmwInt → IO CInt
 
 gmwIntReify ∷ (Monad m, MonadIO m) ⇒ Gmw → IPrecision → GmwInt → m ℤ
 gmwIntReify gmw pr share = case pr of
-  FixedIPr wPr dPr | wPr + dPr ≡ 8 → io $ HS.fromIntegral ^$ gmwReify gmw_int8_reify gmw (unGmwInt share)
+  FixedIPr wPr dPr | wPr + dPr ≡ 32 → io $ HS.fromIntegral ^$ gmwReify gmw_int32_reify gmw (unGmwInt share)
   _                                → undefined
 
 foreign import ccall unsafe "&gmw_int_drop" gmw_int_drop ∷ FinalizerPtr CGmwInt
 
 -- Delegation --
 
-foreign import ccall unsafe "gmw_share_send_int8" gmw_share_send_int8 ∷ Ptr CPrg → Ptr (Ptr CChannel) → CSize → CChar → IO ()
+foreign import ccall unsafe "gmw_share_send_int32" gmw_share_send_int32 ∷ Ptr CPrg → Ptr (Ptr CChannel) → CSize → CInt → IO ()
 
 gmwShareSendInt ∷ (Monad m, MonadIO m) ⇒ Prg → 𝐿 Channel → IPrecision → ℤ → m ()
 gmwShareSendInt prg chans pr input = case pr of
-  FixedIPr wPr dPr | wPr + dPr ≡ 8 → io $ gmwShareSend gmw_share_send_int8 prg chans $ HS.fromIntegral input
+  FixedIPr wPr dPr | wPr + dPr ≡ 32 → io $ gmwShareSend gmw_share_send_int32 prg chans $ HS.fromIntegral input
   _                                → undefined
 
-foreign import ccall unsafe "gmw_share_recv_int8" gmw_share_recv_int8 ∷ Ptr CChannel → IO CChar
+foreign import ccall unsafe "gmw_share_recv_int32" gmw_share_recv_int32 ∷ Ptr CChannel → IO CInt
 
 gmwShareRecvInt ∷ (Monad m, MonadIO m) ⇒ Channel → IPrecision → m ℤ
 gmwShareRecvInt chan pr = case pr of
-  FixedIPr wPr dPr | wPr + dPr ≡ 8 → io $ HS.fromIntegral ^$ gmwShareRecv gmw_share_recv_int8 chan
+  FixedIPr wPr dPr | wPr + dPr ≡ 32 → io $ HS.fromIntegral ^$ gmwShareRecv gmw_share_recv_int32 chan
   _                                → undefined
 
-foreign import ccall unsafe "gmw_reveal_send_int8" gmw_reveal_send_int8 ∷ Ptr CChannel → CChar → IO ()
+foreign import ccall unsafe "gmw_reveal_send_int32" gmw_reveal_send_int32 ∷ Ptr CChannel → CInt → IO ()
 
 gmwRevealSendInt ∷ (Monad m, MonadIO m) ⇒ Channel → IPrecision → ℤ → m ()
 gmwRevealSendInt chan pr output = case pr of
-  FixedIPr wPr dPr | wPr + dPr ≡ 8 → io $ gmwRevealSend gmw_reveal_send_int8 chan $ HS.fromIntegral output
+  FixedIPr wPr dPr | wPr + dPr ≡ 32 → io $ gmwRevealSend gmw_reveal_send_int32 chan $ HS.fromIntegral output
   _                                → undefined
 
-foreign import ccall unsafe "gmw_reveal_recv_int8" gmw_reveal_recv_int8 ∷ Ptr (Ptr CChannel) → CSize → IO CChar
+foreign import ccall unsafe "gmw_reveal_recv_int32" gmw_reveal_recv_int32 ∷ Ptr (Ptr CChannel) → CSize → IO CInt
 
 gmwRevealRecvInt ∷ (Monad m, MonadIO m) ⇒ 𝐿 Channel → IPrecision → m ℤ
 gmwRevealRecvInt chans pr = case pr of
-  FixedIPr wPr dPr | wPr + dPr ≡ 8 → io $ HS.fromIntegral ^$ gmwRevealRecv gmw_reveal_recv_int8 chans
+  FixedIPr wPr dPr | wPr + dPr ≡ 32 → io $ HS.fromIntegral ^$ gmwRevealRecv gmw_reveal_recv_int32 chans
   _                                → undefined
 
 gmwShareRecvGmwInt ∷ (Monad m, MonadIO m) ⇒ Gmw → Channel → IPrecision → m GmwInt
