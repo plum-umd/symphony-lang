@@ -1300,7 +1300,7 @@ superty_wf t m bigM=
     SecT loc loc_ty → do
         l ← (elabEMode loc)
         l_inter ← (elabMode (inter_m m l))
-        loc_superty ← (superlocty_wf loc_ty m)
+        loc_superty ← (superlocty_wf loc_ty m bigM)
         return (SecT l_inter loc_superty)
           -- WF-Var
     VarT a → do
@@ -1311,6 +1311,7 @@ superty_wf t m bigM=
               [ ("m", pretty m)
               , ("m'", pretty m')
               ]
+          return t
         None → typeError "M does not contain alpha'" $ frhs
           [ ("M", pretty bigM)
           , ("a", pretty a)
