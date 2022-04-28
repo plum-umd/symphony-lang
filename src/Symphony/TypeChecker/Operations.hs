@@ -198,7 +198,7 @@ subtype_loc loctyS loctyT d = case loctyS of
     _  → (eq_locty loctyS loctyT)
   ISecT locS loctyS  → case loctyT of
       ISecT locT loctyT → do
-        mcond ← (superemode locS locT d)
+        mcond ← (superemode locS locT)
         loccond ← (subtype loctyS loctyT d)
         return (mcond ⩓ loccond)
   _ → return False
@@ -212,21 +212,21 @@ subtype tyS tyT d = case tyS of
   SecT locS loctyS → case tyT of
       SecT locT loctyT → do
         mcond ← (superemode locS locT)
-        loccond ← (subtype_loc loctyS loctyT)
+        loccond ← (subtype_loc loctyS loctyT d)
         return  (mcond ⩓ loccond)
       _ → return False
   VarT a → case tyT of
       VarT a' → do
         -- -------Sub-Var
          -- a <: a
-        return ((a ≡ a') ⩓ (d ∈ (a, a'))) 
+        return ((a ≡ a') ⩓ ( (a, a') ∈ d)) 
       _ → return False
   -- D, a <: b |- t1 <: t2
   -- --------------------------- Rec-Sub
   -- D |- mu a . t1 <: mu b . t2
   RecT a τ → case tyT of
       RecT a' τ' → do
-        subcond ← (subtype τ τ' (single𝑃  (a, a')) ∪ d)
+        subcond ← (subtype τ τ' ((single𝑃  (a, a')) ∪ d))
         return ((a ≡ a') ⩓ subcond)
       _ → return False
   -- t <: t'
@@ -241,7 +241,7 @@ subtype tyS tyT d = case tyS of
 
 
 -- Check if tyT >: tyS
-supertype :: STACK ⇒ Type → Type → EM 𝔹
+supertype :: STACK ⇒ Type → Type →  𝑃 (TVar ∧ TVar)  → EM 𝔹
 supertype tyT tyS = subtype tyS tyT
 
 -- Checks if emT ⊇ emS
@@ -293,7 +293,7 @@ union_m l l' = case l of
 -----------------
 -- Checks if two located types are equal
 eq_locty :: STACK ⇒ Type  → Type   →  EM 𝔹
-eq_locty locty locty' d=
+eq_locty locty locty'=
   case locty of
     BaseT bty → return (locty ≡ locty') 
     ShareT p loc locty  → case locty' of
@@ -339,7 +339,7 @@ eq_locty locty locty' d=
         return ((l ≡ l') ⩓ loccond)
       _  → return False
     (ArrT None _ τ) →  case locty' of
-      (ArrT None _ τ') → (subtype τ τ')
+      (ArrT None _ τ') → (eq_type τ τ')
       _  → return False
     (ArrT (Some loc) _ τ) → case locty' of
       (ArrT (Some loc') _ τ') → do
@@ -367,16 +367,16 @@ eq_type ty ty' = case ty of
       _ → typeError "ty' is not a located type" $ frhs
           [ ("ty'", pretty ty' )
           ]
-  VarT a → case tyT of
+  VarT a → case loc_ty of
       VarT a' → do
         return (a ≡ a')
       _ → return False
-  RecT a τ → case tyT of
+  RecT a τ → case loc_ty of
       RecT a' τ' → do
         eqcond ← (eq_type τ τ')
         return ((a ≡ a') ⩓ eqcond)
       _ → return False
-  ForallT a τ → case tyT of
+  ForallT a τ → case loc_ty of
       ForallT a' τ' → do
         eqcond ← (eq_type τ τ')
         return ((a ≡ a') ⩓ eqcond)
@@ -481,7 +481,7 @@ locty_meet locty locty' =
         loc_meet ← (locty_meet τ τ')
         return (RefT None loc_meet)
     (RefT locO τ') → do
-        subcond ← (subtype τ' τ)
+        subcond ← (subtype τ' τ  pø)
         guardErr subcond $
           typeError "join: τ' is not a subtype of τ" $ frhs
             [ ("τ", pretty τ)
@@ -496,7 +496,7 @@ locty_meet locty locty' =
   -- sigma <: sigma
   (RefT (Some loc) τ)  →  case locty' of
       (RefT None τ') → do
-        subcond ← (subtype τ τ')
+        subcond ← (subtype τ τ'  pø)
         guardErr subcond $
           typeError "join: τ is not a subtype of τ'" $ frhs
             [ ("τ", pretty τ)
@@ -519,7 +519,7 @@ locty_meet locty locty' =
         loc_meet ← (locty_join τ τ')
         return (RefT None loc_meet)
     (ArrT locO _ τ') → do
-        subcond ← (subtype τ' τ)
+        subcond ← (subtype τ' τ  pø)
         guardErr subcond $
           typeError "join: τ is not a subtype of τ'" $ frhs
             [ ("τ", pretty τ)
@@ -534,7 +534,7 @@ locty_meet locty locty' =
   -- sigma <: sigma
   (ArrT (Some loc) n τ)  →  case locty' of
     (ArrT None _ τ') → do
-        subcond ← (subtype τ' τ)
+        subcond ← (subtype τ' τ  pø)
         guardErr subcond $
           typeError "join: τ is not a subtype of τ'" $ frhs
             [ ("τ", pretty τ)
@@ -711,7 +711,7 @@ locty_join locty locty' =
         loc_join ← (locty_join τ τ')
         return (RefT None loc_join)
     (RefT (Some loc) τ') → do
-        subcond ← (subtype τ' τ)
+        subcond ← (subtype τ' τ  pø)
         guardErr subcond $
           typeError "join: τ' is not a subtype of τ" $ frhs
             [ ("τ", pretty τ)
@@ -726,7 +726,7 @@ locty_join locty locty' =
   -- sigma <: sigma
   (RefT (Some loc) τ)  →  case locty' of
       (RefT None τ') → do
-        subcond ← (subtype τ τ')
+        subcond ← (subtype τ τ'  pø)
         guardErr subcond $
           typeError "join: τ is not a subtype of τ'" $ frhs
             [ ("τ", pretty τ)
@@ -749,7 +749,7 @@ locty_join locty locty' =
         loc_join ← (locty_join τ τ')
         return (ArrT None n loc_join)
     (ArrT locO _ τ') → do
-        subcond ← (subtype τ' τ)
+        subcond ← (subtype τ' τ  pø)
         guardErr subcond $
           typeError "join: τ' is not a subtype of τ" $ frhs
             [ ("τ", pretty τ)
@@ -764,7 +764,7 @@ locty_join locty locty' =
   -- ref _ t <: ref RO t'
   (ArrT (Some loc) n τ)  →  case locty' of
     (ArrT None _ τ') → do
-        subcond ← (subtype τ τ')
+        subcond ← (subtype τ τ'  pø)
         guardErr subcond $
           typeError "join: τ is not a subtype of τ'" $ frhs
             [ ("τ", pretty τ)
@@ -800,7 +800,7 @@ ty_join ty ty' = case ty of
         [ ("ty", pretty ty )
         , ("ty'", pretty ty' )
         ]
-  VarT a → case tyT of
+  VarT a → case ty' of
       VarT a' → do
         guardErr (a ≡ a') $
           typeError "ty_join: ⊢ₘ _ ˡ→ _ ; a ≢ a'" $ frhs
@@ -812,7 +812,7 @@ ty_join ty ty' = case ty of
         [ ("ty", pretty ty )
         , ("ty'", pretty ty' )
         ]
-  RecT a τ → case tyT of
+  RecT a τ → case ty' of
       RecT a' τ' → do
         subcond ← (subtype ty ty' pø)
         subcond' ← (subtype ty' ty pø)
@@ -829,7 +829,7 @@ ty_join ty ty' = case ty of
         [ ("ty", pretty ty )
         , ("ty'", pretty ty' )
         ]
-  ForallT a τ → case tyT of
+  ForallT a τ → case ty' of
       ForallT a' τ' → do
         join ← (ty_join τ τ')
         guardErr (a ≡ a') $
@@ -837,7 +837,7 @@ ty_join ty ty' = case ty of
             [ ("a", pretty a)
             , ("a''", pretty a')
             ]
-        return $ ForAllT a join
+        return $ ForallT a join
       _ → typeError "ty_join: ty is a polymorphic type while ty' is not" $ frhs
             [ ("ty", pretty ty )
             , ("ty'", pretty ty' )
@@ -932,7 +932,7 @@ wf_cleartext_type ty m bigM =
           ]
     -- WF-Rec
     RecT a τ → do
-      m'  ← (get_intersect a τ m m)
+      m'  ← (get_intersect_type a τ m m)
       guardErr (supermode m m') $
         typeError "m is not a superet of m'" $ frhs
           [ ("m", pretty m)
@@ -941,7 +941,7 @@ wf_cleartext_type ty m bigM =
       (wf_cleartext_type τ m' ((a ↦ m') ⩌ bigM))
     -- WF-Poly
     ForallT a τ → do
-      m'  ← (get_intersect a τ m m)
+      m'  ← (get_intersect_type a τ m m)
       guardErr (supermode m m') $
         typeError "m is not a superet of m'" $ frhs
           [ ("m", pretty m)
@@ -1006,22 +1006,22 @@ wf_share_type ty m p l bigM=
           ]
     -- WF-Rec
     RecT a τ → do
-      m'  ← (get_intersect a τ m m)
+      m'  ← (get_intersect_type a τ m m)
       guardErr (supermode m m') $
         typeError "m is not a superet of m'" $ frhs
           [ ("m", pretty m)
           , ("m'", pretty m')
           ]
-      (wf_share_type τ m' ((a ↦ m') ⩌ M))
+      (wf_share_type τ m' ((a ↦ m') ⩌ bigM))
     -- WF-Poly
     ForallT a τ → do
-      m'  ← (get_intersect a τ m m)
+      m'  ← (get_intersect_type a τ m m)
       guardErr (supermode m m') $
         typeError "m is not a superet of m'" $ frhs
           [ ("m", pretty m)
           , ("m'", pretty m')
           ]
-      (wf_share_type τ m' ((a ↦ m') ⩌ M))
+      (wf_share_type τ m' ((a ↦ m') ⩌ bigM))
     _ → typeError "wf_share_type: ty is not well formed" $ frhs
         [ ("ty", pretty ty )
         ]
@@ -1068,7 +1068,7 @@ wf_type ty m bigM =
           ]
     -- WF-Rec
     RecT a τ → do
-      m'  ← (get_intersect a τ m m)
+      m'  ← (get_intersect_type a τ m m)
       guardErr (supermode m m') $
         typeError "m is not a superset of m'" $ frhs
           [ ("m", pretty m)
@@ -1077,7 +1077,7 @@ wf_type ty m bigM =
       (wf_type τ m' ((a ↦ m') ⩌ M))
     -- WF-Poly
     ForallT a τ → do
-      m'  ← (get_intersect a τ m m)
+      m'  ← (get_intersect_type a τ m m)
       guardErr (supermode m m') $
         typeError "m is not a superet of m'" $ frhs
           [ ("m", pretty m)
@@ -1217,7 +1217,7 @@ subty_wf t m bigM =
           ]
     -- WF-Rec
     RecT a τ → do
-      m'  ← (get_intersect a τ m m)
+      m'  ← (get_intersect_type a τ m m)
       guardErr (supermode m m') $
         typeError "m is not a superset of m'" $ frhs
           [ ("m", pretty m)
@@ -1226,7 +1226,7 @@ subty_wf t m bigM =
       (subty_wf τ m' ((a ↦ m') ⩌ bigM))
     -- WF-Poly
     ForallT a τ → do
-      m'  ← (get_intersect a τ m m)
+      m'  ← (get_intersect_type a τ m m)
       guardErr (supermode m m') $
         typeError "m is not a superset of m'" $ frhs
           [ ("m", pretty m)
