@@ -400,7 +400,7 @@ synLet ψ e₁ e₂ =
 
 
 -- z|-> (t1 m -> t2)@m, x|-> t1) union context |-m e t2
--- ------T-FunExp
+-- ------T-Lam
 -- gamma |- m lambda z x .e : (t1 m -> t2 )@m
 checkLam ∷ STACK ⇒ 𝑂 Var → 𝐿 Pat → Exp →  Type → EM ()
 checkLam self𝑂 ψs e τ =
@@ -437,16 +437,11 @@ checkLam self𝑂 ψs e τ =
       Some self → (bindTo self τ) (checkLam None ψs e τ)
     _  → typeError "checkLam: Not annotated correctly" $ frhs [ ("τ'", pretty τ)]
 
-synTLamE ∷ STACK ⇒ TVar→ Exp → EM Type
-synTLamE x e  =
-  let c = synExp e
-  in do
-    τ ← c
-    return $ ForallT x τ
+
 
 --  |-m e1 ( t1 m -> t2)
 --  |-m e2 t₂
--- ------T-FunExp
+-- ------T-App
 -- gamma |- m e1 e2 : t2
 synApp ∷ STACK ⇒ Exp → Exp → EM Type
 synApp e₁ e₂ =
@@ -475,16 +470,6 @@ synApp e₁ e₂ =
           [ ("τ₁", pretty τ₁)
           ]
 
-synTAppE ∷ STACK ⇒ TVar → Exp → EM Type
-synTAppE x e =
-  let c = synExp e
-  in do
-    τ ← c
-    case τ of
-      (ForallT x τ₁) → (type_subst x τ₁ τ)
-      _ → typeError " e has type τ which is not a forall type " $ frhs 
-            [ ("e", pretty e)
-            , ("τ'", pretty τ)]
 ----------------------
 --- Read and Write ---
 ----------------------
@@ -1087,6 +1072,10 @@ synBundleUnionHelper τ₁ τ₂ =
 --- Recursive Types ---
 -------------------
 
+-- u = (mu alpha. t)
+-- gamma |- m e : [(mu alpha. t)/ alpha] t
+-- ------T-Fold
+-- gamma |- fold [u] x : u
 checkFold ∷ STACK ⇒ Exp → Type → EM ()
 checkFold e τ=
  case τ of
@@ -1101,6 +1090,11 @@ synFold τ e = do
   checkFold e τ
   return τ
 
+-- u = (mu alpha. t)
+-- gamma |- m e : [(mu alpha. t)/ alpha] t
+-- ------T-Fold
+-- gamma |- fold [u] x : u
+
 synUnfold ∷ STACK ⇒Type →  Exp →  EM Type
 synUnfold τ e =
  case τ of
@@ -1109,6 +1103,34 @@ synUnfold τ e =
       (type_subst a τ τ')
     _  → typeError "synUnfold: Type given is not a recursive type" $ frhs [ ("τ'", pretty τ)]
 
+-------------------
+--- Universal Types ---
+-------------------
+
+
+-- gamma, X |- m e : T
+-- ------T-TLam
+-- gamma |- m lam X.e : forall X. e
+synTLamE ∷ STACK ⇒ TVar→ Exp → EM Type
+synTLamE x e  =
+  let c = synExp e
+  in do
+    τ ← c
+    return $ ForallT x τ
+
+-- gamma, X |- m e : forall X.T1
+-- ------T-TLam
+-- gamma |- e [T] : [X |-> T] T1
+synTAppE ∷ STACK ⇒ TVar → Exp → EM Type
+synTAppE x e =
+  let c = synExp e
+  in do
+    τ ← c
+    case τ of
+      (ForallT x τ₁) → (type_subst x τ₁ τ)
+      _ → typeError " e has type τ which is not a forall type " $ frhs 
+            [ ("e", pretty e)
+            , ("τ'", pretty τ)]
 
 -------------------
 --- Expressions ---

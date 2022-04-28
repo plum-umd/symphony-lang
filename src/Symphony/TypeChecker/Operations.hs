@@ -119,67 +119,14 @@ eModeEqual loc loc' =
     p' ← elabEMode loc'
     return $ p ≡ p'
 
-{-
--- gets a type stripped of locations and a well formed type
-assertShareableType :: STACK ⇒ Type → Type → Prot → EMode → EM ()
-assertShareableType τ₁ τ₂ q φ =
-  case τ₁ of
-    (BaseT bτ₁) →
-      case τ₂ of
-        (SecT l' (BaseT bτ₂))  → if (bτ₁ == bτ₂)
-          then
-            return ()
-          else
-            typeError "bτ₁ != bτ₂" $ frhs
-              [ ("bτ₁", pretty bτ₁)
-              , ("bτ₂", pretty bτ₂)
-              ]
-        (SecT l' (ShareT φ' l'' (BaseT bτ₂))) → if (bτ₁ == bτ₂)
-          then do
-            emodeCond ← eModeEqual q l''
-            if (emodeCond &&  φ == φ' )
-            then
-              return ()
-            else
-              typeError "The protocols are not equal" $ frhs
-                [ ("q", pretty q)
-                , ("l''", pretty l'')
-                , ("φ", pretty  φ)
-                , ("φ'", pretty  φ')
-                ]
-          else
-            typeError "bτ₁ != bτ₂" $ frhs
-              [ ("bτ₁", pretty bτ₁)
-              , ("bτ₂", pretty bτ₂)
-              ]
-     (τₗ₁ :+: τᵣ₁)  → case τ₂ of
-        (SecT l' (τₗ₂ :+: τᵣ₂) ) →  do
-          _ ← (assertShareableType τₗ₁ τₗ₂)
-          _ ← (assertShareableType τᵣ₁ τᵣ₂)
-          return ()
-        (SecT l' (ShareT φ' l''  (τₗ₂ :+: τᵣ₂)) ) →  do
-          _ ← (assertShareableType τₗ₁ τₗ₂)
-          _ ← (assertShareableType τᵣ₁ τᵣ₂)
-          emodeCond ← eModeEqual q l''
-        if (emodeCond &&  φ == φ' )
-          then
-            return ()
-          else
-            typeError "The protocols are not equal" $ frhs
-              [ ("q", pretty q)
-                , ("l''", pretty l'')
-                , ("φ", pretty  φ)
-                , ("φ'", pretty  φ')
-              ]
-    _ → todoError
-    -}
+
 -----------------
 --- Subtype utility ---
 -----------------
 
 -- Check if loctyS <: loctyT
-subtype_loc :: STACK ⇒ Type → Type → EM 𝔹
-subtype_loc loctyS loctyT = case loctyS of
+subtype_loc :: STACK ⇒ Type → Type → 𝑃 (TVar ∧ TVar) → EM 𝔹
+subtype_loc loctyS loctyT d = case loctyS of
   -- sigma = bty
   -- -------Sub-Refl
   -- sigma <: sigma
@@ -191,7 +138,7 @@ subtype_loc loctyS loctyT = case loctyS of
       ShareT pT loc' loctyT → do
         l ← (elabEMode loc)
         l' ← (elabEMode loc')
-        loccond ← (subtype_loc loctyS loctyT)
+        loccond ← (subtype_loc loctyS loctyT d)
         return ((l ≡ l') ⩓ (pS ≡ pT) ⩓ loccond)
       _  → return False
   -- t1 <: t1' t2 <: t2'
@@ -200,8 +147,8 @@ subtype_loc loctyS loctyT = case loctyS of
   (loctySₗ :+: loctySᵣ) → case loctyT of
     (loctyTₗ :+: loctyTᵣ) → do
 
-        loccondₗ ← (subtype loctySₗ loctyTₗ)
-        loccondᵣ ← (subtype loctySᵣ loctyTᵣ)
+        loccondₗ ← (subtype loctySₗ loctyTₗ d)
+        loccondᵣ ← (subtype loctySᵣ loctyTᵣ d)
         return (loccondₗ ⩓ loccondᵣ)
     _ → return False
   -- t1 <: t1' t2 <: t2'
@@ -209,12 +156,12 @@ subtype_loc loctyS loctyT = case loctyS of
   -- t1 x t2 <: t1' x t2'
   (loctySₗ :×: loctySᵣ) → case loctyT of
     (loctyTₗ :×: loctyTᵣ) → do
-        loccondₗ ← (subtype loctySₗ loctyTₗ)
-        loccondᵣ ← (subtype loctySᵣ loctyTᵣ)
+        loccondₗ ← (subtype loctySₗ loctyTₗ d)
+        loccondᵣ ← (subtype loctySᵣ loctyTᵣ d)
         return (loccondₗ ⩓ loccondᵣ)
     _ → return False
   (ListT _ τₜ)  →  case loctyT of
-    (ListT _ τₜ') → (subtype τₜ τₜ')
+    (ListT _ τₜ') → (subtype τₜ τₜ' d)
     _ → return False
   -- t1' <: t1 t2 <: t2'
   -- -------Sub-Fun
@@ -223,50 +170,72 @@ subtype_loc loctyS loctyT = case loctyS of
     (τ₁₁' :→: (η' :* τ₁₂')) → do
         l ← elabEMode $ effectMode η
         l' ← elabEMode $ effectMode η'
-        loccondₗ ← (subtype τ₁₁' τ₁₁)
-        loccondᵣ ← (subtype τ₁₂ τ₁₂')
+        loccondₗ ← (subtype τ₁₁' τ₁₁ d)
+        loccondᵣ ← (subtype τ₁₂ τ₁₂' d) 
         return ((l ≡ l') ⩓ loccondₗ ⩓ loccondᵣ)
         -- t <: t' 
   -- -------Sub-RefRO
   -- ref _ t <: ref RO t'
   (RefT None τ) →  case loctyT of
-    (RefT None τ') → (subtype τ τ')
+    (RefT None τ') → (subtype τ τ' d)
     _  → return False
   (RefT _ τ) → case loctyT of
       -- sigma = refRW#m t
     -- -------Sub-Refl
     -- sigma <: sigma
-    (RefT None τ') → (subtype τ τ')
+    (RefT None τ') → (subtype τ τ' d)
     _  → (eq_locty loctyS loctyT)
     -- -------Sub-RefRO
   -- ref _ t <: ref RO t
   (ArrT None _ τ) →  case loctyT of
-    (ArrT None _ τ') → (subtype τ τ')
+    (ArrT None _ τ') → (subtype τ τ' d)
     _  → return False
   (ArrT _ _ τ) → case loctyT of
           -- sigma = refRW#m t
     -- -------Sub-Refl
     -- sigma <: sigma
-    (ArrT None _ τ') → (subtype τ τ')
+    (ArrT None _ τ') → (subtype τ τ' d)
     _  → (eq_locty loctyS loctyT)
   ISecT locS loctyS  → case loctyT of
       ISecT locT loctyT → do
-        mcond ← (superemode locS locT)
-        loccond ← (subtype loctyS loctyT)
+        mcond ← (superemode locS locT d)
+        loccond ← (subtype loctyS loctyT d)
         return (mcond ⩓ loccond)
   _ → return False
 
 -- Check if tyS <: tyT
-subtype :: STACK ⇒ Type → Type → EM 𝔹
-  -- sigma <: sigma' m ⊇ m'
+subtype :: STACK ⇒ Type → Type → 𝑃 (TVar ∧ TVar) →  EM 𝔹
+subtype tyS tyT d = case tyS of
+    -- sigma <: sigma' m ⊇ m'
   -- -------Sub-Loc
   -- sigma@m <: sigma'@m'
-subtype tyS tyT = case tyS of
   SecT locS loctyS → case tyT of
       SecT locT loctyT → do
         mcond ← (superemode locS locT)
         loccond ← (subtype_loc loctyS loctyT)
         return  (mcond ⩓ loccond)
+      _ → return False
+  VarT a → case tyT of
+      VarT a' → do
+        -- -------Sub-Var
+         -- a <: a
+        return ((a ≡ a') ⩓ (d ∈ (a, a'))) 
+      _ → return False
+  -- D, a <: b |- t1 <: t2
+  -- --------------------------- Rec-Sub
+  -- D |- mu a . t1 <: mu b . t2
+  RecT a τ → case tyT of
+      RecT a' τ' → do
+        subcond ← (subtype τ τ' (single𝑃  (a, a')) ∪ d))
+        return ((a ≡ a') ⩓ subcond)
+      _ → return False
+  -- t <: t'
+  -- -------Sub-ForAll
+  -- mu a.t <: mu a.t'
+  ForallT a τ → case tyT of
+      ForallT a' τ' → do
+        subcond ← (subtype τ τ' d)
+        return ((a ≡ a') ⩓ subcond)
       _ → return False
   _ → return False
 
@@ -323,8 +292,8 @@ union_m l l' = case l of
 --- Join functions ---
 -----------------
 -- Checks if two located types are equal
-eq_locty :: STACK ⇒ Type  → Type  → EM 𝔹
-eq_locty locty locty' =
+eq_locty :: STACK ⇒ Type  → Type   →  EM 𝔹
+eq_locty locty locty' d=
   case locty of
     BaseT bty → return (locty ≡ locty') 
     ShareT p loc locty  → case locty' of
@@ -387,6 +356,34 @@ eq_locty locty locty' =
         return ((l ≡ l') ⩓ loccond)
       _ → return False
 
+eq_type :: STACK ⇒ Type  → Type  → EM 𝔹
+eq_type ty ty' = case ty of
+  SecT loc loc_ty → case ty' of
+      SecT loc' loc_ty' → do
+        l ← elabEMode loc
+        l' ← elabEMode loc'
+        eqcond ← (eq_locty loc_ty loc_ty')
+        return ((l  ≡ l') ⩓ eqcond)
+      _ → typeError "ty' is not a located type" $ frhs
+          [ ("ty'", pretty ty' )
+          ]
+  VarT a → case tyT of
+      VarT a' → do
+        return (a ≡ a')
+      _ → return False
+  RecT a τ → case tyT of
+      RecT a' τ' → do
+        eqcond ← (eq_type τ τ')
+        return ((a ≡ a') ⩓ eqcond)
+      _ → return False
+  ForallT a τ → case tyT of
+      ForallT a' τ' → do
+        eqcond ← (eq_type τ τ')
+        return ((a ≡ a') ⩓ eqcond)
+      _ → return False
+  _  → typeError "eq_type: ty is not well formed" $ frhs
+        [ ("ty", pretty ty )
+        ]
 
 -----------------
 --- Join functions ---
@@ -560,33 +557,63 @@ locty_meet locty locty' =
       ty' → todoError
   _ → todoError
 
-eq_type :: STACK ⇒ Type  → Type  → EM 𝔹
-eq_type ty ty' = case ty of
-  SecT loc loc_ty → case ty' of
-      SecT loc' loc_ty' → do
-        l ← elabEMode loc
-        l' ← elabEMode loc'
-        eqcond ← (eq_locty loc_ty loc_ty')
-        return ((l  ≡ l') ⩓ eqcond)
-      _ → typeError "ty' is not a located type" $ frhs
-          [ ("ty'", pretty ty' )
-          ]
-
-  _  → typeError "eq_type: ty is not well formed" $ frhs
-        [ ("ty", pretty ty )
-        ]
 
 
--- Finds join of two types
+
+-- Finds meet of two types
 ty_meet :: STACK ⇒ Type  → Type  → EM Type
 ty_meet ty ty' = case ty of
-  SecT loc loc_ty → (case ty' of
+  SecT loc loc_ty → case ty' of
       SecT loc' loc_ty' → do
         loc_union ← (union_em loc loc')
         loc_meet ← (locty_meet loc_ty loc_ty')
-        return (SecT loc_union loc_meet)
-      ty' → todoError)
-
+        return $ SecT loc_union loc_meet
+      _ →  typeError "ty_meet: ty is a located type while ty' is not" $ frhs
+        [ ("ty", pretty ty )
+        , ("ty'", pretty ty' )
+        ]
+  VarT a → case tyT of
+      VarT a' → do
+        guardErr (a ≡ a') $
+          typeError "ty_meet: ⊢ₘ _ ˡ→ _ ; a ≢ a'" $ frhs
+            [ ("a", pretty a)
+            , ("a''", pretty a')
+            ]
+        return ty
+      _ → typeError "ty_meet: ty is a type variable while ty' is not" $ frhs
+        [ ("ty", pretty ty )
+        , ("ty'", pretty ty' )
+        ]
+  RecT a τ → case tyT of
+      RecT a' τ' → do
+        subcond ← (subtype ty ty' pø)
+        subcond' ← (subtype ty' ty pø)
+        if subcond then
+          return ty
+        else 
+          guardErr subcond' $
+            typeError "ty_meet: ⊢ₘ _ ˡ→ _ ; a ≢ a'" $ frhs
+              [ ("a", pretty a)
+              , ("a''", pretty a')
+              ]
+        return ty'
+      _ → typeError "ty_meet: ty is a recursive type while ty' is not" $ frhs
+        [ ("ty", pretty ty )
+        , ("ty'", pretty ty' )
+        ]
+  ForallT a τ → case tyT of
+      ForallT a' τ' → do
+        meet ← (ty_meet τ τ')
+        guardErr (a ≡ a') $
+          typeError "ty_meet: ⊢ₘ _ ˡ→ _ ; a ≢ a'" $ frhs
+            [ ("a", pretty a)
+            , ("a''", pretty a')
+            ]
+        return $ ForAllT a meet
+      _ → typeError "ty_meet: ty is a polymorphic type while ty' is not" $ frhs
+            [ ("ty", pretty ty )
+            , ("ty'", pretty ty' )
+            ]
   _  → typeError "ty_meet: ty is not well formed" $ frhs
         [ ("ty", pretty ty )
         ]
@@ -761,17 +788,63 @@ locty_join locty locty' =
   _ → todoError
 
 -- Finds join of two types
+-- Finds meet of two types
 ty_join :: STACK ⇒ Type  → Type  → EM Type
 ty_join ty ty' = case ty of
   SecT loc loc_ty → case ty' of
       SecT loc' loc_ty' → do
-        loc_inter ← (inter_em loc loc')
-        loc_top ← (locty_join loc_ty loc_ty')
-        return (SecT loc_inter loc_top)
-      _ → todoError
-
-  x  → todoError
-
+        loc_union ← (union_em loc loc')
+        loc_join ← (locty_meet loc_ty loc_ty')
+        return $ SecT loc_union loc_join
+      _ →  typeError "ty_join: ty is a located type while ty' is not" $ frhs
+        [ ("ty", pretty ty )
+        , ("ty'", pretty ty' )
+        ]
+  VarT a → case tyT of
+      VarT a' → do
+        guardErr (a ≡ a') $
+          typeError "ty_join: ⊢ₘ _ ˡ→ _ ; a ≢ a'" $ frhs
+            [ ("a", pretty a)
+            , ("a''", pretty a')
+            ]
+        return ty
+      _ → typeError "ty_join: ty is a type variable while ty' is not" $ frhs
+        [ ("ty", pretty ty )
+        , ("ty'", pretty ty' )
+        ]
+  RecT a τ → case tyT of
+      RecT a' τ' → do
+        subcond ← (subtype ty ty' pø)
+        subcond' ← (subtype ty' ty pø)
+        if subcond then
+          return ty
+        else 
+          guardErr subcond' $
+            typeError "ty_join: ⊢ₘ _ ˡ→ _ ; a ≢ a'" $ frhs
+              [ ("a", pretty a)
+              , ("a''", pretty a')
+              ]
+        return ty'
+      _ → typeError "ty_meet: ty is a recursive type while ty' is not" $ frhs
+        [ ("ty", pretty ty )
+        , ("ty'", pretty ty' )
+        ]
+  ForallT a τ → case tyT of
+      ForallT a' τ' → do
+        join ← (ty_join τ τ')
+        guardErr (a ≡ a') $
+          typeError "ty_join: ⊢ₘ _ ˡ→ _ ; a ≢ a'" $ frhs
+            [ ("a", pretty a)
+            , ("a''", pretty a')
+            ]
+        return $ ForAllT a join
+      _ → typeError "ty_join: ty is a polymorphic type while ty' is not" $ frhs
+            [ ("ty", pretty ty )
+            , ("ty'", pretty ty' )
+            ]
+  _  → typeError "ty_meet: ty is not well formed" $ frhs
+        [ ("ty", pretty ty )
+        ]
 -- Assumes non empty list of well-formed types
 joinList :: STACK ⇒ 𝐿 Type → EM Type
 joinList τs =
@@ -784,25 +857,29 @@ joinList τs =
 -----------------
 
 -- Rules to see if any located value is well-formed
-wf_cleartext_loctype :: STACK ⇒ Type → Mode → EM ()
-wf_cleartext_loctype sigma m =
+wf_cleartext_loctype :: STACK ⇒ Type → Mode →  (Env Mode) →  EM ()
+wf_cleartext_loctype sigma m M =
   case sigma of
      -- WF-Base (Based off WF-INT)
     BaseT bt → return ()
+    (loctyₗ :+: loctyᵣ)  → do
+      _ ← (wf_cleartext_type loctyₗ m M)
+      _ ← (wf_cleartext_type loctyᵣ m M)
+      return ()
     -- WF-Prod: t1 must be well formed and t2 must be well formed
     (loctyₗ :×: loctyᵣ)  → do
-      _ ← (wf_cleartext_type loctyₗ m)
-      _ ← (wf_cleartext_type loctyᵣ m)
+      _ ← (wf_cleartext_type loctyₗ m M)
+      _ ← (wf_cleartext_type loctyᵣ m M)
       return ()
     (ListT _ τₜ)  → do
-      _ ← (wf_cleartext_type τₜ m)
+      _ ← (wf_cleartext_type τₜ m M)
       return ()
     -- WF-Fun: m must be same as mode, t1 must be well formed and t2 must be well formed
     (τ₁₁ :→: (η :* τ₁₂)) → do
       m  ← askL terModeL
       l ← elabEMode $ effectMode η
-      _ ← (wf_cleartext_type τ₁₁ m)
-      _ ← (wf_cleartext_type τ₁₂ m)
+      _ ← (wf_cleartext_type τ₁₁ m M)
+      _ ← (wf_cleartext_type τ₁₂ m M)
       guardErr (m ≡ l) $
         typeError "Not well formed m != l" $ frhs
         [ ("m", pretty m)
@@ -811,11 +888,11 @@ wf_cleartext_loctype sigma m =
       return ()
     -- WF-Ref: The component type must be well formed 
     (RefT _ τ')  → do
-      _ ← (wf_cleartext_type τ' m)
+      _ ← (wf_cleartext_type τ' m M)
       return ()
     -- WF-Ref: The component type must be well formed 
     (ArrT _ _ τ')  →  do
-      _ ← (wf_cleartext_type τ' m)
+      _ ← (wf_cleartext_type τ' m M)
       return ()
     ISecT loc locty → do
  --     _ ← (wf_share_loctype locty m)
@@ -825,8 +902,8 @@ wf_cleartext_loctype sigma m =
         ]
 
 -- Rules to see if a cleartext type is well formed
-wf_cleartext_type :: STACK ⇒ Type → Mode → EM ()
-wf_cleartext_type ty m =
+wf_cleartext_type :: STACK ⇒ Type → Mode → (Env Mode) → EM ()
+wf_cleartext_type ty m M =
   case ty of
     -- WF-Loc
   --  SecT em' (ShareT p loc loc_ty) → typeError "wf_type: ty is not well formed cleartext type. ty is an encrypted sharetype" $ frhs
@@ -839,29 +916,59 @@ wf_cleartext_type ty m =
         [ ("m", pretty m)
         , ("m'", pretty m')
         ]
-      wfcond ← (wf_cleartext_loctype locty m')
+      wfcond ← (wf_cleartext_loctype locty m' M)
       return ()
+    VarT a → do
+      case M ⋕? a of
+        Some m' → do
+          guardErr (supermode m m') $
+            typeError "m is not a superet of m'" $ frhs
+              [ ("m", pretty m)
+              , ("m'", pretty m')
+              ]
+        None → typeError "M does not contain alpha'" $ frhs
+          [ ("M", pretty M)
+          , ("a", pretty a)
+          ]
+    -- WF-Rec
+    RecT a τ → do
+      m'  ← (get_intersect a τ m m)
+      guardErr (supermode m m') $
+        typeError "m is not a superet of m'" $ frhs
+          [ ("m", pretty m)
+          , ("m'", pretty m')
+          ]
+      (wf_cleartext_type τ m' ((a ↦ m') ⩌ M))
+    -- WF-Poly
+    ForallT a τ → do
+      m'  ← (get_intersect a τ m m)
+      guardErr (supermode m m') $
+        typeError "m is not a superet of m'" $ frhs
+          [ ("m", pretty m)
+          , ("m'", pretty m')
+          ]
+      (wf_cleartext_type τ m' ((a ↦ m') ⩌ M))
     _ → typeError "wf_cleartext_type: ty is not well formed encrypted type" $ frhs
         [ ("ty", pretty ty )
         ]
 
 
 -- Rules to see if some located value is well-formed
-wf_share_loctype :: Type → Mode → Prot → Mode → EM ()
-wf_share_loctype sigma m p l=
+wf_share_loctype :: Type → Mode → Prot → Mode → (Env Mode) →  EM ()
+wf_share_loctype sigma m p l M=
   case sigma of
     BaseT bt → return ()
     (loctyₗ :+: loctyᵣ) → do
-      _ ← (wf_share_type loctyₗ m p l)
-      _ ← (wf_share_type loctyᵣ m p l)
+      _ ← (wf_share_type loctyₗ m p l M)
+      _ ← (wf_share_type loctyᵣ m p l M) 
       return ()
     _  → do
       typeError "wf_share_loctype: sigma is not well formed encrypted type" $ frhs
         [ ("sigma", pretty sigma)
         ]
 
-wf_share_type :: Type → Mode →  Prot → Mode → EM ()
-wf_share_type ty m p l =
+wf_share_type :: Type → Mode →  Prot → Mode → (Env Mode) → EM ()
+wf_share_type ty m p l M=
   case ty of
     -- WF-Loc
     SecT em' (ShareT p' loc loc_ty) → do
@@ -882,8 +989,39 @@ wf_share_type ty m p l =
         [ ("m", pretty m)
         , ("m'", pretty m')
         ]
-      wfcond ← (wf_share_loctype loc_ty m' p l)
+      wfcond ← (wf_share_loctype loc_ty m' p l M)
       return ()
+        -- WF-Var
+    VarT a → do
+      case M ⋕? a of
+        Some m' → do
+          guardErr (supermode m m') $
+            typeError "m is not a superet of m'" $ frhs
+              [ ("m", pretty m)
+              , ("m'", pretty m')
+              ]
+        None → typeError "M does not contain alpha'" $ frhs
+          [ ("M", pretty M)
+          , ("a", pretty a)
+          ]
+    -- WF-Rec
+    RecT a τ → do
+      m'  ← (get_intersect a τ m m)
+      guardErr (supermode m m') $
+        typeError "m is not a superet of m'" $ frhs
+          [ ("m", pretty m)
+          , ("m'", pretty m')
+          ]
+      (wf_share_type τ m' ((a ↦ m') ⩌ M))
+    -- WF-Poly
+    ForallT a τ → do
+      m'  ← (get_intersect a τ m m)
+      guardErr (supermode m m') $
+        typeError "m is not a superet of m'" $ frhs
+          [ ("m", pretty m)
+          , ("m'", pretty m')
+          ]
+      (wf_share_type τ m' ((a ↦ m') ⩌ M))
     _ → typeError "wf_share_type: ty is not well formed" $ frhs
         [ ("ty", pretty ty )
         ]
@@ -891,8 +1029,8 @@ wf_share_type ty m p l =
 
 
 -- Rules to see if the type is well formed in terms of a good AST (Share rules)
-wf_type :: Type → Mode → EM ()
-wf_type ty m =
+wf_type :: Type → Mode → (Env Mode) → EM ()
+wf_type ty m M =
   case ty of
 
     -- WF-Loc
@@ -904,7 +1042,7 @@ wf_type ty m =
         , ("m'", pretty m')
         ]
       l ← (elabEMode loc)
-      wfcond ← (wf_share_loctype loc_ty m' p l)
+      wfcond ← (wf_share_loctype loc_ty m' p l M)
       return ()
     SecT em' locty → do
       m' ← (elabEMode em')
@@ -913,21 +1051,102 @@ wf_type ty m =
         [ ("m", pretty m)
         , ("m'", pretty m')
         ]
-      wfcond ← (wf_cleartext_loctype locty m')
+      wfcond ← (wf_cleartext_loctype locty m' M)
       return ()
+    -- WF-Var
+    VarT a → do
+      case M ⋕? a of
+        Some m' → do
+          guardErr (supermode m m') $
+            typeError "m is not a superet of m'" $ frhs
+              [ ("m", pretty m)
+              , ("m'", pretty m')
+              ]
+        None → typeError "M does not contain alpha'" $ frhs
+          [ ("M", pretty M)
+          , ("a", pretty a)
+          ]
+    -- WF-Rec
+    RecT a τ → do
+      m'  ← (get_intersect a τ m m)
+      guardErr (supermode m m') $
+        typeError "m is not a superset of m'" $ frhs
+          [ ("m", pretty m)
+          , ("m'", pretty m')
+          ]
+      (wf_type τ m' ((a ↦ m') ⩌ M))
+    -- WF-Poly
+    ForallT a τ → do
+      m'  ← (get_intersect a τ m m)
+      guardErr (supermode m m') $
+        typeError "m is not a superet of m'" $ frhs
+          [ ("m", pretty m)
+          , ("m'", pretty m')
+          ]
+      (wf_type τ m' ((a ↦ m') ⩌ M))
     _ → typeError "wf_type: ty is not well formed" $ frhs
         [ ("ty", pretty ty )
         ]
 
+get_intersect_loc_type :: STACK ⇒ Type → Mode → Mode → EM Mode
+get_intersect_loc_type x sigma m m' =
+  case sigma of
+     -- WF-Base (Based off WF-INT)
+    BaseT bt → return m
+    (ShareT _ _ τ) → (get_intersect_loc_type x τ m m')
+    (loctyₗ :+: loctyᵣ)  → do
+      mₗ  ← (get_intersect_type x loctyₗ m m')
+      mᵣ  ← (get_intersect_type x loctyᵣ m m')
+      return (inter_m  mₗ mᵣ )
+    -- WF-Prod: t1 must be well formed and t2 must be well formed
+    (loctyₗ :×: loctyᵣ)  → do
+      mₗ  ← (get_intersect_type x loctyₗ m m')
+      mᵣ  ← (get_intersect_type x loctyᵣ m m')
+      return (inter_m  mₗ mᵣ )
+    (ListT _ τₜ)  → 
+      (get_intersect_type x τₜ m m')
+    -- WF-Fun: m must be same as mode, t1 must be well formed and t2 must be well formed
+    (τ₁₁ :→: (η :* τ₁₂)) → do
+      m₁₁  ← (get_intersect_type x locty₁₁ m m')
+      m₁₁  ← (get_intersect_type x locty₁₁ m m')
+      (get_intersect_type x τₜ m m')
+    -- WF-Ref: The component type must be well formed 
+    (RefT _ τ')  → 
+      (get_intersect_type x τₜ m m')
+    -- WF-Ref: The component type must be well formed 
+    (ArrT _ _ τ')  →  
+      (get_intersect_type x τₜ m m')
+    ISecT loc locty → 
+      (get_intersect_type x locty m m')
+    _  → typeError "get_intersect_loctype: sigma is not well formed located type" $ frhs
+        [ ("sigma", pretty sigma )
+        ]
 
--- Rules to get the least sub subtype of loctype sigma that is well formed
+-- Rules to see if the type is well formed in terms of a good AST (Share rules)
+get_intersect_type :: Type → Mode → Mode → EM Mode
+get_intersect_type x τ m m' =
+    SecT em'' sigma → do
+      m''  ← elabEMode em''
+      (get_intersect_type a sigma m m'')
+    VarT a → do
+      return (if (x ≡ a) then m' else m)
+    -- WF-Rec
+    RecT a τ → do
+      if (x ≡ a) then (return m) else (get_intersect_type a τ m m')
+    -- WF-Poly
+    ForallT a τ → do
+      if (x ≡ a) then (return m) else (get_intersect_type a τ m m')
+      _  → typeError "get_intersect_type: τ is not well formed type" $ frhs
+      [ ("τ", pretty τ  )
+      ]
+-- Rules to get the least sub subtype of loctype sigma that is well formed for some M
 sublocty_wf :: STACK ⇒ Type  → Mode →  EM Type
 sublocty_wf sigma m =
   case sigma of
     -- WF-Base (Based off WF-INT)
     BaseT bt → return sigma
     ShareT p loc loc_ty  → do
-      loc_subty ← (subty_wf loc_ty m)
+      loc_subty ← (sublocty_wf loc_ty m)
       return (ShareT p loc loc_subty)
     -- WF-Sum: t1 must be well formed and t2 must be well formed
     (loctyₗ :+: loctyᵣ) → do
@@ -967,18 +1186,9 @@ sublocty_wf sigma m =
         [ ("sigma", pretty sigma )
         ]
 
--- Rules to get the least super supertype of located type that a share can take sigma that is well formed
-share_subloctype_wf :: STACK ⇒ Type → Mode → EM Type
-share_subloctype_wf sigma m =
-  case sigma of
-    BaseT bt → return sigma
-    (loctyₗ :+: loctyᵣ) → do
-      loctyₗ' ← (subty_wf loctyₗ m)
-      loctyᵣ' ← (subty_wf loctyᵣ m)
-      return (loctyₗ' :+: loctyᵣ')
-    _  → todoError
 
--- Rules to get the least super supertype of type t that is well formed
+
+-- Rules to get the least super supertype of type t that is well formed for some M
 subty_wf :: STACK ⇒ Type  → Mode  → EM Type
 subty_wf t m =
     case t of
@@ -991,14 +1201,45 @@ subty_wf t m =
         , ("m'", pretty m')
         ]
       (return (SecT loc loc_subty))
+      -- WF-Var
+    VarT a → do
+      case M ⋕? a of
+        Some m' → do
+          guardErr (supermode m m') $
+            typeError "m is not a superet of m'" $ frhs
+              [ ("m", pretty m)
+              , ("m'", pretty m')
+              ]
+        None → typeError "M does not contain alpha'" $ frhs
+          [ ("M", pretty M)
+          , ("a", pretty a)
+          ]
+    -- WF-Rec
+    RecT a τ → do
+      m'  ← (get_intersect a τ m m)
+      guardErr (supermode m m') $
+        typeError "m is not a superset of m'" $ frhs
+          [ ("m", pretty m)
+          , ("m'", pretty m')
+          ]
+      (subty_wf τ m' ((a ↦ m') ⩌ M))
+    -- WF-Poly
+    ForallT a τ → do
+      m'  ← (get_intersect a τ m m)
+      guardErr (supermode m m') $
+        typeError "m is not a superset of m'" $ frhs
+          [ ("m", pretty m)
+          , ("m'", pretty m')
+          ]
+      (subty_wf τ m' ((a ↦ m') ⩌ M))
     _  → typeError "subtype_wf: t is not well structured" $ frhs
         [ ("t", pretty t )
         ]
 
 
 -- Rules to get the least super supertype of loctype sigma that is well formed
-superlocty_wf :: STACK ⇒ Type  → Mode →  EM Type
-superlocty_wf sigma m =
+superlocty_wf :: STACK ⇒ Type  → Mode → (Env Mode) → EM Type
+superlocty_wf sigma m M =
   case sigma of
     -- WF-Base (Based off WF-INT)
     BaseT bt → return sigma
@@ -1049,8 +1290,8 @@ superlocty_wf sigma m =
         ]
 
 -- Rules to get the least super supertype of located type that a share can take sigma that is well formed
-share_superloctype_wf :: STACK ⇒ Type → Mode → EM Type
-share_superloctype_wf sigma m =
+share_superloctype_wf :: STACK ⇒ Type → Mode → (Env Mode) → EM Type
+share_superloctype_wf sigma m M =
   case sigma of
     BaseT bt → return sigma
     (loctyₗ :+: loctyᵣ) → do
@@ -1060,7 +1301,7 @@ share_superloctype_wf sigma m =
     _  → todoError
 
 -- Rules to get the least super supertype of type t that is well formed
-superty_wf :: STACK ⇒ Type  → Mode  → EM Type
+superty_wf :: STACK ⇒ Type  → Mode  → EM Type``
 superty_wf t m =
     case t of
     SecT loc loc_ty → do
@@ -1068,9 +1309,42 @@ superty_wf t m =
         l_inter ← (elabMode (inter_m m l))
         loc_superty ← (superlocty_wf loc_ty m)
         return (SecT l_inter loc_superty)
+          -- WF-Var
+    VarT a → do
+      case M ⋕? a of
+        Some m' → do
+          guardErr (supermode m m') $
+            typeError "m is not a superet of m'" $ frhs
+              [ ("m", pretty m)
+              , ("m'", pretty m')
+              ]
+        None → typeError "M does not contain alpha'" $ frhs
+          [ ("M", pretty M)
+          , ("a", pretty a)
+          ]
+    -- WF-Rec
+    RecT a τ → do
+      m'  ← (get_intersect a τ m m)
+      guardErr (supermode m m') $
+        typeError "m is not a superset of m'" $ frhs
+          [ ("m", pretty m)
+          , ("m'", pretty m')
+          ]
+      (superty_wf τ m' ((a ↦ m') ⩌ M))
+    -- WF-Poly
+    ForallT a τ → do
+      m'  ← (get_intersect a τ m m)
+      guardErr (supermode m m') $
+        typeError "m is not a superset of m'" $ frhs
+          [ ("m", pretty m)
+          , ("m'", pretty m')
+          
+          ]
+      (superty τ m' ((a ↦ m') ⩌ M))
     _  → typeError "supertype_wf: t is not well structured" $ frhs
         [ ("t", pretty t )
         ]
+
 
 loc_type_subst ::  STACK ⇒ Var   → Type → Type → EM Type
 loc_type_subst x sigma ty =
