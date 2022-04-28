@@ -596,7 +596,7 @@ ty_meet ty ty' = case ty of
               [ ("a", pretty a)
               , ("a''", pretty a')
               ]
-        return ty'
+          return ty'
       _ → typeError "ty_meet: ty is a recursive type while ty' is not" $ frhs
         [ ("ty", pretty ty )
         , ("ty'", pretty ty' )
@@ -1123,7 +1123,7 @@ get_intersect_loc_type x sigma m m' =
         ]
 
 -- Rules to see if the type is well formed in terms of a good AST (Share rules)
-get_intersect_type :: TVar  → Type → Mode → Mode → (𝕏 ⇰ Mode) → EM Mode
+get_intersect_type :: TVar  → Type → Mode → Mode  → EM Mode
 get_intersect_type x τ m m' =
    case  τ of 
     SecT em'' sigma →  do
