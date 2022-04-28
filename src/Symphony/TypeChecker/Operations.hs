@@ -1012,7 +1012,7 @@ wf_share_type ty m p l bigM=
           [ ("m", pretty m)
           , ("m'", pretty m')
           ]
-      (wf_share_type τ m' ((a ↦ m') ⩌ bigM))
+      (wf_share_type τ m' p l ((a ↦ m') ⩌ bigM))
     -- WF-Poly
     ForallT a τ → do
       m'  ← (get_intersect_type a τ m m)
@@ -1021,7 +1021,7 @@ wf_share_type ty m p l bigM=
           [ ("m", pretty m)
           , ("m'", pretty m')
           ]
-      (wf_share_type τ m' ((a ↦ m') ⩌ bigM))
+      (wf_share_type τ m' p l ((a ↦ m') ⩌ bigM))
     _ → typeError "wf_share_type: ty is not well formed" $ frhs
         [ ("ty", pretty ty )
         ]
@@ -1088,7 +1088,7 @@ wf_type ty m bigM =
         [ ("ty", pretty ty )
         ]
 
-get_intersect_loc_type :: STACK ⇒ Type → Mode → Mode → EM Mode
+get_intersect_loc_type :: STACK ⇒ TVar →Type → Mode → Mode → EM Mode
 get_intersect_loc_type x sigma m m' =
   case sigma of
      -- WF-Base (Based off WF-INT)
