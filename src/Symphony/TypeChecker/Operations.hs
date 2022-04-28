@@ -1137,7 +1137,7 @@ get_intersect_type x τ m m' =
     -- WF-Poly
     ForallT a τ → do
       if (x ≡ a) then (return m) else (get_intersect_type a τ m m')
-      _  → typeError "get_intersect_type: τ is not well formed type" $ frhs
+    _  → typeError "get_intersect_type: τ is not well formed type" $ frhs
       [ ("τ", pretty τ  )
       ]
 -- Rules to get the least sub subtype of loctype sigma that is well formed for some M
