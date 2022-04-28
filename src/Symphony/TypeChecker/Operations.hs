@@ -1125,7 +1125,8 @@ get_intersect_loc_type x sigma m m' =
 -- Rules to see if the type is well formed in terms of a good AST (Share rules)
 get_intersect_type :: Type → Mode → Mode → EM Mode
 get_intersect_type x τ m m' =
-    SecT em'' sigma → do
+   case  τ of 
+    SecT em'' sigma →  do
       m''  ← elabEMode em''
       (get_intersect_type a sigma m m'')
     VarT a → do
