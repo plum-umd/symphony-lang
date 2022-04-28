@@ -67,7 +67,7 @@ synAppTL2 τ₁ τ₂ =
         m  ← askL terModeL
         l₁ ← elabEMode $ effectMode η
         l₂ ← elabEMode loc
-        subcond  ←  (subtype τ₂ τ₁₂)
+        subcond  ←  (subtype τ₂ τ₁₂ pø )
         guardErr (m ≡ l₁) $
           typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
           [ ("m", pretty m)
@@ -95,7 +95,7 @@ synVar x = do
     Some τ → do
       m ← askL terModeL
       -- T-Var: gets the well formed supertype if there is one, if not error
-      superty_wf τ m
+      superty_wf τ m dø
     None   → typeError "synVar: x ∉ Γ" $ frhs
              [ ("x", pretty x)
              , ("Γ", pretty $ keys env)
@@ -173,7 +173,7 @@ checkPrin ρe =
     ρτ ← (synPrinExp ρe)
     m ← askL terModeL
     em ← elabMode m
-    subcond ← (subtype ρτ (SecT em (BaseT ℙT)))
+    subcond ← (subtype ρτ (SecT em (BaseT ℙT)) pø )
     guardErr subcond $
       typeError "checkPrin: ρe has type ρτ which is not a subtype of τ" $ frhs
         [ ("ρτ", pretty ρe)
@@ -344,7 +344,7 @@ synIf e₁ e₂ e₃ =
     τ₃ ← c₃
     m ← askL terModeL
     em  ← elabMode m
-    subcond ← subtype τ₁ $ SecT em $ BaseT 𝔹T
+    subcond ← subtype τ₁ $ SecT em (BaseT 𝔹T) pø 
     guardErr subcond $
       typeError "synIf: e₁ is not of type bool @ m" $ frhs
           [ ("m", pretty m),
@@ -785,7 +785,7 @@ checkPar ρse₁ e₂ τ=
     let m' = m ⊓ l
     if m' ≢ bot then do
       τ' ← localL terModeL m' c₂
-      subcond  ← subtype τ' τ
+      subcond  ← subtype τ' τ pø 
       guardErr subcond $
         typeError "checkPar: τ' is not a subtype of τ" $ frhs
           [ ("τ'", pretty τ')
@@ -793,7 +793,7 @@ checkPar ρse₁ e₂ τ=
           ]
       return ()
     else do
-      wfcond ← (wf_type τ  (AddTop pø))
+      wfcond ← (wf_type τ  (AddTop pø)) dø
       return ()
 
 makeCleartextType :: EMode → Type → EM Type
@@ -917,7 +917,7 @@ synMuxIf e₁ e₂ e₃ =do
           do
             case τs of
                     (τ₁ :& (τ₂ :& (τ₃ :& Nil))) → do
-                      subcond  ← (subtype τ₁ (SecT em (BaseT 𝔹T)) )
+                      subcond  ← (subtype τ₁ (SecT em (BaseT 𝔹T)) pø  ) 
                       if subcond then do
                         (ty_join τ₂ τ₃)
                       else
@@ -930,7 +930,7 @@ synMuxIf e₁ e₂ e₃ =do
                   eτs ← (mapM (embedShare p em) τs )
                   case eτs of
                     (τ₁ :& (τ₂ :& (τ₃ :& Nil))) → do
-                      subcond  ← (subtype τ₁ (SecT em (ShareT p em (BaseT 𝔹T))) )
+                      subcond  ← (subtype τ₁ (SecT em (ShareT p em (BaseT 𝔹T))) pø  )
                       if subcond then do
                         (ty_join τ₂ τ₃)
                       else
@@ -1145,7 +1145,7 @@ chkExpR e τ =
     m  ← askL terModeL
 
     -- Check it is well formed
-    wfcond ← (wf_type τ m)
+    wfcond ← (wf_type τ m dø :)
     case e of
       LE eₗ        → checkL eₗ τ
       RE eᵣ        → checkR eᵣ τ
@@ -1157,7 +1157,7 @@ chkExpR e τ =
       _ →
           do
             τ' ← synExpR e
-            subcond  ← (subtype τ' τ)
+            subcond  ← (subtype τ' τ pø) 
             guardErr subcond $
               typeError "checkExpR: e has type τ' which is not a subtype of τ" $ frhs
               [ ("e", pretty e)
@@ -1245,5 +1245,5 @@ asTLM eM = do
 
 bindTypeTL ∷ STACK ⇒ 𝕏 → Type → TLM ()
 bindTypeTL x τ = do 
-  _ ← asTLM $ (wf_type τ Top)
+  _ ← asTLM $ (wf_type τ Top dø :)
   modifyL ttlsEnvL ((x ↦ τ) ⩌)
