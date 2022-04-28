@@ -1345,7 +1345,8 @@ superty_wf t m bigM=
           [ ("m", pretty m)
           , ("m'", pretty m')
           ]
-      (RecT a (superty_wf τ m' ((a ↦ m') ⩌ bigM)))
+      superty ← (superty_wf τ m' ((a ↦ m') ⩌ bigM))
+      return (RecT a superty )
     -- WF-Poly
     ForallT a τ → do
       m'  ← (get_intersect_type a τ m m)
@@ -1355,7 +1356,8 @@ superty_wf t m bigM=
           , ("m'", pretty m')
 
           ]
-      (ForAll a (superty_wf τ m' ((a ↦ m') ⩌ bigM)))
+      superty ← (superty_wf τ m' ((a ↦ m') ⩌ bigM))
+      return (ForallT a superty )
     _  → typeError "supertype_wf: t is not well structured" $ frhs
         [ ("t", pretty t )
         ]
