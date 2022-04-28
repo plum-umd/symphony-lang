@@ -226,7 +226,7 @@ subtype tyS tyT d = case tyS of
   -- D |- mu a . t1 <: mu b . t2
   RecT a τ → case tyT of
       RecT a' τ' → do
-        subcond ← (subtype τ τ' (single𝑃  (a, a')) ∪ d))
+        subcond ← (subtype τ τ' (single𝑃  (a, a')) ∪ d)
         return ((a ≡ a') ⩓ subcond)
       _ → return False
   -- t <: t'
@@ -1338,7 +1338,7 @@ superty_wf t m =
         typeError "m is not a superset of m'" $ frhs
           [ ("m", pretty m)
           , ("m'", pretty m')
-          
+
           ]
       (superty τ m' ((a ↦ m') ⩌ M))
     _  → typeError "supertype_wf: t is not well structured" $ frhs
