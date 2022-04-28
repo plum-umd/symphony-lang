@@ -590,7 +590,7 @@ ty_meet ty ty' = case ty of
         subcond' ← (subtype ty' ty pø)
         if subcond then
           return ty
-        else 
+        else do
           guardErr subcond' $
             typeError "ty_meet: ⊢ₘ _ ˡ→ _ ; a ≢ a'" $ frhs
               [ ("a", pretty a)
@@ -1074,7 +1074,7 @@ wf_type ty m bigM =
           [ ("m", pretty m)
           , ("m'", pretty m')
           ]
-      (wf_type τ m' ((a ↦ m') ⩌ M))
+      (wf_type τ m' ((a ↦ m') ⩌ bigM))
     -- WF-Poly
     ForallT a τ → do
       m'  ← (get_intersect_type a τ m m)
@@ -1107,9 +1107,9 @@ get_intersect_loc_type x sigma m m' =
       (get_intersect_type x τₜ m m')
     -- WF-Fun: m must be same as mode, t1 must be well formed and t2 must be well formed
     (τ₁₁ :→: (η :* τ₁₂)) → do
-      m₁₁  ← (get_intersect_type x locty₁₁ m m')
-      m₁₁  ← (get_intersect_type x locty₁₁ m m')
-      (get_intersect_type x τₜ m m')
+      m₁₁  ← (get_intersect_type x τ₁₁ m m')
+      m₁₂  ← (get_intersect_type x τ₁₂ m m')
+      return (inter_m  m₁₁ m₁₂)
     -- WF-Ref: The component type must be well formed 
     (RefT _ τ')  → 
       (get_intersect_type x τₜ m m')
@@ -1181,7 +1181,7 @@ sublocty_wf sigma m bigM=
       τ' ← (subty_wf τ m bigM)
       return (ArrT loc n τ')
     (ISecT loc loc_ty) → do
-      loc_subty ← (share_subloctype_wf loc_ty m bigM)
+      loc_subty ← (subloctype_wf loc_ty m bigM)
       (return (ISecT loc loc_subty))
     _  → typeError "subloctype_wf: sigma is not well structured" $ frhs
         [ ("sigma", pretty sigma )
