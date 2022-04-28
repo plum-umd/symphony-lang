@@ -1147,7 +1147,7 @@ sublocty_wf sigma m bigM=
     -- WF-Base (Based off WF-INT)
     BaseT bt → return sigma
     ShareT p loc loc_ty  → do
-      loc_subty ← (sublocty_wf loc_ty bigM)
+      loc_subty ← (sublocty_wf loc_ty m bigM)
       return (ShareT p loc loc_subty)
     -- WF-Sum: t1 must be well formed and t2 must be well formed
     (loctyₗ :+: loctyᵣ) → do
@@ -1211,7 +1211,7 @@ subty_wf t m bigM =
               [ ("m", pretty m)
               , ("m'", pretty m')
               ]
-            return t
+          return t
         None → typeError "M does not contain alpha'" $ frhs
           [ ("M", pretty bigM)
           , ("a", pretty a)
@@ -1249,7 +1249,7 @@ superlocty_wf sigma m bigM =
         l ← (elabEMode loc)
         if (l == m) then
           do
-            loc_superty ← (superloctype_wf loc_ty m bigM)
+            loc_superty ← (superlocty_wf loc_ty m bigM)
             return (ShareT p loc loc_superty)
         else
           todoError
@@ -1285,7 +1285,7 @@ superlocty_wf sigma m bigM =
       τ' ← (superty_wf τ m bigM)
       return (ArrT loc n τ')
     (ISecT loc loc_ty) → do
-      loc_subty ← (share_superloctype_wf loc_ty m bigM)
+      loc_subty ← (superlocty_wf loc_ty m bigM)
       (return (ISecT loc loc_subty))
     _  → typeError "superloctype_wf: sigma is not well structured" $ frhs
         [ ("sigma", pretty sigma )
@@ -1333,7 +1333,7 @@ superty_wf t m bigM=
           , ("m'", pretty m')
 
           ]
-      (superty τ m' ((a ↦ m') ⩌ bigM))
+      (superty_wf τ m' ((a ↦ m') ⩌ bigM))
     _  → typeError "supertype_wf: t is not well structured" $ frhs
         [ ("t", pretty t )
         ]
