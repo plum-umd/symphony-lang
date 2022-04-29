@@ -616,7 +616,8 @@ spec = do
           nvar = (UVM.var "n")
           lvar = (UVM.var "l")
           lst = (UVM.frhs [(VarP nvar), (VarP lvar)] )
-          expr' = (nullExp (FoldE (nullExp (ProdE (nullExp (VarE nvar))  (nullExp (VarE lvar)) ) ) ) )
+          expr'' = (RE (nullExp (ProdE (nullExp (VarE nvar))  (nullExp (VarE lvar)) ) ))
+          expr' = (nullExp (FoldE (nullExp expr'') ) )
           expr =  (AscrE  (nullExp (LamE (UVM.Some f) lst expr'))  t )
           
         
