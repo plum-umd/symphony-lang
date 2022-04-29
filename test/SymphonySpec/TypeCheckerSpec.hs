@@ -622,6 +622,7 @@ spec = do
       in case x of
       UVM.Inr a -> a `shouldBe`  t
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
+      {-
     it "() : intlisnillunfold" $
       let a =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "B")]) ))
           t' = RecT (UVM.var "X") (SecT UVM.Top ( (SecT UVM.Top ((BaseT UnitT)))  :+:  (SecT UVM.Top (   (SecT UVM.Top (BaseT (ℤT InfIPr))) :×: (VarT (UVM.var "X")) ) )))
@@ -633,7 +634,7 @@ spec = do
       in case x of
       UVM.Inr a -> a `shouldBe`  t
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
-        
+       -} 
     it "() + () error" $
       let e = PrimE PlusO $ UVM.frhs $ [(nullExp BulE), (nullExp BulE)] in
       let x = evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExpR e) in
