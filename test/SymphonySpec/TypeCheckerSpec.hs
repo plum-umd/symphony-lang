@@ -609,15 +609,15 @@ spec = do
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
     it "() : intlistconsfold" $
       let η =  Effect {effectInput = UVM.null, effectReveal = UVM.null,  effectMode = UVM.Top}
+          τ'' = (SecT UVM.Top (BaseT (ℤT InfIPr)))
           τ' = RecT (UVM.var "X") (SecT UVM.Top ( (SecT UVM.Top ((BaseT UnitT)))  :+:  (SecT UVM.Top (   (SecT UVM.Top (BaseT (ℤT InfIPr))) :×: (VarT (UVM.var "X")) ) )))
-          τ'' = (SecT UVM.Top ( (SecT UVM.Top ((BaseT UnitT)))  :+: (SecT UVM.Top (  (SecT UVM.Top(BaseT (ℤT InfIPr))) :×: τ'  ) ) ) )
-          t = SecT UVM.Top (τ' :→: (η UVM.:* (SecT UVM.Top (τ' :→: (η UVM.:* τ')) ))) 
+          t = SecT UVM.Top (τ'' :→: (η UVM.:* (SecT UVM.Top (τ' :→: (η UVM.:* τ')) ))) 
           f = UVM.var "f"
           nvar = (UVM.var "n")
           lvar = (UVM.var "l")
           lst = (UVM.frhs [(VarP nvar), (VarP lvar)] )
        
-          expr'' = (AscrE (nullExp (RE (nullExp (ProdE (nullExp (VarE nvar))  (nullExp (VarE lvar)) ) )) ) τ'') 
+          expr'' = (AscrE (nullExp (RE (nullExp (ProdE (nullExp (VarE nvar))  (nullExp (VarE lvar)) ) ))) 
           expr' =(FoldE (nullExp expr'') )
           expr =  (AscrE  (nullExp (LamE (UVM.Some f) lst (nullExp expr')))  t )
           x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [  (UVM.var "x" , τ') ])) }) () (synExpR expr))
