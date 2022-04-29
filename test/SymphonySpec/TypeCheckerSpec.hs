@@ -588,8 +588,8 @@ spec = do
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
     it "() : intlistexp" $
       let a =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "B")]) ))
-          t = RecT (UVM.var "X") (SecT UVM.Top ( (SecT UVM.Top ((BaseT UniT)))  :+: ( (SecT UVM.Top ((SecT Top ((BaseT ℤT))))) ×: (VarT (UVM.var "X")) )))
-          t' = (SecT UVM.Top ( (SecT UVM.Top ((BaseT UniT)))  :+: ( (SecT UVM.Top ((SecT UVM.Top ((BaseT ℤT))))) ×: t ))) 
+          t = RecT (UVM.var "X") (SecT UVM.Top ( (SecT UVM.Top ((BaseT UnitT)))  :+: ( (SecT UVM.Top ((SecT UVM.Top ((BaseT ℤT))))) :×: (VarT (UVM.var "X")) )))
+          t' = (SecT UVM.Top ( (SecT UVM.Top ((BaseT UnitT)))  :+: ( (SecT UVM.Top ((SecT UVM.Top ((BaseT ℤT))))) :×: t ))) 
           expr' =  (AscrE  (nullExp (LE (nullExp (BulE)))) t')
           expr = (AscrE  (nullExp (FoldE (nullExp expr')) t ))
           
