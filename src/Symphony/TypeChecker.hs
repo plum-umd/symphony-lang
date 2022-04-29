@@ -1107,8 +1107,8 @@ synUnfold e =
 -- gamma, X |- m e : T
 -- ------T-TLam
 -- gamma |- m lam X.e : forall X. e
-synTLamE ∷ STACK ⇒ TVar→ Exp → EM Type
-synTLamE x e  =
+synTLam ∷ STACK ⇒ TVar→ Exp → EM Type
+synTLam x e  =
   let c = synExp e
   in do
     τ ← c
@@ -1117,8 +1117,8 @@ synTLamE x e  =
 -- gamma, X |- m e : forall X.T1
 -- ------T-TLam
 -- gamma |- e [T] : [X |-> T] T1
-synTAppE ∷ STACK ⇒ TVar → Exp → EM Type
-synTAppE x e =
+synTApp ∷ STACK ⇒ TVar → Exp → EM Type
+synTApp x e =
   let c = synExp e
   in do
     τ ← c
@@ -1225,6 +1225,9 @@ synExpR e = case e of
   BundleUnionE e₁ e₂   → synBundleUnion e₁ e₂
 
   UnfoldE  e → synUnfold e
+
+  TLamE x e → synTLam e
+  TAppE → synTApp e
   _      → undefined
 
 
