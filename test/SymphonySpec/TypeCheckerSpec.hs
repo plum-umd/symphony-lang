@@ -636,13 +636,36 @@ spec = do
       in case x of
       UVM.Inr a -> a `shouldBe`  t
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
-
+    it "() : intlisnillannofold" $
+      let a =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "B")]) ))
+          t = RecT (UVM.var "X") (SecT UVM.Top ( (SecT UVM.Top ((BaseT UnitT)))  :+:  (SecT UVM.Top (   (SecT UVM.Top (BaseT (ℤT InfIPr))) :×: (VarT (UVM.var "X")) ) )))
+          t' = (SecT UVM.Top ( (SecT UVM.Top ((BaseT UnitT)))  :+: (SecT UVM.Top (  (SecT UVM.Top(BaseT (ℤT InfIPr))) :×: t  ) ) ) )
+          expr' =  (AscrE  (nullExp (LE (nullExp (BulE))))  t')
+          expr = (AscrE  (nullExp (FoldE (nullExp expr'))) t )
+          expr = (TLamE (UVM.var "X") ()
+          x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [  (UVM.var "x" , t') ])) }) () (synExpR expr))
+      in case x of
+      UVM.Inr a -> a `shouldBe`  t
+      UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
+    it "() : annotatednil" $
+      let a =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "B")]) ))
+          b =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "C")]) ))
+          c = (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A")]) ))
+          t'' = (SecT (UVM.Top) (BaseT UnitT))
+          t' = (VarT (UVM.var "X"))
+          t = (SecT (UVM.Top) (ListT 1 t'))
+          expr'' =  (AscrE  (nullExp (NilE)) t )
+          expr' = (TLam (UVM.var "X") (nullExp expr''))
+          expr = (TAppE expr' t'')
+          x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+      in case x of
+        UVM.Inr a -> a `shouldBe`  t
     it "() + () error" $
       let e = PrimE PlusO $ UVM.frhs $ [(nullExp BulE), (nullExp BulE)] in
       let x = evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExpR e) in
       case x of
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
-  
+
    {- it "() : nilexp" $  let x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "A" , (SecT UVM.Top (BaseT ℙT))) ])) }) () (synExpR (PrinSetE (PowPSE (UVM.single𝐿  (VarPE (UVM.var "A")) )) )))
      in  case x of
      UVM.Inr a -> a `shouldBe`  (SecT UVM.Top  (BaseT ℙsT))
