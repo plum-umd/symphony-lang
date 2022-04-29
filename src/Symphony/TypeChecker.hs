@@ -1097,7 +1097,7 @@ synUnfold e =
     τ ← c
     case τ of
       (RecT a τ')   →  (type_subst a τ' τ)
-    _  → typeError "synUnfold: Type given is not a recursive type" $ frhs [ ("τ'", pretty τ)]
+      _  → typeError "synUnfold: Type given is not a recursive type" $ frhs [ ("τ'", pretty τ)]
 
 -------------------
 --- Universal Types ---
