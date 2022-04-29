@@ -1080,7 +1080,7 @@ checkFold ∷ STACK ⇒ Exp → Type → EM ()
 checkFold e τ=
  case τ of
     (RecT a τ')   →  do
-      substtype ←  type_subst a τ τ'
+      substtype ←  type_subst a τ' τ
       _  ← chkExp e substtype
       return ()
     _  → typeError "checkFold: Type is given is not a recursive type" $ frhs [ ("τ'", pretty τ)]
@@ -1097,7 +1097,7 @@ synUnfold e =
   do 
     τ ← c
     case τ of
-      (RecT a τ')   →  (type_subst a τ τ')
+      (RecT a τ')   →  (type_subst a τ' τ)
     _  → typeError "synUnfold: Type given is not a recursive type" $ frhs [ ("τ'", pretty τ)]
 
 -------------------
