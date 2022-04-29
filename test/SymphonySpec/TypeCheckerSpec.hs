@@ -645,7 +645,7 @@ spec = do
           t' = (VarT (UVM.var "X"))
           t = (SecT (UVM.Top) (ListT 1 t'))
           expr'' =  (AscrE  (nullExp (NilE)) t )
-          expr' = (TLam (UVM.var "X") (nullExp expr''))
+          expr' = (TLamE (UVM.var "X") (nullExp expr''))
           expr = (TAppE expr' t'')
           x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
