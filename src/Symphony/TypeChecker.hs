@@ -1093,8 +1093,7 @@ checkFold e τ=
 
 synUnfold ∷ STACK ⇒  Exp →  EM Type
 synUnfold e =
-  let c = synExp e
-  do 
+  let c = synExp e in do 
     τ ← c
     case τ of
       (RecT a τ')   →  (type_subst a τ' τ)
