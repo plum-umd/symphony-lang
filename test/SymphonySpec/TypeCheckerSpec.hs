@@ -609,8 +609,8 @@ spec = do
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
     it "() : intlistconsfold" $
       let η =  Effect {effectInput = UVM.null, effectReveal = UVM.null,  effectMode = UVM.Top}
-          t' = RecT (UVM.var "X") (SecT UVM.Top ( (SecT UVM.Top ((BaseT UnitT)))  :+:  (SecT UVM.Top (   (SecT UVM.Top (BaseT (ℤT InfIPr))) :×: (VarT (UVM.var "X")) ) )))
-          t = SecT UVM.Top (t' :→: (η UVM.:* (SecT UVM.Top (τ' :→: (η UVM.:* τ')) ))) 
+          τ' = RecT (UVM.var "X") (SecT UVM.Top ( (SecT UVM.Top ((BaseT UnitT)))  :+:  (SecT UVM.Top (   (SecT UVM.Top (BaseT (ℤT InfIPr))) :×: (VarT (UVM.var "X")) ) )))
+          t = SecT UVM.Top (τ' :→: (η UVM.:* (SecT UVM.Top (τ' :→: (η UVM.:* τ')) ))) 
           f = UVM.var "f"
           nvar = (UVM.var "n")
           lvar = (UVM.var "l")
