@@ -617,7 +617,7 @@ spec = do
           lvar = (UVM.var "l")
           lst = (UVM.frhs [(VarP nvar), (VarP lvar)] )
        
-          expr'' = (AscrE (nullExp (RE (nullExp (ProdE (nullExp (VarE nvar))  (nullExp (VarE lvar)) ) )) t'')) 
+          expr'' = (AscrE (nullExp (RE (nullExp (ProdE (nullExp (VarE nvar))  (nullExp (VarE lvar)) ) )) ) t'') 
           expr' =(FoldE (nullExp expr'') )
           expr =  (AscrE  (nullExp (LamE (UVM.Some f) lst (nullExp expr')))  t )
           x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [  (UVM.var "x" , τ') ])) }) () (synExpR expr))
