@@ -1147,7 +1147,7 @@ get_intersect_type x τ m m' =
    case  τ of 
     SecT em'' sigma →  do
       m''  ← elabEMode em''
-      (get_intersect_type x sigma m m'')
+      (get_intersect_loc_type x sigma m m'')
     VarT a → do
       return (if (x ≡ a) then m' else m)
     -- WF-Rec
