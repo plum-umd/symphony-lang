@@ -1226,8 +1226,8 @@ synExpR e = case e of
 
   UnfoldE  e → synUnfold e
 
-  TLamE x e → synTLam e
-  TAppE → synTApp e
+  TLamE x e → synTLam x e
+  TAppE e τ → synTApp e τ
   _      → undefined
 
 
