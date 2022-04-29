@@ -1117,13 +1117,13 @@ synTLam x e  =
 -- gamma, X |- m e : forall X.T1
 -- ------T-TLam
 -- gamma |- e [T] : [X |-> T] T1
-synTApp ∷ STACK ⇒ TVar → Exp → EM Type
-synTApp x e =
+synTApp ∷ STACK ⇒ Exp → Type →  EM Type
+synTApp e τ =
   let c = synExp e
   in do
-    τ ← c
+    τ' ← c
     case τ of
-      (ForallT x τ₁) → (type_subst x τ₁ τ)
+      (ForallT x τ₁') → (type_subst x τ₁' τ)
       _ → typeError " e has type τ which is not a forall type " $ frhs 
             [ ("e", pretty e)
             , ("τ'", pretty τ)]
