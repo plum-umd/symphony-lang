@@ -480,7 +480,7 @@ data ExpR =
 
   | DefaultE                                      -- _|_                     /  ⊥
   
-  | FoldE Type Exp
+  | FoldE Exp
   | UnfoldE Type Exp
 
   deriving (Eq,Ord,Show)

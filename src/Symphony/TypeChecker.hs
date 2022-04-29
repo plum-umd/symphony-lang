@@ -1085,22 +1085,19 @@ checkFold e τ=
       return ()
     _  → typeError "checkFold: Type is given is not a recursive type" $ frhs [ ("τ'", pretty τ)]
 
-synFold :: STACK ⇒  Type →  Exp → EM Type
-synFold τ e = do
-  checkFold e τ
-  return τ
 
 -- u = (mu alpha. t)
 -- gamma |- m e : [(mu alpha. t)/ alpha] t
 -- ------T-Fold
 -- gamma |- fold [u] x : u
 
-synUnfold ∷ STACK ⇒Type →  Exp →  EM Type
-synUnfold τ e =
- case τ of
-    (RecT a τ')   →  do
-      _  ← chkExp e τ
-      (type_subst a τ τ')
+synUnfold ∷ STACK ⇒  Exp →  EM Type
+synUnfold e =
+  let c = synExp e
+  do 
+    τ ← c
+    case τ of
+      (RecT a τ')   →  (type_subst a τ τ')
     _  → typeError "synUnfold: Type given is not a recursive type" $ frhs [ ("τ'", pretty τ)]
 
 -------------------
@@ -1152,7 +1149,7 @@ chkExpR e τ =
       NilE        → checkNil τ
       LamE self𝑂 ψs e → checkLam self𝑂 ψs e τ
       ParE ρse₁ e₂ → checkPar ρse₁ e₂ τ
-      FoldE τ e → checkFold e τ
+      FoldE e → checkFold e τ
       --UnfoldE e → synUnfold e
       _ →
           do
@@ -1228,8 +1225,7 @@ synExpR e = case e of
   BundleAccessE e₁ ρe₂ → synBundleAccess e₁ ρe₂
   BundleUnionE e₁ e₂   → synBundleUnion e₁ e₂
 
-  FoldE τ e → synFold τ e 
-  UnfoldE  τ e → synUnfold τ e
+  UnfoldE  e → synUnfold e
   _      → undefined
 
 
