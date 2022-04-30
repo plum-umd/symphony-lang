@@ -946,7 +946,7 @@ wf_cleartext_type ty m bigM =
               [ ("m", pretty m)
               , ("m'", pretty m')
               ]
-        None → typeError "wf_cleartext_type: M does not contain a'" $ frhs
+        None → typeError "wf_cleartext_type: M does not contain a" $ frhs
           [ ("M", pretty bigM)
           , ("a", pretty a)
           ]
@@ -1082,7 +1082,7 @@ wf_type ty m bigM =
               [ ("m", pretty m)
               , ("m'", pretty m')
               ]
-        None → typeError "wf_type: M does not contain a'" $ frhs
+        None → typeError "wf_type: M does not contain a" $ frhs
           [ ("M", pretty bigM)
           , ("a", pretty a)
           ]
@@ -1232,7 +1232,7 @@ subty_wf t m bigM =
               , ("m'", pretty m')
               ]
           return t
-        None → typeError "subtype_wf: M does not contain a'"$ frhs
+        None → typeError "subtype_wf: M does not contain a"$ frhs
           [ ("M", pretty bigM)
           , ("a", pretty a)
           ]
@@ -1334,7 +1334,7 @@ superty_wf t m bigM=
               , ("m'", pretty m')
               ]
           return t
-        None → typeError "supertype_wf: M does not contain al" $ frhs
+        None → typeError "supertype_wf: M does not contain a" $ frhs
           [ ("M", pretty bigM)
           , ("a", pretty a)
           ]
