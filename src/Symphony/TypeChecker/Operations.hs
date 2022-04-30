@@ -75,6 +75,7 @@ extractBase τ =
                   [ ("τ", pretty τ)
                   ]
 
+
 embedShare :: STACK ⇒  Prot → EMode → Type → EM Type
 embedShare φ l τ =
   case τ of
@@ -367,7 +368,7 @@ eq_type ty ty' = case ty of
         l' ← elabEMode loc'
         eqcond ← (eq_locty loc_ty loc_ty')
         return ((l  ≡ l') ⩓ eqcond)
-      _ → typeError "ty' is not a located type" $ frhs
+      _ → typeError "eq_type: ty' is not a located type" $ frhs
           [ ("ty'", pretty ty' )
           ]
   VarT a → case ty' of
@@ -931,7 +932,7 @@ wf_cleartext_type ty m bigM =
     SecT em' locty → do
       m' ← (elabEMode em')
       guardErr (supermode m m') $
-        typeError "m is not a superset of m'" $ frhs
+        typeError "wf_cleartext_type: m is not a superset of m'" $ frhs
         [ ("m", pretty m)
         , ("m'", pretty m')
         ]
@@ -941,11 +942,11 @@ wf_cleartext_type ty m bigM =
       case bigM ⋕? a of
         Some m' → do
           guardErr (supermode m m') $
-            typeError "m is not a superet of m'" $ frhs
+            typeError "wf_cleartext_type: m is not a superet of m'" $ frhs
               [ ("m", pretty m)
               , ("m'", pretty m')
               ]
-        None → typeError "M does not contain alpha'" $ frhs
+        None → typeError "wf_cleartext_type: M does not contain a'" $ frhs
           [ ("M", pretty bigM)
           , ("a", pretty a)
           ]
@@ -953,7 +954,7 @@ wf_cleartext_type ty m bigM =
     RecT a τ → do
       m'  ← (get_intersect_type a τ m m)
       guardErr (supermode m m') $
-        typeError "m is not a superet of m'" $ frhs
+        typeError "wf_cleartext_type: m is not a superet of m'" $ frhs
           [ ("m", pretty m)
           , ("m'", pretty m')
           ]
@@ -962,7 +963,7 @@ wf_cleartext_type ty m bigM =
     ForallT a τ → do
       m'  ← (get_intersect_type a τ m m)
       guardErr (supermode m m') $
-        typeError "m is not a superet of m'" $ frhs
+        typeError "wf_cleartext_type: m is not a superet of m'" $ frhs
           [ ("m", pretty m)
           , ("m'", pretty m')
           ]
@@ -993,18 +994,18 @@ wf_share_type ty m p l bigM=
     SecT em' (ShareT p' loc loc_ty) → do
       m' ← (elabEMode em')
       guardErr (supermode m m') $
-        typeError "m is not a superset of m'" $ frhs
+        typeError "wf_share_type: m is not a superset of m'" $ frhs
         [ ("m", pretty m)
         , ("m'", pretty m')
         ]
       l' ← (elabEMode loc)
       guardErr (l ≡ l') $
-        typeError "Not well formed encrypted type l != l'" $ frhs
+        typeError "wf_share_type: Not well formed encrypted type l != l'" $ frhs
         [ ("l", pretty l)
         , ("l'", pretty l')
         ]
       guardErr (m ≡ m') $
-        typeError "Not well formed encrypted type m != m'" $ frhs
+        typeError "wf_share_type: Not well formed encrypted type m != m'" $ frhs
         [ ("m", pretty m)
         , ("m'", pretty m')
         ]
@@ -1015,11 +1016,11 @@ wf_share_type ty m p l bigM=
       case bigM ⋕? a of
         Some m' → do
           guardErr (supermode m m') $
-            typeError "m is not a superet of m'" $ frhs
+            typeError "wf_share_type: m is not a superet of m'" $ frhs
               [ ("m", pretty m)
               , ("m'", pretty m')
               ]
-        None → typeError "M does not contain alpha'" $ frhs
+        None → typeError "wf_share_type:  M does not contain a" $ frhs
           [ ("M", pretty bigM)
           , ("a", pretty a)
           ]
@@ -1027,7 +1028,7 @@ wf_share_type ty m p l bigM=
     RecT a τ → do
       m'  ← (get_intersect_type a τ m m)
       guardErr (supermode m m') $
-        typeError "m is not a superet of m'" $ frhs
+        typeError "wf_share_type: m is not a superet of m'" $ frhs
           [ ("m", pretty m)
           , ("m'", pretty m')
           ]
@@ -1036,7 +1037,7 @@ wf_share_type ty m p l bigM=
     ForallT a τ → do
       m'  ← (get_intersect_type a τ m m)
       guardErr (supermode m m') $
-        typeError "m is not a superet of m'" $ frhs
+        typeError "wf_share_type: m is not a superet of m'" $ frhs
           [ ("m", pretty m)
           , ("m'", pretty m')
           ]
@@ -1056,7 +1057,7 @@ wf_type ty m bigM =
     SecT em' (ShareT p loc loc_ty) → do
       m' ← (elabEMode em')
       guardErr (supermode m m') $
-        typeError "m is not a superet of m'" $ frhs
+        typeError "wf_type: m is not a superet of m'" $ frhs
         [ ("m", pretty m)
         , ("m'", pretty m')
         ]
@@ -1066,7 +1067,7 @@ wf_type ty m bigM =
     SecT em' locty → do
       m' ← (elabEMode em')
       guardErr (supermode m m') $
-        typeError "m is not a superet of m'" $ frhs
+        typeError "wf_type: m is not a superet of m'" $ frhs
         [ ("m", pretty m)
         , ("m'", pretty m')
         ]
@@ -1077,11 +1078,11 @@ wf_type ty m bigM =
       case bigM ⋕? a of
         Some m' → do
           guardErr (supermode m m') $
-            typeError "m is not a superet of m'" $ frhs
+            typeError "wf_type: m is not a superet of m'" $ frhs
               [ ("m", pretty m)
               , ("m'", pretty m')
               ]
-        None → typeError "M does not contain alpha'" $ frhs
+        None → typeError "wf_type: M does not contain a'" $ frhs
           [ ("M", pretty bigM)
           , ("a", pretty a)
           ]
@@ -1089,7 +1090,7 @@ wf_type ty m bigM =
     RecT a τ → do
       m'  ← (get_intersect_type a τ m m)
       guardErr (supermode m m') $
-        typeError "m is not a superset of m'" $ frhs
+        typeError "wf_type: m is not a superset of m'" $ frhs
           [ ("m", pretty m)
           , ("m'", pretty m')
           ]
@@ -1098,7 +1099,7 @@ wf_type ty m bigM =
     ForallT a τ → do
       m'  ← (get_intersect_type a τ m m)
       guardErr (supermode m m') $
-        typeError "m is not a superet of m'" $ frhs
+        typeError "wf_type: m is not a superet of m'" $ frhs
           [ ("m", pretty m)
           , ("m'", pretty m')
           ]
@@ -1184,7 +1185,7 @@ sublocty_wf sigma m bigM=
     (τ₁₁ :→: (η :* τ₁₂)) → do
       l ← elabEMode $ effectMode η
       guardErr (m ≡ l) $
-        typeError "Not well formed m != l" $ frhs
+        typeError "subloctype_wf: Not well formed m != l" $ frhs
         [ ("m", pretty m)
         , ("l", pretty l)
         ]
@@ -1216,7 +1217,7 @@ subty_wf t m bigM =
       m' ← (elabEMode loc)
       loc_subty ← (superlocty_wf loc_ty m' bigM)
       guardErr (supermode m m') $
-        typeError "m is not a superset of m'" $ frhs
+        typeError "subtype_wf: m is not a superset of m'" $ frhs
         [ ("m", pretty m)
         , ("m'", pretty m')
         ]
@@ -1226,12 +1227,12 @@ subty_wf t m bigM =
       case bigM ⋕? a of
         Some m' → do
           guardErr (supermode m m') $
-            typeError "m is not a superet of m'" $ frhs
+            typeError "subtype_wf: m is not a superet of m" $ frhs
               [ ("m", pretty m)
               , ("m'", pretty m')
               ]
           return t
-        None → typeError "M does not contain alpha'" $ frhs
+        None → typeError "subtype_wf: M does not contain a'"$ frhs
           [ ("M", pretty bigM)
           , ("a", pretty a)
           ]
@@ -1239,7 +1240,7 @@ subty_wf t m bigM =
     RecT a τ → do
       m'  ← (get_intersect_type a τ m m)
       guardErr (supermode m m') $
-        typeError "m is not a superset of m'" $ frhs
+        typeError "subtype_wf: m is not a superset of m'" $ frhs
           [ ("m", pretty m)
           , ("m'", pretty m')
           ]
@@ -1249,7 +1250,7 @@ subty_wf t m bigM =
     ForallT a τ → do
       m'  ← (get_intersect_type a τ m m)
       guardErr (supermode m m') $
-        typeError "m is not a superset of m'" $ frhs
+        typeError "subtype_wf: m is not a superset of m'" $ frhs
           [ ("m", pretty m)
           , ("m'", pretty m')
           ]
@@ -1290,7 +1291,7 @@ superlocty_wf sigma m bigM =
     (τ₁₁ :→: (η :* τ₁₂)) → do
       l ← elabEMode $ effectMode η
       guardErr (m ≡ l) $
-        typeError "Not well formed m != l" $ frhs
+        typeError "superloctype_wf: Not well formed m != l" $ frhs
         [ ("m", pretty m)
         , ("l", pretty l)
         ]
@@ -1328,12 +1329,12 @@ superty_wf t m bigM=
       case bigM ⋕? a of
         Some m' → do
           guardErr (supermode m m') $
-            typeError "m is not a superet of m'" $ frhs
+            typeError "supertype_wf: m is not a superet of m'" $ frhs
               [ ("m", pretty m)
               , ("m'", pretty m')
               ]
           return t
-        None → typeError "M does not contain alpha'" $ frhs
+        None → typeError "supertype_wf: M does not contain al" $ frhs
           [ ("M", pretty bigM)
           , ("a", pretty a)
           ]
@@ -1341,7 +1342,7 @@ superty_wf t m bigM=
     RecT a τ → do
       m'  ← (get_intersect_type a τ m m)
       guardErr (supermode m m') $
-        typeError "m is not a superset of m'" $ frhs
+        typeError "supertype_wf: m is not a superset of m'" $ frhs
           [ ("m", pretty m)
           , ("m'", pretty m')
           ]
@@ -1351,7 +1352,7 @@ superty_wf t m bigM=
     ForallT a τ → do
       m'  ← (get_intersect_type a τ m m)
       guardErr (supermode m m') $
-        typeError "m is not a superset of m'" $ frhs
+        typeError "supertype_wf: m is not a superset of m'" $ frhs
           [ ("m", pretty m)
           , ("m'", pretty m')
 
