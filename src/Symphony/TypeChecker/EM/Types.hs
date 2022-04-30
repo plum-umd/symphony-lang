@@ -10,7 +10,7 @@ data ER = ER
   { terSource ∷ 𝑂 SrcCxt
   , terMode   ∷ Mode
   , terEnv    ∷ Env
-  , terModeScope    ∷ (𝕏 ⇰ Mode)
+  , terModeScope    ∷ Env
   }
 
 type EW = ()
