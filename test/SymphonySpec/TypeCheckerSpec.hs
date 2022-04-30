@@ -666,7 +666,7 @@ spec = do
           expr = (TAppE (nullExp expr') t''')
           x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (type_subst (UVM.var "X") t' t''' ))
       in case x of
-        UVM.Inr a -> a `shouldBe`  t
+        UVM.Inr a -> a `shouldBe`  2
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
     it "() + () error" $
       let e = PrimE PlusO $ UVM.frhs $ [(nullExp BulE), (nullExp BulE)] in
