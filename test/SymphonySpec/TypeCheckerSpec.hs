@@ -12,7 +12,7 @@ import Symphony.TypeChecker
 import Symphony.TypeChecker.EM.Operations
 import Symphony.TypeChecker.EM.Types
 import Symphony.TypeChecker.Error
-
+import Symphony.TypeChecker.Operations
 
 spec ∷ Spec
 spec = do
