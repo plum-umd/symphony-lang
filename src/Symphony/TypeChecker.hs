@@ -1118,7 +1118,7 @@ synTLam x e  =
     τ ← (mapEnvL terModeScopeL ((x ↦ m') ⩌) c)
     m ← askL terModeL
     bigM ← askL terModeScopeL
-    _ ← wf_type (ForallT x τ) bigM
+    _ ← wf_type (ForallT x τ) m bigM
     return $ ForallT x τ
 
 -- gamma, X |- m e : forall X.T1
@@ -1245,7 +1245,7 @@ synExpR e = case e of
 asTLM ∷ STACK ⇒ EM a → TLM a
 asTLM eM = do
   γ ← getL ttlsEnvL
-  let r = ER { terSource = None, terMode = Top, terEnv = γ }
+  let r = ER { terSource = None, terMode = Top, terEnv = γ, terModeScope = dø }
   evalEMErr r () eM
 
 bindTypeTL ∷ STACK ⇒ 𝕏 → Type → TLM ()
