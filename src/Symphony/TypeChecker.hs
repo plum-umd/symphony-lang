@@ -94,8 +94,9 @@ synVar x = do
   case env ⋕? x of
     Some τ → do
       m ← askL terModeL
+      bigM ← askL terModeScopeL
       -- T-Var: gets the well formed supertype if there is one, if not error
-      superty_wf τ m dø
+      superty_wf τ m bigM 
     None   → typeError "synVar: x ∉ Γ" $ frhs
              [ ("x", pretty x)
              , ("Γ", pretty $ keys env)
@@ -793,7 +794,8 @@ checkPar ρse₁ e₂ τ=
           ]
       return ()
     else do
-      wfcond ← (wf_type τ  (AddTop pø)) dø
+      bigM ← askL terModeScopeL
+      wfcond ← (wf_type τ  (AddTop pø) bigM)
       return ()
 
 makeCleartextType :: EMode → Type → EM Type
@@ -1110,8 +1112,13 @@ synUnfold e =
 synTLam ∷ STACK ⇒ TVar→ Exp → EM Type
 synTLam x e  =
   let c = synExp e
+      m' = AddTop pø
   in do
-    τ ← c
+
+    τ ← (mapModeScopeL terModeScopeL ((x ↦ m') ⩌) c)
+    m ← askL terModeL
+    bigM ← askL terModeScopeL
+    _ ← wf_type (ForallT x τ) bigM
     return $ ForallT x τ
 
 -- gamma, X |- m e : forall X.T1
@@ -1139,9 +1146,9 @@ chkExpR :: STACK ⇒ ExpR → Type → EM ()
 chkExpR e τ =
   do
     m  ← askL terModeL
-
+    bigM ← askL terModeScopeL
     -- Check it is well formed
-    wfcond ← (wf_type τ m dø)
+    wfcond ← (wf_type τ m bigM)
     case e of
       LE eₗ        → checkL eₗ τ
       RE eᵣ        → checkR eᵣ τ
