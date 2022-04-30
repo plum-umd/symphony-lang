@@ -1129,11 +1129,11 @@ synTApp e τ =
   let c = synExp e
   in do
     τ' ← c
-    case τ of
+    case τ' of
       (ForallT x τ₁') → (type_subst x τ₁' τ)
-      _ → typeError " e has type τ which is not a forall type " $ frhs 
+      _ → typeError " e has type τ' which is not a forall type " $ frhs 
             [ ("e", pretty e)
-            , ("τ'", pretty τ)]
+            , ("τ'", pretty τ')]
 
 -------------------
 --- Expressions ---
