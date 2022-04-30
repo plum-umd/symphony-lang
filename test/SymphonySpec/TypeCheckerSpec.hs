@@ -17,23 +17,23 @@ import Symphony.TypeChecker.Operations
 spec ∷ Spec
 spec = do
   describe "synExp" $ do
-    it "() : unit" $ let x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExpR BulE))
+    it "() : unit" $ let x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExpR BulE))
      in  case x of
      UVM.Inr a -> a `shouldBe`  (SecT (UVM.Top) (BaseT UnitT))
-    it "() : unit2" $ let x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExp (UVM.𝐴 (UVM.SrcCxt {UVM.srcCxtSourceName = "", UVM.srcCxtLocRange = UVM.locRange₀, UVM.srcCxtPrefix = UVM.null, UVM.srcCxtContext = UVM.null, UVM.srcCxtSuffix = UVM.null}) (BulE))))
+    it "() : unit2" $ let x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExp (UVM.𝐴 (UVM.SrcCxt {UVM.srcCxtSourceName = "", UVM.srcCxtLocRange = UVM.locRange₀, UVM.srcCxtPrefix = UVM.null, UVM.srcCxtContext = UVM.null, UVM.srcCxtSuffix = UVM.null}) (BulE))))
      in  case x of
      UVM.Inr a -> a `shouldBe`  (SecT (UVM.Top) (BaseT UnitT))
-    it "() : unit3" $ let x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A") ]))) , terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "A" , (SecT UVM.Top (BaseT ℙsT))) ])) }) () (synExpR BulE))
+    it "() : unit3" $ let x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A") ]))) , terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "A" , (SecT UVM.Top (BaseT ℙsT))) ])) }) () (synExpR BulE))
      in  case x of
      UVM.Inr a -> a `shouldBe`  (SecT (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A")]) )) (BaseT UnitT))
-    it "() : bool" $ let x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExpR (BoolE True)))
+    it "() : bool" $ let x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExpR (BoolE True)))
      in  case x of
      UVM.Inr a -> a `shouldBe`  (SecT UVM.Top (BaseT 𝔹T))
-    it "() : prinexp" $ let x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "A" , (SecT UVM.Top (BaseT ℙT))) ])) }) () (synExpR (PrinE (VarPE (UVM.var "A")))))
+    it "() : prinexp" $ let x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "A" , (SecT UVM.Top (BaseT ℙT))) ])) }) () (synExpR (PrinE (VarPE (UVM.var "A")))))
      in  case x of
      UVM.Inr a -> a `shouldBe`  (SecT UVM.Top  (BaseT ℙT))
 
-    it "() : prinset2exp" $  let x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "A" , (SecT UVM.Top (BaseT ℙT))) ])) }) () (synExpR (PrinSetE (PowPSE (UVM.single𝐿  (VarPE (UVM.var "A")) )) )))
+    it "() : prinset2exp" $  let x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "A" , (SecT UVM.Top (BaseT ℙT))) ])) }) () (synExpR (PrinSetE (PowPSE (UVM.single𝐿  (VarPE (UVM.var "A")) )) )))
      in  case x of
      UVM.Inr a -> a `shouldBe`  (SecT UVM.Top  (BaseT ℙsT))
    -- it "() : prinset2exp" $  let x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "A" , (SecT (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A")]) )) (BaseT ℙT))) ])) }) () (synExpR (PrinSetE (PowPSE (UVM.single𝐿  (VarPE (UVM.var "A")) )) )))
@@ -45,7 +45,7 @@ spec = do
           b =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "C")]) ))
           c = (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A")]) ))
           expr =  (IfE (UVM.𝐴 y (VarE (UVM.var "D"))) (UVM.𝐴 y (VarE (UVM.var "A"))) (UVM.𝐴 y (VarE (UVM.var "B"))) )
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
       UVM.Inr a -> a `shouldBe`  (SecT c  (BaseT UnitT))
     it "() : ifexp2" $
@@ -54,7 +54,7 @@ spec = do
           b =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "C")]) ))
           c = (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A")]) ))
           expr =  (IfE (UVM.𝐴 y (VarE (UVM.var "D"))) (UVM.𝐴 y (VarE (UVM.var "A"))) (UVM.𝐴 y (VarE (UVM.var "B"))) )
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A") ]))) , terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT a (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A") ]))) , terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT a (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
       UVM.Inr a -> a `shouldBe`  (SecT c  (BaseT UnitT))
     it "() : varexp" $
@@ -63,7 +63,7 @@ spec = do
           b =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "C")]) ))
           c = (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A")]) ))
           exp =  (UVM.𝐴 y (VarE (UVM.var "A")))
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExp exp))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExp exp))
       in case x of
       UVM.Inr d -> d `shouldBe`  (SecT a  (BaseT UnitT))
 
@@ -79,7 +79,7 @@ spec = do
           t'' = (SecT UVM.Top (BaseT 𝔹T ))
           lexpr = (UVM.frhs [(UVM.𝐴 y (VarE (UVM.var "A"))), (UVM.𝐴 y (VarE (UVM.var "B")))])
           expr =  (PrimE AndO lexpr )
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , t'), (UVM.var "A" , t), (UVM.var "B" , t') ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , t'), (UVM.var "A" , t), (UVM.var "B" , t') ])) }) () (synExpR expr))
       in case x of
       UVM.Inr d -> d `shouldBe`  t''
 
@@ -94,7 +94,7 @@ spec = do
           t'' = (SecT UVM.Top (ShareT YaoNP UVM.Top (BaseT 𝔹T) ))
           lexpr = (UVM.frhs [(UVM.𝐴 y (VarE (UVM.var "A"))), (UVM.𝐴 y (VarE (UVM.var "B")))])
           expr =  (PrimE AndO lexpr )
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , t'), (UVM.var "A" , t), (UVM.var "B" , t') ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , t'), (UVM.var "A" , t), (UVM.var "B" , t') ])) }) () (synExpR expr))
       in case x of
       UVM.Inr d -> d `shouldBe`  t''
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -109,7 +109,7 @@ spec = do
           t'' = (SecT UVM.Top (ShareT YaoNP UVM.Top (BaseT 𝔹T) ))
           lexpr = (UVM.frhs [(UVM.𝐴 y (VarE (UVM.var "A"))), (UVM.𝐴 y (VarE (UVM.var "B")))])
           expr =  (VarE (UVM.var "B"))
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , t'), (UVM.var "A" , t), (UVM.var "B" , t') ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , t'), (UVM.var "A" , t), (UVM.var "B" , t') ])) }) () (synExpR expr))
       in case x of
       UVM.Inr d -> d `shouldBe`  t'
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -122,7 +122,7 @@ spec = do
           t' = (SecT UVM.Top (BaseT 𝔹T ))
           t = (SecT UVM.Top (BaseT 𝔹T ))
           expr =  (ProdE  (UVM.𝐴 y (VarE (UVM.var "A"))) (UVM.𝐴 y (VarE (UVM.var "B"))) )
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , t'), (UVM.var "A" , t), (UVM.var "B" , t') ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , t'), (UVM.var "A" , t), (UVM.var "B" , t') ])) }) () (synExpR expr))
       in case x of
       UVM.Inr d -> d `shouldBe`  (SecT UVM.Top (t :×: t'))
     it "() : annotatedbul" $
@@ -131,7 +131,7 @@ spec = do
           c = (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A")]) ))
           t = (SecT (UVM.Top) (BaseT UnitT))
           expr =  (AscrE  (nullExp (BulE)) t )
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
     it "() : annotatedbul2" $
@@ -140,7 +140,7 @@ spec = do
           c = (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A")]) ))
           t = (SecT (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A")]) )) (BaseT UnitT))
           expr =  (AscrE  (nullExp (BulE)) t )
-          x  =  (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExpR expr))
+          x  =  (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
     it "() : annotatedleft" $
@@ -149,7 +149,7 @@ spec = do
           c = (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A")]) ))
           expr =  (AscrE  (nullExp (LE (nullExp (BulE)))) t )
           t = (SecT  (UVM.Top) ((SecT (UVM.Top) (BaseT UnitT)) :+: (SecT (UVM.Top) (BaseT 𝔹T))))
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
     it "() : annotatedright" $
@@ -158,7 +158,7 @@ spec = do
           c = (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A")]) ))
           expr =  (AscrE  (nullExp (RE (nullExp (BulE)))) t )
           t =  (SecT  (UVM.Top)  ((SecT (UVM.Top) (BaseT 𝔹T )) :+: (SecT (UVM.Top) (BaseT UnitT))))
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
     it "() : annotatednil" $
@@ -168,7 +168,7 @@ spec = do
           t' = (SecT (UVM.Top) (BaseT UnitT))
           t = (SecT (UVM.Top) (ListT 1 t'))
           expr =  (AscrE  (nullExp (NilE)) t )
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
     it "() : cons" $
@@ -180,7 +180,7 @@ spec = do
           expr2 =  (AscrE  (nullExp (NilE)) t )
           expr1 =  BulE
           expr =  (ConsE (nullExp expr1) (nullExp expr2))
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
 
@@ -192,7 +192,7 @@ spec = do
           expr2 =  (VarE (UVM.var "x"))
           expr1 =  BulE
           expr =  (LetE (VarP (UVM.var "x")) (nullExp expr1) (nullExp expr2))
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
 
@@ -204,7 +204,7 @@ spec = do
           expr2 =  (BoolE True)
           expr1 =  BulE
           expr =  (LetE (BulP) (nullExp expr1) (nullExp expr2))
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
     it "() : caseexp" $
@@ -216,7 +216,7 @@ spec = do
           exprR = ((RP (VarP (UVM.var "X"))) UVM.:*  (nullExp (VarE (UVM.var "B"))))
           expr =  (CaseE (nullExp (VarE (UVM.var "D"))) (UVM.frhs [exprL, exprR] ) )
           guardt = (SecT UVM.Top ((SecT a (BaseT UnitT )) :+: (SecT a (BaseT UnitT ))))
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , guardt), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , guardt), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
       UVM.Inr a -> a `shouldBe`  (SecT c  (BaseT UnitT))
     it "() : readbul" $
@@ -227,7 +227,7 @@ spec = do
           t' = (BaseT UnitT)
           m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A") ])))
           expr =  (ReadE  t' (nullExp (StrE "Test")) )
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -238,7 +238,7 @@ spec = do
           t = (SecT c (BaseT UnitT))
           m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A") ])))
           expr =  (WriteE  (nullExp (BulE)) (nullExp (StrE "Test")) )
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
     it "() : writebul" $
@@ -248,7 +248,7 @@ spec = do
           t = (SecT c (BaseT UnitT))
           m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A") ])))
           expr =  (WriteE  (nullExp (BulE)) (nullExp (StrE "Test")) )
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
     it "() : annotatednillam" $
@@ -264,7 +264,7 @@ spec = do
           xvar = (UVM.var "x")
           lst = (UVM.frhs [(VarP xvar)] )
           expr =  (AscrE  (nullExp (LamE (UVM.Some f) lst (nullExp (VarE xvar)))) t )
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -283,7 +283,7 @@ spec = do
           yvar = (UVM.var "y")
           lst = (UVM.frhs [(VarP xvar), (VarP yvar)] )
           expr =  (AscrE  (nullExp (LamE (UVM.Some f) lst (nullExp (VarE xvar)))) t )
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -301,7 +301,7 @@ spec = do
           lst = (UVM.frhs [(VarP xvar)] )
           lamexpr =  (AscrE  (nullExp (LamE (UVM.Some f) lst (nullExp (VarE xvar)))) t )
           expr = (AppE (nullExp lamexpr) (nullExp BulE))
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
         in case x of
         UVM.Inr a -> a `shouldBe`  t'
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -312,7 +312,7 @@ spec = do
           t = (SecT c (RefT (UVM.Some c) (SecT c (BaseT UnitT))))
           m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A") ])))
           expr =  (RefE  (nullExp (BulE)) )
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
     it "() : refreadbul" $
@@ -324,7 +324,7 @@ spec = do
           m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A") ])))
           expr' =  (RefE  (nullExp (BulE)) )
           expr = (RefReadE (nullExp expr'))
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
     it "() : refwritenat" $
@@ -336,7 +336,7 @@ spec = do
           m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A") ])))
           expr' =  (RefE  (nullExp (BoolE True)) )
           expr = (RefWriteE (nullExp expr') (nullExp (BoolE False)))
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -347,7 +347,7 @@ spec = do
           t = (SecT c (ArrT (UVM.Some c)  0 (SecT c (BaseT UnitT))))
           m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A") ])))
           expr =  (ArrayE  (nullExp (NatE InfIPr 2))  (nullExp (BulE)) )
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -359,7 +359,7 @@ spec = do
           m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A") ])))
           expr' =  (ArrayE  (nullExp (NatE InfIPr 2))  (nullExp (BulE)) )
           expr = (ArrayReadE (nullExp expr') (nullExp (NatE InfIPr 2)) )
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -372,7 +372,7 @@ spec = do
           expr'' =  (ArrayE  (nullExp (NatE InfIPr 2))  (nullExp (BulE)) )
           expr' = (ArrayReadE (nullExp expr'') (nullExp (NatE InfIPr 2)) )
           expr = (ArrayWriteE (nullExp expr') (nullExp (BulE)) )
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -384,7 +384,7 @@ spec = do
           m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A") ])))
           expr' =  (ArrayE  (nullExp (NatE InfIPr 2))  (nullExp (BulE)) )
           expr = (ArraySizeE (nullExp expr')  )
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -398,7 +398,7 @@ spec = do
           m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A"), (SinglePV "C")])))
           expr' =  (BulE)
           expr = (ParE cpse (nullExp expr')  )
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -413,7 +413,7 @@ spec = do
           m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A"), (SinglePV "C")])))
           expr' =  (NatE InfIPr 2)
           expr = (ParE cpse (nullExp expr')  )
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -432,7 +432,7 @@ spec = do
           expr'' =  (BulE)
           expr' = (ParE cpse (nullExp expr'')  )
           expr = (ShareE YaoNP t'  aprin dpse (nullExp expr'))
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -453,7 +453,7 @@ spec = do
           expr'' = (ParE cpse (nullExp expr''')  )
           expr' = (ShareE YaoNP t''  aprin dpse (nullExp expr''))
           expr = (RevealE YaoNP t' dpse aprin (nullExp expr'))
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -472,7 +472,7 @@ spec = do
           expr'' =  (BulE)
           expr' = (ParE cpse (nullExp expr'')  )
           expr = (SendE t'  aprin dpse (nullExp expr'))
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -488,7 +488,7 @@ spec = do
           t =  (SecT d (ShareT YaoNP d (BaseT UnitT)) )
           m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [  (SinglePV "C")])))
           expr =  (MuxIfE (nullExp (VarE (UVM.var "D"))) (nullExp (VarE (UVM.var "A"))) (nullExp (VarE (UVM.var "B"))) )
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT d (ShareT YaoNP d (BaseT 𝔹T)) )), (UVM.var "A" , (SecT d (ShareT YaoNP d (BaseT UnitT)) )), (UVM.var "B" , (SecT d (ShareT YaoNP d (BaseT UnitT)) )) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT d (ShareT YaoNP d (BaseT 𝔹T)) )), (UVM.var "A" , (SecT d (ShareT YaoNP d (BaseT UnitT)) )), (UVM.var "B" , (SecT d (ShareT YaoNP d (BaseT UnitT)) )) ])) }) () (synExpR expr))
       in case x of
       UVM.Inr a -> a `shouldBe`  t
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -502,7 +502,7 @@ spec = do
           expr =  (MuxCaseE (nullExp (VarE (UVM.var "D"))) (UVM.frhs [exprL, exprR] ) )
           t = (SecT UVM.Top (ShareT YaoNP UVM.Top (BaseT UnitT)) )
           guardt = (SecT UVM.Top (ShareT YaoNP  UVM.Top ((SecT a (BaseT UnitT )) :+: (SecT a (BaseT UnitT )))))
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , guardt), (UVM.var "A" , (SecT UVM.Top (BaseT UnitT ))), (UVM.var "B" , (SecT UVM.Top (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , guardt), (UVM.var "A" , (SecT UVM.Top (BaseT UnitT ))), (UVM.var "B" , (SecT UVM.Top (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
       UVM.Inr a -> a `shouldBe`  t
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -516,7 +516,7 @@ spec = do
           expr =  (MuxCaseE (nullExp (VarE (UVM.var "D"))) (UVM.frhs [exprL, exprR] ) )
           t = (SecT UVM.Top (ShareT YaoNP UVM.Top (BaseT UnitT)) )
           guardt = (SecT UVM.Top (ShareT YaoNP  UVM.Top ((SecT a (BaseT UnitT )) :+: (SecT a (BaseT UnitT )))))
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , guardt), (UVM.var "A" ,  (SecT UVM.Top (ShareT YaoNP  UVM.Top  (BaseT UnitT )))), (UVM.var "B" ,  (SecT UVM.Top (ShareT YaoNP  UVM.Top  (BaseT UnitT )))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , guardt), (UVM.var "A" ,  (SecT UVM.Top (ShareT YaoNP  UVM.Top  (BaseT UnitT )))), (UVM.var "B" ,  (SecT UVM.Top (ShareT YaoNP  UVM.Top  (BaseT UnitT )))) ])) }) () (synExpR expr))
       in case x of
       UVM.Inr a -> a `shouldBe`  t
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -538,7 +538,7 @@ spec = do
           exprR = (cprin UVM.:*  (nullExp (VarE (UVM.var "y"))) )
           l =  (UVM.frhs [exprL, exprR] )
           expr =  (BundleE l)
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [  (UVM.var "x" , t'),  (UVM.var "y" , t'' ) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [  (UVM.var "x" , t'),  (UVM.var "y" , t'' ) ])) }) () (synExpR expr))
       in case x of
       UVM.Inr a -> a `shouldBe`  t
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -561,7 +561,7 @@ spec = do
           l =  (UVM.frhs [exprL, exprR] )
           expr' =  (BundleE l)
           expr = (BundleAccessE (nullExp expr') aprin )
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "x" , t'),  (UVM.var "y" , t'' ), (UVM.var "A" , (SecT UVM.Top (BaseT ℙT)))  ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "x" , t'),  (UVM.var "y" , t'' ), (UVM.var "A" , (SecT UVM.Top (BaseT ℙT)))  ])) }) () (synExpR expr))
       in case x of
       UVM.Inr a -> a `shouldBe`  t
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -582,7 +582,7 @@ spec = do
           exprL = (nullExp (VarE (UVM.var "x"))) 
           exprR = (nullExp (VarE (UVM.var "y"))) 
           expr =  (BundleUnionE exprL exprR)
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [  (UVM.var "x" , t'),  (UVM.var "y" , t'' ) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = m, terEnv = (UVM.assoc (UVM.frhs [  (UVM.var "x" , t'),  (UVM.var "y" , t'' ) ])) }) () (synExpR expr))
       in case x of
       UVM.Inr a -> a `shouldBe`  t
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -593,7 +593,7 @@ spec = do
           expr' =  (AscrE  (nullExp (LE (nullExp (BulE))))  t')
           expr = (AscrE  (nullExp (FoldE (nullExp expr'))) t )
           
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [  (UVM.var "x" , t') ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [  (UVM.var "x" , t') ])) }) () (synExpR expr))
       in case x of
       UVM.Inr a -> a `shouldBe`  t
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -603,7 +603,7 @@ spec = do
           expr' =  (LE (nullExp (BulE))) 
           expr = (AscrE  (nullExp (FoldE (nullExp expr'))) t )
           
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [  (UVM.var "x" , t) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [  (UVM.var "x" , t) ])) }) () (synExpR expr))
       in case x of
       UVM.Inr a -> a `shouldBe`  t
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -620,7 +620,7 @@ spec = do
           expr'' =  (RE (nullExp (ProdE (nullExp (VarE nvar))  (nullExp (VarE lvar)) ) ))
           expr' =(FoldE (nullExp expr'') )
           expr =  (AscrE  (nullExp (LamE (UVM.Some f) lst (nullExp expr')))  t )
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [  (UVM.var "x" , τ') ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [  (UVM.var "x" , τ') ])) }) () (synExpR expr))
       in case x of
       UVM.Inr a -> a `shouldBe`  t
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -632,7 +632,7 @@ spec = do
           expr'' =     (LE (nullExp (BulE))) 
           expr' = (AscrE  (nullExp (FoldE (nullExp expr''))) t' )
           expr =  (UnfoldE (nullExp expr') ) 
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [  (UVM.var "x" , t') ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [  (UVM.var "x" , t') ])) }) () (synExpR expr))
       in case x of
       UVM.Inr a -> a `shouldBe`  t
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -648,7 +648,7 @@ spec = do
           expr'' =  (AscrE  (nullExp (NilE)) t' )
           expr' = (TLamE (UVM.var "X") (nullExp expr''))
           expr = (TAppE (nullExp expr') t''')
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t'
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
@@ -664,13 +664,13 @@ spec = do
           expr'' =  (AscrE  (nullExp (NilE)) t' )
           expr' = (TLamE (UVM.var "X") (nullExp expr''))
           expr = (TAppE (nullExp expr') t''')
-          x  = (evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (type_subst (UVM.var "X") t' t''' ))
+          x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (type_subst (UVM.var "X") t' t''' ))
       in case x of
         UVM.Inr a -> a `shouldBe`  t'''
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
     it "() + () error" $
       let e = PrimE PlusO $ UVM.frhs $ [(nullExp BulE), (nullExp BulE)] in
-      let x = evalEM (ER {terModeScope = dø, terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExpR e) in
+      let x = evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExpR e) in
       case x of
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
 
