@@ -650,7 +650,7 @@ spec = do
           expr = (TAppE (nullExp expr') t''')
           x  = (evalEM (ER {terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
-        UVM.Inr a -> a `shouldBe`  t
+        UVM.Inr a -> a `shouldBe`  t'
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
     
     it "() : annotatednil2" $
