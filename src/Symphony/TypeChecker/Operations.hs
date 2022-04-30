@@ -1402,7 +1402,7 @@ loc_type_subst x sigma ty =
         ]
 
 type_subst ::  STACK ⇒ Var   → Type → Type → EM Type
-loc_type_subst x sigma ty =
+stype_subst x sigma ty =
   case ty of
     -- WF-Loc
     SecT em locty → do
