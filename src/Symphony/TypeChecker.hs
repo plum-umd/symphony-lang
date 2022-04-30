@@ -1115,7 +1115,7 @@ synTLam x e  =
       m' = AddTop pø
   in do
 
-    τ ← (mapModeScopeL terModeScopeL ((x ↦ m') ⩌) c)
+    τ ← (mapEnvL terModeScopeL ((x ↦ m') ⩌) c)
     m ← askL terModeL
     bigM ← askL terModeScopeL
     _ ← wf_type (ForallT x τ) bigM
