@@ -75,14 +75,32 @@ extractBase τ =
                   [ ("τ", pretty τ)
                   ]
 
+-- Assume well formedness
+embedShare :: STACK ⇒  Prot → EMode → Type → EM Type
+embedShare φ l τ =
+  case τ of
+    (SecT _ (ShareT _ _ _)) → return τ
+    (SecT l' (BaseT bτ))  → return (SecT l' (ShareT φ l (BaseT bτ)))
+    (SecT l' (τₗ :+: τᵣ) )  → do
+      τₗ' ← (embedShare φ l τₗ )
+      τᵣ' ← (embedShare φ l τᵣ )
+      return (SecT l' (ShareT φ l (τₗ' :+: τᵣ')))
+    _ → typeError "ExtractProt: τ is not a well type" $ frhs
+                  [ ("τ", pretty τ)
+                  ]
 
+-- If it's well formed, the first two are uncessary
+
+
+
+{-
 embedShare :: STACK ⇒  Prot → EMode → Type → EM Type
 embedShare φ l τ =
   case τ of
     (SecT l' (ShareT φ' l'' (BaseT bτ))) → do
       q ← elabEMode l
       q'' ← elabEMode l''
-      guardErr ((q ≡ q'') ⩓ φ ≡ φ) $
+      guardErr ((q ≡ q'') ⩓ φ ≡ φ') $
         typeError "Not well formed q != w'" $ frhs
         [ ("q", pretty q)
         , ("w", pretty q'')
@@ -102,7 +120,7 @@ embedShare φ l τ =
       τᵣ' ← (embedShare φ l τᵣ )
       return (SecT l' (ShareT φ l (τₗ' :+: τᵣ')))
     _ → todoError
-
+-}
 assertShareable :: STACK ⇒   Type → EM ()
 assertShareable τ =
   case τ of

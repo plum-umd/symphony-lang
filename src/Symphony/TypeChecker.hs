@@ -914,57 +914,59 @@ synMuxIf e₁ e₂ e₃ =do
       τs ← (mapM synExp (frhs [e₁, e₂, e₃]) )
       _ ← (mapM (assertM m) τs)
       pos ← (mapM extractProt τs)
-      let ps = list𝐼 (filterMap (\x -> x)  pos) in
+      let ps = list𝐼 (filterMap id pos) in
         if (isEmpty ps) then
           do
             case τs of
-                    (τ₁ :& (τ₂ :& (τ₃ :& Nil))) → do
-                      subcond  ← (subtype τ₁ (SecT em (BaseT 𝔹T)) pø  ) 
-                      if subcond then do
-                        (ty_join τ₂ τ₃)
-                      else
-                        todoError
+              (τ₁ :& (τ₂ :& (τ₃ :& Nil))) → do
+                subcond  ← (subtype τ₁ (SecT em (BaseT 𝔹T)) pø  )
+                guardErr subcond $
+                  typeError "synMuxIf: τ₁ is not a boolean" $ frhs
+                    [  ("τ₁", pretty τ₁)
+                    ]  
+                (ty_join τ₂ τ₃)
         else
           case ps  of
-            ((p, loc) :& _) →
-              if (and (map (\(p', l) -> (p == p') ⩓  (l == m)) ps)) then
-                do
+            ((p, loc) :& _) → do
+              guardErr (and (map (\(p', l) -> (p == p') ⩓  (l == m)) ps)) $
+                typeError "synMuxIf: τ₁ is not a boolean" $ frhs
+                  [  ("τ₁", pretty τ₁)]  
                   eτs ← (mapM (embedShare p em) τs )
                   case eτs of
                     (τ₁ :& (τ₂ :& (τ₃ :& Nil))) → do
                       subcond  ← (subtype τ₁ (SecT em (ShareT p em (BaseT 𝔹T))) pø  )
-                      if subcond then do
-                        (ty_join τ₂ τ₃)
-                      else
-                        todoError
-              else
-                todoError
+                      guardErr subcond $
+                        typeError "Not all protocols/encryptions are the same as p#loc" $ frhs
+                          [ ("ρ", pretty p)
+                          , ("loc'", pretty m)
+                          ] 
+                      (ty_join τ₂ τ₃)
+          
 
 
 synMuxCase ∷ STACK ⇒  Exp → 𝐿 (Pat ∧ Exp) → EM Type
 synMuxCase e ψes =do
   let c = synExp e in do
     τ  ← c
-
     m ← askL terModeL
     em ← elabMode m
     τs' ← mapM (synBind τ) ψes
     let τs = (τ :& τs') in do
       _ ← (mapM (assertM m) τs)
       pos ← (mapM extractProt τs)
-      let ps = list𝐼 (filterMap (\x -> x)  pos) in
+      let ps = list𝐼 (filterMap id pos) in
         if (isEmpty ps) then
           (joinList τs')
         else
           case ps  of
-            ((p, loc) :& _) →
-              if (and (map (\(p', l) -> (p == p') ⩓  (l == m)) ps)) then
-                do
-                  eτs' ← (mapM (embedShare p em) τs' )
-                  (joinList eτs')
-
-              else
-                todoError
+            ((p, loc) :& _) → do
+              guardErr (and (map (\(p', l) -> (p == p') ⩓  (l == m)) ps))
+                typeError "Not all protocols/encryptions are the same as p#loc" $ frhs
+                  [ ("ρ", pretty p)
+                  , ("loc'", pretty m)
+                  ]
+                eτs' ← (mapM (embedShare p em) τs' )
+                (joinList eτs')
 
 
 -- Bundles
