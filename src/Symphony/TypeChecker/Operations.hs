@@ -798,13 +798,14 @@ locty_join locty locty' =
   _ → todoError
 
 -- Finds join of two types
+-- Finds meet of two types
 ty_join :: STACK ⇒ Type  → Type  → EM Type
 ty_join ty ty' = case ty of
   SecT loc loc_ty → case ty' of
       SecT loc' loc_ty' → do
-        loc_union ← (inter_em loc loc')
+        loc_inter ← (inter_em loc loc')
         loc_join ← (locty_join loc_ty loc_ty')
-        return $ SecT loc_union loc_join
+        return $ SecT loc_inter loc_join
       _ →  typeError "ty_join: ty is a located type while ty' is not" $ frhs
         [ ("ty", pretty ty )
         , ("ty'", pretty ty' )
@@ -1402,7 +1403,7 @@ loc_type_subst x sigma ty =
         ]
 
 type_subst ::  STACK ⇒ Var   → Type → Type → EM Type
-type_subst x sigma ty =
+type_subst x ty ty' =
   case ty of
     -- WF-Loc
     SecT em locty → do
