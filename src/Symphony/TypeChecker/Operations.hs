@@ -1286,13 +1286,8 @@ superlocty_wf sigma m bigM =
     -- WF-Base (Based off WF-INT)
     BaseT bt → return sigma
     ShareT p loc loc_ty  → do
-        l ← (elabEMode loc)
-        if (l == m) then
-          do
-            loc_superty ← (superlocty_wf loc_ty m bigM)
-            return (ShareT p loc loc_superty)
-        else
-          todoError
+        loc_superty ← (superlocty_wf loc_ty m bigM)
+        return (ShareT p loc loc_superty)
     -- WF-Sum: t1 must be well formed and t2 must be well formed
     (loctyₗ :+: loctyᵣ) → do
       loctyₗ' ← (superty_wf loctyₗ m bigM)
