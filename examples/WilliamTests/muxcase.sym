@@ -1,5 +1,5 @@
 principal A B C
 
 def main : (unit@all  -> unit@all)@all 
-def main () =  let a = (par {A, B, C } • )  in let b = (par {A, B, C } •) in par {A, B, C} (mux case (share [yao, unit + ynut : A -> {A,B,C}]  ((L a): (( unit[yao]@{A,B, C}@{A, B, C}  + unit[yao]@{A, B, C}@{A, B, C})[yao]@{A, B, C}@{A,B, C}))) {L x →x;R y→y}  )
+def main () =  let a = (par {A, B, C } • )  in let b = (par {A, B, C } •) in par {A, B, C} (mux case (share [yao, unit + unut : A -> {A,B,C}]  ((L a): (( unit[yao]@{A,B, C}@{A, B, C}  + unit[yao]@{A, B, C}@{A, B, C})[yao]@{A, B, C}@{A,B, C}))) {L x →x;R y→y}  )
 
