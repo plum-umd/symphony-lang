@@ -927,6 +927,17 @@ synMuxIf e₁ e₂ e₃ =do
                 (ty_join τ₂ τ₃)
         else
           case ps  of
+            ((p, loc) :& _) → do
+              guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (l ≡ m)) ps)) $
+                typeError "Not all protocols/encryptions are the same as p#loc" $ frhs
+                  [ ("ρ", pretty p)
+                  , ("loc'", pretty m)
+                  ]
+              return $ SecT em $ ShareT p em $ BaseT UnitT
+          
+          {-
+     else
+          case ps  of
             ((p, loc) :& _) →
               if (and (map (\(p', l) -> (p == p') ⩓  (l == m)) ps)) then
                 do
@@ -939,9 +950,7 @@ synMuxIf e₁ e₂ e₃ =do
                       else
                         todoError
               else
-                todoError
-          
-
+                todoError -}
 
 synMuxCase ∷ STACK ⇒  Exp → 𝐿 (Pat ∧ Exp) → EM Type
 synMuxCase e ψes =do
