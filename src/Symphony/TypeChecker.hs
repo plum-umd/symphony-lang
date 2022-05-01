@@ -974,14 +974,14 @@ synMuxCase e ψes =do
           (joinList τs')
         else
           case ps  of
-             ((p, loc) :& _) → do
+            ((p, loc) :& _) → do
               guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (l ≡ m)) ps)) $
                 typeError "synMuxIf: Not all protocols/encryptions are the same as p#loc" $ frhs
                   [ ("ρ", pretty p)
                   , ("loc'", pretty m)
                   ]
-                eτs' ← (mapM (embedShare p em) τs' )
-                (joinList eτs')
+              eτs' ← (mapM (embedShare p em) τs' )
+              (joinList eτs')
 
 
 -- Bundles
