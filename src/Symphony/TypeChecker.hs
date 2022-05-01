@@ -928,7 +928,7 @@ synMuxIf e₁ e₂ e₃ =do
         else
           case ps  of
             ((p, loc) :& _) → do
-              guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (l ≡ m)) ps)) $
+              guardErr (1 == 1)$
                 typeError "synMuxIf: τ₁ is not a boolean" $ frhs
                   [  ("τ₁", pretty τ₁)]  
                   eτs ← (mapM (embedShare p em) τs )
