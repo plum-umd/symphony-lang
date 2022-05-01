@@ -35,8 +35,6 @@ binaryPtr op elim v₁ v₂ =
   withForeignPtr v₂ $ \ v₂ →
   newForeignPtr elim *$ op v₁ v₂
 
-
-
 reifyPtr ∷ (Ptr a → IO b) → ForeignPtr a → IO b
 reifyPtr reify v =
   withForeignPtr v $ \ v →
@@ -126,10 +124,10 @@ foreign import ccall unsafe "gmw_bool_and" gmw_bool_and ∷ Ptr CGmw → Ptr CGm
 gmwBoolAnd ∷ (Monad m, MonadIO m) ⇒ Gmw → GmwBool → GmwBool → m GmwBool
 gmwBoolAnd gmw v₁ v₂ = io $ GmwBool ^$ gmwBinary gmw_bool_and gmw_bool_drop gmw (unGmwBool v₁) (unGmwBool v₂)
 
-foreign import ccall unsafe "gmw_bool_reify" gmw_bool_reify ∷ Ptr CGmw → Ptr CGmwBool → IO CBool
+foreign import ccall unsafe "gmw_bool_get" gmw_bool_get ∷ Ptr CGmw → Ptr CGmwBool → IO CBool
 
-gmwBoolReify ∷ (Monad m, MonadIO m) ⇒ Gmw → GmwBool → m 𝔹
-gmwBoolReify gmw share = io $ toBool ^$ gmwReify gmw_bool_reify gmw (unGmwBool share)
+gmwBoolGet ∷ (Monad m, MonadIO m) ⇒ Gmw → GmwBool → m 𝔹
+gmwBoolGet gmw share = io $ toBool ^$ gmwReify gmw_bool_get gmw (unGmwBool share)
 
 foreign import ccall unsafe "&gmw_bool_drop" gmw_bool_drop ∷ FinalizerPtr CGmwBool
 
@@ -162,7 +160,7 @@ gmwShareRecvGmwBool gmw chan = do
 
 gmwRevealSendGmwBool ∷ (Monad m, MonadIO m) ⇒ Gmw → Channel → GmwBool → m ()
 gmwRevealSendGmwBool gmw chan share = do
-  b ← gmwBoolReify gmw share
+  b ← gmwBoolGet gmw share
   gmwRevealSendBool chan b
 
 ----------------------------------
@@ -183,12 +181,42 @@ gmwNatConstant gmw pr value = case pr of
   FixedIPr wPr dPr | wPr + dPr ≡ 32 → io $ GmwNat ^$ gmwReflect gmw_nat32_constant gmw_nat_drop gmw $ HS.fromIntegral value
   _                                → undefined
 
-foreign import ccall unsafe "gmw_nat32_reify" gmw_nat32_reify ∷ Ptr CGmw → Ptr CGmwNat → IO CUInt
+foreign import ccall unsafe "gmw_nat_mux" gmw_nat_mux ∷ Ptr CGmw → Ptr CGmwBool → Ptr CGmwNat → Ptr CGmwNat → IO (Ptr CGmwNat)
 
-gmwNatReify ∷ (Monad m, MonadIO m) ⇒ Gmw → IPrecision → GmwNat → m ℕ
-gmwNatReify gmw pr share = case pr of
-  FixedIPr wPr dPr | wPr + dPr ≡ 32 → io $ HS.fromIntegral ^$ gmwReify gmw_nat32_reify gmw (unGmwNat share)
-  _                                → undefined
+gmwNatMux ∷ (STACK, Monad m, MonadIO m) ⇒ Gmw → GmwBool → GmwNat → GmwNat → m GmwNat
+gmwNatMux gmw b n₁ n₂ = io $ GmwNat ^$
+  withGmw gmw $ \ gmw →
+  withForeignPtr (unGmwBool b) $ \ b →
+  withForeignPtr (unGmwNat n₁) $ \ n₁ →
+  withForeignPtr (unGmwNat n₂) $ \ n₂ →
+  newForeignPtr gmw_nat_drop *$ gmw_nat_mux gmw b n₁ n₂
+
+foreign import ccall unsafe "gmw_nat_add" gmw_nat_add ∷ Ptr CGmw → Ptr CGmwNat → Ptr CGmwNat → IO (Ptr CGmwNat)
+
+gmwNatAdd ∷ (STACK, Monad m, MonadIO m) ⇒ Gmw → GmwNat → GmwNat → m GmwNat
+gmwNatAdd gmw n₁ n₂ = io $ GmwNat ^$ gmwBinary gmw_nat_add gmw_nat_drop gmw (unGmwNat n₁) (unGmwNat n₂)
+
+foreign import ccall unsafe "gmw_nat_mul" gmw_nat_mul ∷ Ptr CGmw → Ptr CGmwNat → Ptr CGmwNat → IO (Ptr CGmwNat)
+
+gmwNatMul ∷ (STACK, Monad m, MonadIO m) ⇒ Gmw → GmwNat → GmwNat → m GmwNat
+gmwNatMul gmw n₁ n₂ = io $ GmwNat ^$ gmwBinary gmw_nat_mul gmw_nat_drop gmw (unGmwNat n₁) (unGmwNat n₂)
+
+foreign import ccall unsafe "gmw_nat_eq" gmw_nat_eq ∷ Ptr CGmw → Ptr CGmwNat → Ptr CGmwNat → IO (Ptr CGmwBool)
+
+gmwNatEq ∷ (STACK, Monad m, MonadIO m) ⇒ Gmw → GmwNat → GmwNat → m GmwBool
+gmwNatEq gmw n₁ n₂ = io $ GmwBool ^$ gmwBinary gmw_nat_eq gmw_bool_drop gmw (unGmwNat n₁) (unGmwNat n₂)
+
+foreign import ccall unsafe "gmw_nat_lte" gmw_nat_lte ∷ Ptr CGmw → Ptr CGmwNat → Ptr CGmwNat → IO (Ptr CGmwBool)
+
+gmwNatLte ∷ (STACK, Monad m, MonadIO m) ⇒ Gmw → GmwNat → GmwNat → m GmwBool
+gmwNatLte gmw n₁ n₂ = io $ GmwBool ^$ gmwBinary gmw_nat_lte gmw_bool_drop gmw (unGmwNat n₁) (unGmwNat n₂)
+
+foreign import ccall unsafe "gmw_nat32_get" gmw_nat32_get ∷ Ptr CGmw → Ptr CGmwNat → IO CUInt
+
+gmwNatGet ∷ (Monad m, MonadIO m) ⇒ Gmw → IPrecision → GmwNat → m ℕ
+gmwNatGet gmw pr share = case pr of
+  FixedIPr wPr dPr | wPr + dPr ≡ 32 → io $ HS.fromIntegral ^$ gmwReify gmw_nat32_get gmw (unGmwNat share)
+  _                                 → undefined
 
 foreign import ccall unsafe "&gmw_nat_drop" gmw_nat_drop ∷ FinalizerPtr CGmwNat
 
@@ -229,7 +257,7 @@ gmwShareRecvGmwNat gmw chan pr = do
 
 gmwRevealSendGmwNat ∷ (Monad m, MonadIO m) ⇒ Gmw → Channel → IPrecision → GmwNat → m ()
 gmwRevealSendGmwNat gmw chan pr share = do
-  z ← gmwNatReify gmw pr share
+  z ← gmwNatGet gmw pr share
   gmwRevealSendNat chan pr z
 
 --------------------------------
@@ -250,11 +278,56 @@ gmwIntConstant gmw pr value = case pr of
   FixedIPr wPr dPr | wPr + dPr ≡ 32 → io $ GmwInt ^$ gmwReflect gmw_int32_constant gmw_int_drop gmw $ HS.fromIntegral value
   _                                → undefined
 
-foreign import ccall unsafe "gmw_int32_reify" gmw_int32_reify ∷ Ptr CGmw → Ptr CGmwInt → IO CInt
+foreign import ccall unsafe "gmw_int_add" gmw_int_add ∷ Ptr CGmw → Ptr CGmwInt → Ptr CGmwInt → IO (Ptr CGmwInt)
 
-gmwIntReify ∷ (Monad m, MonadIO m) ⇒ Gmw → IPrecision → GmwInt → m ℤ
-gmwIntReify gmw pr share = case pr of
-  FixedIPr wPr dPr | wPr + dPr ≡ 32 → io $ HS.fromIntegral ^$ gmwReify gmw_int32_reify gmw (unGmwInt share)
+gmwIntAdd ∷ (STACK, Monad m, MonadIO m) ⇒ Gmw → GmwInt → GmwInt → m GmwInt
+gmwIntAdd gmw z₁ z₂ = io $ GmwInt ^$ gmwBinary gmw_int_add gmw_int_drop gmw (unGmwInt z₁) (unGmwInt z₂)
+
+foreign import ccall unsafe "gmw_int_sub" gmw_int_sub ∷ Ptr CGmw → Ptr CGmwInt → Ptr CGmwInt → IO (Ptr CGmwInt)
+
+gmwIntSub ∷ (STACK, Monad m, MonadIO m) ⇒ Gmw → GmwInt → GmwInt → m GmwInt
+gmwIntSub gmw z₁ z₂ = io $ GmwInt ^$ gmwBinary gmw_int_sub gmw_int_drop gmw (unGmwInt z₁) (unGmwInt z₂)
+
+foreign import ccall unsafe "gmw_int_mul" gmw_int_mul ∷ Ptr CGmw → Ptr CGmwInt → Ptr CGmwInt → IO (Ptr CGmwInt)
+
+gmwIntMul ∷ (STACK, Monad m, MonadIO m) ⇒ Gmw → GmwInt → GmwInt → m GmwInt
+gmwIntMul gmw z₁ z₂ = io $ GmwInt ^$ gmwBinary gmw_int_mul gmw_int_drop gmw (unGmwInt z₁) (unGmwInt z₂)
+
+foreign import ccall unsafe "gmw_int_div" gmw_int_div ∷ Ptr CGmw → Ptr CGmwInt → Ptr CGmwInt → IO (Ptr CGmwInt)
+
+gmwIntDiv ∷ (STACK, Monad m, MonadIO m) ⇒ Gmw → GmwInt → GmwInt → m GmwInt
+gmwIntDiv gmw z₁ z₂ = io $ GmwInt ^$ gmwBinary gmw_int_div gmw_int_drop gmw (unGmwInt z₁) (unGmwInt z₂)
+
+foreign import ccall unsafe "gmw_int_mod" gmw_int_mod ∷ Ptr CGmw → Ptr CGmwInt → Ptr CGmwInt → IO (Ptr CGmwInt)
+
+gmwIntMod ∷ (STACK, Monad m, MonadIO m) ⇒ Gmw → GmwInt → GmwInt → m GmwInt
+gmwIntMod gmw z₁ z₂ = io $ GmwInt ^$ gmwBinary gmw_int_mod gmw_int_drop gmw (unGmwInt z₁) (unGmwInt z₂)
+
+foreign import ccall unsafe "gmw_int_mux" gmw_int_mux ∷ Ptr CGmw → Ptr CGmwBool → Ptr CGmwInt → Ptr CGmwInt → IO (Ptr CGmwInt)
+
+gmwIntMux ∷ (STACK, Monad m, MonadIO m) ⇒ Gmw → GmwBool → GmwInt → GmwInt → m GmwInt
+gmwIntMux gmw b z₁ z₂ = io $ GmwInt ^$
+  withGmw gmw $ \ gmw →
+  withForeignPtr (unGmwBool b) $ \ b →
+  withForeignPtr (unGmwInt z₁) $ \ z₁ →
+  withForeignPtr (unGmwInt z₂) $ \ z₂ →
+  newForeignPtr gmw_int_drop *$ gmw_int_mux gmw b z₁ z₂
+
+foreign import ccall unsafe "gmw_int_eq" gmw_int_eq ∷ Ptr CGmw → Ptr CGmwInt → Ptr CGmwInt → IO (Ptr CGmwBool)
+
+gmwIntEq ∷ (STACK, Monad m, MonadIO m) ⇒ Gmw → GmwInt → GmwInt → m GmwBool
+gmwIntEq gmw z₁ z₂ = io $ GmwBool ^$ gmwBinary gmw_int_eq gmw_bool_drop gmw (unGmwInt z₁) (unGmwInt z₂)
+
+foreign import ccall unsafe "gmw_int_lte" gmw_int_lte ∷ Ptr CGmw → Ptr CGmwInt → Ptr CGmwInt → IO (Ptr CGmwBool)
+
+gmwIntLte ∷ (STACK, Monad m, MonadIO m) ⇒ Gmw → GmwInt → GmwInt → m GmwBool
+gmwIntLte gmw z₁ z₂ = io $ GmwBool ^$ gmwBinary gmw_int_lte gmw_bool_drop gmw (unGmwInt z₁) (unGmwInt z₂)
+
+foreign import ccall unsafe "gmw_int32_get" gmw_int32_get ∷ Ptr CGmw → Ptr CGmwInt → IO CInt
+
+gmwIntGet ∷ (Monad m, MonadIO m) ⇒ Gmw → IPrecision → GmwInt → m ℤ
+gmwIntGet gmw pr share = case pr of
+  FixedIPr wPr dPr | wPr + dPr ≡ 32 → io $ HS.fromIntegral ^$ gmwReify gmw_int32_get gmw (unGmwInt share)
   _                                → undefined
 
 foreign import ccall unsafe "&gmw_int_drop" gmw_int_drop ∷ FinalizerPtr CGmwInt
@@ -296,5 +369,5 @@ gmwShareRecvGmwInt gmw chan pr = do
 
 gmwRevealSendGmwInt ∷ (Monad m, MonadIO m) ⇒ Gmw → Channel → IPrecision → GmwInt → m ()
 gmwRevealSendGmwInt gmw chan pr share = do
-  z ← gmwIntReify gmw pr share
+  z ← gmwIntGet gmw pr share
   gmwRevealSendInt chan pr z

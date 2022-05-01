@@ -17,6 +17,7 @@ findFile path = do
   pkgPath ← dataPath path
   existsPath ← pexists path
   existsPkgPath ← pexists pkgPath
-  if existsPath then return path
-  else if existsPkgPath then return pkgPath
-  else return path
+  return $
+    if existsPath then path
+    else if existsPkgPath then pkgPath
+    else path

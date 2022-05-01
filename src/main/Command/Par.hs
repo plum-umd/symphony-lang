@@ -1,6 +1,7 @@
 module Command.Par where
 
 import Symphony.Prelude
+import Symphony.Config
 import qualified Prelude as HS
 
 import Options
@@ -135,7 +136,6 @@ configPorts n = list $ map ((+) $ HS.fromIntegral 23000) $ upTo n
 
 mkConfigs ∷ 𝑂 𝕊 → (PrinVal ⇰ (Addr ∧ Port))
 mkConfigs s = dict $ map (\ ((ρ :* a) :* p) → ρ ↦ (a :* p)) $ fromSome $ zipSameLength config (configPorts n)
---  zipSameLength config (configPorts $ count config)
   where config = fromSome $ mjoin $ map parseConfig s
         n      = count config
 
@@ -151,9 +151,10 @@ runPar opts args = do
       prg      ← mkPrg (optParSeed opts)
       let configs = mkConfigs (optParConfig opts)
       channels ← mkChannels party (optParConfig opts)
-      program  ← io $ parseFile path
+      stdLib   ← io $ parseFile *$ findFile "lib/stdlib.sym"
+      program  ← io $ parseFile *$ findFile path
 #ifdef PAR
-      v ← io $ evalProgram (θ₀ name party prg channels configs) program
+      v ← io $ evalProgram (θ₀ name party prg channels configs) (stdLib ⧺ program)
       return $ pretty v
 #else
       io $ out "Symphony compiled without parallel support."

@@ -1,0 +1,9 @@
+principal A B C D E
+
+-- gmw ≡ semi-honest, N-party, boolean sharing
+
+def main () = par {A,B,C,D,E}
+  let a = par {A,C,D} share [gmw, ℕ#32 : {A} → {C,D}] (par {A} read ℕ#32 from "delegation-sum.txt") in
+  let b = par {B,C,D} share [gmw, ℕ#32 : {B} → {C,D}] (par {B} read ℕ#32 from "delegation-sum.txt") in
+  let c = par {C,D} a * b in
+  par {C,D,E} reveal [gmw, ℕ#32 : {C,D} → {E}] c

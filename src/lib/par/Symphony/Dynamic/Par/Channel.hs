@@ -39,6 +39,12 @@ foreign import ccall unsafe "&channel_drop" channel_drop ∷ FinalizerPtr CChann
 
 foreign import ccall unsafe "channel_send_all" channel_send_all ∷ Ptr CChannel → Ptr a → CSize → IO ()
 
+foreign import ccall unsafe "channel_flush" channel_flush ∷ Ptr CChannel → IO ()
+
+channelFlush ∷ (Monad m, MonadIO m) ⇒ Channel → m ()
+channelFlush chan = io $ withForeignPtr cchan $ \ chan_ptr → channel_flush chan_ptr
+  where cchan = unChannel chan
+
 channelSendAll ∷ (Monad m, MonadIO m) ⇒ Channel → Ptr a → CSize → m ()
 channelSendAll chan buf len = io $ withForeignPtr cchan $ \ chan_ptr → channel_send_all chan_ptr buf len
   where cchan = unChannel chan

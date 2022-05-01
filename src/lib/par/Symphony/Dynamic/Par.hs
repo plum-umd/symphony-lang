@@ -469,10 +469,9 @@ interpMuxIf e₁ e₂ e₃ =
       c₂ = interpExp e₂
       c₃ = interpExp e₃
   in do
-    ṽ₁    ← c₁
-    negṽ₁ ← primVal NotO $ ṽ₁ :& Nil
-    ṽ₂    ← mapEnvL iCxtMPCPathConditionL (ṽ₁ :&)    c₂
-    ṽ₃    ← mapEnvL iCxtMPCPathConditionL (negṽ₁ :&) c₃
+    ṽ₁ ← c₁
+    ṽ₂ ← c₂
+    ṽ₃ ← c₃
     muxVal ṽ₁ ṽ₂ ṽ₃
 
 interpMuxCase ∷ (STACK) ⇒ Exp → 𝐿 (Pat ∧ Exp) → IM Val Val

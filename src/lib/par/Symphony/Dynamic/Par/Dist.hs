@@ -45,6 +45,8 @@ shareVal φ ρvFr ρvsTo ṽ τ = do
   me ← askL iCxtMeL
   when (me ≡ ρvFr) $ do
     shareSendVal φ ρvFr ρvsTo ṽ
+    chans ← list ^$ values ^$ getChannels ρvsTo
+    eachWith channelFlush chans
   if me ∈ ρvsTo then do
     shareRecvVal φ ρvFr ρvsTo τ
   else return unknownValDist
@@ -116,6 +118,8 @@ commVal ρvFr ρvsTo ṽ τ = do
   me ← askL iCxtMeL
   when (me ≡ ρvFr) $ do
     commSendVal ρvFr ρvsTo ṽ
+    chans ← list ^$ values ^$ getChannels ρvsTo
+    eachWith channelFlush chans
   if me ∈ ρvsTo then do
     commRecvVal ρvFr ρvsTo τ
   else return unknownValDist
@@ -140,7 +144,13 @@ commSendVal ρvFr ρvsTo ṽ = do
     ProdV ṽ₁ ṽ₂ → do
       commSendVal ρvFr ρvsTo ṽ₁
       commSendVal ρvFr ρvsTo ṽ₂
-    _           → todoCxt
+    LocV _m (Inr a) → do
+      commSendVal ρvFr ρvsTo $ KnownV $ BaseV $ NatV iprDefault $ ClearNV $ HS.fromIntegral $ length𝕍Mut a
+      ṽs ← io $ values𝕍Mut a
+      eachWith (commSendVal ρvFr ρvsTo) ṽs
+    _           → do
+      pptraceM v
+      todoCxt
 
 commRecvVal ∷ (STACK) ⇒ PrinVal → 𝑃 PrinVal → Type → IM Val Val
 commRecvVal ρvFr ρvsTo τ = KnownV ^$ case τ of
@@ -155,6 +165,14 @@ commRecvVal ρvFr ρvsTo τ = KnownV ^$ case τ of
     ṽ₁ ← commRecvVal ρvFr ρvsTo τ₁
     ṽ₂ ← commRecvVal ρvFr ρvsTo τ₂
     return $ ProdV ṽ₁ ṽ₂
+  ArrT τ' → do
+    _ :* len_nat ← elimNat *$ elimBase *$ elimKnown *$ commRecvVal ρvFr ρvsTo $ BaseT $ ℕT iprDefault
+    len ← elimClearNV len_nat
+    let ṽM = commRecvVal ρvFr ρvsTo τ'
+    ṽs ← exchange $ replicate len ṽM
+    a ← io $ vecIMut ṽs
+    m ← askL iCxtModeL
+    return $ LocV m (Inr a)
   _         → todoCxt
 
 --------------
@@ -166,6 +184,8 @@ revealVal φ ρvsFr ρvTo ṽ τ = do
   me ← askL iCxtMeL
   when (me ∈ ρvsFr) $ do
     revealSendVal φ ρvsFr ρvTo ṽ
+    chan ← getChannel ρvTo
+    channelFlush chan
   if me ≡ ρvTo then do
     revealRecvVal φ ρvsFr ρvTo τ
   else return unknownValDist

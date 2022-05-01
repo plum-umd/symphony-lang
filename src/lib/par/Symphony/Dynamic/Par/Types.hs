@@ -40,10 +40,6 @@ data BaseVal =
   | PrinV PrinVal
   | PrinSetV PrinSetVal
 
-data BaseMeta =
-    ClearMeta
-  | EncMeta Prot (𝑃 PrinVal)
-
 data BoolVal =
     ClearBV 𝔹
   | EncBV (𝑃 PrinVal) EncBool
