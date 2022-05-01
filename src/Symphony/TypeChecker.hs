@@ -908,7 +908,7 @@ synComm τ ρe₁ ρse₂ e₃ =
         (makeCleartextType (AddTop ρse₂) τ)
 
 synMuxIf ∷ STACK ⇒  Exp → Exp → Exp → EM Type
-synMuxIf e₁ e₂ e₃ =do
+synMuxIf e₁ e₂ e₃ = do
       m ← askL terModeL
       em ← elabMode m
       τs ← (mapM synExp (frhs [e₁, e₂, e₃]) )
@@ -927,8 +927,8 @@ synMuxIf e₁ e₂ e₃ =do
                 (ty_join τ₂ τ₃)
         else
           case ps  of
-            ((p, loc) :& _) → do
-              do 
+            ((p, loc) :& _) → 
+              do
                 guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (l ≡ m)) ps)) $
                  typeError "synMuxIf: Not all protocols/encryptions are the same as p#loc" $ frhs
                           [ ("ρ", pretty p)
