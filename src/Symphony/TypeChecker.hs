@@ -929,7 +929,7 @@ synMuxIf e₁ e₂ e₃ =do
           case ps  of
             ((p, loc) :& _) → do
               guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (l ≡ m)) ps)) $
-                typeError "Not all protocols/encryptions are the same as p#loc" $ frhs
+                typeError "synMuxIf: Not all protocols/encryptions are the same as p#loc" $ frhs
                   [ ("ρ", pretty p)
                   , ("loc'", pretty m)
                   ]
@@ -938,10 +938,8 @@ synMuxIf e₁ e₂ e₃ =do
                 (τ₁ :& (τ₂ :& (τ₃ :& Nil))) → do
                   subcond  ← (subtype τ₁ (SecT em (ShareT p em (BaseT 𝔹T))) pø  )
                   guardErr subcond $
-                    typeError "Not all protocols/encryptions are the same as p#loc" $ frhs
-                      [ ("ρ", pretty p)
-                      , ("loc'", pretty m)
-                      ] 
+                    typeError "synMuxIf: τ₁ is not a boolean" $ frhs
+                    [  ("τ₁", pretty τ₁)]  
                   (ty_join τ₂ τ₃)
           {-
      else
@@ -976,9 +974,9 @@ synMuxCase e ψes =do
           (joinList τs')
         else
           case ps  of
-            ((p, loc) :& _) → do
-              guardErr (and (map (\(p', l) -> (p == p') ⩓  (l == m)) ps)) $
-                typeError "Not all protocols/encryptions are the same as p#loc" $ frhs
+             ((p, loc) :& _) → do
+              guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (l ≡ m)) ps)) $
+                typeError "synMuxIf: Not all protocols/encryptions are the same as p#loc" $ frhs
                   [ ("ρ", pretty p)
                   , ("loc'", pretty m)
                   ]
