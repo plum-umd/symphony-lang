@@ -928,6 +928,7 @@ synMuxIf e₁ e₂ e₃ =do
         else
           case ps  of
             ((p, loc) :& _) → do
+              do 
                 guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (l ≡ m)) ps)) $
                  typeError "synMuxIf: Not all protocols/encryptions are the same as p#loc" $ frhs
                           [ ("ρ", pretty p)
