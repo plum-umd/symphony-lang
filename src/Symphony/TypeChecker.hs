@@ -927,10 +927,10 @@ synMuxIf e₁ e₂ e₃ =do
                 (ty_join τ₂ τ₃)
         else
           case ps  of
-            ((p, loc) :& _)) → do
-              guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (l ≡ m)) ps)) $
+            ((p, loc) :& _) → do
+              guardErr (1 == 1) $
                  typeError "synMuxIf: Not all protocols/encryptions are the same as p#loc" $ frhs
-                          [ ("ρ", pretty p)
+                          [ ("p", pretty p)
                           , ("loc'", pretty m)
                           ] 
                   eτs ← (mapM (embedShare p em) τs )
