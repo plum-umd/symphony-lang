@@ -907,6 +907,13 @@ synComm τ ρe₁ ρse₂ e₃ =
             ]  
         (makeCleartextType (AddTop ρse₂) τ)
 
+-- If there is one but not all cleartext, all of them get converted to the same phi
+-- gamma |- m e1 : bool^phi@m
+-- gamma |- m e2 : sigma^phi@m
+-- gamma |- m e3 : sigma^pih@mn
+-- phi must be well formed
+-- --------
+-- gamma|- m muxif e1 e2 e3 : : sigma^phi@m
 synMuxIf ∷ STACK ⇒  Exp → Exp → Exp → EM Type
 synMuxIf e₁ e₂ e₃ =do
       m ← askL terModeL
@@ -921,7 +928,7 @@ synMuxIf e₁ e₂ e₃ =do
               (τ₁ :& (τ₂ :& (τ₃ :& Nil))) → do
                 subcond  ← (subtype τ₁ (SecT em (BaseT 𝔹T)) pø  )
                 guardErr subcond $
-                  typeError "synMuxIf: τ₁ is not a boolean" $ frhs
+                  typeError "synMuxIf: τ₁ is not a shared boolean" $ frhs
                     [  ("τ₁", pretty τ₁)
                     ]  
                 (ty_join τ₂ τ₃)
@@ -938,27 +945,21 @@ synMuxIf e₁ e₂ e₃ =do
                 (τ₁ :& (τ₂ :& (τ₃ :& Nil))) → do
                   subcond  ← (subtype τ₁ (SecT em (ShareT p em (BaseT 𝔹T))) pø  )
                   guardErr subcond $
-                    typeError "synMuxIf: τ₁ is not a boolean" $ frhs
+                    typeError "synMuxIf: τ₁ is not a shared boolean" $ frhs
                     [  ("τ₁", pretty τ₁)]  
                   (ty_join τ₂ τ₃)
-          {-
-     else
-          case ps  of
-            ((p, loc) :& _) →
-              if (and (map (\(p', l) -> (p == p') ⩓  (l == m)) ps)) then
-                do
-                  eτs ← (mapM (embedShare p em) τs )
-                  case eτs of
-                    (τ₁ :& (τ₂ :& (τ₃ :& Nil))) → do
-                      subcond  ← (subtype τ₁ (SecT em (ShareT p em (BaseT 𝔹T))) pø  )
-                      if subcond then do
-                        (ty_join τ₂ τ₃)
-                      else
-                        todoError
-              else
-                todoError
-                -}
 
+-- If there is one but not all cleartext, all of them get converted to the same phi
+-- Exceot us the furst
+-- T-Case (t is the join of t', t'', .... t'n)
+-- gamma |- m e : t_e@m' where m' <= m
+-- gamma updated_1 |- m e1 : sigma^phi@ms
+-- gamma updated_2 |- m e2 : sigma^pih@mn
+-- ...
+--gamma updated_n |- m en : sigma^pih@mn
+-- phi must be well formed
+-- --------
+-- gamma|- m muxcase p1 e1 p2 e2 ... pn en : : sigma^phi@m
 synMuxCase ∷ STACK ⇒  Exp → 𝐿 (Pat ∧ Exp) → EM Type
 synMuxCase e ψes =do
   let c = synExp e in do
@@ -973,15 +974,21 @@ synMuxCase e ψes =do
         if (isEmpty ps) then
           (joinList τs')
         else
-          case ps  of
-            ((p, loc) :& _) → do
-              guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (l ≡ m)) ps)) $
-                typeError "synMuxIf: Not all protocols/encryptions are the same as p#loc" $ frhs
-                  [ ("ρ", pretty p)
-                  , ("loc'", pretty m)
+          case τ of
+            (SecT em (ShareT _ _ _ )) →
+              case ps  of
+                ((p, loc) :& _) → do
+                  guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (l ≡ m)) ps)) $
+                    typeError "synMuxCase: Not all protocols/encryptions are the same as p#loc" $ frhs
+                      [ ("ρ", pretty p)
+                      , ("loc'", pretty m)
+                      ]
+                  eτs' ← (mapM (embedShare p em) τs' )
+                  (joinList eτs')
+            _ → typeError "synMuxCase: The first expression e of type τ is cleartext while the rest is clear text" $ frhs
+                  [ ("e", pretty e)
+                  , ("τ", pretty τ)
                   ]
-              eτs' ← (mapM (embedShare p em) τs' )
-              (joinList eτs')
 
 
 -- Bundles
