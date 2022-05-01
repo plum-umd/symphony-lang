@@ -985,7 +985,7 @@ synMuxCase e ψes =do
                       ]
                   eτs' ← (mapM (embedShare p em) τs' )
                   (joinList eτs')
-            _ → typeError "synMuxCase: The first expression e of type τ is cleartext while the rest is clear text" $ frhs
+            _ → typeError "synMuxCase: The first expression e of type τ is cleartext while the some of all of the bodies is not" $ frhs
                   [ ("e", pretty e)
                   , ("τ", pretty τ)
                   ]
