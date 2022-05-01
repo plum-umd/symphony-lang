@@ -929,12 +929,18 @@ synMuxIf e₁ e₂ e₃ =do
           case ps  of
             ((p, loc) :& _) → do
               guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (l ≡ m)) ps)) $
-                typeError "Not all protocols/encryptions are the same as p#loc" $ frhs
-                  [ ("ρ", pretty p)
-                  , ("loc'", pretty m)
-                  ]
-              return $ SecT em $ ShareT p em $ BaseT UnitT
-          
+                typeError "synMuxIf: τ₁ is not a boolean" $ frhs
+                  [  ("τ₁", pretty τ₁)]  
+                  eτs ← (mapM (embedShare p em) τs )
+                  case eτs of
+                    (τ₁ :& (τ₂ :& (τ₃ :& Nil))) → do
+                      subcond  ← (subtype τ₁ (SecT em (ShareT p em (BaseT 𝔹T))) pø  )
+                      guardErr subcond $
+                        typeError "Not all protocols/encryptions are the same as p#loc" $ frhs
+                          [ ("ρ", pretty p)
+                          , ("loc'", pretty m)
+                          ] 
+                      (ty_join τ₂ τ₃)
           {-
      else
           case ps  of
@@ -950,7 +956,8 @@ synMuxIf e₁ e₂ e₃ =do
                       else
                         todoError
               else
-                todoError -}
+                todoError
+                -}
 
 synMuxCase ∷ STACK ⇒  Exp → 𝐿 (Pat ∧ Exp) → EM Type
 synMuxCase e ψes =do
