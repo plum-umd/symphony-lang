@@ -908,7 +908,7 @@ synComm τ ρe₁ ρse₂ e₃ =
         (makeCleartextType (AddTop ρse₂) τ)
 
 synMuxIf ∷ STACK ⇒  Exp → Exp → Exp → EM Type
-synMuxIf e₁ e₂ e₃ = do
+synMuxIf e₁ e₂ e₃ =do
       m ← askL terModeL
       em ← elabMode m
       τs ← (mapM synExp (frhs [e₁, e₂, e₃]) )
@@ -925,23 +925,21 @@ synMuxIf e₁ e₂ e₃ = do
                     [  ("τ₁", pretty τ₁)
                     ]  
                 (ty_join τ₂ τ₃)
-        else
+     else
           case ps  of
-            ((p, loc) :& _) → 
-              do
-                guardErr  (1 == 1) $
-                 typeError "synMuxIf: Not all protocols/encryptions are the same as p#loc" $ frhs
-                          [ ("ρ", pretty p)
-                          , ("loc'", pretty m)
-                          ] 
+            ((p, loc) :& _) →
+              if (and (map (\(p', l) -> (p == p') ⩓  (l == m)) ps)) then
+                do
                   eτs ← (mapM (embedShare p em) τs )
                   case eτs of
                     (τ₁ :& (τ₂ :& (τ₃ :& Nil))) → do
                       subcond  ← (subtype τ₁ (SecT em (ShareT p em (BaseT 𝔹T))) pø  )
-                      guardErr subcond $
-                        typeError "synMuxIf: τ₁ is not a boolean" $ frhs
-                        [  ("τ₁", pretty τ₁)]  
-                      (ty_join τ₂ τ₃)
+                      if subcond then do
+                        (ty_join τ₂ τ₃)
+                      else
+                        todoError
+              else
+                todoError
           
 
 
@@ -961,7 +959,7 @@ synMuxCase e ψes =do
         else
           case ps  of
             ((p, loc) :& _) → do
-              guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (l ≡ m)) ps)) $
+              guardErr (and (map (\(p', l) -> (p == p') ⩓  (l == m)) ps)) $
                 typeError "Not all protocols/encryptions are the same as p#loc" $ frhs
                   [ ("ρ", pretty p)
                   , ("loc'", pretty m)
