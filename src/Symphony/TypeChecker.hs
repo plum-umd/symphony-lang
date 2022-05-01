@@ -925,7 +925,7 @@ synMuxIf e₁ e₂ e₃ =do
                     [  ("τ₁", pretty τ₁)
                     ]  
                 (ty_join τ₂ τ₃)
-     else
+        else
           case ps  of
             ((p, loc) :& _) →
               if (and (map (\(p', l) -> (p == p') ⩓  (l == m)) ps)) then
