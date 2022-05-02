@@ -1559,21 +1559,26 @@ elabPrinExp ρe = case  ρe of
   -- get rid of
   AccessPE x n₁ → todoError
 
-elabPrinSetExp ∷ STACK ⇒ PrinSetExp → EM PrinValSet
+elabPrinSetExp ∷ STACK ⇒ PrinSetExp → EM ((𝑃 PrinVal) ∨ ())
 elabPrinSetExp ρse = case  ρse of
   PowPSE ρel → do
     prins ← askL terPrinsL
     if (and (map (inPrins prins) ρel)) then
-      return AnyPSV
+      return ()
     else do
       pvl ← (mapM elabPrinExp ρel )
-      (let ρvs = (listToSet pvl) in (return (PVS ρvs)))
-  AnyPSE → AnyPVS
+      (let ρvs = (listToSet pvl) in (return ρvs))
+  AnyPSE → return ()
   _ → todoError
 
 
 elabEMode ∷ STACK ⇒ EMode → EM Mode
-elabEMode = mapM elabPrinSetExp
+elabEMode l = case ((mapM elabPrinSetExp) l) of
+  Top → (AddAny Top)
+  AddTop  (Inl ρvs) → (AddAny (AddTop ρvs))
+  _  → Any
+
+mapM elabPrinSetExp
 
 elabPrinVal :: STACK ⇒ PrinVal → EM PrinExp
 elabPrinVal ρv = case  ρv of
@@ -1583,14 +1588,13 @@ elabPrinVal ρv = case  ρv of
 
 
 -- turn powerset to list, map the list, convert to prinsetexp
-elabPrinValSet :: STACK ⇒ PrinValSet  → EM PrinSetExp
+elabPrinValSet :: STACK ⇒ (𝑃 PrinVal)  → EM PrinSetExp
 elabPrinValSet ρvs =
-  case ρel of
-    AnyPVS → return AnyPSE
-    (PVS ρvs) →  
-      let ρvl = (setToList ρvs) in do
-      ρel ← (mapM elabPrinVal ρvl)
-      (return (PowPSE ρel))
+    let ρvl = (setToList ρvs) in do
+    ρel ← (mapM elabPrinVal ρvl)
+    (return (PowPSE ρel))
 
 elabMode ∷ STACK ⇒ Mode → EM EMode
-elabMode = mapM elabPrinValSet
+elabMode m = case m of
+  Any → (AddTop AnyPSE) 
+  (AddAny  ρvs) → (mapM elabPrinValSet ρvs)

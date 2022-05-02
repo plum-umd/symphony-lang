@@ -77,13 +77,12 @@ makePrettySum ''PrinDecl
 ------------
 
 
-data PrinValSet = 
-    AnyPVS
-  | PVS (𝑃 PrinVal)
-  deriving (Eq, Ord, Show)
 
-type Mode = AddTop PrinValSet
+type Mode = AddTop (𝑃 PrinVal)
 
+data ModeAny = 
+    Any
+  | AddAny
 ----------------
 -- Constraint --
 ----------------
