@@ -1553,11 +1553,11 @@ inPrins prins  ρe = case  ρe of
 
 inPrins2 ∷ STACK ⇒ (𝑃 𝕏) → PrinExp → EM 𝔹
 inPrins2 prins  ρe = case  ρe of
-  VarPE x       → if (x ∈ prins) then (return True) else 
+  VarPE x       → if (x ∈ ((single𝑃  "A")  ∪  (single𝑃  (var "B")) ∪  (single𝑃  (var "C")))) then (return True) else 
     typeError "elabPrinSetExp: Not all principals in x in prins" $ frhs
               [ ("x", pretty x)
               , ("prins", pretty prins)
-              , ("Test", pretty (single𝑃  x))
+              , ("Test", pretty ((single𝑃  "A")  ∪  (single𝑃  (var "B")) ∪  (single𝑃  (var "C"))) )
               ]
   -- get rid of
   AccessPE x n₁ → return False
