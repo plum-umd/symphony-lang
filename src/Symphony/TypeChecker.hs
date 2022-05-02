@@ -968,8 +968,8 @@ synMuxCase e ψes =do
     m ← askL terModeL
     em ← elabMode m
     τs' ← mapM (synBind τ) ψes
-    _ ← (mapM assertShareable τs)
     let τs = (τ :& τs') in do
+      _ ← (mapM assertShareable τs)
       _ ← (mapM (assertM m) τs)
       pos ← (mapM extractProt τs)
       let ps = list𝐼 (filterMap id pos) in
