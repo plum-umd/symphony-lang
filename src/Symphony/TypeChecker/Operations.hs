@@ -1559,7 +1559,7 @@ inPrins2 prins  ρe = case  ρe of
               , ("prins", pretty prins)
               ]
   -- get rid of
-  AccessPE x n₁ → False
+  AccessPE x n₁ → return False
 
 elabPrinExp ∷ STACK ⇒ PrinExp → EM PrinVal
 elabPrinExp ρe = case  ρe of
