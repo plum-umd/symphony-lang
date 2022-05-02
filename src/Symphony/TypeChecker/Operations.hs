@@ -1557,7 +1557,7 @@ inPrins2 prins  ρe = case  ρe of
     typeError "elabPrinSetExp: Not all principals in x in prins" $ frhs
               [ ("x", pretty x)
               , ("prins", pretty prins)
-              , ("Test", pretty ((single𝑃  "A")  ∪  (single𝑃  (var "B")) ∪  (single𝑃  (var "C"))) )
+              , ("Test", pretty ((single𝑃  (var "A"))  ∪  (single𝑃  (var "B")) ∪  (single𝑃  (var "C"))) )
               ]
   -- get rid of
   AccessPE x n₁ → return False
