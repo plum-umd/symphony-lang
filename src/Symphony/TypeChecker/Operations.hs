@@ -1551,16 +1551,7 @@ inPrins prins  ρe = case  ρe of
   -- get rid of
   AccessPE x n₁ → False
 
-inPrins2 ∷ STACK ⇒ (𝑃 𝕏) → PrinExp → EM 𝔹
-inPrins2 prins  ρe = case  ρe of
-  VarPE x       → if (prins == ((single𝑃  (var "A"))  ∪  (single𝑃  (var "B")) ∪  (single𝑃  (var "C")))) then (return True) else 
-    typeError "elabPrinSetExp: Not all principals in x in prins" $ frhs
-              [ ("x", pretty x)
-              , ("prins", pretty prins)
-              , ("Test", pretty ((single𝑃  (var "A"))  ∪  (single𝑃  (var "B")) ∪  (single𝑃  (var "C"))) )
-              ]
-  -- get rid of
-  AccessPE x n₁ → return False
+
 
 elabPrinExp ∷ STACK ⇒ PrinExp → EM PrinVal
 elabPrinExp ρe = case  ρe of
@@ -1572,13 +1563,11 @@ elabPrinSetExp ∷ STACK ⇒ PrinSetExp → EM (𝑃 PrinVal)
 elabPrinSetExp ρse = case  ρse of
   PowPSE ρel → do
     prins ← askL terPrinsL
-    _ ← (mapM (inPrins2 prins) ρel)
-    {-
     guardErr (and (map (inPrins prins) ρel)) $
             typeError "elabPrinSetExp: Not all principals in ρel in prins" $ frhs
               [ ("ρel", pretty ρel)
               , ("prins", pretty prins)
-              ]-}
+              ]
     pvl ← (mapM elabPrinExp ρel )
     (let ρvs = (listToSet pvl) in (return ρvs))
 
