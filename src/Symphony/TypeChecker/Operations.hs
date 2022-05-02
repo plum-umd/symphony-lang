@@ -123,7 +123,7 @@ embedShare φ l τ =
 -}
 
 -- Asserts it is shareable (only Cleartext)
-isEmbedable :: STACK ⇒   Type → EM ()
+isEmbedable :: STACK ⇒   Type → 𝔹
 isEmbedable τ =
   case τ of
     (SecT l' sigma) → 
@@ -146,7 +146,7 @@ isShared τ =
 assertShareable  :: STACK ⇒   Type → EM ()
 assertShareable τ = do
     guardErr ((isEmbedable τ) ⩔ (isShared τ)) $
-      typeError "assertShareable: ⊢ₘ _ ˡ→ _ ; locty ≢ locty'" $ frhs
+      typeError "assertShareable: τ is not '" $ frhs
       [ ("τ", pretty τ)
       ]
     return locty
