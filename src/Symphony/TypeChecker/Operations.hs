@@ -1565,8 +1565,9 @@ elabPrinSetExp ρse = case  ρse of
     prins ← askL terPrinsL
     if (and (map (inPrins prins) ρel)) then
       return AnyPSV
-    pvl ← (mapM elabPrinExp ρel )
-    (let ρvs = (listToSet pvl) in (return (PVS ρvs)))
+    else do
+      pvl ← (mapM elabPrinExp ρel )
+      (let ρvs = (listToSet pvl) in (return (PVS ρvs)))
   AnyPSE → AnyPSV
   _ → todoError
 
