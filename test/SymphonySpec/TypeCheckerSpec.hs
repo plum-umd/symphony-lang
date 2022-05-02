@@ -13,11 +13,12 @@ import Symphony.TypeChecker.EM.Operations
 import Symphony.TypeChecker.EM.Types
 import Symphony.TypeChecker.Error
 import Symphony.TypeChecker.Operations
+import qualified Data.Set as Set
 
 spec ∷ Spec
 spec = do
   describe "synExp" $ do
-    it "() : unit" $ let x  = (evalEM (ER {terPrins =  (UVM.frhs (Set.fromList [UVm.var "A"]))  ,terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExpR BulE))
+    it "() : unit" $ let x  = (evalEM (ER {terPrins =  (UVM.frhs (Set.fromList [UVM.var "A"]))  ,terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExpR BulE))
      in  case x of
      UVM.Inr a -> a `shouldBe`  (SecT (UVM.Top) (BaseT UnitT))
     it "() : unit2" $ let x  = (evalEM (ER {terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = UVM.null}) () (synExp (UVM.𝐴 (UVM.SrcCxt {UVM.srcCxtSourceName = "", UVM.srcCxtLocRange = UVM.locRange₀, UVM.srcCxtPrefix = UVM.null, UVM.srcCxtContext = UVM.null, UVM.srcCxtSuffix = UVM.null}) (BulE))))
@@ -648,7 +649,7 @@ spec = do
           expr'' =  (AscrE  (nullExp (NilE)) t' )
           expr' = (TLamE (UVM.var "X") (nullExp expr''))
           expr = (TAppE (nullExp expr') t''')
-          x  = (evalEM (ER {terPrins =  (UVM.frhs (Set.fromList [UVm.var "A"])), terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terPrins =  (UVM.frhs (Set.fromList [UVM.var "A"])), terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
