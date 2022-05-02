@@ -933,9 +933,9 @@ wf_loctype sigma m bigM =
     BaseT bt → return ()
     (ShareT p loc locty) → do
       l ← (elabEMode loc)
-      return (wf_share_loctype locty m p l)
+      (wf_share_loctype locty m p l)
     (loctyₗ :+: loctyᵣ)  → do
-      _ ← (wf_loctype  loctyₗ m bigM)
+      _ ← (wf_type  loctyₗ m bigM)
       _ ← (wf_type loctyᵣ m bigM)
       return ()
     -- WF-Prod: t1 must be well formed and t2 must be well formed
