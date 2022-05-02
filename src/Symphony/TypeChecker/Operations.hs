@@ -1568,7 +1568,7 @@ elabPrinSetExp ρse = case  ρse of
     else do
       pvl ← (mapM elabPrinExp ρel )
       (let ρvs = (listToSet pvl) in (return (PVS ρvs)))
-  AnyPSE → AnyPSV
+  AnyPSE → AnyPVS
   _ → todoError
 
 
