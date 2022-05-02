@@ -1559,7 +1559,7 @@ elabPrinExp ρe = case  ρe of
   -- get rid of
   AccessPE x n₁ → todoError
 
-elabPrinSetExp ∷ STACK ⇒ PrinSetExp → EM PVS
+elabPrinSetExp ∷ STACK ⇒ PrinSetExp → EM PrinValSet
 elabPrinSetExp ρse = case  ρse of
   PowPSE ρel → do
     prins ← askL terPrinsL
@@ -1583,7 +1583,7 @@ elabPrinVal ρv = case  ρv of
 
 
 -- turn powerset to list, map the list, convert to prinsetexp
-elabPrinValSet :: STACK ⇒ (𝑃 PrinVal)  → EM PrinSetExp
+elabPrinValSet :: STACK ⇒ PrinValSet  → EM PrinSetExp
 elabPrinValSet ρvs =
   case ρel of
     AnyPVS → return AnyPSE
