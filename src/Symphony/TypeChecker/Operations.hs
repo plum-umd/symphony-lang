@@ -940,7 +940,7 @@ wf_loctype sigma m bigM =
       return ()
     -- WF-Prod: t1 must be well formed and t2 must be well formed
     (loctyₗ :×: loctyᵣ)  → do
-      _ ← (wf_typeloctyₗ m bigM)
+      _ ← (wf_type_loctyₗ m bigM)
       _ ← (wf_type loctyᵣ m bigM)
       return ()
     (ListT _ τₜ)  → do
@@ -975,7 +975,7 @@ wf_loctype sigma m bigM =
 
 
 -- Rules to see if some located value is well-formed
-wf_share_loctype :: Type → Mode → Prot → Mode → (𝕏 ⇰ Mode) →  EM ()
+wf_share_loctype :: Type → Mode → Prot → Mode →  EM ()
 wf_share_loctype sigma m p l=
   case sigma of
     BaseT bt → return ()
