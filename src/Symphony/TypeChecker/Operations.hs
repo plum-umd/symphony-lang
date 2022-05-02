@@ -1562,8 +1562,8 @@ elabPrinSetExp ∷ STACK ⇒ PrinSetExp → EM (𝑃 PrinVal)
 elabPrinSetExp ρse = case  ρse of
   PowPSE ρel → 
       case  (mapM elabPrinExp ρel ) of
-        UVM.Inr pvl ->(let ρvs = (listToSet pvl) in (return ρvs))
-        UVM.Inl e -> e
+        Inr pvl ->(let ρvs = (listToSet pvl) in (return ρvs))
+        Inl e -> e
     
 
   _ → todoError
