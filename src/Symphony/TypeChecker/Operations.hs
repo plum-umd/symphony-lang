@@ -143,7 +143,6 @@ isEmbedable τ =
         (BaseT bτ)  → True
         (τₗ :+: τᵣ)  → (isEmbedable τₗ ) ⩓ (isEmbedable τᵣ )
         (τₗ :×:  τᵣ)  → (isEmbedable τₗ ) ⩓ (isEmbedable τᵣ )
-          return ()
         (ListT _ τₜ)  →  (isEmbedable τₜ ) 
         _ → False
     _ → False
@@ -941,11 +940,11 @@ wf_loctype sigma m bigM =
       return ()
     -- WF-Prod: t1 must be well formed and t2 must be well formed
     (loctyₗ :×: loctyᵣ)  → do
-      _ ← (wf_type loctyₗ m bigM)
-      _ ← (wf__type loctyᵣ m bigM)
+      _ ← (wf_typeloctyₗ m bigM)
+      _ ← (wf_type loctyᵣ m bigM)
       return ()
     (ListT _ τₜ)  → do
-      _ ← (wf_cleartext_type τₜ m bigM)
+      _ ← (wf_type τₜ m bigM)
       return ()
     -- WF-Fun: m must be same as mode, t1 must be well formed and t2 must be well formed
     (τ₁₁ :→: (η :* τ₁₂)) → do
@@ -977,7 +976,7 @@ wf_loctype sigma m bigM =
 
 -- Rules to see if some located value is well-formed
 wf_share_loctype :: Type → Mode → Prot → Mode → (𝕏 ⇰ Mode) →  EM ()
-wf_share_loctype sigma m p l bigM=
+wf_share_loctype sigma m p l=
   case sigma of
     BaseT bt → return ()
     (loctyₗ :+: loctyᵣ) → do
