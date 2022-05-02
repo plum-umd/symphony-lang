@@ -1547,15 +1547,24 @@ listToSet mylist = pow𝐼 (iter mylist)
 
 elabPrinExp ∷ STACK ⇒ PrinExp → EM PrinVal
 elabPrinExp ρe = case  ρe of
-  VarPE x       → return (SinglePV (𝕩name x))
+  VarPE x       → do
+    prins ← askL terPrinsL
+    guardErr (x ∈ prins) $
+            typeError "elabPrinExp: x not in prins" $ frhs
+              [ ("x", pretty x)
+              , ("prins", pretty prins)
+              ]
+    return (SinglePV (𝕩name x))
   -- get rid of
   AccessPE x n₁ → return (AccessPV (𝕩name x) n₁)
 
 elabPrinSetExp ∷ STACK ⇒ PrinSetExp → EM (𝑃 PrinVal)
 elabPrinSetExp ρse = case  ρse of
   PowPSE ρel → do
-    pvl ← (mapM elabPrinExp ρel )
-    (let ρvs = (listToSet pvl) in (return ρvs))
+      in case  (mapM elabPrinExp ρel ) of
+        UVM.Inr pvl ->(let ρvs = (listToSet pvl) in (return ρvs))
+        UVM.Inl e -> e
+    
 
   _ → todoError
 
