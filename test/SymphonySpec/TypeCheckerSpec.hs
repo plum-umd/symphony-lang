@@ -649,7 +649,7 @@ spec = do
           expr'' =  (AscrE  (nullExp (NilE)) t' )
           expr' = (TLamE (UVM.var "X") (nullExp expr''))
           expr = (TAppE (nullExp expr') t''')
-          x  = (evalEM (ER {terPrins =  (UVM.frhs (terPrins =  listToSet (UVM.frhs [UVM.var "A"]), terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terPrins =  listToSet (UVM.frhs [UVM.var "A"]), terModeScope = UVM.dø, terSource = UVM.None, terMode = UVM.Top, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
         UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
