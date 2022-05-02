@@ -41,7 +41,7 @@ bindDefn x ψs e = asTLM $ do
 bindPrins ∷ STACK ⇒ STACK ⇒ 𝐿 PrinDecl → TLM ()
 bindPrins ρds = eachOn ρds bindPrin
   where bindPrin ρd = case ρd of
-          SinglePD ρ   →  modifyL ttlsPrinsL ((var ρ) ∪) $ bindTypeTL (var ρ) $ (SecT Top (BaseT ℙT))
+          SinglePD ρ   →  modifyL ttlsPrinsL ((single𝑃  (var ρ)) ∪) $ bindTypeTL (var ρ) $ (SecT Top (BaseT ℙT))
      --     ArrayPD ρ _n → bindTypeTL (var ρ) $ (SecT Top (BaseT ℙsT))
 
 synAppTL ∷ STACK ⇒ Type → Type → EM Type
