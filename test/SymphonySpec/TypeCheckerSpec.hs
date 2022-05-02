@@ -13,7 +13,7 @@ import Symphony.TypeChecker.EM.Operations
 import Symphony.TypeChecker.EM.Types
 import Symphony.TypeChecker.Error
 import Symphony.TypeChecker.Operations
-import qualified Data.Set as Set
+
 
 spec ∷ Spec
 spec = do
