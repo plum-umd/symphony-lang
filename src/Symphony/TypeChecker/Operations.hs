@@ -940,7 +940,7 @@ wf_loctype sigma m bigM =
       return ()
     -- WF-Prod: t1 must be well formed and t2 must be well formed
     (loctyₗ :×: loctyᵣ)  → do
-      _ ← (wf_type_loctyₗ m bigM)
+      _ ← (wf_type loctyₗ m bigM)
       _ ← (wf_type loctyᵣ m bigM)
       return ()
     (ListT _ τₜ)  → do
