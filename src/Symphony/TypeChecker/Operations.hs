@@ -1545,7 +1545,7 @@ setToList myset = list𝐼 (iter myset)
 listToSet :: STACK ⇒ (Ord a) ⇒ (𝐿 a)  → (𝑃 a)
 listToSet mylist = pow𝐼 (iter mylist)
 
-inPrins ∷ STACK ⇒ PrinExp → EM PrinVal
+inPrins ∷ STACK ⇒ PrinExp → (𝑃 𝕏) →  𝔹
 inPrins ρe prins = case  ρe of
   VarPE x       → x ∈ prins
   -- get rid of
