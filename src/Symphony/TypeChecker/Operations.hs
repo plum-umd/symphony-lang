@@ -1571,7 +1571,7 @@ elabPrinSetExp ∷ STACK ⇒ PrinSetExp → EM (𝑃 PrinVal)
 elabPrinSetExp ρse = case  ρse of
   PowPSE ρel → do
     prins ← askL terPrinsL
-    _ ← (mapM  (inPrins2 ρel ))
+    _ ← (mapM (inPrins2 prins) ρel)
     {-
     guardErr (and (map (inPrins prins) ρel)) $
             typeError "elabPrinSetExp: Not all principals in ρel in prins" $ frhs
