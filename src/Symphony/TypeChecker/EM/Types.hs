@@ -11,6 +11,7 @@ data ER = ER
   , terMode   ∷ Mode
   , terEnv    ∷ Env
   , terModeScope    ∷ (𝕏 ⇰ Mode)
+  , terPrins    ∷ (𝑃 𝕏)
   }
 
 type EW = ()

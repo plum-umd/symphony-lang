@@ -41,8 +41,11 @@ bindDefn x ψs e = asTLM $ do
 bindPrins ∷ STACK ⇒ STACK ⇒ 𝐿 PrinDecl → TLM ()
 bindPrins ρds = eachOn ρds bindPrin
   where bindPrin ρd = case ρd of
-          SinglePD ρ   → bindTypeTL (var ρ) $ (SecT Top (BaseT ℙT))
-          ArrayPD ρ _n → bindTypeTL (var ρ) $ (SecT Top (BaseT ℙsT))
+          SinglePD ρ   → do
+            _ ← modifyL ttlsEnvL ((x ↦ τ) ⩌)
+            _ ←  modifyL ttlsPrins (x ⩌) 
+            bindTypeTL (var ρ) $ (SecT Top (BaseT ℙT))
+    --     ArrayPD ρ _n → bindTypeTL (var ρ) $ (SecT Top (BaseT ℙsT))
 
 synAppTL ∷ STACK ⇒ Type → Type → EM Type
 synAppTL τ₁ τ₂ = case τ₁ of
@@ -1271,7 +1274,8 @@ synExpR e = case e of
 asTLM ∷ STACK ⇒ EM a → TLM a
 asTLM eM = do
   γ ← getL ttlsEnvL
-  let r = ER { terSource = None, terMode = Top, terEnv = γ, terModeScope = dø }
+  ps ← getL ttlsPrinsL
+  let r = ER { terSource = None, terMode = Top, terEnv = γ, terModeScope = dø, terPrins = ps}
   evalEMErr r () eM
 
 bindTypeTL ∷ STACK ⇒ 𝕏 → Type → TLM ()
