@@ -57,6 +57,7 @@ data PrinSetExp =
     VarPSE 𝕏
   | PowPSE (𝐿 PrinExp)
   | ThisPSE
+  | AnyPSE
   deriving (Eq, Ord, Show)
 
 instance Null PrinSetExp where
@@ -75,7 +76,13 @@ makePrettySum ''PrinDecl
 --- Mode ---
 ------------
 
-type Mode = AddTop (𝑃 PrinVal)
+
+data PrinValSet = 
+    AnyPSV
+  | PVS (𝑃 PrinVal)
+
+
+type Mode = AddTop PrinValSet
 
 ----------------
 -- Constraint --

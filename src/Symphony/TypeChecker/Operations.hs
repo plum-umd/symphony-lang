@@ -1559,18 +1559,15 @@ elabPrinExp ρe = case  ρe of
   -- get rid of
   AccessPE x n₁ → todoError
 
-elabPrinSetExp ∷ STACK ⇒ PrinSetExp → EM (𝑃 PrinVal)
+elabPrinSetExp ∷ STACK ⇒ PrinSetExp → EM PVS
 elabPrinSetExp ρse = case  ρse of
   PowPSE ρel → do
     prins ← askL terPrinsL
-    guardErr (and (map (inPrins prins) ρel)) $
-            typeError "elabPrinSetExp: Not all principals in ρel in prins" $ frhs
-              [ ("ρel", pretty ρel)
-              , ("prins", pretty prins)
-              ]
+    if (and (map (inPrins prins) ρel)) then
+      return AnyPSV
     pvl ← (mapM elabPrinExp ρel )
-    (let ρvs = (listToSet pvl) in (return ρvs))
-
+    (let ρvs = (listToSet pvl) in (return (PVS ρvs)))
+  AnyPSE → AnyPSV
   _ → todoError
 
 
@@ -1586,9 +1583,13 @@ elabPrinVal ρv = case  ρv of
 
 -- turn powerset to list, map the list, convert to prinsetexp
 elabPrinValSet :: STACK ⇒ (𝑃 PrinVal)  → EM PrinSetExp
-elabPrinValSet ρvp = let ρvl = (setToList ρvp) in do
-  ρel ← (mapM elabPrinVal ρvl)
-  (return (PowPSE ρel))
+elabPrinValSet ρvs =
+  case ρel of
+    AnyPSV → return AnyPSE
+    (PSV ρvs) →  
+      let ρvl = (setToList ρvs) in do
+      ρel ← (mapM elabPrinVal ρvl)
+      (return (PowPSE ρel))
 
 elabMode ∷ STACK ⇒ Mode → EM EMode
 elabMode = mapM elabPrinValSet
