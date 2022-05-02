@@ -1551,8 +1551,8 @@ inPrins prins  ρe = case  ρe of
   -- get rid of
   AccessPE x n₁ → False
 
-inPrins ∷ STACK ⇒ (𝑃 𝕏) → PrinExp →  EM ()
-inPrins prins  ρe = case  ρe of
+inPrins2 ∷ STACK ⇒ (𝑃 𝕏) → PrinExp → 𝔹
+inPrins2 prins  ρe = case  ρe of
   VarPE x       → if (x ∈ prins) then return True else 
     typeError "elabPrinSetExp: Not all principals in x in prins" $ frhs
               [ ("x", pretty x)
@@ -1571,7 +1571,7 @@ elabPrinSetExp ∷ STACK ⇒ PrinSetExp → EM (𝑃 PrinVal)
 elabPrinSetExp ρse = case  ρse of
   PowPSE ρel → do
     prins ← askL terPrinsL
-    _ ← (inPrins ρel )
+    _ ← (inPrins2 ρel )
     {-
     guardErr (and (map (inPrins prins) ρel)) $
             typeError "elabPrinSetExp: Not all principals in ρel in prins" $ frhs
