@@ -1545,26 +1545,26 @@ setToList myset = list𝐼 (iter myset)
 listToSet :: STACK ⇒ (Ord a) ⇒ (𝐿 a)  → (𝑃 a)
 listToSet mylist = pow𝐼 (iter mylist)
 
+
+
+
 elabPrinExp ∷ STACK ⇒ PrinExp → EM PrinVal
 elabPrinExp ρe = case  ρe of
-  VarPE x       → do
-    prins ← askL terPrinsL
-    guardErr (x ∈ prins) $
-            typeError "elabPrinExp: x not in prins" $ frhs
-              [ ("x", pretty x)
-              , ("prins", pretty prins)
-              ]
-    return (SinglePV (𝕩name x))
+  VarPE x       → return (SinglePV (𝕩name x))
   -- get rid of
-  AccessPE x n₁ → return (AccessPV (𝕩name x) n₁)
+  AccessPE x n₁ → todoError
 
 elabPrinSetExp ∷ STACK ⇒ PrinSetExp → EM (𝑃 PrinVal)
 elabPrinSetExp ρse = case  ρse of
-  PowPSE ρel → 
-      case  (mapM elabPrinExp ρel ) of
-        Inr pvl ->(let ρvs = (listToSet pvl) in (return ρvs))
-        Inl e -> e
-    
+  PowPSE ρel → do
+    prins ← askL terPrinsL
+    guardErr (map (x ∈ prins) ρel) $
+            typeError "elabPrinSetExp: Not all principals in ρel in prins" $ frhs
+              [ ("x", pretty ρel)
+              , ("prins", pretty prins)
+              ]
+    pvl ← (mapM elabPrinExp ρel )
+    (let ρvs = (listToSet pvl) in (return ρvs))
 
   _ → todoError
 
