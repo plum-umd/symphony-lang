@@ -1586,8 +1586,8 @@ elabPrinVal ρv = case  ρv of
 elabPrinValSet :: STACK ⇒ (𝑃 PrinVal)  → EM PrinSetExp
 elabPrinValSet ρvs =
   case ρel of
-    AnyPSV → return AnyPSE
-    (PSV ρvs) →  
+    AnyPVS → return AnyPSE
+    (PVS ρvs) →  
       let ρvl = (setToList ρvs) in do
       ρel ← (mapM elabPrinVal ρvl)
       (return (PowPSE ρel))

@@ -78,9 +78,9 @@ makePrettySum ''PrinDecl
 
 
 data PrinValSet = 
-    AnyPSV
+    AnyPVS
   | PVS (𝑃 PrinVal)
-
+  deriving (Eq, Ord, Show)
 
 type Mode = AddTop PrinValSet
 
