@@ -78,14 +78,26 @@ extractBase τ =
 -- Assumes it is either a share OR a cleartext that shareable
 embedShare :: STACK ⇒  Prot → EMode → Type → EM Type
 embedShare φ l τ =
-  case τ of
-    (SecT _ (ShareT _ _ _)) → return τ
-    (SecT l' (BaseT bτ))  → return (SecT l' (ShareT φ l (BaseT bτ)))
-    (SecT l' (τₗ :+: τᵣ) )  → do
-      τₗ' ← (embedShare φ l τₗ )
-      τᵣ' ← (embedShare φ l τᵣ )
-      return (SecT l' (ShareT φ l (τₗ' :+: τᵣ')))
-    _ → typeError "ExmbedShare: τ is not a well type" $ frhs
+    case τ of
+    (SecT l' sigma) → 
+      case sigma of
+        (ShareT _ _ _) → return τ
+        (BaseT bτ)  → return (SecT l' (ShareT φ l (BaseT bτ)))
+        (τₗ :+: τᵣ)  →  do
+          τₗ' ← (embedShare φ l τₗ )
+          τᵣ' ← (embedShare φ l τᵣ )
+          return (SecT l' (ShareT φ l (τₗ' :+: τᵣ')))
+        (τₗ :×:  τᵣ)  →  do
+          τₗ' ← (embedShare φ l τₗ )
+          τᵣ' ← (embedShare φ l τᵣ )
+          return (SecT l' (ShareT φ l (τₗ' :+: τᵣ')))
+        (ListT n τₜ)  →   do
+          τₜ' ← (embedShare φ l τₜ)
+          return (SecT l' (ShareT φ l (ListT n τₜ') ))
+        _ → typeError "EmbedShare: τ is not a well type" $ frhs
+                  [ ("τ", pretty τ)
+                  ]
+    _ → typeError "EmbedShare: τ is not a well type" $ frhs
                   [ ("τ", pretty τ)
                   ]
 
@@ -149,7 +161,7 @@ assertShareable τ = do
       typeError "assertShareable: τ is not '" $ frhs
       [ ("τ", pretty τ)
       ]
-    return locty
+    return ()
 
 eModeEqual :: STACK ⇒ EMode → EMode → EM 𝔹
 eModeEqual loc loc' =
@@ -915,19 +927,22 @@ joinList τs =
 -----------------
 
 -- Rules to see if any located value is well-formed
-wf_cleartext_loctype :: STACK ⇒ Type → Mode →  (𝕏 ⇰ Mode) →  EM ()
-wf_cleartext_loctype sigma m bigM =
+wf_loctype :: STACK ⇒ Type → Mode →  (𝕏 ⇰ Mode) →  EM ()
+wf_loctype sigma m bigM =
   case sigma of
      -- WF-Base (Based off WF-INT)
     BaseT bt → return ()
+    (ShareT p loc locty) → do
+      l ← (elabEMode loc)
+      return (wf_share_loctype locty m p l)
     (loctyₗ :+: loctyᵣ)  → do
-      _ ← (wf_cleartext_type loctyₗ m bigM)
-      _ ← (wf_cleartext_type loctyᵣ m bigM)
+      _ ← (wf_loctype  loctyₗ m bigM)
+      _ ← (wf_type loctyᵣ m bigM)
       return ()
     -- WF-Prod: t1 must be well formed and t2 must be well formed
     (loctyₗ :×: loctyᵣ)  → do
-      _ ← (wf_cleartext_type loctyₗ m bigM)
-      _ ← (wf_cleartext_type loctyᵣ m bigM)
+      _ ← (wf_type loctyₗ m bigM)
+      _ ← (wf__type loctyᵣ m bigM)
       return ()
     (ListT _ τₜ)  → do
       _ ← (wf_cleartext_type τₜ m bigM)
@@ -936,8 +951,8 @@ wf_cleartext_loctype sigma m bigM =
     (τ₁₁ :→: (η :* τ₁₂)) → do
       m  ← askL terModeL
       l ← elabEMode $ effectMode η
-      _ ← (wf_cleartext_type τ₁₁ m bigM)
-      _ ← (wf_cleartext_type τ₁₂ m bigM)
+      _ ← (wf_type τ₁₁ m bigM)
+      _ ← (wf_type τ₁₂ m bigM)
       guardErr (m ≡ l) $
         typeError "Not well formed m != l" $ frhs
         [ ("m", pretty m)
@@ -946,68 +961,17 @@ wf_cleartext_loctype sigma m bigM =
       return ()
     -- WF-Ref: The component type must be well formed 
     (RefT _ τ')  → do
-      _ ← (wf_cleartext_type τ' m bigM)
+      _ ← (wf_type τ' m bigM)
       return ()
     -- WF-Ref: The component type must be well formed 
     (ArrT _ _ τ')  →  do
-      _ ← (wf_cleartext_type τ' m bigM)
+      _ ← (wf_type τ' m bigM)
       return ()
     ISecT loc locty → do
  --     _ ← (wf_share_loctype locty m)
       return ()
-    _  → typeError "wf_cleartext_loctype: sigma is not well formed cleartext located type" $ frhs
+    _  → typeError "wf_loctype: sigma is not well formed cleartext located type" $ frhs
         [ ("sigma", pretty sigma )
-        ]
-
--- Rules to see if a cleartext type is well formed
-wf_cleartext_type :: STACK ⇒ Type → Mode → (𝕏 ⇰ Mode) → EM ()
-wf_cleartext_type ty m bigM =
-  case ty of
-    -- WF-Loc
-  --  SecT em' (ShareT p loc loc_ty) → typeError "wf_type: ty is not well formed cleartext type. ty is an encrypted sharetype" $ frhs
-    --    [ ("ty", pretty ty )
-     --   ]
-    SecT em' locty → do
-      m' ← (elabEMode em')
-      guardErr (supermode m m') $
-        typeError "wf_cleartext_type: m is not a superset of m'" $ frhs
-        [ ("m", pretty m)
-        , ("m'", pretty m')
-        ]
-      wfcond ← (wf_cleartext_loctype locty m' bigM)
-      return ()
-    VarT a → do
-      case bigM ⋕? a of
-        Some m' → do
-          guardErr (supermode m m') $
-            typeError "wf_cleartext_type: m is not a superet of m'" $ frhs
-              [ ("m", pretty m)
-              , ("m'", pretty m')
-              ]
-        None → typeError "wf_cleartext_type: M does not contain a" $ frhs
-          [ ("M", pretty bigM)
-          , ("a", pretty a)
-          ]
-    -- WF-Rec
-    RecT a τ → do
-      m'  ← (get_intersect_type a τ m m)
-      guardErr (supermode m m') $
-        typeError "wf_cleartext_type: m is not a superet of m'" $ frhs
-          [ ("m", pretty m)
-          , ("m'", pretty m')
-          ]
-      (wf_cleartext_type τ m' ((a ↦ m') ⩌ bigM))
-    -- WF-Poly
-    ForallT a τ → do
-      m'  ← (get_intersect_type a τ m m)
-      guardErr (supermode m m') $
-        typeError "wf_cleartext_type: m is not a superet of m'" $ frhs
-          [ ("m", pretty m)
-          , ("m'", pretty m')
-          ]
-      (wf_cleartext_type τ m' ((a ↦ m') ⩌ bigM))
-    _ → typeError "wf_cleartext_type: ty is not well formed encrypted type" $ frhs
-        [ ("ty", pretty ty )
         ]
 
 
@@ -1017,16 +981,23 @@ wf_share_loctype sigma m p l bigM=
   case sigma of
     BaseT bt → return ()
     (loctyₗ :+: loctyᵣ) → do
-      _ ← (wf_share_type loctyₗ m p l bigM)
-      _ ← (wf_share_type loctyᵣ m p l bigM) 
+      _ ← (wf_share_type loctyₗ m p l)
+      _ ← (wf_share_type loctyᵣ m p l) 
+      return ()
+    (loctyₗ :×: loctyᵣ) → do
+      _ ← (wf_share_type loctyₗ m p l)
+      _ ← (wf_share_type loctyᵣ m p l) 
+      return ()
+    (ListT _ τₜ)  → do
+      _ ← (wf_share_type τₜ m p l)
       return ()
     _  → do
       typeError "wf_share_loctype: sigma is not well formed encrypted type" $ frhs
         [ ("sigma", pretty sigma)
         ]
 
-wf_share_type :: Type → Mode →  Prot → Mode → (𝕏 ⇰ Mode) → EM ()
-wf_share_type ty m p l bigM=
+wf_share_type :: Type → Mode →  Prot → Mode → EM ()
+wf_share_type ty m p l=
   case ty of
     -- WF-Loc
     SecT em' (ShareT p' loc loc_ty) → do
@@ -1047,39 +1018,8 @@ wf_share_type ty m p l bigM=
         [ ("m", pretty m)
         , ("m'", pretty m')
         ]
-      wfcond ← (wf_share_loctype loc_ty m' p l bigM)
+      wfcond ← (wf_share_loctype loc_ty m' p l)
       return ()
-        -- WF-Var
-    VarT a → do
-      case bigM ⋕? a of
-        Some m' → do
-          guardErr (supermode m m') $
-            typeError "wf_share_type: m is not a superet of m'" $ frhs
-              [ ("m", pretty m)
-              , ("m'", pretty m')
-              ]
-        None → typeError "wf_share_type:  M does not contain a" $ frhs
-          [ ("M", pretty bigM)
-          , ("a", pretty a)
-          ]
-    -- WF-Rec
-    RecT a τ → do
-      m'  ← (get_intersect_type a τ m m)
-      guardErr (supermode m m') $
-        typeError "wf_share_type: m is not a superet of m'" $ frhs
-          [ ("m", pretty m)
-          , ("m'", pretty m')
-          ]
-      (wf_share_type τ m' p l ((a ↦ m') ⩌ bigM))
-    -- WF-Poly
-    ForallT a τ → do
-      m'  ← (get_intersect_type a τ m m)
-      guardErr (supermode m m') $
-        typeError "wf_share_type: m is not a superet of m'" $ frhs
-          [ ("m", pretty m)
-          , ("m'", pretty m')
-          ]
-      (wf_share_type τ m' p l ((a ↦ m') ⩌ bigM))
     _ → typeError "wf_share_type: ty is not well formed" $ frhs
         [ ("ty", pretty ty )
         ]
@@ -1092,16 +1032,6 @@ wf_type ty m bigM =
   case ty of
 
     -- WF-Loc
-    SecT em' (ShareT p loc loc_ty) → do
-      m' ← (elabEMode em')
-      guardErr (supermode m m') $
-        typeError "wf_type: m is not a superet of m'" $ frhs
-        [ ("m", pretty m)
-        , ("m'", pretty m')
-        ]
-      l ← (elabEMode loc)
-      wfcond ← (wf_share_loctype loc_ty m' p l bigM)
-      return ()
     SecT em' locty → do
       m' ← (elabEMode em')
       guardErr (supermode m m') $
@@ -1109,7 +1039,7 @@ wf_type ty m bigM =
         [ ("m", pretty m)
         , ("m'", pretty m')
         ]
-      wfcond ← (wf_cleartext_loctype locty m' bigM)
+      wfcond ← (wf_loctype locty m' bigM)
       return ()
     -- WF-Var
     VarT a → do
