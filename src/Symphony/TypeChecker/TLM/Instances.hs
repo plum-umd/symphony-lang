@@ -11,4 +11,4 @@ instance Null TLR where
   null = TLR { ttlrSource = None }
 
 instance Null TLS where
-  null = TLS { ttlsEnv = null }
+  null = TLS { ttlsEnv = null, ttlsPrins = null }
