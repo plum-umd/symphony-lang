@@ -1545,6 +1545,11 @@ setToList myset = list𝐼 (iter myset)
 listToSet :: STACK ⇒ (Ord a) ⇒ (𝐿 a)  → (𝑃 a)
 listToSet mylist = pow𝐼 (iter mylist)
 
+inPrins ∷ STACK ⇒ PrinExp → EM PrinVal
+inPrins ρe prins = case  ρe of
+  VarPE x       → x ∈ prins
+  -- get rid of
+  AccessPE x n₁ → False
 
 elabPrinExp ∷ STACK ⇒ PrinExp → EM PrinVal
 elabPrinExp ρe = case  ρe of
@@ -1556,7 +1561,7 @@ elabPrinSetExp ∷ STACK ⇒ PrinSetExp → EM (𝑃 PrinVal)
 elabPrinSetExp ρse = case  ρse of
   PowPSE ρel → do
     prins ← askL terPrinsL
-    guardErr (and $ map (\x ->  x ∈ prins) ρel) $
+    guardErr (and $ map inPrins ρel) $
             typeError "elabPrinSetExp: Not all principals in ρel in prins" $ frhs
               [ ("x", pretty ρel)
               , ("prins", pretty prins)
