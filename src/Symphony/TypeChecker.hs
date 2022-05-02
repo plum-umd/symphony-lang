@@ -919,6 +919,7 @@ synMuxIf e₁ e₂ e₃ =do
       m ← askL terModeL
       em ← elabMode m
       τs ← (mapM synExp (frhs [e₁, e₂, e₃]) )
+      _ ← (mapM assertShareable τs)
       _ ← (mapM (assertM m) τs)
       pos ← (mapM extractProt τs)
       let ps = list𝐼 (filterMap id pos) in
@@ -967,6 +968,7 @@ synMuxCase e ψes =do
     m ← askL terModeL
     em ← elabMode m
     τs' ← mapM (synBind τ) ψes
+    _ ← (mapM assertShareable τs)
     let τs = (τ :& τs') in do
       _ ← (mapM (assertM m) τs)
       pos ← (mapM extractProt τs)

@@ -75,7 +75,7 @@ extractBase τ =
                   [ ("τ", pretty τ)
                   ]
 
--- Assume well formedness
+-- Assumes it is either a share OR a cleartext that shareable
 embedShare :: STACK ⇒  Prot → EMode → Type → EM Type
 embedShare φ l τ =
   case τ of
@@ -85,7 +85,7 @@ embedShare φ l τ =
       τₗ' ← (embedShare φ l τₗ )
       τᵣ' ← (embedShare φ l τᵣ )
       return (SecT l' (ShareT φ l (τₗ' :+: τᵣ')))
-    _ → typeError "ExtractProt: τ is not a well type" $ frhs
+    _ → typeError "ExmbedShare: τ is not a well type" $ frhs
                   [ ("τ", pretty τ)
                   ]
 
@@ -121,15 +121,35 @@ embedShare φ l τ =
       return (SecT l' (ShareT φ l (τₗ' :+: τᵣ')))
     _ → todoError
 -}
-assertShareable :: STACK ⇒   Type → EM ()
-assertShareable τ =
+
+-- Asserts it is shareable (only Cleartext)
+isEmbedable :: STACK ⇒   Type → EM ()
+isEmbedable τ =
   case τ of
-    (SecT l' (BaseT bτ))  → return ()
-    (SecT l' (τₗ :+: τᵣ) )  → do
-      _ ← (assertShareable τₗ )
-      _ ← (assertShareable τᵣ )
-      return ()
-    _ → todoError
+    (SecT l' sigma) → 
+      case sigma of
+        (BaseT bτ)  → True
+        (τₗ :+: τᵣ)  → (isEmbedable τₗ ) ⩓ (isEmbedable τᵣ )
+        (τₗ :×:  τᵣ)  → (isEmbedable τₗ ) ⩓ (isEmbedable τᵣ )
+          return ()
+        (ListT _ τₜ)  →  (isEmbedable τₜ ) 
+        _ → False
+    _ → False
+
+-- Asserts it is shareable (only Cleartext)
+isShared :: STACK ⇒   Type → 𝔹
+isShared τ =
+  case τ of
+    (SecT _  (ShareT _ _ _) ) → True
+    _ → False
+
+assertShareable  :: STACK ⇒   Type → EM ()
+assertShareable τ = do
+    guardErr ((isEmbedable τ) ⩔ (isShared τ)) $
+      typeError "assertShareable: ⊢ₘ _ ˡ→ _ ; locty ≢ locty'" $ frhs
+      [ ("τ", pretty τ)
+      ]
+    return locty
 
 eModeEqual :: STACK ⇒ EMode → EMode → EM 𝔹
 eModeEqual loc loc' =
