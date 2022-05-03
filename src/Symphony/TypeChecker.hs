@@ -203,13 +203,13 @@ checkPrin ρe =
 synPrinSet ∷ STACK ⇒ PrinSetExp → EM Type
 synPrinSet ρse =
   case ρse of
-  VarPSE ρes → do
-    ρsτ ← (synVar ρe)
+  VarPSE x → do
+    ρsτ ← (synVar x)
     m ← askL terModeL
     em ← elabMode m
-    subcond ← (subtype ρτ (SecT em (BaseT ℙsT)) pø )
+    subcond ← (subtype ρsτ (SecT em (BaseT ℙsT)) pø )
     guardErr subcond $
-      typeError "checkPrin: ρse has type ρτ which is not a subtype of τ" $ frhs
+      typeError "checkPrinSet: ρse has type ρτ which is not a subtype of τ" $ frhs
         [ ("ρsτ", pretty ρse)
         , ("ρsτ'", pretty ρsτ)
         , ("τ'", pretty (SecT em (BaseT ℙT)))
