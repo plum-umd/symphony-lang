@@ -1551,6 +1551,38 @@ matchType τ ψ= case ψ of
     _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; the type τ is not of type (SecT loc (ListT n τₜ))" $ frhs
               [ ("τ", pretty τ)
               ]
+  EBundleP   → case τ of
+     (SecT loc₁ (ISecT loc₁' τ₁'))  → do
+        m  ← askL terModeL
+        l₁ ← elabEMode loc₁
+        --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
+        guardErr (eq_mode m l₁) $
+            typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l₁" $ frhs
+              [ ("m", pretty m)
+              , ("l", pretty l)
+              ]
+          return id
+    _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; The empty bundle is not of type τ" $ frhs
+              [ ("τ", pretty τ)
+              ]
+  NEPrinSetP x ψ ψₜ   → case τ of
+    (SecT loc₁ (ISecT loc₁' τ₁'))  → do
+        m  ← askL terModeL
+        l₁ ← elabEMode loc₁
+        --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
+        guardErr (eq_mode m l₁) $
+            typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l₁" $ frhs
+              [ ("m", pretty m)
+              , ("l", pretty l)
+              ]
+          return (\y -> (
+            do
+            mh ← (bindType τ₁' ψ)
+            mt ← (bindType τ ψₜ )
+            (mh (mt  ((bindTo  x (SecT loc (BaseT ℙT ))) y)) )))
+    _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; the expression is not of type SecT loc τ" $ frhs
+              [ ("τ", pretty (BaseT ℙsT ))
+              ]
   WildP → return id
 
 
