@@ -166,7 +166,7 @@ synStr s = do
 synPrinExp ∷ STACK ⇒ PrinExp → EM Type
 synPrinExp ρe = case ρe of
   VarPE x       → do
-    ρτ ← (synVar ρe)
+    ρτ ← (synVar x)
     m ← askL terModeL
     em ← elabMode m
     subcond ← (subtype ρτ (SecT em (BaseT ℙT)) pø )
