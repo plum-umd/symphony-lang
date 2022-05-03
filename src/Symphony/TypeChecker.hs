@@ -517,7 +517,7 @@ synWrite e₁ e₂ =
     τ' ← c₂
     _ ← case m of
       Any → return ()
-      AddAny m'  → guardErr ( (map psize m)' ≡ (AddTop 1)) $
+      AddAny m'  → guardErr ( (map psize m') ≡ (AddTop 1)) $
                     typeError "synWrite: ⊢ₘ ; |m| ≢  1" $ frhs
                     [ ("m", pretty m)
                     ]
