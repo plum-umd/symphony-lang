@@ -317,8 +317,7 @@ inter_em :: STACK ⇒ EMode → EMode → EM EMode
 inter_em loc loc' = do
   l ← elabEMode loc
   l' ← elabEMode loc'
-  return loc
-  -- (elabMode (inter_m l l'))
+  (elabMode (inter_m l l'))
 
 -- Returns m ∩ m'
 inter_m :: STACK ⇒ ModeAny → ModeAny → ModeAny
@@ -1582,10 +1581,10 @@ elabPrinSetExp ρse = case  ρse of
   PowPSE ρel → do
     prins ← askL terPrinsL
     if (and (map (inPrins prins) ρel)) then
-      return (Inr ())
-    else do
       pvl ← (mapM elabPrinExp ρel )
       (let ρvs = (listToSet pvl) in (return (Inl ρvs)))
+    else do
+      return (Inr ())
   AnyPSE → return (Inr ())
   _ → todoError
 
