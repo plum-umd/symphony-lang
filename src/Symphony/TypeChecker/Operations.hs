@@ -1088,7 +1088,7 @@ wf_type ty m bigM =
         [ ("ty", pretty ty )
         ]
 
-get_intersect_loc_type :: STACK ⇒ TVar →Type → ModeAny → ModeAny → EM Mode
+get_intersect_loc_type :: STACK ⇒ TVar →Type → ModeAny → ModeAny → EM ModeAny
 get_intersect_loc_type x sigma m m' =
   case sigma of
      -- WF-Base (Based off WF-INT)
