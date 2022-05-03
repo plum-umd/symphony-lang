@@ -317,7 +317,8 @@ inter_em :: STACK ⇒ EMode → EMode → EM EMode
 inter_em loc loc' = do
   l ← elabEMode loc
   l' ← elabEMode loc'
-  (elabMode (inter_m l l'))
+  return loc
+  -- (elabMode (inter_m l l'))
 
 -- Returns m ∩ m'
 inter_m :: STACK ⇒ ModeAny → ModeAny → ModeAny
