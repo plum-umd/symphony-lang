@@ -222,7 +222,7 @@ subtype_loc loctyS loctyT d = case loctyS of
         l' ← elabEMode $ effectMode η'
         loccondₗ ← (subtype τ₁₁' τ₁₁ d)
         loccondᵣ ← (subtype τ₁₂ τ₁₂' d) 
-        return ((l ≡ l') ⩓ loccondₗ ⩓ loccondᵣ)
+        return ((eq_mode l l') ⩓ loccondₗ ⩓ loccondᵣ)
         -- t <: t' 
   -- -------Sub-RefRO
   -- ref _ t <: ref RO t'
