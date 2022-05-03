@@ -1552,7 +1552,7 @@ matchType τ ψ= case ψ of
               [ ("τ", pretty τ)
               ]
   EBundleP   → case τ of
-     (SecT loc₁ (ISecT loc₁' τ₁'))  → do
+    (SecT loc₁ (ISecT loc₁' τ₁'))  → do
         m  ← askL terModeL
         l₁ ← elabEMode loc₁
         --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
