@@ -1,13 +1,5 @@
 principal A B
 
-def fst x = case x { (a, _) -> a }
-def snd x = case x { (_, b) -> b }
-
--- TODO: Support this natively
-def revealAll x =
-  let x = reveal [gmw, ℤ : {A,B} → {A}] x in
-  send [ℤ : {A} → {A,B}] x
-
 def count vs =
   let len = size vs in
   let countRec = fun [countRec] i count ->
@@ -30,7 +22,7 @@ def mean vs =
     else
       sumRec (i + 1n) (sum + vs.i)
   in
-  let sum = revealAll (sumRec 0n 0) in
+  let sum = reveal [gmw, ℤ : {A,B} → {A,B}] (sumRec 0n 0) in
 
   sum / (int len)
 
@@ -59,7 +51,7 @@ def variance mean vs =
       let d = vs.i - mean in
       sqDiffsRec (i + 1n) (diffs + (d * d))
   in
-  let sqDiffs  = revealAll (sqDiffsRec 0n 0) in
+  let sqDiffs  = reveal [gmw, ℤ : {A,B} → {A,B}] (sqDiffsRec 0n 0) in
 
   sqDiffs / (int len)
 
@@ -124,6 +116,6 @@ def main () = par {A,B}
 
   let meanUnion = mean unionCol1 in
   let varUnion  = variance meanUnion unionCol1 in
-  let meanJoin  = revealAll (meanObliv joinCol1 inJoinCol1 lenJoinCol1) in
-  let varJoin   = revealAll (varianceObliv meanJoin joinCol1 inJoinCol1 lenJoinCol1) in
+  let meanJoin  = reveal [gmw, ℤ : {A,B} → {A,B}] (meanObliv joinCol1 inJoinCol1 lenJoinCol1) in
+  let varJoin   = reveal [gmw, ℤ : {A,B} → {A,B}] (varianceObliv meanJoin joinCol1 inJoinCol1 lenJoinCol1) in
   [meanUnion; varUnion; meanJoin; varJoin]

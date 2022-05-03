@@ -359,16 +359,17 @@ interpPar ρse₁ e₂ =
 --- Rand --
 -----------
 
-rand ∷ Prg → BaseType → IM Val BaseVal
-rand prg bτ = case bτ of
+rand ∷ 𝑃 PrinVal → BaseType → IM Val BaseVal
+rand ρvs bτ = case bτ of
   UnitT → return BulV
-  𝔹T    → BoolV ^$ ClearBV ^$ prgRandBool prg
-{-  ℕT pr → case pr of
-    FixedIPr wPr dPr | wPr + dPr ≡ 8  → NatCV pr ^$ prgRandNat8  prg
-    FixedIPr wPr dPr | wPr + dPr ≡ 16 → NatCV pr ^$ prgRandNat16 prg
-    FixedIPr wPr dPr | wPr + dPr ≡ 32 → NatCV pr ^$ prgRandNat32 prg
-    FixedIPr wPr dPr | wPr + dPr ≡ 64 → NatCV pr ^$ prgRandNat64 prg
-    _ → todoCxt -}
+  𝔹T    → do
+    sharedPrg ← getOrMkSyncPrg ρvs
+    BoolV ^$ ClearBV ^$ prgRandBool sharedPrg
+  ℕT pr → case pr of
+    FixedIPr wPr dPr | wPr + dPr ≡ 32 → do
+                         sharedPrg ← getOrMkSyncPrg ρvs
+                         NatV pr ^$ ClearNV ^$ HS.fromIntegral ^$ prgRandNat32 sharedPrg
+    _ → todoCxt
 {-  ℤT pr → case pr of
     FixedIPr wPr dPr | wPr + dPr ≡ 8   → IntCV pr ^$ prgRandInt8 prg
     FixedIPr wPr dPr | wPr + dPr ≡ 16  → IntCV pr ^$ prgRandInt16 prg
@@ -379,15 +380,15 @@ rand prg bτ = case bτ of
 
 interpRand ∷ (STACK) ⇒ PrinSetExp → BaseType → IM Val Val
 interpRand ρse bτ = do
-  m  ← askL iCxtModeL
-  m' ← AddTop ^$ elimPSV ^$ interpPrinSetExp ρse
+  m   ← askL iCxtModeL
+  ρvs ← elimPSV ^$ interpPrinSetExp ρse
+  let m' = AddTop ρvs
   guardErr (m ≡ m') $
     throwIErrorCxt TypeIError "interpRand: m ≢ m'" $ frhs
     [ ("m", pretty m)
     , ("m'", pretty m')
     ]
-  prg ← getPrg
-  bv ← rand prg bτ
+  bv ← rand ρvs bτ
   return $ KnownV $ BaseV bv
 
 -------------------------------
@@ -435,13 +436,9 @@ interpReveal φ τ ρse₁ ρse₂ e₃ =
   in do
     ρvsFr ← elimPSV ^$ c₁
     ρvsTo ← elimPSV ^$ c₂
-    ρvTo  ← error𝑂 (view one𝑃L ρvsTo) $
-            throwIErrorCxt TypeIError "interpReveal: view one𝑃L ρvsTo ≡ None" $ frhs
-            [ ("ρvsTo", pretty ρvsTo)
-            ]
     ṽ     ← c₃
     modeCheckComm ρvsFr ρvsTo
-    revealVal φ ρvsFr ρvTo ṽ τ
+    revealVal φ ρvsFr ρvsTo ṽ τ
 
 interpComm ∷ (STACK) ⇒ Type → PrinSetExp → PrinSetExp → Exp → IM Val Val
 interpComm τ ρse₁ ρse₂ e₃ =
@@ -450,14 +447,10 @@ interpComm τ ρse₁ ρse₂ e₃ =
       c₃ = interpExp e₃
   in do
     ρvsFr ← elimPSV ^$ c₁
-    ρvFr  ← error𝑂 (view one𝑃L ρvsFr) $
-            throwIErrorCxt TypeIError "interpComm: view one𝑃L ρvsFr ≡ None" $ frhs
-            [ ("ρvsFr", pretty ρvsFr)
-            ]
     ρvsTo ← elimPSV ^$ c₂
     ṽ     ← c₃
     modeCheckComm ρvsFr ρvsTo
-    commVal ρvFr ρvsTo ṽ τ
+    commVal ρvsFr ρvsTo ṽ τ
 
 ----------------------
 --- MPC Operations ---

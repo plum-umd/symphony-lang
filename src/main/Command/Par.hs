@@ -8,12 +8,6 @@ import Options
 
 import Symphony.Lang.Syntax
 import Symphony.Lang.Parser
--- TODO(ins): Should remove CPP here and instead add stub module for Par to Symphony library
-#ifdef PAR
-import Symphony.Dynamic.Par
-import Symphony.Dynamic.Par.Prg
-import Symphony.Dynamic.Par.Channel
-#endif
 
 import qualified System.Console.GetOpt as O
 
@@ -73,6 +67,15 @@ instance Pretty OptionsParError where
                       , ppString helpParMsg
                       ]
 
+
+#ifdef PAR
+
+-- TODO(ins): Should remove CPP here and instead add stub module for Par to Symphony library
+
+import Symphony.Dynamic.Par
+import Symphony.Dynamic.Par.Prg
+import Symphony.Dynamic.Par.Channel
+
 -- TODO(ins): rough and ready, fix this
 parsePrin ∷ 𝕊 → 𝑂 PrinVal
 parsePrin s = case tohs $ list $ splitOn𝕊 "." s of
@@ -87,7 +90,10 @@ mkParty = fromSome ∘ mjoin ∘ map parsePrin
 mkPrg ∷ 𝑂 ℕ → IO Prg
 mkPrg = \case
   None      → prgNew
-  Some seed → prgFromSeed seed
+  Some seed → do
+    let msb = HS.fromIntegral $ HS.quot seed $ 2 ^ 64
+    let lsb = HS.fromIntegral $ HS.rem  seed $ 2 ^ 64
+    prgFromSeed (msb :* lsb)
 
 type Config = 𝐿 (PrinVal ∧ 𝕊)
 
@@ -153,10 +159,12 @@ runPar opts args = do
       channels ← mkChannels party (optParConfig opts)
       stdLib   ← io $ parseFile *$ findFile "lib/stdlib.sym"
       program  ← io $ parseFile *$ findFile path
-#ifdef PAR
       v ← io $ evalProgram (θ₀ name party prg channels configs) (stdLib ⧺ program)
       return $ pretty v
+
 #else
-      io $ out "Symphony compiled without parallel support."
-      io $ abortIO
+runPar ∷ OptionsPar → 𝐿 𝕊 → IO Doc
+runPar opts args = do
+  io $ out "Symphony compiled without parallel support."
+  io $ abortIO
 #endif

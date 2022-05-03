@@ -6,8 +6,8 @@ import Symphony.Lang.Syntax
 import Symphony.Lang.Parser
 
 import Symphony.Dynamic.Par.Error
-import Symphony.Dynamic.Par.Prg.Types
-import Symphony.Dynamic.Par.Channel.Types
+import Symphony.Dynamic.Par.Prg
+import Symphony.Dynamic.Par.Channel
 import Symphony.Dynamic.Par.GMW
 
 import qualified Crypto.Random as R
@@ -115,6 +115,7 @@ data ICxt v = ICxt
 data IState v = IState
   { iStateNextLoc ∷ ℤ64
   , iStateStore   ∷ (Store v)
+  , iStatePrgs    ∷ 𝑃 PrinVal ⇰ Prg
   , iStateGmws    ∷ 𝑃 PrinVal ⇰ Gmw
   , iStateMPCCont ∷ 𝐿 (𝐿 v ∧ v)
   }
@@ -523,7 +524,37 @@ makeLenses ''IState
 makePrettySum ''IState
 
 ω₀ ∷ IState v
-ω₀ = IState (𝕫64 1) wø dø null
+ω₀ = IState (𝕫64 1) wø dø dø null
+
+getSyncPrg ∷ (STACK) ⇒ 𝑃 PrinVal → IM Val (𝑂 Prg)
+getSyncPrg ρvs = do
+  prgs ← getL iStatePrgsL
+  return $ prgs ⋕? ρvs
+
+mkSyncPrg ∷ (STACK) ⇒ 𝑃 PrinVal → IM Val Prg
+mkSyncPrg ρvs = do
+  prg      ← getPrg
+  channels ← list ^$ values ^$ getChannels ρvs
+  msb :* lsb ← prgRandSeed prg
+  eachOn channels $ \ chan → do
+    channelSendStorable chan msb
+    channelSendStorable chan lsb
+    channelFlush chan
+  seeds ← mapMOn channels $ \ chan → do
+    msb ← channelRecvStorable @ℕ64 chan
+    lsb ← channelRecvStorable @ℕ64 chan
+    return $ msb :* lsb
+  let sharedSeed = mapBoth sum $ split seeds
+  sharedPrg ← prgFromSeed sharedSeed
+  modifyL iStatePrgsL ((ρvs ↦ sharedPrg) ⩌!)
+  return sharedPrg
+
+getOrMkSyncPrg ∷ (STACK) ⇒ 𝑃 PrinVal → IM Val Prg
+getOrMkSyncPrg ρvs = do
+  prg𝑂 ← getSyncPrg ρvs
+  case prg𝑂 of
+    None     → mkSyncPrg ρvs
+    Some prg → return prg
 
 getGmw ∷ (STACK) ⇒ 𝑃 PrinVal → IM Val (𝑂 Gmw)
 getGmw ρvs = do

@@ -161,7 +161,10 @@ def list_fold init f l = case l
   ; x :: xs -> f x (list_fold init f xs)
   }
 
-def list_foldl init f l = (list_fold id (fun x acc -> compose (f x) acc) l) init
+def list_foldl init f l = case l
+  { []      -> init
+  ; x :: xs -> list_foldl (f x init) f xs
+  }
 
 def nth idx l = case l
   { []      -> none
