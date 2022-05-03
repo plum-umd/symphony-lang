@@ -1115,7 +1115,7 @@ synBundleUnionHelper τ₁ τ₂ =
               [ ("p₁", pretty p₁)
                 , ("p₂", pretty p₂)
               ]
-            q ← elabMode (p₁ ⊔ p₂)
+            q ← elabMode (union_m p₁ p₂)
             τ ←  (locty_join τ₁' τ₂')
             return  (SecT loc₂ (ISecT q τ))
           _ → todoError
