@@ -83,7 +83,7 @@ type Mode = AddTop (𝑃 PrinVal)
 data ModeAny = 
     Any
   | AddAny Mode
-deriving (Eq, Ord, Show)
+  deriving (Eq, Ord, Show)
 
 instance Pretty ModeAny where
   pretty = \case
