@@ -910,13 +910,13 @@ synComm τ ρe₁ ρse₂ e₃ =
         qs ← elabPrinSetExp ρse₂
         q ←  elabEMode (AddTop ρse₂)
         _ <-  case qs of 
-              (Inl qs) → do
+                (Inl qs) → do
                             guardErr (not (isEmpty  qs)) $
                               typeError "syncOMM: q is empty" $ frhs
                               [ ("q", pretty qs)
                               ]   
                           return ()
-              _  → return ()
+                _  → return ()
 
               -- And this line
         cleartextτ ← (makeCleartextType (AddTop (PowPSE (frhs [ρe₁]))) τ)
