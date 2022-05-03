@@ -1559,13 +1559,13 @@ matchType τ ψ= case ψ of
         guardErr (eq_mode m l₁) $
             typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l₁" $ frhs
               [ ("m", pretty m)
-              , ("l", pretty l)
+              , ("l₁", pretty l₁)
               ]
         return id
     _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; The empty bundle is not of type τ" $ frhs
               [ ("τ", pretty τ)
               ]
-  NEPrinSetP x ψ ψₜ   → case τ of
+  NEBundleP x ψ ψₜ   → case τ of
     (SecT loc₁ (ISecT loc₁' τ₁'))  → do
         m  ← askL terModeL
         l₁ ← elabEMode loc₁
