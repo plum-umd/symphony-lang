@@ -24,7 +24,7 @@ spec = do
     it "() : unit2" $ let x  = (evalEM (ER {terPrins =  listToSet (UVM.frhs [UVM.var "A", UVM.var "B", UVM.var "C"]), terModeScope = UVM.dø, terSource = UVM.None, terMode = (AddAny UVM.Top), terEnv = UVM.null}) () (synExp (UVM.𝐴 (UVM.SrcCxt {UVM.srcCxtSourceName = "", UVM.srcCxtLocRange = UVM.locRange₀, UVM.srcCxtPrefix = UVM.null, UVM.srcCxtContext = UVM.null, UVM.srcCxtSuffix = UVM.null}) (BulE))))
      in  case x of
      UVM.Inr a -> a `shouldBe`  (SecT (UVM.Top) (BaseT UnitT))
-    it "() : unit3" $ let x  = (evalEM (ER {terPrins =  listToSet (UVM.frhs [UVM.var "A", UVM.var "B", UVM.var "C"]), terModeScope = UVM.dø, terSource = UVM.None, terMode = (AddAny UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A") ])))) , terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "A" , (SecT UVM.Top (BaseT ℙsT))) ])) }) () (synExpR BulE))
+    it "() : unit3" $ let x  = (evalEM (ER {terPrins =  listToSet (UVM.frhs [UVM.var "A", UVM.var "B", UVM.var "C"]), terModeScope = UVM.dø, terSource = UVM.None, terMode = (AddAny (UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A") ]))))) , terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "A" , (SecT UVM.Top (BaseT ℙsT))) ])) }) () (synExpR BulE))
      in  case x of
      UVM.Inr a -> a `shouldBe`  (SecT (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A")]) )) (BaseT UnitT))
     it "() : bool" $ let x  = (evalEM (ER {terPrins =  listToSet (UVM.frhs [UVM.var "A", UVM.var "B", UVM.var "C"]), terModeScope = UVM.dø, terSource = UVM.None, terMode = (AddAny UVM.Top), terEnv = UVM.null}) () (synExpR (BoolE True)))
