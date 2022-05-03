@@ -54,7 +54,7 @@ assertM m τ =
   case τ of
     (SecT loc _)  →  do
           l ← elabEMode loc
-          guardErr (m ≡ l)  $
+          guardErr (eq_mode m l)  $
             typeError "ExtractProt: m != l" $ frhs
                   [ ("m", pretty m)
                   , ("l", pretty l)
@@ -167,7 +167,7 @@ eModeEqual loc loc' =
   do
     p ←  elabEMode loc
     p' ← elabEMode loc'
-    return $ p ≡ p'
+    return $ eq_mode p p'
 
 
 -----------------
@@ -189,7 +189,7 @@ subtype_loc loctyS loctyT d = case loctyS of
         l ← (elabEMode loc)
         l' ← (elabEMode loc')
         loccond ← (subtype_loc loctyS loctyT d)
-        return ((l ≡ l') ⩓ (pS ≡ pT) ⩓ loccond)
+        return ((eq_mode l l') ⩓ (pS ≡ pT) ⩓ loccond)
       _  → return False
   -- t1 <: t1' t2 <: t2'
   -- -------Sub-Sum
@@ -415,7 +415,7 @@ eq_locty locty locty'=
         l ← elabEMode loc
         l' ← elabEMode loc'
         loccond ← (eq_type τ τ')
-        return ((l ≡ l') ⩓ loccond)
+        return ((eq_mode l l') ⩓ loccond)
       _  → return False
     ISecT loc locty'  → case locty' of
       ISecT loc' locty' → do
