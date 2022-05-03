@@ -309,6 +309,7 @@ supermode locT locS = case locT of
   Any → True
   (AddAny Top) → True
   (AddAny (AddTop psT)) → case locS of
+      Any → True
       (AddAny Top) → False
       (AddAny (AddTop psS)) → (psT ⊇ psS)
 
