@@ -1583,6 +1583,16 @@ matchType τ ψ= case ψ of
     _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; the expression is not of type SecT loc τ" $ frhs
               [ ("τ", pretty (BaseT ℙsT ))
               ]
+     
+    AscrP ψ τ'
+      subcond  ← (subtype τ τ' pø) 
+      guardErr subcond $
+        typeError "matchType: e has type τ' which is not a subtype of τ" $ frhs
+        [ ("e", pretty e)
+        , ("τ", pretty τ)
+        , ("τ'", pretty τ')
+        ]
+      return id
   WildP → return id
 
 
