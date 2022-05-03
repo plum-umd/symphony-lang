@@ -165,15 +165,26 @@ synStr s = do
 -- gamma |- m b : t
 synPrinExp ∷ STACK ⇒ PrinExp → EM Type
 synPrinExp ρe = case ρe of
-  VarPE x       → synVar x
-  AccessPE x n₁ → synVar x
+  VarPE x       → do
+    ρτ ← (synVar ρe)
+    m ← askL terModeL
+    em ← elabMode m
+    subcond ← (subtype ρτ (SecT em (BaseT ℙT)) pø )
+    guardErr subcond $
+      typeError "checkPrin: ρe has type ρτ which is not a subtype of τ" $ frhs
+        [ ("ρτ", pretty ρe)
+        , ("ρτ'", pretty ρτ)
+        , ("τ'", pretty (SecT em (BaseT ℙT)))
+        ]
+    return ρτ
+  AccessPE x n₁ → todoError
 
-
+{-
 -- forall A in M = {A ...} gamma |- m A t t <: prin@all
 checkPrin ∷ STACK ⇒ PrinExp → EM ()
 checkPrin ρe =
    do
-    ρτ ← (synPrinExp ρe)
+    ρτ ← (synVar ρe)
     m ← askL terModeL
     em ← elabMode m
     subcond ← (subtype ρτ (SecT em (BaseT ℙT)) pø )
@@ -184,7 +195,7 @@ checkPrin ρe =
         , ("τ'", pretty (SecT em (BaseT ℙT)))
         ]
     return ()
-
+-}
 
 -- forall A in M = {A ...} gamma |- m A t t : prin@m
 -- ------T-PrinSetExp
@@ -192,8 +203,20 @@ checkPrin ρe =
 synPrinSet ∷ STACK ⇒ PrinSetExp → EM Type
 synPrinSet ρse =
   case ρse of
+  VarPSE ρes → do
+    ρsτ ← (synVar ρe)
+    m ← askL terModeL
+    em ← elabMode m
+    subcond ← (subtype ρτ (SecT em (BaseT ℙsT)) pø )
+    guardErr subcond $
+      typeError "checkPrin: ρse has type ρτ which is not a subtype of τ" $ frhs
+        [ ("ρsτ", pretty ρse)
+        , ("ρsτ'", pretty ρsτ)
+        , ("τ'", pretty (SecT em (BaseT ℙT)))
+        ]
+    return ρsτ
   PowPSE ρes → do
-    _ ←  mapM checkPrin ρes
+    _ ←  mapM synPrinExp ρes
     m ← askL terModeL
     em ← elabMode m
     return $ SecT em $ BaseT ℙsT
