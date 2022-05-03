@@ -8,9 +8,9 @@ import Symphony.TypeChecker.Env
 
 data ER = ER
   { terSource ∷ 𝑂 SrcCxt
-  , terMode   ∷ Mode
+  , terMode   ∷ ModeAny
   , terEnv    ∷ Env
-  , terModeScope    ∷ (𝕏 ⇰ Mode)
+  , terModeScope    ∷ (𝕏 ⇰ ModeAny)
   , terPrins    ∷ (𝑃 𝕏)
   }
 

@@ -52,7 +52,7 @@ synAppTL τ₁ τ₂ = case τ₁ of
     m  ← askL terModeL
     l₁ ← elabEMode $ effectMode η
     l₂ ← elabEMode loc
-    guardErr (m ≡ l₁) $
+    guardErr (eq_mode m l₁) $
       typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
       [ ("m", pretty m)
       , ("l", pretty l₁)
@@ -70,12 +70,12 @@ synAppTL2 τ₁ τ₂ =
         l₁ ← elabEMode $ effectMode η
         l₂ ← elabEMode loc
         subcond  ←  (subtype τ₂ τ₁₂ pø )
-        guardErr (m ≡ l₁) $
+        guardErr (eq_mode m l₁) $
           typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
           [ ("m", pretty m)
           , ("l", pretty l₁)
           ]
-        guardErr (m ≡ l₂) $
+        guardErr (eq_mode m l₂) $
           typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
           [ ("m", pretty m)
           , ("l", pretty l₁)
@@ -245,7 +245,7 @@ synPrim op es =
             -- The encrypted location may not be necessary as wwe already asserted m
             -- But well formed don't disallow it so we'll keep it
             ((p, loc) :& _) → do
-              guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (l ≡ m)) ps)) $
+              guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (eq_mode l m)) ps)) $
                 typeError "Not all protocols/encryptions are the same as p#loc" $ frhs
                   [ ("ρ", pretty p)
                   , ("loc'", pretty m)
@@ -372,7 +372,7 @@ synCase e ψes =
       (SecT loc _) → do
         m ← askL terModeL
         l ← elabEMode loc
-        guardErr (m ≡ l) $
+        guardErr (eq_mode m l) $
           typeError "synCase: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
           [ ("m", pretty m)
           , ("l", pretty l)
@@ -415,12 +415,12 @@ checkLam self𝑂 ψs e τ =
                     m  ← askL terModeL
                     l₁ ← elabEMode $ effectMode η
                     l₂ ← elabEMode loc
-                    guardErr (m ≡ l₁) $
+                    guardErr (eq_mode m l₁) $
                       typeError "checkLam: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
                       [ ("m", pretty m)
                       , ("l", pretty l₁)
                       ]
-                    guardErr (m ≡ l₂) $
+                    guardErr (eq_mode m l₂) $
                       typeError "checkLam: ⊢ₘ _ ˡ→ _ ; m ≢ l₂" $ frhs
                       [ ("m", pretty m)
                       , ("l", pretty l₂)
@@ -456,12 +456,12 @@ synApp e₁ e₂ =
         m  ← askL terModeL
         l₁ ← elabEMode $ effectMode η
         l₂ ← elabEMode loc
-        guardErr (m ≡ l₁) $
+        guardErr (eq_mode m l₁) $
           typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
           [ ("m", pretty m)
           , ("l", pretty l₁)
           ]
-        guardErr (m ≡ l₂) $
+        guardErr (eq_mode m l₂) $
           typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
           [ ("m", pretty m)
           , ("l", pretty l₁)
@@ -485,15 +485,19 @@ synRead τ e =
     em ← elabMode m
     τ' ← makeCleartextType em τ
     τ'' ← c
-    guardErr ((map psize m) ≡ (AddTop 1)) $
-      typeError "synRead: ⊢ₘ ; |m| ≢  1" $ frhs
-      [ ("m", pretty m)
-      ]
+    _ ← case m of
+      Any → return ()
+      AddAny m'  → guardErr ( (map psize m') ≡ (AddTop 1)) $
+                    typeError "synRead: ⊢ₘ ; |m| ≢  1" $ frhs
+                    [ ("m", pretty m)
+                    ]
+                    return ()
+   
     case τ'' of
       (SecT loc (BaseT 𝕊T))  →
         do
           l ← elabEMode loc
-          guardErr (m ≡ l) $
+          guardErr (eq_mode m l) $
             typeError "synRead: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
               [ ("m", pretty m)
                 , ("l", pretty l)
@@ -511,14 +515,17 @@ synWrite e₁ e₂ =
     m ← askL terModeL
     τ ← c₁
     τ' ← c₂
-    guardErr ((map psize m) == (AddTop 1)) $
-      typeError "synWrite: ⊢ₘ ; |m| ≢  1" $ frhs
-      [ ("m", pretty m)
-      ]
+    _ ← case m of
+      Any → return ()
+      AddAny m'  → guardErr ( (map psize m)' ≡ (AddTop 1)) $
+                    typeError "synWrite: ⊢ₘ ; |m| ≢  1" $ frhs
+                    [ ("m", pretty m)
+                    ]
+                    return ()
     case τ of
       (SecT loc bτ)  → do
           l₁ ← elabEMode loc
-          guardErr (m ≡ l₁) $
+          guardErr (eq_mode m l₁) $
             typeError "synWRite: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
               [ ("m", pretty m)
                 , ("l", pretty l₁)
@@ -526,7 +533,7 @@ synWrite e₁ e₂ =
           case τ' of
             (SecT loc' (BaseT 𝕊T))  → do
                                       l₂ ← elabEMode loc'
-                                      guardErr (m ≡ l₂) $
+                                      guardErr (eq_mode m l₂) $
                                         typeError "synWRite: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
                                           [ ("m", pretty m), ("l", pretty l₂)]
                                       return τ
@@ -574,7 +581,7 @@ synRefRead e =
         m  ← askL terModeL
         l ← elabEMode loc
         --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
-        guardErr (m ≡ l) $
+        guardErr (eq_mode m l) $
           typeError "synRefRead: m /≡ l" $ frhs
           [ ("m", pretty m)
           , ("l", pretty l)
@@ -603,7 +610,7 @@ synRefWrite e₁ e₂ =
         l₁₁ ← elabEMode loc₁₁
         l₁₂ ← elabEMode loc₁₂
         -- Does this due to reflexivity of sub-refl
-        guardErr ((m ≡ l₁₁) ⩓ (m ≡ l₁₂)) $
+        guardErr ((eq_mode em l₁₁) ⩓ (eq_mode m l₁₂)) $
           typeError "synRefWrite: m /≡ l₁₁ or  m /≡ l₁₂" $ frhs
           [ ("m", pretty m)
           , ("l₁₁", pretty l₁₁)
@@ -630,7 +637,7 @@ synArray e₁ e₂ =
         m  ← askL terModeL
         l ← elabEMode loc
         em ← elabMode m
-        guardErr (m ≡ l) $
+        guardErr (eq_mode m l) $
           typeError "synArray: m /≡ l" $ frhs
           [ ("m", pretty m)
           , ("l", pretty l)
@@ -656,7 +663,7 @@ synArrayRead e₁ e₂ =
         m  ← askL terModeL
         l₁ ← elabEMode loc₁
         --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
-        guardErr (m ≡ l₁) $
+        guardErr (eq_mode m l₁) $
           typeError "synArrayRead: m /≡ l₁" $ frhs
           [ ("m", pretty m)
           , ("l₁", pretty l₁)
@@ -666,7 +673,7 @@ synArrayRead e₁ e₂ =
           (SecT loc₂ (BaseT (ℕT _)))  → do
             l₂ ← elabEMode loc₂
             em ← elabMode m
-            guardErr (m ≡ l₂) $
+            guardErr (eq_mode m l₂) $
               typeError "synArray: m /≡ l" $ frhs
               [ ("m", pretty m)
                 , ("l₂", pretty l₂)
@@ -701,7 +708,7 @@ synArrayWrite e₁ e₂ e₃ =
         l₁₁ ← elabEMode loc₁₁
         l₁₂ ← elabEMode loc₁₂
         --  dont need subcond  ←  (subtype τ (SecT m (ArrT _ t')))
-        guardErr ((m ≡ l₁₁) ⩓ (m ≡ l₁₂)) $
+        guardErr ((eq_mode m l₁₁) ⩓ (eq_mode m l₁₂)) $
           typeError "synRefWrite: m /≡ l₁₁ or  m /≡ l₁₂" $ frhs
           [ ("m", pretty m)
           , ("l₁₁", pretty l₁₁)
@@ -711,7 +718,7 @@ synArrayWrite e₁ e₂ e₃ =
           (SecT loc₂ (BaseT (ℕT _)))  → do
             l₂ ← elabEMode loc₂
             em ← elabMode m
-            guardErr (m ≡ l₂) $
+            guardErr (eq_mode m l₂) $
               typeError "synArrayWrite: m /≡ l₂" $ frhs
                 [ ("m", pretty m)
                   , ("l₂", pretty l₂)
@@ -738,7 +745,7 @@ synArraySize e =
           l ← elabEMode loc
           em ← elabMode m
           --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
-          guardErr (m ≡ l) $
+          guardErr (eq_mode m l) $
             typeError "synArraySize: m /≡ l" $ frhs
             [ ("m", pretty m)
             , ("l", pretty l)
@@ -764,10 +771,9 @@ synPar ρse₁ e₂ =
       c₂ = synExp e₂
   in do
     m  ← askL terModeL
-    ρ𝑃 ← (elabPrinSetExp  ρse₁)
-    let l = AddTop ρ𝑃
-    let m' = m ⊓ l
-    if m' ≢ bot then
+    l ← elabEMode (AddTop ρse₁)
+    let m' = union_m m l
+    if m' ≢  (AddAny (AddTop bot)) then
       localL terModeL m' c₂
     else
       --  |-empty t
@@ -783,10 +789,9 @@ checkPar ρse₁ e₂ τ=
       c₂ = synExp e₂
   in do
     m  ← askL terModeL
-    ρ𝑃 ← (elabPrinSetExp  ρse₁)
-    let l = AddTop ρ𝑃
-    let m' = m ⊓ l
-    if m' ≢ bot then do
+    l ← elabEMode (AddTop ρse₁)
+    let m' = union_m m l
+    if m' ≢  (AddAny AddTop bot) then do
       τ' ← localL terModeL m' c₂
       subcond  ← subtype τ' τ pø 
       guardErr subcond $
@@ -834,21 +839,28 @@ synShare φ τ ρe₁ ρse₂ e₃ =
       c₂ = synPrinSet ρse₂ 
       in do
         m  ← askL terModeL
+        -- Literally this line is the only line that needs to change
         p ←  elabEMode (AddTop (PowPSE (frhs [ρe₁])))
         qs ← elabPrinSetExp ρse₂
-        guardErr (not (isEmpty  qs)) $
-          typeError "synShare: q is empty" $ frhs
-            [  ("q", pretty qs)
-            ]  
+        q ←  elabEMode (AddTop ρse₂)
+        _ <-  case qs of 
+              (Inl qs) → guardErr (not (isEmpty  qs)) $
+                          typeError "synShare: q is empty" $ frhs
+                          [  ("q", pretty qs)
+                          ]  
+                          return ()
+              _  → return ()
+
+              -- And this line
         cleartextτ ← (makeCleartextType (AddTop (PowPSE (frhs [ρe₁]))) τ)
       --  wfcond ← wf_type cleartextτ m
         subcond  ←  localL terModeL m (chkExp e₃ cleartextτ)
-        guardErr (p ⊔ (AddTop qs)  ≡  m ) $
+        guardErr (eq_mode (union_m p q)  m ) $
           typeError "synShare: p union q /= m" $ frhs
             [  
               ("p", pretty p)
-              , ("q", pretty (AddTop qs))
-              , ("puq", pretty (p ⊔ (AddTop qs)))
+              , ("q", pretty q)
+              , ("puq", pretty (union_m p q))
               , ("m", pretty m)
             ]  
 
@@ -864,16 +876,16 @@ synReveal φ τ ρse₁ ρe₂ e₃ =
       c₂ = synPrinExp ρe₂
       in do
         m  ← askL terModeL
-        ps ← elabPrinSetExp ρse₁
+        p ←  elabEMode (AddTop ρse₂)
         q ←  elabEMode (AddTop (PowPSE (frhs [ρe₂])))
         encryptedτ ← (makeEncryptedType (AddTop ρse₁) φ τ) 
         subcond  ←  localL terModeL m (chkExp e₃ encryptedτ)
-        guardErr ((AddTop ps) ⊔ q  ≡  m ) $
-          typeError "synShare: p union q /= m" $ frhs
+        guardErr (eq_mode (union_m p q)  m ) $
+          typeError "synReveal: p union q /= m" $ frhs
             [  
-              ("p", pretty (AddTop ps))
-              , ("qs", pretty q)
-              , ("puq", pretty ((AddTop ps) ⊔ q))
+              ("p", pretty p)
+              , ("q", pretty q)
+              , ("puq", pretty (union_m p q))
               , ("m", pretty m)
             ]  
 
@@ -890,21 +902,28 @@ synComm τ ρe₁ ρse₂ e₃ =
       c₂ = synPrinSet ρse₂ 
       in do
         m  ← askL terModeL
+        -- Literally this line is the only line that needs to change
         p ←  elabEMode (AddTop (PowPSE (frhs [ρe₁])))
         qs ← elabPrinSetExp ρse₂
-        guardErr (not (isEmpty  qs)) $
-          typeError "synShare: q is empty" $ frhs
-            [  ("q", pretty qs)
-            ]  
+        q ←  elabEMode (AddTop ρse₂)
+        _ <-  case qs of 
+              (Inl qs) → guardErr (not (isEmpty  qs)) $
+                          typeError "synShare: q is empty" $ frhs
+                          [  ("q", pretty qs)
+                          ]  
+                          return ()
+              _  → return ()
+
+              -- And this line
         cleartextτ ← (makeCleartextType (AddTop (PowPSE (frhs [ρe₁]))) τ)
       --  wfcond ← wf_type cleartextτ m
         subcond  ←  localL terModeL m (chkExp e₃ cleartextτ)
-        guardErr (p ⊔ (AddTop qs)  ≡  m ) $
-          typeError "synShare: p union q /= m" $ frhs
+        guardErr (eq_mode (union_m p q)  m ) $
+          typeError "synComm: p union q /= m" $ frhs
             [  
               ("p", pretty p)
-              , ("q", pretty (AddTop qs))
-              , ("puq", pretty (p ⊔ (AddTop qs)))
+              , ("q", pretty q)
+              , ("puq", pretty (union_m p q))
               , ("m", pretty m)
             ]  
         (makeCleartextType (AddTop ρse₂) τ)
@@ -938,7 +957,7 @@ synMuxIf e₁ e₂ e₃ =do
         else
           case ps  of
             ((p, loc) :& _) → do
-              guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (l ≡ m)) ps)) $
+              guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (eq_mode l m)) ps)) $
                 typeError "synMuxIf: Not all protocols/encryptions are the same as p#loc" $ frhs
                   [ ("ρ", pretty p)
                   , ("loc'", pretty m)
@@ -982,7 +1001,7 @@ synMuxCase e ψes =do
             (SecT em (ShareT _ _ _ )) →
               case ps  of
                 ((p, loc) :& _) → do
-                  guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (l ≡ m)) ps)) $
+                  guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (eq_mode l m)) ps)) $
                     typeError "synMuxCase: Not all protocols/encryptions are the same as p#loc" $ frhs
                       [ ("ρ", pretty p)
                       , ("loc'", pretty m)
@@ -1037,7 +1056,7 @@ synBundleAccess e₁ ρe₂ =
         m  ← askL terModeL
         l₁ ← elabEMode loc₁
         --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
-        guardErr (m ≡ l₁) $
+        guardErr (eq_mode m l₁) $
           typeError "synBundleAccess: m /≡ l" $ frhs
           [ ("m", pretty m)
           , ("l", pretty l₁)
@@ -1087,7 +1106,7 @@ synBundleUnionHelper τ₁ τ₂ =
               ]
             p₁ ← elabEMode loc₁'
             p₂ ← elabEMode loc₂'
-            guardErr (p₁ ⊓ p₂ ≡ bot) $
+            guardErr (union_m p₁ p₂ ≡ (AddAny (AddTop bot))) $
               typeError "synBundle: p₁ ⊓ p₂ ≢  bot" $ frhs
               [ ("p₁", pretty p₁)
                 , ("p₂", pretty p₂)
@@ -1140,7 +1159,7 @@ synUnfold e =
 synTLam ∷ STACK ⇒ TVar→ Exp → EM Type
 synTLam x e  =
   let c = synExp e
-      m' = AddTop pø
+      m' = AddAny (AddTop pø)
   in do
 
     τ ← (mapEnvL terModeScopeL ((x ↦ m') ⩌) c)
@@ -1188,7 +1207,7 @@ chkExpR e τ =
       _ →
           do
             τ' ← synExpR e
-            subcond  ← (subtype τ' τ pø) 
+            subcond  ← (subtype τ' τ (AddAny pø)) 
             guardErr subcond $
               typeError "checkExpR: e has type τ' which is not a subtype of τ" $ frhs
               [ ("e", pretty e)
@@ -1274,10 +1293,10 @@ asTLM ∷ STACK ⇒ EM a → TLM a
 asTLM eM = do
   γ ← getL ttlsEnvL
   ps ← getL ttlsPrinsL
-  let r = ER { terSource = None, terMode = Top, terEnv = γ, terModeScope = dø, terPrins = ps }
+  let r = ER { terSource = None, terMode = (AddAny Top), terEnv = γ, terModeScope = dø, terPrins = ps }
   evalEMErr r () eM
 
 bindTypeTL ∷ STACK ⇒ 𝕏 → Type → TLM ()
 bindTypeTL x τ = do 
-  _ ← asTLM $ (wf_type τ Top dø)
+  _ ← asTLM $ (wf_type τ (AddAny Top) dø)
   modifyL ttlsEnvL ((x ↦ τ) ⩌)

@@ -82,7 +82,8 @@ type Mode = AddTop (𝑃 PrinVal)
 
 data ModeAny = 
     Any
-  | AddAny
+  | AddAny Mode
+  deriving (Eq, Ord, Show)
 ----------------
 -- Constraint --
 ----------------

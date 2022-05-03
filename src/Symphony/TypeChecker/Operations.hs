@@ -304,42 +304,55 @@ superemode locT locS= do
   return (supermode lT lS)
 
 -- Checks if mT ⊇ mS
-supermode :: STACK ⇒ Mode → Mode → 𝔹
+supermode :: STACK ⇒ ModeAny → ModeAny → 𝔹
 supermode locT locS = case locT of
-  Top → True
-  AddTop psT → case locS of
-      Top → False
-      AddTop psS  → (psT ⊇ psS)
+  Any → True
+  (AddAny Top) → True
+  (AddAny (AddTop psT)) → case locS of
+      (AddAny Top) → False
+      (AddAny (AddTop psS)) → (psT ⊇ psS)
 
  -- Returns em ∩ em'
 inter_em :: STACK ⇒ EMode → EMode → EM EMode
 inter_em loc loc' = do
   l ← elabEMode loc
   l' ← elabEMode loc'
-  (elabMode (l ⊓ l'))
+  (elabMode (inter_m l l'))
 
 -- Returns m ∩ m'
-inter_m :: STACK ⇒ Mode → Mode → Mode
+inter_m :: STACK ⇒ ModeAny → ModeAny → ModeAny
 inter_m l l' = case l of
-  Top → l'
-  AddTop ps → case l' of
-      Top → (AddTop ps)
-      AddTop ps'  →  AddTop(ps ∩ ps')
+  Any → Any
+  (AddAny Top) → (AddAny l')
+  (AddAny (AddTop ps)) → case l' of
+      Top → (AddAny (AddTop ps))
+      (AddAny (AddTop ps')  → (AddAny (AddTop(ps ∩ ps')))
 
  -- Returns em ∩ em'
 union_em :: STACK ⇒ EMode → EMode → EM EMode
 union_em loc loc' = do
   l ← elabEMode loc
   l' ← elabEMode loc'
-  (elabMode (l ⊔ l'))
+  (elabMode (union_m l l'))
 
 -- Returns m ∩ m'
-union_m :: STACK ⇒ Mode → Mode → Mode
+union_m :: STACK ⇒ Mode → Mode → ModeAny
 union_m l l' = case l of
-  Top → Top
-  AddTop ps → case l' of
-      Top → Top
-      AddTop ps'  →  AddTop(ps ∪ ps')
+   Any → Any
+  (AddAny Top) → (AddAny Top)
+  (AddAny (AddTop ps)) → case l' of
+      Top → (AddAny Top)
+      (AddAny (AddTop ps')  → (AddAny AddTop(ps ∪ ps'))
+
+-- Checks if mT ⊇ mS
+eq_mode :: STACK ⇒ Mode → Mode → 𝔹
+eq_mode l l' = case l of
+  Any → True
+  (AddAny m) → case l' of
+    Any  →  True
+    (AddAny m') → m ≡  m'
+      
+
 -----------------
 --- Join functions ---
 -----------------
@@ -352,7 +365,7 @@ eq_locty locty locty'=
       ShareT p' loc' locty' → do
         l ← (elabEMode loc)
         l' ← (elabEMode loc')
-        return ((p  ≡ p') ⩓ (l  ≡ l')) 
+        return ((p  ≡ p') ⩓ (eq_mode l l')) 
       _  → return False
     (tyₗ :+: tyᵣ) → case locty' of
       (ty'ₗ :+: ty'ᵣ) → do
@@ -379,7 +392,7 @@ eq_locty locty locty'=
         l' ← elabEMode $ effectMode η'
         loccondₗ ← (eq_type τ₁₁' τ₁₁)
         loccondᵣ ← (eq_type τ₁₂ τ₁₂')
-        return ((l ≡ l') ⩓ loccondₗ ⩓ loccondᵣ)
+        return ((eq_mode l l') ⩓ loccondₗ ⩓ loccondᵣ)
     (RefT None τ) → case locty' of
       (RefT None τ') → (eq_type τ τ')
       _  → return False
@@ -388,7 +401,7 @@ eq_locty locty locty'=
         l ← elabEMode loc
         l' ← elabEMode loc'
         loccond ← (eq_type τ τ')
-        return ((l ≡ l') ⩓ loccond)
+        return ((eq_mode l ≡ l') ⩓ loccond)
       _  → return False
     (ArrT None _ τ) →  case locty' of
       (ArrT None _ τ') → (eq_type τ τ')
@@ -405,7 +418,7 @@ eq_locty locty locty'=
         l ← elabEMode loc
         l' ← elabEMode loc'
         loccond ← (eq_type locty locty')
-        return ((l ≡ l') ⩓ loccond)
+        return ((eq_mode l l') ⩓ loccond)
       _ → return False
 
 -- Possibly add alpha equivalence in the future
@@ -416,7 +429,7 @@ eq_type ty ty' = case ty of
         l ← elabEMode loc
         l' ← elabEMode loc'
         eqcond ← (eq_locty loc_ty loc_ty')
-        return ((l  ≡ l') ⩓ eqcond)
+        return ((eq_mode l l') ⩓ eqcond)
       _ → typeError "eq_type: ty' is not a located type" $ frhs
           [ ("ty'", pretty ty' )
           ]
@@ -460,7 +473,7 @@ locty_meet locty locty' =
       do
         l ← (elabEMode loc)
         l' ← (elabEMode loc')
-        guardErr ((p  ≡ p') ⩓ (l  ≡ l'))$
+        guardErr ((p  ≡ p') ⩓ (eq_mode l l'))$
           typeError "meet: ⊢ₘ _ ˡ→ _ ; p ≢ p' or l ≢  l'" $ frhs
             [ ("p", pretty p)
             , ("p'", pretty p')
@@ -518,7 +531,7 @@ locty_meet locty locty' =
     (τ₁₁' :→: (η' :* τ₁₂')) → do
         l ← elabEMode $ effectMode η
         l' ← elabEMode $ effectMode η'
-        guardErr (l ≡ l') $
+        guardErr (eq_mode l l') $
           typeError "meet: l ≢ l'" $ frhs
             [ ("l", pretty l)
             , ("l'", pretty l')
@@ -696,7 +709,7 @@ locty_join locty locty' =
       do
         l ← (elabEMode loc)
         l' ← (elabEMode loc')
-        guardErr ((p  ≡ p') ⩓ (l  ≡ l'))$
+        guardErr ((p  ≡ p') ⩓ (eq_mode l l'))$
           typeError "join: ⊢ₘ _ ˡ→ _ ; p ≢ p' or l ≢  l'" $ frhs
             [ ("p", pretty p)
             , ("p'", pretty p')
@@ -753,7 +766,7 @@ locty_join locty locty' =
     (τ₁₁' :→: (η' :* τ₁₂')) → do
         l ← elabEMode $ effectMode η
         l' ← elabEMode $ effectMode η'
-        guardErr (l ≡ l') $
+        guardErr (eq_mode l l') $
           typeError "join: l ≢ l'" $ frhs
             [ ("l", pretty l)
             , ("l'", pretty l')
@@ -952,7 +965,7 @@ wf_loctype sigma m bigM =
       l ← elabEMode $ effectMode η
       _ ← (wf_type τ₁₁ m bigM)
       _ ← (wf_type τ₁₂ m bigM)
-      guardErr (m ≡ l) $
+      guardErr (eq_mode m l) $
         typeError "Not well formed m != l" $ frhs
         [ ("m", pretty m)
         , ("l", pretty l)
@@ -1007,12 +1020,12 @@ wf_share_type ty m p l=
         , ("m'", pretty m')
         ]
       l' ← (elabEMode loc)
-      guardErr (l ≡ l') $
+      guardErr (eq_mode l l') $
         typeError "wf_share_type: Not well formed encrypted type l != l'" $ frhs
         [ ("l", pretty l)
         , ("l'", pretty l')
         ]
-      guardErr (m ≡ m') $
+      guardErr (eq_mode m m') $
         typeError "wf_share_type: Not well formed encrypted type m != m'" $ frhs
         [ ("m", pretty m)
         , ("m'", pretty m')
@@ -1151,7 +1164,7 @@ sublocty_wf sigma m bigM=
     -- WF-Fun: m must be same as mode, t1 must be well formed and t2 must be well formed
     (τ₁₁ :→: (η :* τ₁₂)) → do
       l ← elabEMode $ effectMode η
-      guardErr (m ≡ l) $
+      guardErr (eq_mode m l) $
         typeError "subloctype_wf: Not well formed m != l" $ frhs
         [ ("m", pretty m)
         , ("l", pretty l)
@@ -1252,7 +1265,7 @@ superlocty_wf sigma m bigM =
     -- WF-Fun: t1 must be well formed and t2 must be well formed
     (τ₁₁ :→: (η :* τ₁₂)) → do
       l ← elabEMode $ effectMode η
-      guardErr (m ≡ l) $
+      guardErr (eq_mode m l) $
         typeError "superloctype_wf: Not well formed m != l" $ frhs
         [ ("m", pretty m)
         , ("l", pretty l)
@@ -1397,7 +1410,7 @@ matchType τ ψ= case ψ of
     (SecT loc (BaseT (UnitT) )) →  do
           m ← askL terModeL
           l ← elabEMode loc
-          guardErr (m ≡ l) $
+          guardErr (eq_mode m l) $
             typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
               [ ("m", pretty m)
               , ("l", pretty l)
@@ -1406,7 +1419,7 @@ matchType τ ψ= case ψ of
     (SecT loc (ShareT _ _ (BaseT (UnitT) ))) →  do
           m ← askL terModeL
           l ← elabEMode loc
-          guardErr (m ≡ l) $
+          guardErr (eq_mode m l) $
             typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
               [ ("m", pretty m)
               , ("l", pretty l)
@@ -1419,7 +1432,7 @@ matchType τ ψ= case ψ of
     (SecT loc (BaseT ℙsT)) → do
           m ← askL terModeL
           l ← elabEMode loc
-          guardErr (m ≡ l) $
+          guardErr (eq_mode m l) $
             typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
               [ ("m", pretty m)
               , ("l", pretty l)
@@ -1432,7 +1445,7 @@ matchType τ ψ= case ψ of
     (SecT loc (BaseT ℙsT ))  →  do
           m ← askL terModeL
           l ← elabEMode loc
-          guardErr (m ≡ l) $
+          guardErr (eq_mode m l) $
             typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
               [ ("m", pretty m)
               , ("l", pretty l)
@@ -1448,7 +1461,7 @@ matchType τ ψ= case ψ of
     (SecT loc (τₗ :×: τᵣ)) → do
         m ← askL terModeL
         l ← elabEMode loc
-        guardErr (m ≡ l) $
+        guardErr (eq_mode m l) $
           typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
               [ ("m", pretty m)
               , ("l", pretty l)
@@ -1463,7 +1476,7 @@ matchType τ ψ= case ψ of
     (SecT loc (τₗ  :+: _)) → do
         m ← askL terModeL
         l ← elabEMode loc
-        guardErr (m ≡ l) $
+        guardErr (eq_mode m l) $
           typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
               [ ("m", pretty m)
               , ("l", pretty l)
@@ -1472,7 +1485,7 @@ matchType τ ψ= case ψ of
     (SecT loc (ShareT _ _ (τₗ  :+: _))) → do
         m ← askL terModeL
         l ← elabEMode loc
-        guardErr (m ≡ l) $
+        guardErr (eq_mode m l) $
           typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
               [ ("m", pretty m)
               , ("l", pretty l)
@@ -1485,7 +1498,7 @@ matchType τ ψ= case ψ of
     (SecT loc (τₗ  :+: τᵣ)) → do
         m ← askL terModeL
         l ← elabEMode loc
-        guardErr (m ≡ l) $
+        guardErr (eq_mode m l) $
           typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
           [ ("m", pretty m)
               , ("l", pretty l)
@@ -1494,7 +1507,7 @@ matchType τ ψ= case ψ of
     (SecT loc (ShareT _ _ (τₗ  :+: τᵣ))) → do
         m ← askL terModeL
         l ← elabEMode loc
-        guardErr (m ≡ l) $
+        guardErr (eq_mode m l) $
           typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
               [ ("m", pretty m)
               , ("l", pretty l)
@@ -1507,7 +1520,7 @@ matchType τ ψ= case ψ of
     (SecT loc (ListT _ τₜ)) → do
           m ← askL terModeL
           l ← elabEMode loc
-          guardErr (m ≡ l) $
+          guardErr (eq_mode m l) $
             typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
               [ ("m", pretty m)
               , ("l", pretty l)
@@ -1520,7 +1533,7 @@ matchType τ ψ= case ψ of
     (SecT loc (ListT n τₜ)) → do
           m ← askL terModeL
           l ← elabEMode loc
-          guardErr (m ≡ l) $
+          guardErr (eq_mode m l) $
             typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
               [ ("m", pretty m)
               , ("l", pretty l)
