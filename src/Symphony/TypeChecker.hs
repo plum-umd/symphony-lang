@@ -915,7 +915,7 @@ synComm τ ρe₁ ρse₂ e₃ =
                               typeError "syncOMM: q is empty" $ frhs
                               [ ("q", pretty qs)
                               ]   
-                          return ()
+                            return ()
                 _  → return ()
 
               -- And this line
