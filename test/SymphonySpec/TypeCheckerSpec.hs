@@ -55,7 +55,7 @@ spec = do
           b =  (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A"), VarPE (UVM.var "C")]) ))
           c = (UVM.AddTop (PowPSE (UVM.frhs [VarPE (UVM.var "A")]) ))
           expr =  (IfE (UVM.𝐴 y (VarE (UVM.var "D"))) (UVM.𝐴 y (VarE (UVM.var "A"))) (UVM.𝐴 y (VarE (UVM.var "B"))) )
-          x  = (evalEM (ER {terPrins =  listToSet (UVM.frhs [UVM.var "A", UVM.var "B", UVM.var "C"]), terModeScope = UVM.dø, terSource = UVM.None, terMode = (AddAny UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A") ])))) , terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT a (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terPrins =  listToSet (UVM.frhs [UVM.var "A", UVM.var "B", UVM.var "C"]), terModeScope = UVM.dø, terSource = UVM.None, terMode = (AddAny (UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A") ]))))) , terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , (SecT a (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
       UVM.Inr a -> a `shouldBe`  (SecT c  (BaseT UnitT))
     it "() : varexp" $
@@ -95,7 +95,7 @@ spec = do
           t'' = (SecT UVM.Top (ShareT YaoNP UVM.Top (BaseT 𝔹T) ))
           lexpr = (UVM.frhs [(UVM.𝐴 y (VarE (UVM.var "A"))), (UVM.𝐴 y (VarE (UVM.var "B")))])
           expr =  (PrimE AndO lexpr )
-          x  = (evalEM (ER {terPrins =  listToSet (UVM.frhs [UVM.var "A", UVM.var "B", UVM.var "C"]), terModeScope = UVM.dø, terSource = UVM.None, terMode = (AddAny UVM.Top)p, terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , t'), (UVM.var "A" , t), (UVM.var "B" , t') ])) }) () (synExpR expr))
+          x  = (evalEM (ER {terPrins =  listToSet (UVM.frhs [UVM.var "A", UVM.var "B", UVM.var "C"]), terModeScope = UVM.dø, terSource = UVM.None, terMode = (AddAny UVM.Top), terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "D" , t'), (UVM.var "A" , t), (UVM.var "B" , t') ])) }) () (synExpR expr))
       in case x of
       UVM.Inr d -> d `shouldBe`  t''
       UVM.Inl e -> expectationFailure $ Text.unpack $ UVM.frhs $ UVM.ppshow e
