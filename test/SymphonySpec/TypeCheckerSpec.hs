@@ -661,8 +661,9 @@ spec = do
           c = (UVM.AddTop (cpse))
           t =  (SecT c (BaseT UnitT))
           m = UVM.AddTop (UVM.pow𝐼 (UVM.iter (UVM.frhs [ (SinglePV "A"), (SinglePV "C")])))
-          expr' =  (BulE)
-          expr = (ParE cpse (nullExp expr')  )
+          expr'' =  (BulE)
+          expr' = (ParE cpse (nullExp expr')  )
+          expr =  (AscrE  (nullExp expr'))
           x  = (evalEM (ER {terPrins =  listToSet (UVM.frhs [UVM.var "A", UVM.var "B", UVM.var "C"]), terModeScope = UVM.dø, terSource = UVM.None, terMode = (AddAny m), terEnv = (UVM.assoc (UVM.frhs [ (UVM.var "x" , (SecT UVM.Top (BaseT ℙsT  ))), (UVM.var "D" , (SecT UVM.Top (BaseT 𝔹T ))), (UVM.var "A" , (SecT a (BaseT UnitT ))), (UVM.var "B" , (SecT b (BaseT UnitT ))) ])) }) () (synExpR expr))
       in case x of
         UVM.Inr a -> a `shouldBe`  t
