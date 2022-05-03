@@ -1580,10 +1580,10 @@ elabPrinSetExp ∷ STACK ⇒ PrinSetExp → EM ((𝑃 PrinVal) ∨ ())
 elabPrinSetExp ρse = case  ρse of
   PowPSE ρel → do
     prins ← askL terPrinsL
-    if (and (map (inPrins prins) ρel)) then
+    if (and (map (inPrins prins) ρel)) then do
       pvl ← (mapM elabPrinExp ρel )
       (let ρvs = (listToSet pvl) in (return (Inl ρvs)))
-    else do
+    else
       return (Inr ())
   AnyPSE → return (Inr ())
   _ → todoError
