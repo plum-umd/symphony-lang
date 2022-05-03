@@ -1583,14 +1583,14 @@ matchType τ ψ= case ψ of
     _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; the expression of type τ is not of a bundle type" $ frhs
               [ ("τ", pretty τ)
               ]
-    AscrP τ' ψ  →  do
-      subcond  ← (subtype τ τ' pø) 
-      guardErr subcond $
-        typeError "matchType: the expression has type τ which is not a subtype of τ'" $ frhs
-        [  ("τ", pretty τ)
-        , ("τ'", pretty τ')
-        ]
-      return id
+  AscrP ψ τ' →  do
+    subcond  ← (subtype τ τ' pø) 
+    guardErr subcond $
+      typeError "matchType: the expression has type τ which is not a subtype of τ'" $ frhs
+      [  ("τ", pretty τ)
+      , ("τ'", pretty τ')
+      ]
+    return id
   WildP → return id
 
 
