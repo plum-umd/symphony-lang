@@ -1110,7 +1110,7 @@ synBundleUnionHelper τ₁ τ₂ =
               ]
             p₁ ← elabEMode loc₁'
             p₂ ← elabEMode loc₂'
-            guardErr (union_m p₁ p₂ ≡ (AddAny (AddTop bot))) $
+            guardErr (inter_m p₁ p₂ ≡ (AddAny (AddTop bot))) $
               typeError "synBundle: p₁ ⊓ p₂ ≢  bot" $ frhs
               [ ("p₁", pretty p₁)
                 , ("p₂", pretty p₂)
