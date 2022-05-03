@@ -1,0 +1,884 @@
+------------
+-- Errors --
+------------
+
+def panic msg = msg + 0
+
+---------------
+-- Functions --
+---------------
+
+def const x = fun _ -> x
+
+def apply f a = f a
+
+def compose f g x = g (f x)
+
+def flip f x y = f y x
+
+def id x = x
+
+def thunk x = fun () -> x
+
+def force t = t ()
+
+def uncurry f (a, b) = f a b
+
+--------------
+-- Equality --
+--------------
+
+def eq x y = x == y
+
+---------
+-- Num --
+---------
+
+def plus m n = m + n
+
+def minus m n = m - n
+
+def mult m n = m * n
+
+def div m n = m / n
+
+def exp m n = m ^ n
+
+def square a = a * a
+
+def min cond a b = cond (a <= b) a b
+
+def max cond a b = cond (a <= b) b a
+
+def cond g t f = if g then t else f
+
+def mux_cond g t f = mux if g then t else f
+
+def mux_min = min mux_cond
+
+def mux_max = max mux_cond
+
+----------
+-- Bool --
+----------
+
+def and b0 b1 = b0 && b1
+
+def or b0 b1 = b0 || b1
+
+def neg b = not b
+
+---------
+-- Nat --
+---------
+
+def nat_inc n = n + 1n
+
+def nat_dec n = n - 1n
+
+def nat_fold z s n =
+  if n == 0n then z
+  else s (nat_fold z s (n - 1n))
+
+def nat_foldl z s n = (nat_fold id (compose s) n) z
+
+def nat_log b n =
+  if n == 1n then 0n
+  else inc (nat_log b (n / b))
+
+def nat_max = 4294967295n
+
+def sqrt_steps = 10n -- a tunable magic constant
+
+def babylonian_sqrt one x =
+  let two = one + one in
+  nat_eliml sqrt_steps one (fun guess -> (guess + (x / guess)) / two)
+
+def sqrt_nat = babylonian_sqrt 1n
+
+----------
+-- Unit --
+----------
+
+def if_then g t = if guard then tc else ()
+
+----------
+-- Pair --
+----------
+
+def pair x y = x, y
+
+def fst x = case x { (a, _) -> a }
+
+def snd x = case x { (_, b) -> b }
+
+------------
+-- Option --
+------------
+
+def some x = L x
+
+def none = R ()
+
+def option_fold v kN kS = case v
+  { R () -> kN
+  ; L x  -> kS x
+  }
+
+------------
+-- Bundle --
+------------
+
+def bundle_up P f = case P
+  { {} -> <<>>
+  ; { p } \/ P' -> << p | par { p } f p >> ++ bundle_up P' f
+  }
+
+def bundle_fold init f bdl = case bdl
+  { <<>> -> init
+  ; <<p | v>> ++ bdl' -> f p v (bundle_fold init f bdl')
+  }
+
+---------------
+-- Party Set --
+---------------
+
+def pset_fold init f P = case P
+  { {} -> init
+  ; { p } \/ P' -> f p (pset_fold init f P')
+  }
+
+----------
+-- List --
+----------
+
+def emp = []
+
+def cons x xs = x :: xs
+
+def list_fold init f l = case l
+  { []      -> init
+  ; x :: xs -> f x (list_fold init f xs)
+  }
+
+def list_foldl init f l = case l
+  { []      -> init
+  ; x :: xs -> list_foldl (f x init) f xs
+  }
+
+def nth idx l = case l
+  { []      -> none
+  ; x :: xs -> if idx == 0n then some x else nth idx xs
+  }
+
+def head = nth 0n
+
+def tail l = case l
+  { []      -> none
+  ; _ :: xs -> some xs
+  }
+
+def iter f l = list_foldl () (fun x -> thunk (f x)) l
+
+def map f l = list_fold [] (fun x xs -> f x :: xs) l
+
+def filter p l = case l
+  { []      -> []
+  ; x :: xs -> if p x then x :: filter p xs else filter p xs
+  }
+
+def length = list_fold 0n (fun _ n -> n + 1n)
+
+def replicate n c = nat_fold [] (cons c) n
+
+def insert lt v l = case l
+  { []      -> [v]
+  ; x :: xs ->
+    let (lo, hi) = mux if (lt v x) then (v, x) else (x, v) in
+    lo :: insert lt hi xs
+  }
+
+def sort lt = list_fold [] (insert lt)
+
+def split_at n l =
+  if n == 0n then [], l
+  else case xs
+    { [] -> []
+    ; x :: xs ->
+        let (take, drop) = split_at (n - 1n) xs
+        in (x :: take, drop)
+    }
+
+def take n l = fst (split-at n l)
+
+def drop n l = snd (split-at n l)
+
+def append xs ys = list_fold ys (fun x zs -> x :: zs) xs
+
+def concat = list_fold [] (fun xs xss -> append xs xss)
+
+def snoc x l = append l [ x ]
+
+def zip xs ys = case (xs,ys)
+  { ([],_) -> []
+  ; (_,[]) -> []
+  ; (x::xs',y::ys') -> (x,y)::(zip xs' ys')
+  }
+
+def zip-map f l0 l1 = map (uncurry f) (zip l0 l1)
+
+def all_true l = elim-list l true and
+
+def eq_lists l0 l1 = all_true (zip-map eq l0 l1)
+-- TODO: refactor, using eq-lists
+
+def eq-lists test-eq l0 l1 = all_true (zip-map test-eq l0 l1)
+
+-- mux_ls: multiplex over a pair of lists:
+def mux_ls guard l0 l1 = zip-map (mux_cond guard) l0 l1
+
+
+-- minus-lists l0 l1: vector subtraction over lists of numerics l0 and
+-- l1
+def minus-lists v0 v1 = zip-map minus v0 v1
+
+-- mult-scalar-vec a v: scalar product of constant a and vector v
+def mult-scalar-vec a = map (mult a)
+
+-- scalar_vec_div: divide a vector of reals by a constant
+def div-scalar-vec d v a = map (flip d a) v
+
+
+-- instantiate numeric operators to various concrete numeric types:
+def inst-num z f = f z plus mult
+
+
+-- dot-prod z l0 l1: dot product of two lists of numerics with zero
+-- element z
+def dot-prod z s p l0 l1 = elim-list (zip-map p l0 l1) z s
+
+
+
+def rangen-help : nat -> nat -> list nat
+def rangen-help n goal =
+  if n == goal
+  then []
+  else n :: rangen-help (n+1) goal
+
+def rangen : nat -> list nat
+def rangen n = rangen-help 0 n
+
+-- range m n: the list of elements from m to n
+def range m n =
+  if n < m then []
+  else map (plus m)
+    (elim_nat (n - m)
+       [ 0n ]
+       (fun rng -> snoc (len rng) rng) )
+
+-- range-nat n: list of numbers from 0 to n
+def range-nat n = elim_nat n [ ] (fun rng -> (len rng) :: rng)
+
+def reverse-help : list a -> list a -> list a
+def reverse-help xs acc =
+  case xs
+  { [] -> acc
+  ; (x::xs') -> reverse-help xs' (x::acc)
+  }
+
+
+def reverse : list a -> list a
+def reverse xs = reverse-help xs []
+
+-- zipper-n l n: zipper into list l where head is of length n
+def zipper-n l n = eliml_nat n
+  ([ ], l)
+  (fun (begin, end) -> case end
+   { [ ] -> (begin, [ ])
+   ; x :: end' -> (x :: begin, end')
+   })
+
+def get-gen muxer l i = snd
+  (foldl l
+    (0n, _|_)
+    (fun x (idx, elt) -> (inc idx, muxer (idx == i) x elt)) )
+
+def get = get-gen cond
+
+def sec-get = get-gen mux_cond
+
+def arr_get l i = get l (dec i)
+
+def upd-gen muxer l i v = reverse (snd
+  (foldl l
+    (0n, [ ])
+    (fun x (idx, l') -> (inc idx, (muxer (idx == i) v x) :: l')) ) )
+
+def sec-upd = upd-gen mux_cond
+
+def upd = upd-gen cond
+
+def swap-ls l i j =
+  sec-upd (sec-upd l i (sec-get l j)) j (sec-get l i)
+
+def head-n l n = reverse (fst (zipper-n l n))
+
+def tail-n l n = snd (zipper-n l n)
+
+def sub-list l start end = tail-n (head-n l end) (dec start)
+
+-- wrap-deref: wrapper around dereference syntax
+def wrap-deref r = !r
+
+def swap a i j =
+  a := swap-ls !a i j
+
+def upd-if fp guard act =
+  let vals = map wrap-deref fp in
+  do force act in
+    zip-map (fun x v -> x := (mux if guard then !x else v))
+      fp vals
+
+def sec-iter fp lb ub n body =
+  iter (range 0n (dec n)) (fun i ->
+    upd-if fp ((lb <= i) && (i < ub))
+      (fun () -> body i) )
+
+def copy-ls-h p0 l n acc =
+  if n ≡ 0n#32 then
+    acc
+  else
+    let e  = par {p0} case l { e ∷ _ → e } in
+    let l' = par {p0} case l { _ ∷ l' → l' } in
+    copy-ls-h p0 l' (n - 1n#32) (e ∷ acc)
+
+def copy-ls p0 l n =
+  let l' = copy-ls-h p0 l n [] in
+  reverse l'
+
+-- Convert a known list into a list of known objects.
+-- The list will contain the first `n` elements of the known list.
+-- If `n` exceeds the length of the list, the list will be padded with default.
+-- def sequenceKnownnessN :
+--   forall knowers:prin.
+--   int -> int -> (list int){knowers} -> list (int{knowers})
+def sequenceKnownnessN knowers n default xs =
+  let shareHead : (list int)@knowers -> int@knowers
+  let shareHead = fun xs ->
+    par {knowers} case xs
+                  { [] -> default
+                  ; x::_ -> x
+                  }
+  in
+    if n == 0
+    then []
+    else
+      shareHead xs ::
+        sequenceKnownnessN knowers (n - 1) default (par {knowers} (tail xs))
+
+
+def obliv-head : forall P:type. int -> (list int)⟪P⟫ -> int⟪P⟫
+def obliv-head P i xs = solo {P} as a in case xs@a
+  { [] -> i
+  ; x :: _ -> x
+  }
+
+def obliv-tail : forall P:type. (list int)⟪P⟫ -> (list int)⟪P⟫
+def obliv-tail P xs = solo {P} as a in case xs@a
+  { [] -> []
+  ; _ :: xs' -> xs'
+  }
+
+def preprocess-lists : (P:prin) -> nat -> int -> (list int)⟪P⟫ -> list int⟪P⟫
+def preprocess-lists P n i xs =
+  if n <= 0
+  then []
+  else
+    let x' : int⟪P⟫
+    let x' = obliv-head P i xs
+    let xs' : list int⟪P⟫
+    let xs' = preprocess-lists P (n - 1) i (obliv-tail P xs)
+    in
+    x' :: xs'
+
+-- Pair an item with each element in a list
+def pair-with-list : a -> list b -> list (a * b)
+def pair-with-list v xs = case xs
+  { [] -> []
+  ; x::xs' -> (v, x)::(pair-with-list v xs')
+  }
+
+-- Get the head of a list or a default value
+def get-head-or-default ys = case ys
+    { [] -> _|_
+    ; y::_ -> y
+    }
+
+-- Get the head of a list as a left value or unit as a right value
+def get-head-or-default-sum ys = case ys
+    { [] -> R •
+    ; y::_ -> L y
+    }
+
+-- Get the element from a list at an index. Default value if out of range
+def elem-at : int -> list a -> a
+def elem-at i xs = case xs
+  { [] -> -1
+  ; x::xs' ->
+    let b = i == 0
+    in b ? x >< (elem-at (i - 1) xs')
+  }
+
+-- Find out if an element is in a list of elements using a custom equality function
+def elem : (a -> a -> bool) -> a -> list a -> bool[bgw]@{A,B}
+def elem f y xs = case xs
+  { [] -> false
+  ; x::xs' -> (f x y) ? true >< (elem f y xs')
+  }
+
+
+-- Preprocess list functions. Convert lists of bundle data with unknown structure into lists of shared data with known structure
+def preprocess-lists-n-pairs p t len zs=
+  if len == 0
+  then []
+  else
+    let v = par {p} get-head-or-default-sum zs
+    in (share[ bgw, 𝟙 : p -> t ] v) :: (preprocess-lists-n-pairs p t (len - 1) (par {p} tail zs))
+
+def preprocess-lists-n p t len zs =
+  if len == 0
+  then []
+  else (share[ bgw, 𝟙 : p -> t ] (par {p} get-head-or-default zs)) :: (preprocess-lists-n p t (len - 1) (par {p} tail zs))
+
+def replicate x n =
+  if n == 0n#32
+  then []
+  else x :: (replicate x (n - 1n#32))
+
+def update-list x n ls = case ls
+  { [] -> []
+  ; l::ls' ->
+    mux if (n == 0)
+    then (x::ls')
+    else (l::(update-list x (n - 1) ls'))
+  }
+
+---
+--- VECTOR LIBRARY
+---
+
+
+-- given a swap function for type a, build swap for bool * a
+-- def tag-swap : (bool{P} -> a -> a -> a)
+--             -> (bool{P} -> bool{P} * a -> bool{P} * a -> bool{P} * a)
+def tag-swap swap =
+  fun b x y ->
+    let tx, x' = x
+    let ty, y' = y
+    in (b ? tx >< ty), (swap b x' y')
+
+
+-- def init-content : nat -> a -> array{P} a
+def content-init default n =
+  if n == 0
+  then []
+  else
+    (false, default) :: content-init default (n - 1)
+
+
+-- def vec-init : a -> nat -> vec{P} a
+def vec-init default n =
+  default, content-init default n
+
+
+def content-over cond n f xs =
+  case xs
+  { [] -> []
+  ; cell::xs' ->
+    let (tag, x) = cell
+    let hd =
+      mux if (cond && (n == 0) && tag)
+           then (tag, f x)
+           else cell
+    in hd :: content-over cond (n - 1) f xs'
+  }
+
+
+def vec-cond-over cond n f vec =
+  let default, xs = vec
+  in default, (content-over cond n f xs)
+
+
+-- def vec : nat{P} -> a -> vec{P} a -> vec{P} a
+def vec-cond-write cond n y vec =
+  vec-cond-over cond n (fun _ -> y) vec
+
+
+-- apply function f to the specified index
+def vec-over = vec-cond-over true
+
+def vec-write = vec-cond-write true
+
+def content-push flag cond y xs =
+  case xs
+  { [] -> []
+  ; cell::xs' ->
+    let (tag, x) = cell
+    let hd =
+      mux if (cond && not tag && flag)
+           then (true, y)
+           else cell
+    in
+      hd :: content-push tag cond y xs'
+  }
+
+def vec-cond-push cond x vec =
+  let default, xs = vec
+  in default, (content-push true cond x xs)
+
+def vec-push x xs = vec-cond-push true x xs
+
+
+def resize-content n xs =
+  case xs
+  { [] -> []
+  ; cell::xs ->
+    let (tag, x) = cell
+    in
+      (n > 0, x) :: resize-content (n - 1) xs
+  }
+
+
+-- def resize : nat{P} -> vec{P} a -> vec{P} a
+def vec-resize n vec =
+  let default, xs = vec
+  in default, (resize-content n xs)
+
+def vec-default vec =
+  let default, _ = vec
+  in default
+
+
+def content-size xs =
+  case xs
+  { [] -> 0
+  ; cell::xs ->
+    let (tag, x) = cell
+    let diff = tag ? 1 >< 0
+    in
+      diff + content-size xs
+  }
+
+
+def vec-length vec =
+  let default, xs = vec
+  in content-size xs
+
+def vec-capacity vec =
+  let _, xs = vec
+  in length xs
+
+
+def content-read default n xs =
+  case xs
+  { [] -> false, default
+  ; cell::xs' ->
+    mux if (n == 0)
+         then cell
+         else content-read default (n - 1) xs'
+  }
+
+
+def vec-read n vec =
+  let default, xs = vec
+  in content-read default n xs
+
+
+-- def vec-content : vec{P} a -> list (bool{P} * a{P})
+def vec-content vec =
+  let _, xs = vec
+  in xs
+
+def vec-append xs ys =
+  list_fold (reverse (vec-content ys)) (fun c acc ->
+    let r, x = c
+    in vec-cond-push r x acc) xs
+
+
+def int-vec-init n = vec-init 0 n
+
+def share-as-vec-content knowers shareFlag shareContent default n xs =
+  if n == 0
+  then []
+  else
+    let flag = par {knowers} case xs
+                   { [] -> false
+                   ; x::_ -> true
+                   }
+    let head = par {knowers} case xs
+                    { [] -> default
+                    ; x::_ -> x
+                    }
+    let sflag = shareFlag flag
+    let shead = shareContent head
+    in (sflag, shead) :: share-as-vec-content
+      knowers shareFlag shareContent default (n - 1) (par {knowers} tail xs)
+
+
+
+-- def share-as-vec : P
+--                 -> (bool -> bool{P})
+--                 -> (a -> a{P})
+--                 -> a
+--                 -> (bool{P} -> a{P} -> a{P} -> a{P})
+--                 -> list a -> nat -> vec{P} a
+def share-as-vec knowers shareFlag shareContent default n xs =
+  default,
+      share-as-vec-content knowers shareFlag shareContent default n xs
+
+
+
+def content-fold f acc xs =
+  case xs
+  { [] -> acc
+  ; cell::xs' ->
+    let t, x = cell
+    let acc' = content-fold f acc xs'
+    in mux if t
+        then (f x acc')
+        else acc'
+  }
+
+def vec-fold f acc vec =
+  let _, xs = vec
+  in content-fold f acc xs
+
+-- for loop over vector
+def vec-for xs f =
+  vec-fold (fun x _ ->
+    let _ = f x
+    in ()) () xs
+
+def vec-int-sum =
+  vec-fold (fun x y -> x + y) 0
+
+
+def vec-int-product=
+  vec-fold (fun x y -> x * y) 1
+
+def content-map f xs =
+  case xs
+  { [] -> []
+  ; cell::xs' ->
+    let t, x = cell
+    in (t, f x) :: content-map f xs'
+  }
+
+def vec-map f vec =
+  let default, xs = vec
+  in (f default, content-map f xs)
+
+
+-- TODO continue removing swap from here
+def tag-lt lt x y =
+  let tx, xx = x
+  let ty, yy = y
+  in mux if (tx && ty)
+        then lt xx yy
+        else tx
+
+-- Oblivious friendly sort. Always O(n^2)
+-- def vec-sort : (a -> a -> bool) -> vec a -> vec a
+def vec-sort lt vec =
+  let default, xs = vec
+  in (default, sort (tag-lt lt) xs)
+
+-- def vec-median : (a -> a -> bool) -> vec a -> a
+def vec-median lt xs =
+  vec-read (vec-length xs / 2) (vec-sort lt xs)
+
+
+---
+--- ASSOCIATIVE MAP LIBRARY
+---
+
+
+def map-init k-default v-default n =
+  let default = (k-default, v-default)
+  in (v-default, vec-init default n)
+
+def map-read-help v-default predicate xs =
+  case xs
+  { [] -> 0, false, v-default
+  ; x::xs' ->
+    let (b, (k, v)) = x
+    let (i', b', v') = map-read-help v-default predicate xs'
+    in
+      mux if (b && predicate k)
+           then (0, true, v)
+           else (i' + 1, b', v')
+  }
+
+-- Reads the first index that matches the given predicate
+-- returns a tuple (i, b, v) where i is the vector index of the value,
+-- b is whether or not the read was successful
+-- v is the read value.
+def map-read-index predicate m =
+  let v-default, vec = m
+  in map-read-help v-default predicate (vec-content vec)
+
+
+def map-read k-eql k m =
+  let (_, b, v) = map-read-index (k-eql k) m
+  in (b, v)
+
+
+def map-cond-insert-with k-eql f cond k v m =
+  let v-default, vec = m
+  let (i, b, _) = map-read-index (k-eql k) m
+  let f' = fun cell ->
+    let (k', v') = cell
+    in (k, f v v')
+
+  let vec = vec-cond-over (cond && b) i f' vec
+  in v-default, vec-cond-push (cond && not b) (k, v) vec
+
+def map-insert-with k-eql f = map-cond-insert-with k-eql f true
+
+def map-insert k-eql = map-insert-with k-eql (fun x _ -> x)
+
+-- Does the map contain a key matching the predicate
+def map-has predicate map =
+  let _, b, _ = map-read-index predicate map
+  in b
+
+def loop-f f n =
+  if n == 0n
+  then ()
+  else
+    do f ()
+    in loop-f f (n - 1n)
+
+
+---
+--- secure recursion library
+---
+
+-- bnd_rec and t-eval-upto are a family of functions that support
+-- writing functions that "nearly" recurse on secure data, and
+-- evaluating them up to a public bound on iterations.
+
+-- bnd_rec f init fuel: simulates "nearly-recursive" function f for up
+-- to fuel steps, then simulates init.
+def bnd_rec f init fuel = nat_fold init f fuel
+
+
+-- t-eval-upto (f : t -> int) fuel: f, bounded to execute fuel steps.
+def eval-upto f = bnd_rec f (const _|_)
+
+---
+--- early return library
+---
+
+-- the continuation monad is a datatype that supports writing programs
+-- in a style where conditional return values are explicitly denoted.
+
+-- wrharris: this may be deprecated due to a recent PSL update. Will
+-- investigate.
+
+-- each monadic value of type [cont a b] consists of a continuation [a
+-- -> a] and a maintained value of type b. We can extract a value of
+-- type a from each monadic value of type [cont a a] by applying the
+-- continuation to the maintained value.
+
+-- monadic return:
+def cont_return a = (id, a)
+
+-- monadic bind:
+def cont_bind (f, a) g =
+  let (f0, b) = g a in
+  (compose f0 f, b)
+
+-- cont_run : cont a a -> a: get an a value:
+def cont_run = uncurry apply
+
+-- cont_join: monadic join, derived from bind in the standard way
+def cont_join m = cont_bind m id
+
+-- const_seq: monadic sequencing (discard the value of the bound
+-- monad)
+def cont_seq m cv = cont_bind m (const cv)
+
+-- cont_seq': lift a raw value, then us it in a bind
+def cont-seq m v = cont_seq m (cont_return v)
+
+-- if-then-ret guard tc: an if-then branch
+def if-then-ret guard tc = ((mux_cond guard tc), ())
+
+-- iter_sec_nat muxer n bnd s rv: iterate bnd times, but return the
+-- bound stored in rv after the loop executes n times.
+-- DEP?
+def iter-sec-nat n bnd s rv = cont_run
+  (cont-seq
+    (snd
+      (eliml_nat bnd
+        (n, cont_return ())
+        (fun (n', cv) ->
+          (n' - 1n,
+           cont_bind
+             (cont_bind cv
+               ((fun () -> (mux_cond (n' == 0n) !rv), ())) )
+             s) ) ) )
+    !rv)
+
+
+---
+--- matrix library
+---
+
+-- library of operations over matrices represented as lists of lists
+
+def get-matrix m (i, j) = get (get m i) j
+
+def upd-matrix m (i, j) v = upd m i (upd (get m i) j v)
+
+
+-- transpose m: transposition of m
+def transpose : list (list t) -> list (list t)
+def transpose m = elim-list m
+  (const-ls []
+    (case m
+     { [] -> 0n
+     ; v :: m' -> len v
+     }) )
+  (zip-map cons)
+
+
+-- mult-matrix-vec m v: multiply matrix m by vector v
+def mult-matrix-vec z s p m v = map (dot-prod z s p v) m
+
+-- mult-matrices m0 m1: product of matrices m0 and m1 of numerics with
+-- zero element z
+def mult-matrices z s p m0 m1 =
+  let m1t = transpose m1 in
+  map (fun v -> map (dot-prod z s p v) m1t) m0
+
+
+-- dimensions_of m: dimensions of matrix m
+def dimensions_of m = case m
+  { [] -> (0n, 0n)
+  ; rv :: m' -> (inc (len m'), len rv)
+  }
+
+
+-- diagonal-matrix z v: the diagonal matrix of vector v, a vector of
+-- numerics with zero element z.
+def diagonal-matrix z v = elim-list v
+  []
+  (fun x diag -> (x :: (const-ls z (len diag))) :: (map (cons z) diag))
+
+
+-- const-sq-mat c n: n x n matrix of constant c
+def const-sq-mat c n = elim_nat n
+  []
+  (cons (const-ls c n))

@@ -1,0 +1,8 @@
+principal A B C D
+
+-- gmw ≡ semi-honest, N-party, boolean sharing
+
+def main () = par {A,B,C,D}
+  let input = par {A} read ℤ#32 from "delegation-int.txt" in
+  let a = par {A,B,C} share [gmw, ℤ#32 : {A} → {B,C}] (par {A} input) in
+  par {B,C,D} reveal [gmw, ℤ#32 : {B,C} → {D}] a

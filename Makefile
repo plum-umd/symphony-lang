@@ -1,33 +1,29 @@
 E          := SymphonyMain.mainDefault
 NAME       := symphony
-STACK_ARGS := --extra-include-dirs=/usr/local/include --extra-lib-dirs=/usr/local/lib --trace --ghci-options '-fexternal-interpreter -prof'
+STACK_ARGS := --trace --ghci-options '-fexternal-interpreter -prof'
 STACK_ARGS :=
 
-ARGS       :=
+$(NAME): build
+	rm -f $(NAME)
+	ln -s `stack path --local-install-root`/bin/$(NAME) ./
 
-FLAGS      :=
+all-examples: $(NAME)
+	./$(NAME) example $(FLAGS) basic
+	./$(NAME) example $(FLAGS) gcd
 
-symphony: build
-	rm -f symphony
-	ln -s `stack path --dist-dir`/build/Symphony/symphony ./
-
-all-examples: symphony
-	./symphony example $(FLAGS) msort-dedup-small
-	./symphony example $(FLAGS) qsort
-	./symphony example $(FLAGS) gcd-gc
-	./symphony example $(FLAGS) gcd-bgv
-	./symphony example $(FLAGS) karmarkar
-	./symphony example $(FLAGS) db-stats
+extern/uvmhs/stack.yaml:
+	git submodule update --init --recursive $(@D)
 
 .stack-work:
 	stack setup
 
 .PHONY: build
-build: .stack-work
-	stack build --extra-include-dirs=/usr/local/include --extra-lib-dirs=/usr/local/lib
+build: extern/uvmhs/stack.yaml .stack-work
+	stack build
+#	stack build --flag symphony:par --extra-lib-dirs=$(CURDIR)/extern/symphony-runtime/target/debug
 
 build-profile: .stack-work
-	stack build --profile
+	stack build --profile --flag symphony:par --extra-lib-dirs=$(CURDIR)/extern/symphony-runtime/target/debug
 
 .PHONY: dev
 dev: .stack-work

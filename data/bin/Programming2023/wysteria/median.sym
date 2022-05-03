@@ -1,0 +1,26 @@
+principal A B 
+
+def P = { A, B }
+
+-- TEST:
+def read-int s = 6
+-- read int from s
+
+def read-and-share p s = 
+  share [yao, int : p -> P] (par { p } read-int s)
+
+def read-ints p =
+  (read-and-share p "median-smalls.txt",
+   read-and-share p "median-bigs.txt")
+
+def main () = par P
+  -- read and share inputs
+  let (smallA, bigA) = read-ints A in
+  let (smallB, bigB) = read-ints B in
+
+  -- compare inputs:
+  let b1 = smallA <= bigB in
+  reveal [yao, int : P -> A ]
+    (min-muxable
+      (mux if b1 then smallB else smallA)
+      (mux if b1 then bigA   else smallB) )

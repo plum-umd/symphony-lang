@@ -1,0 +1,14 @@
+principal A B
+
+def sec gcd (a, b) =
+  mux if (a == 0) then b
+  else gcd (b % a, a)
+
+def main () = par {A,B}
+  let inputA = par {A} 102334155 in -- 40th Finonacci number
+  let inputB = par {B} 165580141 in -- 41st Fibonacci number
+
+  let shareA = share [gmw, ℤ : {A} → {A,B}] inputA in
+  let shareB = share [gmw, ℤ : {B} → {A,B}] inputB in
+
+  reveal [gmw, ℤ : {A,B} → {A}] (bnd_rec gcd (const 0) 45n (shareA, shareB))

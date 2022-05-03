@@ -37,6 +37,12 @@ default-extensions:
   - UndecidableSuperClasses
   - UnicodeSyntax
   - ViewPatterns
+  - CPP
+
+flags:
+  par:
+    default: false
+    manual: true
 
 ghc-options:
   - -Wall
@@ -50,15 +56,15 @@ ghc-options:
   - -fspecialise-aggressively
   - -fexpose-all-unfoldings
 
+data-dir: data
+
 data-files:
-  - lib/*
-  - examples/*
-  - tests/*
-  - examples-input/**/*
+  - ./**/*
 
 library:
   source-dirs:
-    - src
+    - src/lib/common
+    - src/lib/seq
   dependencies:
     - aeson
     - network
@@ -74,14 +80,34 @@ library:
     - bytestring
     - text
     - vector
-  extra-libraries:
-    - empc
+  when:
+    - condition: flag(par)
+      source-dirs:
+        - src/lib/par
+      exposed-modules:
+        - Symphony.Dynamic.Par
+        - Symphony.Dynamic.Par.Types
+        - Symphony.Dynamic.Par.Channel
+        - Symphony.Dynamic.Par.Channel.Types
+        - Symphony.Dynamic.Par.Dist
+        - Symphony.Dynamic.Par.Error
+        - Symphony.Dynamic.Par.GMW
+        - Symphony.Dynamic.Par.GMW.Types
+        - Symphony.Dynamic.Par.Operations
+        - Symphony.Dynamic.Par.Prg
+        - Symphony.Dynamic.Par.Prg.Types
+        - Symphony.Dynamic.Par.Primitives
+        - Symphony.Dynamic.Par.ReadType
+        - Symphony.Dynamic.Par.Send
+        - Symphony.Dynamic.Par.Truncating
+      extra-libraries:
+        - symphony
 
 tests:
   symphony-test:
     main: Main.hs
     source-dirs:
-      - test
+      - src/test
     dependencies:
       - base
       - text
@@ -91,10 +117,16 @@ tests:
 
 executables:
   symphony:
-    source-dirs: main
     main: Main.hs
+    source-dirs:
+      - src/main
     dependencies:
       - base
       - cryptonite
       - symphony
       - uvmhs
+    when:
+      - condition: flag(par)
+        extra-libraries:
+          - symphony
+        cpp-options: -DPAR
