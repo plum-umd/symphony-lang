@@ -1614,5 +1614,5 @@ elabPrinValSet ρvs =
 
 elabMode ∷ STACK ⇒ ModeAny → EM EMode
 elabMode m = case m of
-  Any → return (AddTop AnyPSE) 
+  (Any) → return (AddTop AnyPSE) 
   (AddAny  ρvs) → (mapM elabPrinValSet ρvs)
