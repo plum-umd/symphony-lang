@@ -1586,10 +1586,12 @@ elabPrinSetExp ρse = case  ρse of
 
 
 elabEMode ∷ STACK ⇒ EMode → EM ModeAny
-elabEMode l = case ((mapM elabPrinSetExp) l) of
-  Top → (AddAny Top)
-  AddTop  (Inl ρvs) → (AddAny (AddTop ρvs))
-  _  → Any
+elabEMode l =  do
+  em ← ((mapM elabPrinSetExp) l) 
+  case em of
+    Top → return (AddAny Top)
+    AddTop  (Inl ρvs) → return (AddAny (AddTop ρvs))
+    _  → return Any
 
 
 elabPrinVal :: STACK ⇒ PrinVal → EM PrinExp
@@ -1608,5 +1610,5 @@ elabPrinValSet ρvs =
 
 elabMode ∷ STACK ⇒ ModeAny → EM EMode
 elabMode m = case m of
-  Any → (AddTop AnyPSE) 
+  Any → return (AddTop AnyPSE) 
   (AddAny  ρvs) → (mapM elabPrinValSet ρvs)
