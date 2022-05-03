@@ -774,7 +774,7 @@ synPar ρse₁ e₂ =
   in do
     m  ← askL terModeL
     l ← elabEMode (AddTop ρse₁)
-    let m' = union_m m l
+    let m' = inter_m m l
     if m' ≢  (AddAny (AddTop bot)) then
       localL terModeL m' c₂
     else
@@ -792,7 +792,7 @@ checkPar ρse₁ e₂ τ=
   in do
     m  ← askL terModeL
     l ← elabEMode (AddTop ρse₁)
-    let m' = union_m m l
+    let m' = inter_m m l
     if m' ≢  (AddAny (AddTop bot)) then do
       τ' ← localL terModeL m' c₂
       subcond  ← subtype τ' τ pø 
