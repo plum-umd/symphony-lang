@@ -1577,11 +1577,11 @@ elabPrinSetExp ρse = case  ρse of
   PowPSE ρel → do
     prins ← askL terPrinsL
     if (and (map (inPrins prins) ρel)) then
-      return ()
+      return (Inr ())
     else do
       pvl ← (mapM elabPrinExp ρel )
-      (let ρvs = (listToSet pvl) in (return ρvs))
-  AnyPSE → return ()
+      (let ρvs = (listToSet pvl) in (return (Inl ρvs)))
+  AnyPSE → return (Inr ())
   _ → todoError
 
 
