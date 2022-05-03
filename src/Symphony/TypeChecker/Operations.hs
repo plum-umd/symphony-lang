@@ -38,7 +38,7 @@ primType op τs = case (op, tohs τs) of
   _ → todoError
 
 -- Gets protocol of located type
-extractProt :: STACK ⇒ Type → EM (𝑂 (Prot, Mode) )
+extractProt :: STACK ⇒ Type → EM (𝑂 (Prot, ModeAny) )
 extractProt τ =
  case τ of
   (SecT _  (ShareT p loc _))   → do
@@ -49,7 +49,7 @@ extractProt τ =
                   [ ("τ", pretty τ)
                   ]
 
-assertM :: STACK ⇒ Mode → Type → EM ()
+assertM :: STACK ⇒ ModeAny → Type → EM ()
 assertM m τ =
   case τ of
     (SecT loc _)  →  do
@@ -329,7 +329,7 @@ union_em loc loc' = do
   (elabMode (union_m l l'))
 
 -- Returns m ∩ m'
-union_m :: STACK ⇒ Mode → Mode → ModeAny
+union_m :: STACK ⇒ ModeAny → ModeAnys → ModeAny
 union_m l l' = case l of
   Any → Any
   (AddAny Top) → (AddAny Top)
@@ -338,7 +338,7 @@ union_m l l' = case l of
       (AddAny (AddTop ps'))  → (AddAny AddTop(ps ∪ ps'))
 
 -- Checks if mT ⊇ mS
-eq_mode :: STACK ⇒ Mode → Mode → 𝔹
+eq_mode :: STACK ⇒ ModeAny → ModeAny → 𝔹
 eq_mode l l' = case l of
   Any → True
   (AddAny m) → case l' of
@@ -932,7 +932,7 @@ joinList τs =
 -----------------
 
 -- Rules to see if any located value is well-formed
-wf_loctype :: STACK ⇒ Type → Mode →  (𝕏 ⇰ Mode) →  EM ()
+wf_loctype :: STACK ⇒ Type → ModeAny →  (𝕏 ⇰ Mode) →  EM ()
 wf_loctype sigma m bigM =
   case sigma of
      -- WF-Base (Based off WF-INT)
@@ -981,7 +981,7 @@ wf_loctype sigma m bigM =
 
 
 -- Rules to see if some located value is well-formed
-wf_share_loctype :: Type → Mode → Prot → Mode →  EM ()
+wf_share_loctype :: Type → ModeAny → Prot → ModeAny →  EM ()
 wf_share_loctype sigma m p l=
   case sigma of
     BaseT bt → return ()
@@ -1001,7 +1001,7 @@ wf_share_loctype sigma m p l=
         [ ("sigma", pretty sigma)
         ]
 
-wf_share_type :: Type → Mode →  Prot → Mode → EM ()
+wf_share_type :: Type → ModeAny →  Prot → ModeAny → EM ()
 wf_share_type ty m p l=
   case ty of
     -- WF-Loc
@@ -1032,7 +1032,7 @@ wf_share_type ty m p l=
 
 
 -- Rules to see if the type is well formed in terms of a good AST (Share rules)
-wf_type :: Type → Mode → (𝕏 ⇰ Mode)→ EM ()
+wf_type :: Type → ModeAny → (𝕏 ⇰ Mode)→ EM ()
 wf_type ty m bigM =
   case ty of
 
@@ -1081,7 +1081,7 @@ wf_type ty m bigM =
         [ ("ty", pretty ty )
         ]
 
-get_intersect_loc_type :: STACK ⇒ TVar →Type → Mode → Mode → EM Mode
+get_intersect_loc_type :: STACK ⇒ TVar →Type → ModeAny → ModeAny → EM Mode
 get_intersect_loc_type x sigma m m' =
   case sigma of
      -- WF-Base (Based off WF-INT)
@@ -1116,7 +1116,7 @@ get_intersect_loc_type x sigma m m' =
         ]
 
 -- Rules to see if the type is well formed in terms of a good AST (Share rules)
-get_intersect_type :: TVar  → Type → Mode → Mode  → EM Mode
+get_intersect_type :: TVar  → Type → ModeAny → ModeAny  → EM Mode
 get_intersect_type x τ m m' =
    case  τ of 
     SecT em'' sigma →  do
@@ -1134,7 +1134,7 @@ get_intersect_type x τ m m' =
       [ ("τ", pretty τ  )
       ]
 -- Rules to get the least sub subtype of loctype sigma that is well formed for some M
-sublocty_wf :: STACK ⇒ Type  → Mode →  (𝕏 ⇰ Mode)  → EM Type
+sublocty_wf :: STACK ⇒ Type  → ModeAny →  (𝕏 ⇰ Mode)  → EM Type
 sublocty_wf sigma m bigM=
   case sigma of
     -- WF-Base (Based off WF-INT)
@@ -1183,7 +1183,7 @@ sublocty_wf sigma m bigM=
 
 
 -- Rules to get the least super supertype of type t that is well formed for some M
-subty_wf :: STACK ⇒ Type  → Mode  → (𝕏 ⇰ Mode) → EM Type
+subty_wf :: STACK ⇒ Type  → ModeAny  → (𝕏 ⇰ Mode) → EM Type
 subty_wf t m bigM =
     case t of
     SecT loc loc_ty → do
@@ -1235,7 +1235,7 @@ subty_wf t m bigM =
 
 
 -- Rules to get the least super supertype of loctype sigma that is well formed
-superlocty_wf :: STACK ⇒ Type  → Mode → (𝕏 ⇰ Mode) → EM Type
+superlocty_wf :: STACK ⇒ Type  → ModeAny → (𝕏 ⇰ Mode) → EM Type
 superlocty_wf sigma m bigM =
   case sigma of
     -- WF-Base (Based off WF-INT)
@@ -1284,7 +1284,7 @@ superlocty_wf sigma m bigM =
 
 
 -- Rules to get the least super supertype of type t that is well formed
-superty_wf :: STACK ⇒ Type  → Mode  → (𝕏 ⇰ Mode) →  EM Type
+superty_wf :: STACK ⇒ Type  → ModeAny  → (𝕏 ⇰ Mode) →  EM Type
 superty_wf t m bigM=
     case t of
     SecT loc loc_ty → do
