@@ -939,7 +939,7 @@ joinList τs =
 -----------------
 
 -- Rules to see if any located value is well-formed
-wf_loctype :: STACK ⇒ Type → ModeAny →  (𝕏 ⇰ Mode) →  EM ()
+wf_loctype :: STACK ⇒ Type → ModeAny →  (𝕏 ⇰ ModeAny) →  EM ()
 wf_loctype sigma m bigM =
   case sigma of
      -- WF-Base (Based off WF-INT)
@@ -1039,7 +1039,7 @@ wf_share_type ty m p l=
 
 
 -- Rules to see if the type is well formed in terms of a good AST (Share rules)
-wf_type :: Type → ModeAny → (𝕏 ⇰ Mode)→ EM ()
+wf_type :: Type → ModeAny → (𝕏 ⇰ ModeAny)→ EM ()
 wf_type ty m bigM =
   case ty of
 
@@ -1190,7 +1190,7 @@ sublocty_wf sigma m bigM=
 
 
 -- Rules to get the least super supertype of type t that is well formed for some M
-subty_wf :: STACK ⇒ Type  → ModeAny  → (𝕏 ⇰ Mode) → EM Type
+subty_wf :: STACK ⇒ Type  → ModeAny  → (𝕏 ⇰ ModeAny) → EM Type
 subty_wf t m bigM =
     case t of
     SecT loc loc_ty → do
@@ -1242,7 +1242,7 @@ subty_wf t m bigM =
 
 
 -- Rules to get the least super supertype of loctype sigma that is well formed
-superlocty_wf :: STACK ⇒ Type  → ModeAny → (𝕏 ⇰ Mode) → EM Type
+superlocty_wf :: STACK ⇒ Type  → ModeAny → (𝕏 ⇰ ModeAny) → EM Type
 superlocty_wf sigma m bigM =
   case sigma of
     -- WF-Base (Based off WF-INT)
@@ -1291,7 +1291,7 @@ superlocty_wf sigma m bigM =
 
 
 -- Rules to get the least super supertype of type t that is well formed
-superty_wf :: STACK ⇒ Type  → ModeAny  → (𝕏 ⇰ Mode) →  EM Type
+superty_wf :: STACK ⇒ Type  → ModeAny  → (𝕏 ⇰ ModeAny) →  EM Type
 superty_wf t m bigM=
     case t of
     SecT loc loc_ty → do
