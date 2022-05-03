@@ -328,7 +328,14 @@ union_em loc loc' = do
   l' ← elabEMode loc'
   (elabMode (union_m l l'))
 
-
+-- Returns m ∩ m'
+union_m :: STACK ⇒ Mode → Mode → ModeAny
+union_m l l' = case l of
+  Any → Any
+  (AddAny Top) → (AddAny Top)
+  (AddAny (AddTop ps)) → case l' of
+      Top → (AddAny Top)
+      (AddAny (AddTop ps'))  → (AddAny AddTop(ps ∪ ps'))
 
 -- Checks if mT ⊇ mS
 eq_mode :: STACK ⇒ Mode → Mode → 𝔹
