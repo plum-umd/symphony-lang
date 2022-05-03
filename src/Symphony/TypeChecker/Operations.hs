@@ -1573,22 +1573,21 @@ matchType τ ψ= case ψ of
         guardErr (eq_mode m l₁) $
             typeError "matchType: ⊢ₘ _ ˡ→ _ ; m ≢ l₁" $ frhs
               [ ("m", pretty m)
-              , ("l", pretty l)
+              , ("l", pretty l₁)
               ]
         return (\y -> (
             do
             mh ← (bindType τ₁' ψ)
             mt ← (bindType τ ψₜ )
-            (mh (mt  ((bindTo  x (SecT loc (BaseT ℙT ))) y)) )))
+            (mh (mt  ((bindTo  x (SecT loc₁ (BaseT ℙT ))) y)) )))
     _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; the expression of type τ is not of a bundle type" $ frhs
               [ ("τ", pretty τ)
               ]
     AscrP ψ τ' →  do
       subcond  ← (subtype τ τ' pø) 
       guardErr subcond $
-        typeError "matchType: e has type τ' which is not a subtype of τ" $ frhs
-        [ ("e", pretty e)
-        , ("τ", pretty τ)
+        typeError "matchType: the expression has type τ which is not a subtype of τ'" $ frhs
+        [  ("τ", pretty τ)
         , ("τ'", pretty τ')
         ]
       return id
