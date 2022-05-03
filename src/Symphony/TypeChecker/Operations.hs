@@ -1580,8 +1580,8 @@ matchType τ ψ= case ψ of
             mh ← (bindType τ₁' ψ)
             mt ← (bindType τ ψₜ )
             (mh (mt  ((bindTo  x (SecT loc (BaseT ℙT ))) y)) )))
-    _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; the expression is not of type SecT loc τ" $ frhs
-              [ ("τ", pretty (BaseT ℙsT ))
+    _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; the expression of type τ is not of a bundle type" $ frhs
+              [ ("τ", pretty τ)
               ]
     AscrP ψ τ' →  do
       subcond  ← (subtype τ τ' pø) 
