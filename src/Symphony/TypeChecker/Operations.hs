@@ -1584,7 +1584,6 @@ elabEMode l = case ((mapM elabPrinSetExp) l) of
   AddTop  (Inl ρvs) → (AddAny (AddTop ρvs))
   _  → Any
 
-mapM elabPrinSetExp
 
 elabPrinVal :: STACK ⇒ PrinVal → EM PrinExp
 elabPrinVal ρv = case  ρv of
