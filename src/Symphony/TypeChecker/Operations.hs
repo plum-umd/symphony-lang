@@ -319,14 +319,7 @@ inter_em loc loc' = do
   l' ← elabEMode loc'
   (elabMode (inter_m l l'))
 
--- Returns m ∩ m'
-inter_m :: STACK ⇒ ModeAny → ModeAny → ModeAny
-inter_m l l' = case l of
-  Any → Any
-  (AddAny Top) → (AddAny l')
-  (AddAny (AddTop ps)) → case l' of
-      Top → (AddAny (AddTop ps))
-      (AddAny (AddTop ps')  → (AddAny (AddTop(ps ∩ ps')))
+
 
  -- Returns em ∩ em'
 union_em :: STACK ⇒ EMode → EMode → EM EMode
