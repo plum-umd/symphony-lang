@@ -1123,7 +1123,7 @@ get_intersect_loc_type x sigma m m' =
         ]
 
 -- Rules to see if the type is well formed in terms of a good AST (Share rules)
-get_intersect_type :: TVar  → Type → ModeAny → ModeAny  → EM Mode
+get_intersect_type :: TVar  → Type → ModeAny → ModeAny  → EM ModeAny
 get_intersect_type x τ m m' =
    case  τ of 
     SecT em'' sigma →  do
@@ -1141,7 +1141,7 @@ get_intersect_type x τ m m' =
       [ ("τ", pretty τ  )
       ]
 -- Rules to get the least sub subtype of loctype sigma that is well formed for some M
-sublocty_wf :: STACK ⇒ Type  → ModeAny →  (𝕏 ⇰ Mode)  → EM Type
+sublocty_wf :: STACK ⇒ Type  → ModeAny →  (𝕏 ⇰ ModeAny)  → EM Type
 sublocty_wf sigma m bigM=
   case sigma of
     -- WF-Base (Based off WF-INT)
