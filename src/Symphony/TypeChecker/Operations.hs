@@ -323,7 +323,7 @@ inter_em loc loc' = do
 inter_m :: STACK ⇒ ModeAny → ModeAny → ModeAny
 inter_m l l' = case l of
   Any → Any
-  (AddAny Top) → (AddAny l')
+  (AddAny Top) → l'
   (AddAny (AddTop ps)) → case l' of
       Any → Any
       (AddAny Top) → (AddAny (AddTop ps))
@@ -340,7 +340,9 @@ union_em loc loc' = do
 union_m :: STACK ⇒ ModeAny → ModeAny → ModeAny
 union_m l l' = case l of
   Any → Any
-  (AddAny Top) → (AddAny Top)
+  (AddAny Top) → case l' of
+                  Any → Any
+                  _ → (AddAny Top)
   (AddAny (AddTop ps)) → case l' of
       Any → Any
       (AddAny Top) → (AddAny Top)
