@@ -338,7 +338,7 @@ union_em loc loc' = do
 -- Returns m ∩ m'
 union_m :: STACK ⇒ Mode → Mode → ModeAny
 union_m l l' = case l of
-   Any → Any
+  Any → Any
   (AddAny Top) → (AddAny Top)
   (AddAny (AddTop ps)) → case l' of
       Top → (AddAny Top)
