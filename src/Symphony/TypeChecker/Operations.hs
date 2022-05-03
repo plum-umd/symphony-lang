@@ -1561,7 +1561,7 @@ matchType τ ψ= case ψ of
               [ ("m", pretty m)
               , ("l", pretty l)
               ]
-          return id
+        return id
     _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; The empty bundle is not of type τ" $ frhs
               [ ("τ", pretty τ)
               ]
@@ -1575,7 +1575,7 @@ matchType τ ψ= case ψ of
               [ ("m", pretty m)
               , ("l", pretty l)
               ]
-          return (\y -> (
+        return (\y -> (
             do
             mh ← (bindType τ₁' ψ)
             mt ← (bindType τ ψₜ )
@@ -1583,7 +1583,6 @@ matchType τ ψ= case ψ of
     _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; the expression is not of type SecT loc τ" $ frhs
               [ ("τ", pretty (BaseT ℙsT ))
               ]
-     
     AscrP ψ τ'
       subcond  ← (subtype τ τ' pø) 
       guardErr subcond $
