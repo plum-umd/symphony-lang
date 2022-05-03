@@ -84,7 +84,7 @@ data ModeAny =
     Any
   | AddAny Mode
 
-instance Pretty PrinVal where
+instance Pretty ModeAny where
   pretty = \case
     Any → pretty "Any Mode"
     AddAny m → pretty m
