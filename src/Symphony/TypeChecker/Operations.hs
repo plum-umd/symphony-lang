@@ -1586,6 +1586,7 @@ elabPrinSetExp ρse = case  ρse of
       (let ρvs = (listToSet pvl) in (return (Inl ρvs)))
     else
       return (Inr ())
+  VarPSE _  → return (Inr ())
   AnyPSE → return (Inr ())
   _ → todoError
 
