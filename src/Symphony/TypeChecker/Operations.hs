@@ -325,7 +325,8 @@ inter_m l l' = case l of
   Any → Any
   (AddAny Top) → (AddAny l')
   (AddAny (AddTop ps)) → case l' of
-      Top → (AddAny (AddTop ps))
+      Any → Any
+      (AddAny Top) → (AddAny (AddTop ps))
       (AddAny (AddTop ps'))  → (AddAny (AddTop(ps ∩ ps')))
 
  -- Returns em ∩ em'
@@ -341,8 +342,9 @@ union_m l l' = case l of
   Any → Any
   (AddAny Top) → (AddAny Top)
   (AddAny (AddTop ps)) → case l' of
-      Top → (AddAny Top)
-      (AddAny (AddTop ps'))  → (AddAny AddTop(ps ∪ ps'))
+      Any → Any
+      (AddAny Top) → (AddAny Top)
+      (AddAny (AddTop ps'))  → (AddAny (AddTop(ps ∪ ps')))
 
 -- Checks if mT ⊇ mS
 eq_mode :: STACK ⇒ ModeAny → ModeAny → 𝔹
@@ -401,7 +403,7 @@ eq_locty locty locty'=
         l ← elabEMode loc
         l' ← elabEMode loc'
         loccond ← (eq_type τ τ')
-        return ((eq_mode l ≡ l') ⩓ loccond)
+        return ((eq_mode l l') ⩓ loccond)
       _  → return False
     (ArrT None _ τ) →  case locty' of
       (ArrT None _ τ') → (eq_type τ τ')
