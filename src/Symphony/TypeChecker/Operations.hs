@@ -1583,7 +1583,7 @@ matchType τ ψ= case ψ of
     _ → typeError "matchType: ⊢ₘ _ ˡ→ _ ; the expression is not of type SecT loc τ" $ frhs
               [ ("τ", pretty (BaseT ℙsT ))
               ]
-    AscrP ψ τ'
+    AscrP ψ τ' →  do
       subcond  ← (subtype τ τ' pø) 
       guardErr subcond $
         typeError "matchType: e has type τ' which is not a subtype of τ" $ frhs
