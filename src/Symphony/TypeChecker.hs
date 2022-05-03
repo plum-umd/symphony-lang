@@ -489,8 +489,8 @@ synRead τ e =
       Any → return ()
       AddAny m'  → guardErr ( (map psize m') ≡ (AddTop 1)) $
                     typeError "synRead: ⊢ₘ ; |m| ≢  1" $ frhs
-                    [ ("m", pretty m)
-                    ]
+                      [ ("m", pretty m)
+                      ]
                     return ()
    
     case τ'' of
@@ -519,8 +519,8 @@ synWrite e₁ e₂ =
       Any → return ()
       AddAny m'  → guardErr ( (map psize m') ≡ (AddTop 1)) $
                     typeError "synWrite: ⊢ₘ ; |m| ≢  1" $ frhs
-                    [ ("m", pretty m)
-                    ]
+                      [ ("m", pretty m)
+                      ]
                     return ()
     case τ of
       (SecT loc bτ)  → do
@@ -610,7 +610,7 @@ synRefWrite e₁ e₂ =
         l₁₁ ← elabEMode loc₁₁
         l₁₂ ← elabEMode loc₁₂
         -- Does this due to reflexivity of sub-refl
-        guardErr ((eq_mode em l₁₁) ⩓ (eq_mode m l₁₂)) $
+        guardErr ((eq_mode m l₁₁) ⩓ (eq_mode m l₁₂)) $
           typeError "synRefWrite: m /≡ l₁₁ or  m /≡ l₁₂" $ frhs
           [ ("m", pretty m)
           , ("l₁₁", pretty l₁₁)
@@ -791,7 +791,7 @@ checkPar ρse₁ e₂ τ=
     m  ← askL terModeL
     l ← elabEMode (AddTop ρse₁)
     let m' = union_m m l
-    if m' ≢  (AddAny AddTop bot) then do
+    if m' ≢  (AddAny (AddTop bot)) then do
       τ' ← localL terModeL m' c₂
       subcond  ← subtype τ' τ pø 
       guardErr subcond $
@@ -802,7 +802,7 @@ checkPar ρse₁ e₂ τ=
       return ()
     else do
       bigM ← askL terModeScopeL
-      wfcond ← (wf_type τ  (AddTop pø) bigM)
+      wfcond ← (wf_type τ  (AddAny (AddTop pø)) bigM)
       return ()
 
 makeCleartextType :: EMode → Type → EM Type
@@ -846,8 +846,8 @@ synShare φ τ ρe₁ ρse₂ e₃ =
         _ <-  case qs of 
               (Inl qs) → guardErr (not (isEmpty  qs)) $
                           typeError "synShare: q is empty" $ frhs
-                          [  ("q", pretty qs)
-                          ]  
+                            [  ("q", pretty qs)
+                            ]  
                           return ()
               _  → return ()
 
@@ -876,7 +876,7 @@ synReveal φ τ ρse₁ ρe₂ e₃ =
       c₂ = synPrinExp ρe₂
       in do
         m  ← askL terModeL
-        p ←  elabEMode (AddTop ρse₂)
+        p ←  elabEMode (AddTop ρse₁)
         q ←  elabEMode (AddTop (PowPSE (frhs [ρe₂])))
         encryptedτ ← (makeEncryptedType (AddTop ρse₁) φ τ) 
         subcond  ←  localL terModeL m (chkExp e₃ encryptedτ)
@@ -909,8 +909,8 @@ synComm τ ρe₁ ρse₂ e₃ =
         _ <-  case qs of 
               (Inl qs) → guardErr (not (isEmpty  qs)) $
                           typeError "synShare: q is empty" $ frhs
-                          [  ("q", pretty qs)
-                          ]  
+                            [  ("q", pretty qs)
+                          ]   
                           return ()
               _  → return ()
 
@@ -1207,7 +1207,7 @@ chkExpR e τ =
       _ →
           do
             τ' ← synExpR e
-            subcond  ← (subtype τ' τ (AddAny pø)) 
+            subcond  ← (subtype τ' τ pø) 
             guardErr subcond $
               typeError "checkExpR: e has type τ' which is not a subtype of τ" $ frhs
               [ ("e", pretty e)
