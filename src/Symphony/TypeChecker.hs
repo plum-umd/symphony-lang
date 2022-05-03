@@ -487,10 +487,11 @@ synRead τ e =
     τ'' ← c
     _ ← case m of
       Any → return ()
-      AddAny m'  → guardErr ( (map psize m') ≡ (AddTop 1)) $
-                    typeError "synRead: ⊢ₘ ; |m| ≢  1" $ frhs
-                      [ ("m", pretty m)
-                      ]
+      AddAny m'  → do 
+                    guardErr ( (map psize m') ≡ (AddTop 1)) $
+                      typeError "synRead: ⊢ₘ ; |m| ≢  1" $ frhs
+                        [ ("m", pretty m)
+                        ]
                     return ()
    
     case τ'' of
@@ -517,10 +518,11 @@ synWrite e₁ e₂ =
     τ' ← c₂
     _ ← case m of
       Any → return ()
-      AddAny m'  → guardErr ( (map psize m') ≡ (AddTop 1)) $
-                    typeError "synWrite: ⊢ₘ ; |m| ≢  1" $ frhs
-                      [ ("m", pretty m)
-                      ]
+      AddAny m'  → do
+                    guardErr ( (map psize m') ≡ (AddTop 1)) $
+                      typeError "synWrite: ⊢ₘ ; |m| ≢  1" $ frhs
+                        [ ("m", pretty m)
+                        ]
                     return ()
     case τ of
       (SecT loc bτ)  → do
@@ -844,10 +846,11 @@ synShare φ τ ρe₁ ρse₂ e₃ =
         qs ← elabPrinSetExp ρse₂
         q ←  elabEMode (AddTop ρse₂)
         _ <-  case qs of 
-              (Inl qs) → guardErr (not (isEmpty  qs)) $
-                          typeError "synShare: q is empty" $ frhs
-                            [  ("q", pretty qs)
-                            ]  
+              (Inl qs) → do
+                          guardErr (not (isEmpty  qs)) $
+                            typeError "synShare: q is empty" $ frhs
+                              [  ("q", pretty qs)
+                              ]  
                           return ()
               _  → return ()
 
@@ -907,10 +910,11 @@ synComm τ ρe₁ ρse₂ e₃ =
         qs ← elabPrinSetExp ρse₂
         q ←  elabEMode (AddTop ρse₂)
         _ <-  case qs of 
-              (Inl qs) → guardErr (not (isEmpty  qs)) $
-                          typeError "synShare: q is empty" $ frhs
-                            [  ("q", pretty qs)
-                          ]   
+              (Inl qs) → do
+                            guardErr (not (isEmpty  qs)) $
+                              typeError "syncOMM: q is empty" $ frhs
+                              [ ("q", pretty qs)
+                              ]   
                           return ()
               _  → return ()
 
