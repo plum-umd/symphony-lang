@@ -643,7 +643,10 @@ interpExpR = \case
 
   -- Default
   DefaultE → interpDefault
+  
+  AscrE e τ → interpExp e
 
+  
   -- TODO
   _ → todoCxt
 
