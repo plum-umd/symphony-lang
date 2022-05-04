@@ -824,9 +824,9 @@ checkPar ρse₁ e₂ τ=
     l ← elabEMode (AddTop ρse₁)
     let m' = inter_m m l
     if m' ≢  (AddAny (AddTop bot)) then do
-      typeError "m'" $ frhs
+   {-   typeError "m'" $ frhs
         [ ("m'", pretty m')
-        ]
+        ]-}
       τ' ← localL terModeL m' c₂
       subcond  ← subtype τ' τ pø
       guardErr subcond $
@@ -1254,7 +1254,12 @@ synExpR e = case e of
   VarE x → synVar x
 
   -- Literals--
-  BulE        → synBul
+  BulE        → do 
+    m  ← askL terModeL
+    typeError "m'" $ frhs
+        [ ("m'", pretty m')
+        ]
+    synBul
   BoolE b     → synBool b
   NatE pr n   → synNat pr n
   IntE pr z   → synInt pr z
