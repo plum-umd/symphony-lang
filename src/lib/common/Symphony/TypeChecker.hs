@@ -795,6 +795,8 @@ synPar ρse₁ e₂ =
   let c₁ = synPrinSet ρse₁
       c₂ = synExp e₂
   in do
+    t₁ ← c₁
+    t₂ ← c₂
     m  ← askL terModeL
     l ← elabEMode (AddTop ρse₁)
     let m' = inter_m m l
@@ -813,6 +815,8 @@ checkPar ρse₁ e₂ τ=
   let c₁ = synPrinSet ρse₁
       c₂ = synExp e₂
   in do
+    t₁ ← c₁
+    t₂ ← c₂
     m  ← askL terModeL
     l ← elabEMode (AddTop ρse₁)
     let m' = inter_m m l
@@ -830,30 +834,6 @@ checkPar ρse₁ e₂ τ=
       wfcond ← (wf_type τ  (AddAny (AddTop pø)) bigM)
       return ()
 
-makeCleartextType :: EMode → Type → EM Type
-makeCleartextType em sigma =
-  case sigma of
-    BaseT bt → return (SecT em sigma)
-    (loctyₗ :+: loctyᵣ) → do
-      loctyₗ' ← (makeCleartextType em loctyₗ )
-      loctyᵣ' ← (makeCleartextType em loctyᵣ)
-      return (SecT em (loctyₗ' :+: loctyᵣ'))
-    _  → typeError "makeShareType: sigma is not shareable to made cleartext" $ frhs
-                  [ ("sigma", pretty sigma)
-                  ]
-
-makeEncryptedType :: EMode → Prot  → Type → EM Type
-makeEncryptedType em φ sigma =
-  case sigma of
-    BaseT bt → return (SecT em (ShareT φ em sigma))
-    (loctyₗ :+: loctyᵣ) → do
-      loctyₗ' ← (makeEncryptedType em φ loctyₗ)
-      loctyᵣ' ← (makeEncryptedType em φ loctyᵣ)
-      return (SecT em (ShareT φ em (loctyₗ' :+: loctyᵣ')))
-    _  → typeError "makeShareType: sigma is not shareable to made encryped" $ frhs
-                  [ ("sigma", pretty sigma)
-                  ]
-
 --  |-m e : cleartext type @p
 --  q != empty set and p union q = m and p is a principal
 -- ------T-Share
@@ -863,6 +843,8 @@ synShare φ τ ρse₁ ρse₂ e₃ =
   let c₁ = synPrinSet ρse₁
       c₂ = synPrinSet ρse₂
       in do
+        t₁ ← c₁
+        t₂ ← c₂
         m  ← askL terModeL
         -- Literally this line is the only line that needs to change
         p ←  elabEMode (AddTop (ρse₁))
@@ -878,7 +860,7 @@ synShare φ τ ρse₁ ρse₂ e₃ =
               _  → return ()
 
               -- And this line
-        cleartextτ ← (makeCleartextType (AddTop ρse₁) τ)
+        cleartextτ ← (makeCleartextType (AddTop ρse₁) τ None)
       --  wfcond ← wf_type cleartextτ m
         subcond  ←  localL terModeL m (chkExp e₃ cleartextτ)
         guardErr (eq_mode (union_m p q)  m ) $
@@ -890,7 +872,7 @@ synShare φ τ ρse₁ ρse₂ e₃ =
               , ("m", pretty m)
             ]
 
-        (makeEncryptedType (AddTop ρse₂) φ τ)
+        (makeEncryptedType (AddTop ρse₂) φ τ (Some (AddTop ρse₂)))
 
 ---  |-m e : encrypted by p type @p
 --  q != empty set since it is a principal and p union q = m
@@ -901,6 +883,8 @@ synReveal φ τ ρse₁ ρse₂ e₃ =
   let c₁ = synPrinSet ρse₁
       c₂ = synPrinSet ρse₂
       in do
+        t₁ ← c₁
+        t₂ ← c₂
         m  ← askL terModeL
         p ←  elabEMode (AddTop ρse₁)
         q ←  elabEMode (AddTop ρse₂)
@@ -927,6 +911,8 @@ synComm τ ρse₁ ρse₂ e₃ =
   let c₁ = synPrinSet ρse₁
       c₂ = synPrinSet ρse₂
       in do
+        t₁ ← c₁
+        t₂ ← c₂
         m  ← askL terModeL
         -- Literally this line is the only line that needs to change
         p ←  elabEMode (AddTop ρse₁)
@@ -1050,7 +1036,6 @@ synBundleIntro (pe :* e) =
     m  ← askL terModeL
     em ← elabMode m
     case τ of
-      (SecT loc (ShareT _ _ _) ) → todoError
       (SecT loc τ' ) → do
           p ←  elabEMode (AddTop (PowPSE (frhs [pe])))
           p' ← elabEMode loc
@@ -1060,7 +1045,7 @@ synBundleIntro (pe :* e) =
               , ("p'", pretty p')
               ]
           return (SecT em (ISecT loc τ'))
-      _ → todoError
+
 
 synBundle ∷ STACK ⇒ 𝐿 (PrinExp ∧ Exp) → EM Type
 synBundle ρee𝐿 =
@@ -1077,8 +1062,11 @@ synBundleAccess e₁ ρe₂ =
   in do
     τ₁ ← c₁
     τ₂ ← c₂
+    guardErr (isEmbedable τ₁) $
+      typeError "synBundleAccess: τ₁ is not a common cleartext type'" $ frhs
+      [ ("τ₁", pretty τ₁)
+      ]
     case τ₁ of
-      (SecT loc₁ (ISecT loc₁' (ShareT _ _ _) ))  → todoError
       (SecT loc₁ (ISecT loc₁' τ₁'))  → do
         m  ← askL terModeL
         l₁ ← elabEMode loc₁
@@ -1097,7 +1085,6 @@ synBundleAccess e₁ ρe₂ =
               , ("q", pretty q)
             ]
           return (SecT (AddTop (PowPSE (frhs [ρe₂]))) τ₁')
-      _  → todoError
 
 synBundleUnion ∷ STACK ⇒ Exp → Exp → EM Type
 synBundleUnion e₁ e₂ =
@@ -1114,6 +1101,10 @@ synBundleUnionHelper τ₁ τ₂ =
 
     case τ₁ of
       (SecT loc₁ (ISecT loc₁' τ₁'))  → do
+          guardErr (isEmbedable τ₁) $
+            typeError "synBundleAccess: τ₁' is not a common cleartext type'" $ frhs
+              [ ("τ₁'", pretty τ₁')
+              ]
         m  ← askL terModeL
         l₁ ← elabEMode loc₁
         --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
@@ -1141,8 +1132,10 @@ synBundleUnionHelper τ₁ τ₂ =
             q ← elabMode (union_m p₁ p₂)
             τ ←  (locty_join τ₁' τ₂')
             return  (SecT loc₂ (ISecT q τ))
-          _ → todoError
-      _ → todoError
+        
+      _ →           typeError "synBundleAccess: τ₁ is not a bundle type'" $ frhs
+              [ ("τ₁", pretty τ₁)
+              ]
 
 -------------------
 --- Recursive Types ---
