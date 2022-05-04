@@ -69,7 +69,7 @@ synAppTL2 τ₁ τ₂ =
         m  ← askL terModeL
         l₁ ← elabEMode $ effectMode η
         l₂ ← elabEMode loc
-        subcond  ←  (subtype τ₂ τ₁₂ pø )
+        subcond  ←  (embed_subtype τ₂ τ₁₂ pø )
         guardErr (eq_mode m l₁) $
           typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
           [ ("m", pretty m)
@@ -169,7 +169,7 @@ synPrinExp ρe = case ρe of
     ρτ ← (synVar x)
     m ← askL terModeL
     em ← elabMode m
-    subcond ← (subtype ρτ (SecT em (BaseT ℙT)) pø )
+    subcond ← (embed_subtype ρτ (SecT em (BaseT ℙT)) pø )
     guardErr subcond $
       typeError "checkPrin: ρe has type ρτ which is not a subtype of τ" $ frhs
         [ ("ρτ", pretty ρe)
@@ -187,7 +187,7 @@ checkPrin ρe =
     ρτ ← (synVar ρe)
     m ← askL terModeL
     em ← elabMode m
-    subcond ← (subtype ρτ (SecT em (BaseT ℙT)) pø )
+    subcond ← (embed_subtype ρτ (SecT em (BaseT ℙT)) pø )
     guardErr subcond $
       typeError "checkPrin: ρe has type ρτ which is not a subtype of τ" $ frhs
         [ ("ρτ", pretty ρe)
@@ -207,7 +207,7 @@ synPrinSet ρse =
     ρsτ ← (synVar x)
     m ← askL terModeL
     em ← elabMode m
-    subcond ← (subtype ρsτ (SecT em (BaseT ℙsT)) pø )
+    subcond ← (embed_subtype ρsτ (SecT em (BaseT ℙsT)) pø )
     guardErr subcond $
       typeError "synPrinSet: ρse has type ρsτ which is not a subtype of τ" $ frhs
         [ ("ρse", pretty ρse)
@@ -370,7 +370,7 @@ synIf e₁ e₂ e₃ =
     τ₃ ← c₃
     m ← askL terModeL
     em  ← elabMode m
-    subcond ← subtype τ₁ (SecT em (BaseT 𝔹T)) pø
+    subcond ← embed_subtype τ₁ (SecT em (BaseT 𝔹T)) pø
     guardErr subcond $
       typeError "synIf: e₁ is not of type bool @ m" $ frhs
           [ ("m", pretty m),
@@ -605,7 +605,7 @@ synRefRead e =
       (SecT loc (RefT _ τ'))  → do
         m  ← askL terModeL
         l ← elabEMode loc
-        --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
+        --  dont need subcond  ←  (embed_subtype τ (SecT m (RefT t')))
         guardErr (eq_mode m l) $
           typeError "synRefRead: m /≡ l" $ frhs
           [ ("m", pretty m)
@@ -687,7 +687,7 @@ synArrayRead e₁ e₂ =
       (SecT loc₁ (ArrT _ τ₁'))  → do
         m  ← askL terModeL
         l₁ ← elabEMode loc₁
-        --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
+        --  dont need subcond  ←  (embed_subtype τ (SecT m (RefT t')))
         guardErr (eq_mode m l₁) $
           typeError "synArrayRead: m /≡ l₁" $ frhs
           [ ("m", pretty m)
@@ -732,7 +732,7 @@ synArrayWrite e₁ e₂ e₃ =
         m  ← askL terModeL
         l₁₁ ← elabEMode loc₁₁
         l₁₂ ← elabEMode loc₁₂
-        --  dont need subcond  ←  (subtype τ (SecT m (ArrT _ t')))
+        --  dont need subcond  ←  (embed_subtype τ (SecT m (ArrT _ t')))
         guardErr ((eq_mode m l₁₁) ⩓ (eq_mode m l₁₂)) $
           typeError "synRefWrite: m /≡ l₁₁ or  m /≡ l₁₂" $ frhs
           [ ("m", pretty m)
@@ -769,7 +769,7 @@ synArraySize e =
           m  ← askL terModeL
           l ← elabEMode loc
           em ← elabMode m
-          --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
+          --  dont need subcond  ←  (embed_subtype τ (SecT m (RefT t')))
           guardErr (eq_mode m l) $
             typeError "synArraySize: m /≡ l" $ frhs
             [ ("m", pretty m)
@@ -820,7 +820,7 @@ checkPar ρse₁ e₂ τ=
     let m' = inter_m m l
     if m' ≢  (AddAny (AddTop bot)) then do
       τ' ← localL terModeL m' c₂
-      subcond  ← subtype τ' τ pø
+      subcond  ← embed_subtype τ' τ pø
       guardErr subcond $
         typeError "checkPar: τ' is not a subtype of τ" $ frhs
           [ ("τ'", pretty τ')
@@ -959,7 +959,7 @@ synMuxIf e₁ e₂ e₃ =do
           do
             case τs of
               (τ₁ :& (τ₂ :& (τ₃ :& Nil))) → do
-                subcond  ← (subtype τ₁ (SecT em (BaseT 𝔹T)) pø  )
+                subcond  ← (embed_subtype τ₁ (SecT em (BaseT 𝔹T)) pø  )
                 guardErr subcond $
                   typeError "synMuxIf: τ₁ is not a shared boolean" $ frhs
                     [  ("τ₁", pretty τ₁)
@@ -976,7 +976,7 @@ synMuxIf e₁ e₂ e₃ =do
               eτs ← (mapM (embedShare p em) τs )
               case eτs of
                 (τ₁ :& (τ₂ :& (τ₃ :& Nil))) → do
-                  subcond  ← (subtype τ₁ (SecT em (ShareT p em (BaseT 𝔹T))) pø  )
+                  subcond  ← (embed_subtype τ₁ (SecT em (ShareT p em (BaseT 𝔹T))) pø  )
                   guardErr subcond $
                     typeError "synMuxIf: τ₁ is not a shared boolean" $ frhs
                     [  ("τ₁", pretty τ₁)]
@@ -1068,7 +1068,7 @@ synBundleAccess e₁ ρe₂ =
       (SecT loc₁ (ISecT loc₁' τ₁'))  → do
         m  ← askL terModeL
         l₁ ← elabEMode loc₁
-        --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
+        --  dont need subcond  ←  (embed_subtype τ (SecT m (RefT t')))
         guardErr (eq_mode m l₁) $
           typeError "synBundleAccess: m /≡ l" $ frhs
           [ ("m", pretty m)
@@ -1105,7 +1105,7 @@ synBundleUnionHelper τ₁ τ₂ =
             ]
         m  ← askL terModeL
         l₁ ← elabEMode loc₁
-        --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
+        --  dont need subcond  ←  (embed_subtype τ (SecT m (RefT t')))
         guardErr (m ≡ l₁) $
           typeError "synBundle: m /≡ l" $ frhs
           [ ("m", pretty m)
@@ -1229,7 +1229,7 @@ chkExpR e τ =
       _ →
           do
             τ' ← synExpR e
-            subcond  ← (subtype τ' τ pø)
+            subcond  ← (embed_subtype τ' τ pø)
             guardErr subcond $
               typeError "checkExpR: e has type τ' which is not a subtype of τ" $ frhs
               [ ("e", pretty e)

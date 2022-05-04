@@ -45,16 +45,10 @@ extractProt τ =
       (ShareT p' loc sigma') → do
         l' ← (elabEMode loc)
         return (Some (p, l))
-      (loctyₗ :×: loctyᵣ) → do
-        _ ← (wf_share_type loctyₗ m p l)
-        _ ← (wf_share_type loctyᵣ m p l)
-        return ()
-      (ListT τₜ)  → do
-        _ ← (wf_share_type τₜ m p l)
-        return ()
-      (ArrT _ τₜ)  → do
-        _ ← (wf_share_type τₜ m p l)
-        return ()
+      (loctyₗ :×: loctyᵣ) →  return (extractProt loctyₗ )
+      -- return (extractProt loctyᵣ  ) Not needed cause either all cleartext or shared  _ ← (wf_share_type loctyᵣ m p l)
+      (ListT τₜ)  → return (extractProt τₜ)
+      (ArrT _ τₜ)  → return (extractProt τₜ)
       _   → return None
    _ →   typeError "ExtractProt: τ is not a located type" $ frhs
                   [ ("τ", pretty τ)
