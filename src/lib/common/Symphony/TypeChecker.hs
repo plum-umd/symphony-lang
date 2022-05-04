@@ -800,11 +800,11 @@ synPar ρse₁ e₂ =
     m  ← askL terModeL
     l ← elabEMode (AddTop ρse₁)
     let m' = inter_m m l
-    if m' ≢  (AddAny (AddTop bot)) then
+    if m' ≢  (AddAny (AddTop bot)) then do
       typeError "m'" $ frhs
         [ ("m'", pretty m')
         ]
-      localL terModeL m' c₂
+ --     localL terModeL m' c₂
     else
       --  |-empty t
       --  m  union p == empty set
