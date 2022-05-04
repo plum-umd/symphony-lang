@@ -800,14 +800,14 @@ synPar ρse₁ e₂ =
     m  ← askL terModeL
     l ← elabEMode (AddTop ρse₁)
     let m' = inter_m m l
-    typeError "synShare: m inter l = m'" $ frhs
+    typeError "synPar: m inter l = m'" $ frhs
             [
               ("m", pretty m)
               , ("l", pretty l)
               , ("m inter l", pretty (inter_m m l))
               , ("m'", pretty m')
             ]
-    if m' ≢  (AddAny (AddTop bot)) then
+   {- if m' ≢  (AddAny (AddTop bot)) then
       localL terModeL m' c₂
     else
       --  |-empty t
@@ -816,7 +816,7 @@ synPar ρse₁ e₂ =
       -- gamma |- par [p] e : t
       -- Default value
       return $ SecT (AddTop (PowPSE empty𝐿))  (BaseT UnitT)
-
+-}
 checkPar ∷ STACK ⇒  PrinSetExp → Exp → Type → EM ()
 checkPar ρse₁ e₂ τ=
   let c₁ = synPrinSet ρse₁
