@@ -1207,7 +1207,9 @@ synTApp e τ =
 -------------------
 
 chkExp :: STACK ⇒ Exp → Type → EM ()
-chkExp e τ = chkExpR (extract e) τ
+chkExp e τ = 
+  localL terSourceL (Some $ atag e) (chkExpR (extract e) τ)
+  -- chkExpR (extract e) τ
 
 chkExpR :: STACK ⇒ ExpR → Type → EM ()
 chkExpR e τ =
@@ -1221,7 +1223,7 @@ chkExpR e τ =
       RE eᵣ        → checkR eᵣ τ
       NilE        → checkNil τ
       LamE self𝑂 ψs e → checkLam self𝑂 ψs e τ
-     -- ParE ρse₁ e₂ → checkPar ρse₁ e₂ τ
+      ParE ρse₁ e₂ → checkPar ρse₁ e₂ τ
       FoldE e → checkFold e τ
       --UnfoldE e → synUnfold e
       _ →
@@ -1237,7 +1239,7 @@ chkExpR e τ =
 
 
 synExp :: STACK ⇒ Exp → EM Type
-synExp e = synExpR $ extract e
+synExp e = localL terSourceL (Some $ atag e) (synExpR (extract e))
 
 
 synExpR ∷ STACK ⇒ ExpR → EM Type
