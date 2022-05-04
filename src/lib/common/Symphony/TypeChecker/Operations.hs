@@ -1604,18 +1604,18 @@ makeCleartextType em sigma update =
   case sigma of
     BaseT bt → return (SecT em sigma)
     (loctyₗ :+: loctyᵣ) → do
-      loctyₗ' ← (makeCleartextType em loctyₗ )
-      loctyᵣ' ← (makeCleartextType em loctyᵣ)
+      loctyₗ' ← (makeCleartextType em loctyₗ update)
+      loctyᵣ' ← (makeCleartextType em loctyᵣ update)
       return (SecT em (loctyₗ' :+: loctyᵣ'))
     (loctyₗ :×: loctyᵣ) → do
-      loctyₗ' ← (makeCleartextType em loctyₗ )
-      loctyᵣ' ← (makeCleartextType em loctyᵣ)
+      loctyₗ' ← (makeCleartextType em loctyₗ update)
+      loctyᵣ' ← (makeCleartextType em loctyᵣ update)
       return (SecT em (loctyₗ':×: loctyᵣ'))
     (ListT τₜ)  →  do
-      loctyₜ' ← (makeCleartextType em τₜ) 
+      loctyₜ' ← (makeCleartextType em τₜ update) 
       return (SecT em (ListT loctyₜ') )
     (ArrT locO τₜ)  → do
-      loctyₜ' ← (makeEncryptedType em φ τₜ)
+      loctyₜ' ← (makeEncryptedType em φ τₜ update)
       return (SecT em (ArrT (if update then (Some em) else locO) loctyₜ'))
 
     _  → typeError "makeShareType: sigma is not shareable to made cleartext" $ frhs
@@ -1623,22 +1623,22 @@ makeCleartextType em sigma update =
                   ]
 
 makeEncryptedType :: EMode → Prot  → Type → 𝔹→  EM Type
-makeEncryptedType em φ sigma locO=
+makeEncryptedType em φ sigma update =
   case sigma of
     BaseT bt → return (SecT em (ShareT φ em sigma))
     (loctyₗ :+: loctyᵣ) → do
-      loctyₗ' ← (makeEncryptedType em φ loctyₗ)
-      loctyᵣ' ← (makeEncryptedType em φ loctyᵣ)
+      loctyₗ' ← (makeEncryptedType em φ loctyₗ update)
+      loctyᵣ' ← (makeEncryptedType em φ loctyᵣ update)
       return (SecT em (ShareT φ em (loctyₗ' :+: loctyᵣ')))
     (loctyₗ :×: loctyᵣ) → do
-      loctyₗ' ← (makeEncryptedType em φ loctyₗ)
-      loctyᵣ' ← (makeEncryptedType em φ loctyᵣ)
+      loctyₗ' ← (makeEncryptedType em φ loctyₗ update)
+      loctyᵣ' ← (makeEncryptedType em φ loctyᵣ update)
       return (SecT em (ShareT φ em (loctyₗ' :×: loctyᵣ')))
     (ListT τₜ)  → do
-      loctyₜ' ← (makeEncryptedType em φ τₜ)
+      loctyₜ' ← (makeEncryptedType em φ τₜ update)
       return (SecT em (ShareT φ em (ListT loctyₜ')))
     (ArrT locO' τₜ)  → do
-      loctyₜ' ← (makeEncryptedType em φ τₜ)
+      loctyₜ' ← (makeEncryptedType em φ τₜ update)
       return SecT em (ShareT φ em (ArrT (if update then (Some em) else locO) loctyₜ'))
     _  → typeError "makeEncryptedType: sigma is not shareable to made encryped" $ frhs
                   [ ("sigma", pretty sigma)
