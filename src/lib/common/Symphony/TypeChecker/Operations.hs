@@ -1038,14 +1038,14 @@ wf_share_loctype sigma m p l=
         [ ("p", pretty p)
         , ("p'", pretty p')
         ]
-      case sigma of 
+      case sigma' of 
         BaseT b → return ()
         (loctyₗ :+: loctyᵣ) → do
           _ ← (wf_share_type loctyₗ m p l)
           _ ← (wf_share_type loctyᵣ m p l)
           return ()
-        _  → typeError "wf_share_loctype: sigma is not well formed encrypted type" $ frhs
-              [ ("sigma", pretty sigma)
+        _  → typeError "wf_share_loctype: sigma' is not well formed loc_ty that is encrypted" $ frhs
+              [ ("sigma'", pretty sigma')
               ]
       
     (loctyₗ :×: loctyᵣ) → do
@@ -1059,7 +1059,7 @@ wf_share_loctype sigma m p l=
       _ ← (wf_share_type τₜ m p l)
       return ()
     _  → do
-      typeError "wf_share_loctype: sigma is not well formed encrypted type" $ frhs
+      typeError "wf_share_loctype: sigma is not well formed encrypted loc_ty" $ frhs
         [ ("sigma", pretty sigma)
         ]
 
