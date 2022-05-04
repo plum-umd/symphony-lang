@@ -43,9 +43,9 @@ inPrinsDist ρ𝑃 = do
 shareVal ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → 𝑃 PrinVal → Val → Type → IM Val Val
 shareVal φ ρvsFr ρvsTo ṽ τ = do
   me ← askL iCxtMeL
-  when (me ∈ ρvFr) $ do
+  when (me ∈ ρvsFr) $ do
     chans ← list ^$ values ^$ getChannels ρvsTo
-    shareSendVal φ ρvsFr chans
+    shareSendVal φ ρvsFr chans ṽ
     eachWith channelFlush chans
   if me ∈ ρvsTo then do
     chans ← list ^$ values ^$ getChannels ρvsFr
@@ -60,53 +60,73 @@ shareSendVal φ ρvsFr chansTo ṽ = do
       GMWP → do
         prg   ← getPrg
         case bv of
-          BoolV bool  → gmwShareSendBool prg chansTo    *$ elimClearBV bool
-          NatV pr nat → gmwShareSendNat  prg chansTo pr *$ elimClearNV nat
-          IntV pr int → gmwShareSendInt  prg chansTo pr *$ elimClearZV int
+          BoolV (ClearBV b)    → gmwShareSendBool prg chansTo b
+          BoolV (EncBV ρvs eb) → do
+            encCheck ρvsFr ρvs
+            gmw ← getOrMkGmw ρvsFr
+            b ← elimGmwB eb
+            gmwReshareSendBool gmw prg chansTo b
+          NatV pr (ClearNV n)    → gmwShareSendNat prg chansTo pr n
+          NatV pr (EncNV ρvs en) → do
+            encCheck ρvsFr ρvs
+            gmw ← getOrMkGmw ρvsFr
+            n ← elimGmwN en
+            gmwReshareSendNat gmw prg chansTo pr n
+          IntV pr (ClearZV z) → gmwShareSendInt prg chansTo pr z
+          IntV pr (EncZV ρvs ez) → do
+            encCheck ρvsFr ρvs
+            gmw ← getOrMkGmw ρvsFr
+            z ← elimGmwZ ez
+            gmwReshareSendInt gmw prg chansTo pr z
           _           → todoCxt
       _    → todoCxt
     ProdV ṽ₁ ṽ₂ → do
-      shareSendVal φ ρvFr chansTo ṽ₁
-      shareSendVal φ ρvFr chansTo ṽ₂
-    ListV ṽs → do -- PICKUP HERE
-      commSendVal ρvsTo $ KnownV $ BaseV $ NatV iprDefault $ ClearNV $ count ṽs
-      eachWith (shareSendVal φ ρvFr ρvsTo) ṽs
+      shareSendVal φ ρvsFr chansTo ṽ₁
+      shareSendVal φ ρvsFr chansTo ṽ₂
+    ListV ṽs → do
+      let length = count ṽs
+      eachOn chansTo $ \ chanTo → channelSendNat chanTo iprDefault length
+      eachWith (shareSendVal φ ρvsFr chansTo) ṽs
     LocV _m (Inr a) → do
-      commSendVal ρvsTo $ KnownV $ BaseV $ NatV iprDefault $ ClearNV $ HS.fromIntegral $ length𝕍Mut a
+      let length = HS.fromIntegral $ length𝕍Mut a
       ṽs ← io $ values𝕍Mut a
-      eachWith (shareSendVal φ ρvFr ρvsTo) ṽs
+      eachOn chansTo $ \ chanTo → channelSendNat chanTo iprDefault length
+      eachWith (shareSendVal φ ρvsFr chansTo) ṽs
     _           → todoCxt
 
 shareRecvVal ∷ (STACK) ⇒ Prot → 𝐿 Channel → 𝑃 PrinVal → Type → IM Val Val
 shareRecvVal φ chansFr ρvsTo τ = KnownV ^$ case τ of
-  BaseT bτ  → BaseV ^$ case φ of
+  BaseT bτ → BaseV ^$ case φ of
     GMWP → do
       gmw  ← getOrMkGmw ρvsTo
-      chan ← getChannel ρvFr
       case bτ of
-        𝔹T    → BoolV   ^$ EncBV ρvsTo ^$ GmwB ^$ gmwShareRecvGmwBool gmw chan
-        ℕT pr → NatV pr ^$ EncNV ρvsTo ^$ GmwN ^$ gmwShareRecvGmwNat gmw chan pr
-        ℤT pr → IntV pr ^$ EncZV ρvsTo ^$ GmwZ ^$ gmwShareRecvGmwInt gmw chan pr
+        𝔹T    → BoolV   ^$ EncBV ρvsTo ^$ GmwB ^$ case chansFr of
+                                                    chanFr :& Nil → gmwShareRecvGmwBool gmw chanFr
+                                                    _             → gmwReshareRecvGmwBool gmw chansFr
+        ℕT pr → NatV pr ^$ EncNV ρvsTo ^$ GmwN ^$ case chansFr of
+                                                    chanFr :& Nil → gmwShareRecvGmwNat gmw chanFr pr
+                                                    _             → gmwReshareRecvGmwNat gmw chansFr pr
+        ℤT pr → IntV pr ^$ EncZV ρvsTo ^$ GmwZ ^$ case chansFr of
+                                                    chanFr :& Nil → gmwShareRecvGmwInt gmw chanFr pr
+                                                    _             → gmwReshareRecvGmwInt gmw chansFr pr
         _     → todoCxt
     _    → todoCxt
   τ₁ :×: τ₂ → do
-    ṽ₁ ← shareRecvVal φ ρvFr ρvsTo τ₁
-    ṽ₂ ← shareRecvVal φ ρvFr ρvsTo τ₂
+    ṽ₁ ← shareRecvVal φ chansFr ρvsTo τ₁
+    ṽ₂ ← shareRecvVal φ chansFr ρvsTo τ₂
     return $ ProdV ṽ₁ ṽ₂
   ListT τ' → do
-    _ :* len_nat ← elimNat *$ elimBase *$ elimKnown *$ commRecvVal ρvFr $ BaseT $ ℕT iprDefault
-    len ← elimClearNV len_nat
-    let ṽM = shareRecvVal φ ρvFr ρvsTo τ'
-    ṽs ← list ^$ exchange $ replicate len ṽM
+    length ← access fstL ^$ fromSomeCxt *$ view consL ^$ mapMOn chansFr $ \ chanFr → channelRecvNat chanFr iprDefault
+    let ṽM = shareRecvVal φ chansFr ρvsTo τ'
+    ṽs ← list ^$ exchange $ replicate length ṽM
     return $ ListV ṽs
   ArrT τ' → do
-    _ :* len_nat ← elimNat *$ elimBase *$ elimKnown *$ commRecvVal ρvFr $ BaseT $ ℕT iprDefault
-    len ← elimClearNV len_nat
-    let ṽM = shareRecvVal φ ρvFr ρvsTo τ'
-    ṽs ← exchange $ replicate len ṽM
+    length ← access fstL ^$ fromSomeCxt *$ view consL ^$ mapMOn chansFr $ \ chanFr → channelRecvNat chanFr iprDefault
+    let ṽM = shareRecvVal φ chansFr ρvsTo τ'
+    ṽs ← exchange $ replicate length ṽM
     a ← io $ vecIMut ṽs
     m ← askL iCxtModeL
-    return $ LocV m (Inr a)
+    return $ LocV (AddTop ρvsTo) (Inr a)
   _         → todoCxt
 
 ------------
@@ -116,6 +136,7 @@ shareRecvVal φ chansFr ρvsTo τ = KnownV ^$ case τ of
 commVal ∷ (STACK) ⇒ 𝑃 PrinVal → 𝑃 PrinVal → Val → Type → IM Val Val
 commVal ρvsFr ρvsTo ṽ τ = do
   me   ← askL iCxtMeL
+  let nominate ρvs = fromSomeCxt $ choose𝑃 ρvs
   ρvFr ← nominate ρvsFr
   when (me ≡ ρvFr) $ do
     chans ← list ^$ values ^$ getChannels ρvsTo
@@ -123,7 +144,7 @@ commVal ρvsFr ρvsTo ṽ τ = do
     eachWith channelFlush chans
   if me ∈ ρvsTo then do
     chan ← getChannel ρvFr
-    commRecvVal chan τ
+    commRecvVal chan ρvsTo τ
   else return unknownValDist
 
 commSendVal ∷ (STACK) ⇒ 𝐿 Channel → Val → IM Val ()
@@ -146,7 +167,7 @@ commSendVal chansTo ṽ = do
       commSendVal chansTo ṽ₁
       commSendVal chansTo ṽ₂
     LocV _m (Inr a) → do
-      let length = length𝕍Mut a
+      let length = HS.fromIntegral $ length𝕍Mut a
       ṽs ← io $ values𝕍Mut a
       eachOn chansTo $ \ chanTo → channelSendNat chanTo iprDefault length
       eachWith (commSendVal chansTo) ṽs
@@ -154,8 +175,8 @@ commSendVal chansTo ṽ = do
       pptraceM v
       todoCxt
 
-commRecvVal ∷ (STACK) ⇒ Channel → Type → IM Val Val
-commRecvVal chanFr τ = KnownV ^$ case τ of
+commRecvVal ∷ (STACK) ⇒ Channel → 𝑃 PrinVal → Type → IM Val Val
+commRecvVal chanFr ρvsTo τ = KnownV ^$ case τ of
   BaseT bτ  → BaseV ^$ do
     case bτ of
       𝔹T    → BoolV   ^$ ClearBV ^$ channelRecvBool chanFr
@@ -163,16 +184,15 @@ commRecvVal chanFr τ = KnownV ^$ case τ of
       ℤT pr → IntV pr ^$ ClearZV ^$ channelRecvInt  chanFr pr
       _     → todoCxt
   τ₁ :×: τ₂ → do
-    ṽ₁ ← commRecvVal chanFr τ₁
-    ṽ₂ ← commRecvVal chanFr τ₂
+    ṽ₁ ← commRecvVal chanFr ρvsTo τ₁
+    ṽ₂ ← commRecvVal chanFr ρvsTo τ₂
     return $ ProdV ṽ₁ ṽ₂
   ArrT τ' → do
     length ← channelRecvNat chanFr iprDefault
-    let ṽM = commRecvVal chanFr τ'
+    let ṽM = commRecvVal chanFr ρvsTo τ'
     ṽs ← exchange $ replicate length ṽM
     a ← io $ vecIMut ṽs
-    m ← askL iCxtModeL
-    return $ LocV m (Inr a)
+    return $ LocV (AddTop ρvsTo) (Inr a)
   _         → todoCxt
 
 --------------
@@ -188,7 +208,7 @@ revealVal φ ρvsFr ρvsTo ṽ τ = do
     eachWith channelFlush chans
   if me ∈ ρvsTo then do
     chans ← list ^$ values ^$ getChannels ρvsFr
-    revealRecvVal φ chans τ
+    revealRecvVal φ chans ρvsTo τ
   else return unknownValDist
 
 revealSendVal ∷ (STACK) ⇒ Prot → 𝑃 PrinVal → 𝐿 Channel → Val → IM Val ()
@@ -214,14 +234,14 @@ revealSendVal φ ρvsFr chansTo ṽ = do
       revealSendVal φ ρvsFr chansTo ṽ₁
       revealSendVal φ ρvsFr chansTo ṽ₂
     LocV _m (Inr a) → do
-      let length = length𝕍Mut a
+      let length = HS.fromIntegral $ length𝕍Mut a
       ṽs ← io $ values𝕍Mut a
       eachOn chansTo $ \ chanTo → channelSendNat chanTo iprDefault length
       eachWith (revealSendVal φ ρvsFr chansTo) ṽs
     _           → todoCxt
 
-revealRecvVal ∷ (STACK) ⇒ Prot → 𝐿 Channel → Type → IM Val Val
-revealRecvVal φ chansFr τ = KnownV ^$ case τ of
+revealRecvVal ∷ (STACK) ⇒ Prot → 𝐿 Channel → 𝑃 PrinVal → Type → IM Val Val
+revealRecvVal φ chansFr ρvsTo τ = KnownV ^$ case τ of
   BaseT bτ → BaseV ^$ case φ of
     GMWP → do
       case bτ of
@@ -231,14 +251,13 @@ revealRecvVal φ chansFr τ = KnownV ^$ case τ of
         _     → todoCxt
     _    → todoCxt
   τ₁ :×: τ₂ → do
-      ṽ₁ ← revealRecvVal φ chansFr τ₁
-      ṽ₂ ← revealRecvVal φ chansFr τ₂
+      ṽ₁ ← revealRecvVal φ chansFr ρvsTo τ₁
+      ṽ₂ ← revealRecvVal φ chansFr ρvsTo τ₂
       return $ ProdV ṽ₁ ṽ₂
   ArrT τ' → do
-    length :& _ ← mapMOn chansFr $ \ chanFr → channelRecvNat chanFr iprDefault
-    let ṽM = revealRecvVal chansFr τ'
+    length ← access fstL ^$ fromSomeCxt *$ view consL ^$ mapMOn chansFr $ \ chanFr → channelRecvNat chanFr iprDefault
+    let ṽM = revealRecvVal φ chansFr ρvsTo τ'
     ṽs ← exchange $ replicate length ṽM
     a ← io $ vecIMut ṽs
-    m ← askL iCxtModeL
-    return $ LocV m (Inr a)
+    return $ LocV (AddTop ρvsTo) (Inr a)
   _ → todoCxt

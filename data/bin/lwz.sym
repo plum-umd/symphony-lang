@@ -44,7 +44,7 @@ def shuffle C a =
 
 def lwz-shuffle P C a =
   par P
-    let a = par C (share [gmw, array ℤ : P → C] a) in
+    let a = share [gmw, array ℤ : P → C] a in
     let _ = par C (shuffle C a) in
     share [gmw, array ℤ : C → P] a
 
@@ -66,8 +66,7 @@ def array_copy_at src dst idx =
  in copy_rec 0n
 
 def array_concat arrs =
---  let len = list_foldl 0n plus (map (λ a → size a) arrs) in
-  let len = 15n in
+  let len = list_foldl 0n plus (map (λ a → size a) arrs) in
   let ret = array[len] ⊥ in
   let idx = ref 0n in
   let () = iter (λ a →

@@ -180,7 +180,8 @@ instance Pretty ValR where
       pretty ṽᵣ
     ListV ṽs → pretty ṽs
     CloV self𝑂 _f → concat [pretty self𝑂, ppCon "λ<clo>"]
-    LocV m ℓ → ppApp (ppCon "loc") [pretty m,pretty ℓ]
+    LocV m (Inl r) → ppApp (ppCon "ref") [pretty m, pretty r]
+    LocV m (Inr a) → ppApp (ppCon "array") [pretty m, pretty a]
     BundleV ρvs →
       ppCollection (ppPun "⟪") (ppPun "⟫") (ppPun ";") $
       mapOn (iter ρvs) $ \ (ρ :* ṽ) →

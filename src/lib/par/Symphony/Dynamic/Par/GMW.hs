@@ -2,7 +2,8 @@ module Symphony.Dynamic.Par.GMW ( module Symphony.Dynamic.Par.GMW ) where
 
 import Symphony.Prelude
 import qualified Prelude as HS
-import Foreign.ForeignPtr (newForeignPtr, withForeignPtr, ForeignPtr, FinalizerPtr)
+import qualified Data.Bits as BITS
+import Foreign.ForeignPtr (newForeignPtr, withForeignPtr, finalizeForeignPtr, ForeignPtr, FinalizerPtr)
 import Foreign.Ptr (Ptr)
 import Foreign.C.Types (CSize(..), CBool(..), CUInt(..), CInt(..))
 import Foreign.Marshal.Array (withArrayLen, withArray)
@@ -57,6 +58,9 @@ gmwProtocolNew me chans = io $
         cports = tohs $ list $ map (HS.fromIntegral ∘ snd ∘ snd) $ iter chans
 
 foreign import ccall unsafe "&gmw_protocol_drop" gmw_protocol_drop ∷ FinalizerPtr CGmw
+
+gmwProtocolDrop ∷ (Monad m, MonadIO m) ⇒ Gmw → m ()
+gmwProtocolDrop gmw = io $ finalizeForeignPtr $ unGmw gmw
 
 withGmw ∷ Gmw → (Ptr CGmw → IO a) → IO a
 withGmw gmw f = withForeignPtr cgmw f
@@ -163,6 +167,16 @@ gmwRevealSendGmwBool gmw chan share = do
   b ← gmwBoolGet gmw share
   gmwRevealSendBool chan b
 
+gmwReshareSendBool ∷ (Monad m, MonadIO m) ⇒ Gmw → Prg → 𝐿 Channel → GmwBool → m ()
+gmwReshareSendBool gmw prg channels share = do
+  b ← gmwBoolGet gmw share
+  gmwShareSendBool prg channels b
+
+gmwReshareRecvGmwBool ∷ (Monad m, MonadIO m) ⇒ Gmw → 𝐿 Channel → m GmwBool
+gmwReshareRecvGmwBool gmw chans = do
+  shares ← mapM gmwShareRecvBool chans
+  gmwBoolNew gmw $ fold False (BITS.xor) shares
+
 ----------------------------------
 --- GMW Natural (Unsigned Int) ---
 ----------------------------------
@@ -259,6 +273,16 @@ gmwRevealSendGmwNat ∷ (Monad m, MonadIO m) ⇒ Gmw → Channel → IPrecision 
 gmwRevealSendGmwNat gmw chan pr share = do
   z ← gmwNatGet gmw pr share
   gmwRevealSendNat chan pr z
+
+gmwReshareSendNat ∷ (Monad m, MonadIO m) ⇒ Gmw → Prg → 𝐿 Channel → IPrecision → GmwNat → m ()
+gmwReshareSendNat gmw prg channels pr share = do
+  n ← gmwNatGet gmw pr share
+  gmwShareSendNat prg channels pr n
+
+gmwReshareRecvGmwNat ∷ (Monad m, MonadIO m) ⇒ Gmw → 𝐿 Channel → IPrecision → m GmwNat
+gmwReshareRecvGmwNat gmw chans pr = do
+  shares ← mapMOn chans $ \ chan → gmwShareRecvNat chan pr
+  gmwNatNew gmw pr $ fold 0 (BITS.xor) shares
 
 --------------------------------
 --- GMW Integer (Signed Int) ---
@@ -371,3 +395,13 @@ gmwRevealSendGmwInt ∷ (Monad m, MonadIO m) ⇒ Gmw → Channel → IPrecision 
 gmwRevealSendGmwInt gmw chan pr share = do
   z ← gmwIntGet gmw pr share
   gmwRevealSendInt chan pr z
+
+gmwReshareSendInt ∷ (Monad m, MonadIO m) ⇒ Gmw → Prg → 𝐿 Channel → IPrecision → GmwInt → m ()
+gmwReshareSendInt gmw prg channels pr share = do
+  n ← gmwIntGet gmw pr share
+  gmwShareSendInt prg channels pr n
+
+gmwReshareRecvGmwInt ∷ (Monad m, MonadIO m) ⇒ Gmw → 𝐿 Channel → IPrecision → m GmwInt
+gmwReshareRecvGmwInt gmw chans pr = do
+  shares ← mapMOn chans $ \ chan → gmwShareRecvInt chan pr
+  gmwIntNew gmw pr $ fold (HS.fromIntegral 0) (BITS.xor) shares

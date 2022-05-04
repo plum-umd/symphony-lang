@@ -12,6 +12,7 @@ import Symphony.Dynamic.Par.Operations
 import Symphony.Dynamic.Par.Dist
 import Symphony.Dynamic.Par.Error
 import Symphony.Dynamic.Par.Prg
+import Symphony.Dynamic.Par.GMW
 
 import qualified Prelude as HS
 import qualified System.Console.GetOpt as O
@@ -419,14 +420,10 @@ interpShare φ τ ρse₁ ρse₂ e₃ =
       c₃ = interpExp e₃
   in do
     ρvsFr ← elimPSV ^$ c₁
-    ρvFr  ← error𝑂 (view one𝑃L ρvsFr) $
-            throwIErrorCxt TypeIError "interpShare: view one𝑃L ρvsFr ≡ None" $ frhs
-            [ ("ρvsFr", pretty ρvsFr)
-            ]
     ρvsTo ← elimPSV ^$ c₂
     ṽ     ← c₃
     modeCheckComm ρvsFr ρvsTo
-    shareVal φ ρvFr ρvsTo ṽ τ
+    shareVal φ ρvsFr ρvsTo ṽ τ
 
 interpReveal ∷ (STACK) ⇒ Prot → Type → PrinSetExp → PrinSetExp → Exp → IM Val Val
 interpReveal φ τ ρse₁ ρse₂ e₃ =
@@ -684,4 +681,7 @@ evalProgram θ prog =
     interpTLs prog $ do
       main ← interpVar $ var "main"
       bul  ← return $ KnownV $ BaseV BulV
-      evalApp main bul
+      v ← evalApp main bul
+      gmws ← list ^$ values ^$ getL iStateGmwsL
+      eachOn gmws gmwProtocolDrop
+      return v

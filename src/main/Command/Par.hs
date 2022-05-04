@@ -11,8 +11,15 @@ import Symphony.Lang.Parser
 
 import qualified System.Console.GetOpt as O
 
+#ifdef PAR
+import Symphony.Dynamic.Par
+import Symphony.Dynamic.Par.Prg
+import Symphony.Dynamic.Par.Channel
+#endif
+
 data OptionsPar = OptionsPar
   { optParHelp   ∷ 𝔹
+  , optParQuiet  ∷ 𝔹
   , optParParty  ∷ 𝑂 𝕊
   , optParConfig ∷ 𝑂 𝕊
   , optParSeed   ∷ 𝑂 ℕ
@@ -22,6 +29,7 @@ makeLenses ''OptionsPar
 optionsPar₀ ∷ OptionsPar
 optionsPar₀ = OptionsPar
   { optParHelp   = False
+  , optParQuiet  = False
   , optParParty  = None
   , optParConfig = None
   , optParSeed   = None
@@ -35,6 +43,9 @@ optionsParDescr = frhs
   , O.Option ['p'] [chars "party"]
              (O.ReqArg (\ s → update optParPartyL $ Some $ build𝕊C s) $ chars "PARTY")
            $ chars "set current party"
+  , O.Option ['q'] [chars "quiet"]
+             (O.NoArg $ update optParQuietL True)
+           $ chars "do not output the final value"
   , O.Option ['c'] [chars "config"]
              (O.ReqArg (\ s → update optParConfigL $ Some $ build𝕊C s) $ chars "PATH")
            $ chars "parties configuration as <id,address,port>..."
@@ -67,14 +78,7 @@ instance Pretty OptionsParError where
                       , ppString helpParMsg
                       ]
 
-
 #ifdef PAR
-
--- TODO(ins): Should remove CPP here and instead add stub module for Par to Symphony library
-
-import Symphony.Dynamic.Par
-import Symphony.Dynamic.Par.Prg
-import Symphony.Dynamic.Par.Channel
 
 -- TODO(ins): rough and ready, fix this
 parsePrin ∷ 𝕊 → 𝑂 PrinVal
@@ -160,7 +164,7 @@ runPar opts args = do
       stdLib   ← io $ parseFile *$ findFile "lib/stdlib.sym"
       program  ← io $ parseFile *$ findFile path
       v ← io $ evalProgram (θ₀ name party prg channels configs) (stdLib ⧺ program)
-      return $ pretty v
+      return $ if not (optParQuiet opts) then pretty v else null
 
 #else
 runPar ∷ OptionsPar → 𝐿 𝕊 → IO Doc
