@@ -121,7 +121,7 @@ lexer = lexerBasic puns kws prim ops
       , "𝔽","flt"
       , "list"
       , "ref","array"
-      , "rand","rand-range"
+      , "rand","randMax"
       , "inp","rev"
       , "∞","inf"
       , "⊤","all"
@@ -602,17 +602,23 @@ pExp = fmixfixWithContext "exp" $ concat
       cpSyntaxVoid "@"
       τ ← pType
       return $ \ e → TAppE e τ
-  -- par {P} e
+  -- par ρse e
   , fmixPrefix levelPAR $ do
       cpSyntaxVoid "par"
       ρse ← pPrinSetExp
       return $ ParE ρse
-  -- rand μ
+  -- rand ρse μ
   , fmixTerminal $ do
       cpSyntaxVoid "rand"
       ρse ← pPrinSetExp
       μ ← pBaseType
       return $ RandE ρse μ
+  -- randMax ρse μ e
+  , fmixPrefix levelAPP $ do
+      cpSyntaxVoid "randMax"
+      ρse ← pPrinSetExp
+      μ ← pBaseType
+      return $ RandMaxE ρse μ
   -- share{φ,τ:P→P} e
   , fmixPrefix levelAPP $ do
       cpSyntaxVoid "share"

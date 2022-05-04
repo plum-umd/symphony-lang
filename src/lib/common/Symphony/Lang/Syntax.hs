@@ -437,6 +437,7 @@ data ExpR =
   | ParE PrinSetExp Exp                           -- par ρse e               /  par ρse e
 
   | RandE PrinSetExp BaseType                     -- rand ρse μ              /  rand ρse μ
+  | RandMaxE PrinSetExp BaseType Exp              -- rand ρse max μ          /  rand ρse max μ
 
   | ShareE Prot Type PrinSetExp PrinSetExp Exp    -- share{φ,τ:ρse→ρse} e    /  share{φ,τ:ρse->ρse} e
   | RevealE Prot Type PrinSetExp PrinSetExp Exp   -- reveal{φ,τ:ρse→ρse} e   /  reveal{φ,τ:ρse→ρse} e

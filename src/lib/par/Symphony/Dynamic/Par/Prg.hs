@@ -40,6 +40,13 @@ prgRandNat32 prg = io $
   HS.fromIntegral ^$ prg_rand_u32 cprg_ptr
   where cprg = unPrg prg
 
+foreign import ccall unsafe "prg_rand_max_u32" prg_rand_max_u32 ∷ Ptr CPrg → CUInt → IO CUInt
+
+prgRandMaxNat32 ∷ (Monad m, MonadIO m) ⇒ Prg → ℕ32 → m ℕ32
+prgRandMaxNat32 prg max = io $
+  withForeignPtr (unPrg prg) $ \ cprg_ptr →
+  HS.fromIntegral ^$ prg_rand_max_u32 cprg_ptr $ HS.fromIntegral max
+
 foreign import ccall unsafe "prg_rand_u64" prg_rand_u64 ∷ Ptr CPrg → IO CULong
 
 prgRandSeed ∷ (Monad m, MonadIO m) ⇒ Prg → m (ℕ64 ∧ ℕ64)

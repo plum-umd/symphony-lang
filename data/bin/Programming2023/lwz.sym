@@ -1,0 +1,27 @@
+principal A B C
+
+def lwzShuffle P C a =
+  par P
+    let a = share [gmw, array ℤ : P → C] a in
+    let _ = par C (shuffle C a) in
+    share [gmw, array ℤ : C → P] a
+
+-- shuffle the vector `a` shared among `P` with corruption threshold `t < |P|`
+def lwz P t a =
+  -- compute all subsets of `C` of size `t`
+  let Cs = subsets P t in
+  -- shuffle `a` among each subset
+  list_foldl a (lwzShuffle P) Cs
+
+def main () = par {A,B,C}
+  let inputA = par {A} read (array ℤ) from "lwz.txt" in
+  let inputB = par {B} read (array ℤ) from "lwz.txt" in
+  let inputC = par {C} read (array ℤ) from "lwz.txt" in
+
+  let P = {A,B,C} in
+  let shA = share [gmw, array ℤ : {A} → P] inputA in
+  let shB = share [gmw, array ℤ : {B} → P] inputB in
+  let shC = share [gmw, array ℤ : {C} → P] inputC in
+
+  let a = arrayConcat [shA; shB; shC] in
+  reveal [gmw, array ℤ : {A,B,C} → {A,B,C}] (lwz P 2n a)

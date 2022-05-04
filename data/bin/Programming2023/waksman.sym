@@ -1,0 +1,43 @@
+principal A
+
+// https://github.com/samee/obliv-c/blob/master/test/oblivc/psi/waksman.c#L5
+def waksmanSwapCount n =
+  if n <= 1n then
+    0n
+  else
+    if n == 2n then
+      1n
+    else
+      (n - 1n) + (waksmanSwapCount (n / 2n)) + (waksmanSwapCount ((n + 1n) / 2n))
+
+def forLoop start check modify body =
+  let forLoopRec = fun [forLoopRec] i ->
+    if (check i) then
+      let _ = body i in
+      forLoopRec (modify i)
+    else
+      ()
+  in forLoopRec start
+
+// https://github.com/samee/obliv-c/blob/master/test/oblivc/psi/waksman.c#L50
+def waksmanSwitches perm n out =
+  if n <= 1 then
+    0n
+  else
+    let inv  = array[n] 0n in
+    let arr1 = array[n / 2n] 0n in
+    let arr2 = array[(n + 1n) / 2n] 0n in
+    let outputTail = array[(n - 1n) / 2n] false in
+    let tag = array[n] false in
+
+    let used = ref 0n in
+
+    let _ = forLoop 0n (fun i -> i < n) (fun i -> i + 1)
+              (fun i -> let _ = inv.i <- perm.i in
+                        ())
+    in
+
+    ()
+
+def main () =
+  waksmanSwapCount 10n

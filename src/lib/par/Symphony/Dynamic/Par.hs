@@ -360,24 +360,16 @@ interpPar ρse₁ e₂ =
 --- Rand --
 -----------
 
-rand ∷ 𝑃 PrinVal → BaseType → IM Val BaseVal
-rand ρvs bτ = case bτ of
-  UnitT → return BulV
-  𝔹T    → do
-    sharedPrg ← getOrMkSyncPrg ρvs
-    BoolV ^$ ClearBV ^$ prgRandBool sharedPrg
-  ℕT pr → case pr of
-    FixedIPr wPr dPr | wPr + dPr ≡ 32 → do
-                         sharedPrg ← getOrMkSyncPrg ρvs
-                         NatV pr ^$ ClearNV ^$ HS.fromIntegral ^$ prgRandNat32 sharedPrg
-    _ → todoCxt
-{-  ℤT pr → case pr of
-    FixedIPr wPr dPr | wPr + dPr ≡ 8   → IntCV pr ^$ prgRandInt8 prg
-    FixedIPr wPr dPr | wPr + dPr ≡ 16  → IntCV pr ^$ prgRandInt16 prg
-    FixedIPr wPr dPr | wPr + dPr ≡ 32  → IntCV pr ^$ prgRandInt32 prg
-    FixedIPr wPr dPr | wPr + dPr ≡ 64  → IntCV pr ^$ prgRandInt64 prg
-    _ → todoCxt -}
-  _ → todoCxt
+syncRand ∷ 𝑃 PrinVal → BaseType → IM Val BaseVal
+syncRand ρvs bτ = do
+  syncPrg ← getOrMkSyncPrg ρvs
+  case bτ of
+    UnitT → return BulV
+    𝔹T    → BoolV ^$ ClearBV ^$ prgRandBool syncPrg
+    ℕT pr → case pr of
+      FixedIPr wPr dPr | wPr + dPr ≡ 32 → NatV pr ^$ ClearNV ^$ HS.fromIntegral ^$ prgRandNat32 syncPrg
+      _                                 → todoCxt
+    _     → todoCxt
 
 interpRand ∷ (STACK) ⇒ PrinSetExp → BaseType → IM Val Val
 interpRand ρse bτ = do
@@ -389,8 +381,40 @@ interpRand ρse bτ = do
     [ ("m", pretty m)
     , ("m'", pretty m')
     ]
-  bv ← rand ρvs bτ
-  return $ KnownV $ BaseV bv
+  ret ← syncRand ρvs bτ
+  return $ KnownV $ BaseV ret
+
+syncRandMax ∷ 𝑃 PrinVal → BaseType → BaseVal → IM Val BaseVal
+syncRandMax ρvs bτ bv = do
+  syncPrg ← getOrMkSyncPrg ρvs
+  case bτ of
+    ℕT pr → case pr of
+      FixedIPr wPr dPr | wPr + dPr ≡ 32 → NatV pr ^$ ClearNV ^$ HS.fromIntegral ^$ do
+                           prMax :* n ← elimNat bv
+                           guardErr (pr ≡ prMax) $
+                             throwIErrorCxt TypeIError "interpRandMax: pr ≢ prMax" $ frhs
+                             [ ("pr", pretty pr)
+                             , ("prMax", pretty prMax)
+                             ]
+                           max ← elimClearNV n
+                           prgRandMaxNat32 syncPrg $ HS.fromIntegral max
+      _ → todoCxt
+    _ → todoCxt
+
+interpRandMax ∷ (STACK) ⇒ PrinSetExp → BaseType → Exp → IM Val Val
+interpRandMax ρse bτ e = do
+  m   ← askL iCxtModeL
+  ρvs ← elimPSV ^$ interpPrinSetExp ρse
+  ṽ   ← interpExp e
+  let m' = AddTop ρvs
+  guardErr (m ≡ m') $
+    throwIErrorCxt TypeIError "interpRandMax: m ≢ m'" $ frhs
+    [ ("m", pretty m)
+    , ("m'", pretty m')
+    ]
+  bv ← elimBase *$ elimKnown ṽ
+  ret ← syncRandMax ρvs bτ bv
+  return $ KnownV $ BaseV ret
 
 -------------------------------
 --- Share, Reveal, and Send ---
@@ -619,6 +643,7 @@ interpExpR = \case
 
   -- Rand
   RandE ρse μ → interpRand ρse μ
+  RandMaxE ρse μ e → interpRandMax ρse μ e
 
   -- Share, Reveal, and Send
   ShareE φ τ ρes₁ ρse₂ e₃  → interpShare φ τ ρes₁ ρse₂ e₃
