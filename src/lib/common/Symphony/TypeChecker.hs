@@ -821,21 +821,14 @@ checkPar ρse₁ e₂ τ=
     l ← elabEMode (AddTop ρse₁)
     let m' = inter_m m l
     if m' ≢  (AddAny (AddTop bot)) then do
-        typeError "checkPar: m inter l = m'" $ frhs
-          [
-              ("m", pretty m)
-              , ("l", pretty l)
-              , ("m inter l", pretty (inter_m m l))
-              , ("m'", pretty m')
-          ]
-      {-τ' ← localL terModeL m' c₂
+      τ' ← localL terModeL m' c₂
       subcond  ← subtype τ' τ pø
       guardErr subcond $
         typeError "checkPar: τ' is not a subtype of τ" $ frhs
           [ ("τ'", pretty τ')
           , ("τ", pretty τ)
           ]
-      return ()-}
+      return ()
     else do
       bigM ← askL terModeScopeL
       wfcond ← (wf_type τ  (AddAny (AddTop pø)) bigM)
@@ -853,6 +846,10 @@ synShare φ τ ρse₁ ρse₂ e₃ =
         t₁ ← c₁
         t₂ ← c₂
         m  ← askL terModeL
+        typeError "synShare:  m" $ frhs
+            [
+              , ("m", pretty m)
+            ]{-
         -- Literally this line is the only line that needs to change
         p ←  elabEMode (AddTop (ρse₁))
         qs ← elabPrinSetExp ρse₂
@@ -880,7 +877,7 @@ synShare φ τ ρse₁ ρse₂ e₃ =
             ]
 
         (makeEncryptedType (AddTop ρse₂) φ τ True)
-
+-}
 ---  |-m e : encrypted by p type @p
 --  q != empty set since it is a principal and p union q = m
 -- ------T-Share
