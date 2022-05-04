@@ -824,6 +824,9 @@ checkPar ρse₁ e₂ τ=
     l ← elabEMode (AddTop ρse₁)
     let m' = inter_m m l
     if m' ≢  (AddAny (AddTop bot)) then do
+      typeError "m'" $ frhs
+        [ ("m'", pretty m')
+        ]
       τ' ← localL terModeL m' c₂
       subcond  ← subtype τ' τ pø
       guardErr subcond $
