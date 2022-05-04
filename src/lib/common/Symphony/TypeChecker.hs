@@ -214,8 +214,7 @@ synPrinSet ρse =
         , ("ρsτ'", pretty ρsτ)
         , ("τ'", pretty (SecT em (BaseT ℙT)))
         ]
-    todoError
-    -- return ρsτ
+    return ρsτ
   PowPSE ρes → do
     _ ←  mapM synPrinExp ρes
     m ← askL terModeL
