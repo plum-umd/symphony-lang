@@ -209,8 +209,8 @@ synPrinSet ρse =
     em ← elabMode m
     subcond ← (subtype ρsτ (SecT em (BaseT ℙsT)) pø )
     guardErr subcond $
-      typeError "checkPrinSet: ρse has type ρτ which is not a subtype of τ" $ frhs
-        [ ("ρsτ", pretty ρse)
+      typeError "synPrinSet: ρse has type ρsτ which is not a subtype of τ" $ frhs
+        [ ("ρse", pretty ρse)
         , ("ρsτ'", pretty ρsτ)
         , ("τ'", pretty (SecT em (BaseT ℙT)))
         ]
