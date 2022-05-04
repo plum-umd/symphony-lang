@@ -981,7 +981,7 @@ wf_loctype sigma m bigM =
     BaseT bt → return ()
     (ShareT p loc locty) → do
       l ← (elabEMode loc)
-      (wf_share_loctype locty m p l)
+      (wf_share_loctype sigma m p l)
     (loctyₗ :+: loctyᵣ)  → do
       _ ← (wf_type  loctyₗ m bigM)
       _ ← (wf_type loctyᵣ m bigM)
@@ -1044,7 +1044,10 @@ wf_share_loctype sigma m p l=
           _ ← (wf_share_type loctyₗ m p l)
           _ ← (wf_share_type loctyᵣ m p l)
           return ()
-    
+        _  → typeError "wf_share_loctype: sigma is not well formed encrypted type" $ frhs
+        [ ("sigma", pretty sigma)
+        ]s
+      
     (loctyₗ :×: loctyᵣ) → do
       _ ← (wf_share_type loctyₗ m p l)
       _ ← (wf_share_type loctyᵣ m p l)
