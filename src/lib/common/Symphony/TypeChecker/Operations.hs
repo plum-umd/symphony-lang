@@ -81,13 +81,13 @@ extractBase τ =
                   ]
 
 -- if it is either a share OR a cleartext that shareable, returns Some (embded), else return None
-embedShare :: STACK ⇒  Prot → EMode → Type → return Type
+embedShare :: STACK ⇒  Prot → EMode → Type → EM Type
 embedShare φ l τ =
     case τ of
     (SecT l' sigma) →
       case sigma of
         (ShareT _ _ _) → return τ
-        (BaseT bτ)  → Some (SecT l' (ShareT φ l (BaseT bτ)))
+        (BaseT bτ)  → return (SecT l' (ShareT φ l (BaseT bτ)))
         (τₗ :+: τᵣ)  →  do
           τₗ' ← (embedShare φ l τₗ )
           τᵣ' ← (embedShare φ l τᵣ )
@@ -1032,8 +1032,8 @@ wf_share_loctype sigma m p l=
         ]
       guardErr (p == p') $
         typeError "wf_share_type: Not well formed encrypted type p != p'" $ frhs
-        [ ("p", pretty m)
-        , ("p'", pretty m')
+        [ ("p", pretty p)
+        , ("p'", pretty p')
         ]
       case sigma of 
         BaseT b → return ()
