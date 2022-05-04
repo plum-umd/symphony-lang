@@ -1,6 +1,6 @@
 principal A B
 
-def main : (int[gmw]@{A,B}@{A,B} -> (int[gmw]@{A,B}@{A,B} -> int[gmw]@{A,B}))@all
+def main : (int[gmw]@{A,B}@{A,B} -> (int[gmw]@{A,B}@{A,B} -> int[gmw]@{A}))@all
 def sec gcd (a, b) =
   mux if (a == 0) then b
   else gcd (b % a, a)
@@ -13,4 +13,4 @@ def main () = par {A,B}
   let shareA = share [gmw, ℤ : {A} → {A,B}] inputA in
   let shareB = share [gmw, ℤ : {B} → {A,B}] inputB in
 
-  reveal [gmw, ℤ : {A,B} → {A}] ( gcd (const 0) 45n (shareA, shareB))
+  reveal [gmw, ℤ : {A,B} → {A}] (bnd_rec gcd (const 0) 45n (shareA, shareB))

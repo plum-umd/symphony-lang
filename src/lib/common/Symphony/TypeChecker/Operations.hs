@@ -40,7 +40,7 @@ primType op τs = case (op, tohs τs) of
 extractProt :: STACK ⇒ Type → EM (𝑂 (Prot, ModeAny) )
 extractProt τ =
  case τ of
-  (SecT _  sigma)   → do
+  (SecT _  sigma)   →
     case sigma of
       (ShareT p' loc sigma') → do
         l' ← (elabEMode loc)
@@ -50,7 +50,7 @@ extractProt τ =
       (ListT τₜ)  → return (extractProt τₜ)
       (ArrT _ τₜ)  → return (extractProt τₜ)
       _   → return None
-   _ →   typeError "ExtractProt: τ is not a located type" $ frhs
+  _ →   typeError "ExtractProt: τ is not a located type" $ frhs
                   [ ("τ", pretty τ)
                   ]
 
