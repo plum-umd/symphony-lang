@@ -40,7 +40,7 @@ primType op τs = case (op, tohs τs) of
 extractProt :: STACK ⇒ Type → EM (𝑂 (Prot, ModeAny) )
 extractProt τ =
  case τ of
-  (SecT _  (sigma)   → do
+  (SecT _  sigma)   → do
     case sigma of
       (ShareT p' loc sigma') → do
         l' ← (elabEMode loc)
