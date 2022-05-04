@@ -118,9 +118,6 @@ synBul ∷ STACK ⇒ EM Type
 synBul =  do
   m ← askL terModeL
   em ← elabMode m
-  typeError "m" $ frhs
-             [ ("m", pretty m)
-             ]
   return $ SecT em $ BaseT UnitT
 
 -- ------ T-Bool
@@ -1224,7 +1221,7 @@ chkExpR e τ =
       RE eᵣ        → checkR eᵣ τ
       NilE        → checkNil τ
       LamE self𝑂 ψs e → checkLam self𝑂 ψs e τ
-      ParE ρse₁ e₂ → checkPar ρse₁ e₂ τ
+     -- ParE ρse₁ e₂ → checkPar ρse₁ e₂ τ
       FoldE e → checkFold e τ
       --UnfoldE e → synUnfold e
       _ →
