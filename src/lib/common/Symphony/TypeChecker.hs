@@ -1237,7 +1237,7 @@ chkExpR e τ =
 
 
 synExp :: STACK ⇒ Exp → EM Type
-synExp e = localL terSourceL (Some $ atag e) (chkExpR (extract e) τ)
+synExp e = localL terSourceL (Some $ atag e) (chkExpR (extract e))
 
 
 synExpR ∷ STACK ⇒ ExpR → EM Type
