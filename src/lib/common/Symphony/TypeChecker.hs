@@ -1245,7 +1245,12 @@ chkExpR e τ =
 
 
 synExp :: STACK ⇒ Exp → EM Type
-synExp e = localL terSourceL (Some $ atag e) (synExpR (extract e))
+synExp e = do 
+    m  ← askL terModeL
+    typeError "m" $ frhs
+        [ ("m", pretty m)
+        ]
+        --localL terSourceL (Some $ atag e) (synExpR (extract e))
 
 
 synExpR ∷ STACK ⇒ ExpR → EM Type
@@ -1254,12 +1259,7 @@ synExpR e = case e of
   VarE x → synVar x
 
   -- Literals--
-  BulE        → do 
-    m  ← askL terModeL
-    typeError "m" $ frhs
-        [ ("m", pretty m)
-        ]
-    synBul
+  BulE        → synBul
   BoolE b     → synBool b
   NatE pr n   → synNat pr n
   IntE pr z   → synInt pr z
