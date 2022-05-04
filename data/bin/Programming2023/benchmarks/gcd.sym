@@ -1,9 +1,11 @@
 principal A B
 
+def main : (int[gmw]@{A,B}@{A,B} -> (int[gmw]@{A,B}@{A,B} -> int[gmw]@{A,B}))@all
 def sec gcd (a, b) =
   mux if (a == 0) then b
   else gcd (b % a, a)
 
+def main : (unit@all -> int@{A})@all
 def main () = par {A,B}
   let inputA = par {A} 102334155 in -- 40th Finonacci number
   let inputB = par {B} 165580141 in -- 41st Fibonacci number
