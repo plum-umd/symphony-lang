@@ -506,7 +506,7 @@ synRead τ e =
   in do
     m ← askL terModeL
     em ← elabMode m
-    τ' ← makeCleartextType em τ
+    τ' ← makeCleartextType em τ False
     τ'' ← c
     _ ← case m of
       Any → return ()
@@ -872,7 +872,7 @@ synShare φ τ ρse₁ ρse₂ e₃ =
               , ("m", pretty m)
             ]
 
-        (makeEncryptedType (AddTop ρse₂) φ τ (Some (AddTop ρse₂)) True)
+        (makeEncryptedType (AddTop ρse₂) φ τ True)
 
 ---  |-m e : encrypted by p type @p
 --  q != empty set since it is a principal and p union q = m
