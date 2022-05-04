@@ -1193,9 +1193,11 @@ synTApp ∷ STACK ⇒ Exp → Type →  EM Type
 synTApp e τ =
   let c = synExp e
   in do
+    m ← askL terModeL
+    _ ← wf_type τ m bigM
     τ' ← c
     case τ' of
-      (ForallT x τ₁') → (type_subst x τ₁' τ)
+      (ForallT x τ₁') →  (type_subst x τ₁' τ)
       _ → typeError " e has type τ' which is not a forall type " $ frhs
             [ ("e", pretty e)
             , ("τ'", pretty τ')]

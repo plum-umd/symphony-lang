@@ -36,15 +36,27 @@ primType op τs = case (op, tohs τs) of
   (CondO,  [ 𝔹T, ℕT pr₁, ℕT pr₂ ]) | pr₁ ≡ pr₂ → return $ ℕT pr₁
   _ → todoError
 
--- Gets protocol of located type
+-- Gets protocol of type that is either all cleartext or shared
 extractProt :: STACK ⇒ Type → EM (𝑂 (Prot, ModeAny) )
 extractProt τ =
  case τ of
-  (SecT _  (ShareT p loc _))   → do
-    l ← elabEMode loc
-    return (Some (p, l))
-  (SecT _ _)  → return None
-  _ →   typeError "ExtractProt: τ is mot well formed type" $ frhs
+  (SecT _  (sigma)   → do
+    case sigma of
+      (ShareT p' loc sigma') → do
+        l' ← (elabEMode loc)
+        return (Some (p, l))
+      (loctyₗ :×: loctyᵣ) → do
+        _ ← (wf_share_type loctyₗ m p l)
+        _ ← (wf_share_type loctyᵣ m p l)
+        return ()
+      (ListT τₜ)  → do
+        _ ← (wf_share_type τₜ m p l)
+        return ()
+      (ArrT _ τₜ)  → do
+        _ ← (wf_share_type τₜ m p l)
+        return ()
+      _   → return None
+   _ →   typeError "ExtractProt: τ is not a located type" $ frhs
                   [ ("τ", pretty τ)
                   ]
 
@@ -74,14 +86,14 @@ extractBase τ =
                   [ ("τ", pretty τ)
                   ]
 
--- Assumes it is either a share OR a cleartext that shareable
-embedShare :: STACK ⇒  Prot → EMode → Type → EM Type
+-- if it is either a share OR a cleartext that shareable, returns Some (embded), else return None
+embedShare :: STACK ⇒  Prot → EMode → Type → return Type
 embedShare φ l τ =
     case τ of
     (SecT l' sigma) →
       case sigma of
         (ShareT _ _ _) → return τ
-        (BaseT bτ)  → return (SecT l' (ShareT φ l (BaseT bτ)))
+        (BaseT bτ)  → Some (SecT l' (ShareT φ l (BaseT bτ)))
         (τₗ :+: τᵣ)  →  do
           τₗ' ← (embedShare φ l τₗ )
           τᵣ' ← (embedShare φ l τᵣ )
@@ -89,16 +101,18 @@ embedShare φ l τ =
         (τₗ :×:  τᵣ)  →  do
           τₗ' ← (embedShare φ l τₗ )
           τᵣ' ← (embedShare φ l τᵣ )
-          return (SecT l' (ShareT φ l (τₗ' :+: τᵣ')))
+          return (SecT l' (τₗ' :+: τᵣ'))
         (ListT τₜ)  →   do
           τₜ' ← (embedShare φ l τₜ)
-          return (SecT l' (ShareT φ l (ListT τₜ') ))
+          return (SecT l'  (ListT τₜ') )
         (ArrT someO τₜ)  →   do
           τₜ' ← (embedShare φ l τₜ)
-          return (SecT l' (ShareT φ l (ArrT (Some l) τₜ') ))
+          -- idk if i'm supposed to change the l but for now i will
+          return (SecT l' (ArrT (Some l) τₜ') )
         _ → typeError "EmbedShare: τ is not a well type" $ frhs
                   [ ("τ", pretty τ)
                   ]
+
     _ → typeError "EmbedShare: τ is not a well type" $ frhs
                   [ ("τ", pretty τ)
                   ]
@@ -150,7 +164,7 @@ isEmbedable τ =
         _ → False
     _ → False
 
--- Asserts it is shareable (only Cleartext)
+-- Asserts it is shareable (Shareable)
 isShared :: STACK ⇒   Type → 𝔹
 isShared τ =
   case τ of
@@ -256,6 +270,8 @@ subtype_loc loctyS loctyT d = case loctyS of
         return (mcond ⩓ loccond)
   _ → return False
 
+
+
 -- Check if tyS <: tyT
   -- d represents a set where if it contains (a,b) a = b or a <: b
 subtype :: STACK ⇒ Type → Type → 𝑃 (TVar, TVar) →  EM 𝔹
@@ -294,6 +310,20 @@ subtype tyS tyT d = case tyS of
       _ → return False
   _ → return False
 
+
+-- Check if tyS <: tyT
+  -- d represents a set where if it contains (a,b) a = b or a <: b
+subtype_embed :: STACK ⇒ Type → Type → 𝑃 (TVar, TVar) →  EM 𝔹
+subtype_embed tyS tyT d = 
+  if ((isEmbedable tyS)  ⩓ (isShared tyT)) then
+    do
+      p ← extractProt
+      embdedTyS ← (embedShare tyS)
+      embedSubCond ← (embdedTyS == tyT)
+      subCond ← (subtype tyS tyT d)
+      return (embedSubCond ⩓ subCond) 
+  else
+    return (subtype tyS tyT d)
 
 -- Check if tyT >: tyS
 supertype :: STACK ⇒ Type → Type →  𝑃 (TVar, TVar)  → EM 𝔹
@@ -999,11 +1029,25 @@ wf_loctype sigma m bigM =
 wf_share_loctype :: Type → ModeAny → Prot → ModeAny →  EM ()
 wf_share_loctype sigma m p l=
   case sigma of
-    BaseT bt → return ()
-    (loctyₗ :+: loctyᵣ) → do
-      _ ← (wf_share_type loctyₗ m p l)
-      _ ← (wf_share_type loctyᵣ m p l)
-      return ()
+    (ShareT p' loc sigma') → do
+      l' ← (elabEMode loc)
+      guardErr (eq_mode l l') $
+        typeError "wf_share_type: Not well formed encrypted type l != l'" $ frhs
+        [ ("l", pretty l)
+        , ("l'", pretty l')
+        ]
+      guardErr (p == p') $
+        typeError "wf_share_type: Not well formed encrypted type p != p'" $ frhs
+        [ ("p", pretty m)
+        , ("p'", pretty m')
+        ]
+      case sigma of 
+        BaseT b → return ()
+        (loctyₗ :+: loctyᵣ) → do
+          _ ← (wf_share_type loctyₗ m p l)
+          _ ← (wf_share_type loctyᵣ m p l)
+          return ()
+    
     (loctyₗ :×: loctyᵣ) → do
       _ ← (wf_share_type loctyₗ m p l)
       _ ← (wf_share_type loctyᵣ m p l)
@@ -1023,21 +1067,10 @@ wf_share_type :: Type → ModeAny →  Prot → ModeAny → EM ()
 wf_share_type ty m p l=
   case ty of
     -- WF-Loc
-    SecT em' (ShareT p' loc loc_ty) → do
+    SecT em' loc_ty) → do
       m' ← (elabEMode em')
       guardErr (supermode m m') $
         typeError "wf_share_type: m is not a superset of m'" $ frhs
-        [ ("m", pretty m)
-        , ("m'", pretty m')
-        ]
-      l' ← (elabEMode loc)
-      guardErr (eq_mode l l') $
-        typeError "wf_share_type: Not well formed encrypted type l != l'" $ frhs
-        [ ("l", pretty l)
-        , ("l'", pretty l')
-        ]
-      guardErr (eq_mode m m') $
-        typeError "wf_share_type: Not well formed encrypted type m != m'" $ frhs
         [ ("m", pretty m)
         , ("m'", pretty m')
         ]
@@ -1636,13 +1669,13 @@ makeEncryptedType em φ sigma update =
     (loctyₗ :×: loctyᵣ) → do
       loctyₗ' ← (makeEncryptedType em φ loctyₗ update)
       loctyᵣ' ← (makeEncryptedType em φ loctyᵣ update)
-      return (SecT em (ShareT φ em (loctyₗ' :×: loctyᵣ')))
+      return (SecT em (loctyₗ' :×: loctyᵣ'))
     (ListT τₜ)  → do
       loctyₜ' ← (makeEncryptedType em φ τₜ update)
-      return (SecT em (ShareT φ em (ListT loctyₜ')))
+      return (SecT em (ListT loctyₜ'))
     (ArrT locO τₜ)  → do
       loctyₜ' ← (makeEncryptedType em φ τₜ update)
-      return (SecT em (ShareT φ em (ArrT (if update then (Some em) else locO) loctyₜ')))
+      return (SecT em (ArrT (if update then (Some em) else locO) loctyₜ'))
     _  → typeError "makeEncryptedType: sigma is not shareable to made encryped" $ frhs
                   [ ("sigma", pretty sigma)
                   ]
