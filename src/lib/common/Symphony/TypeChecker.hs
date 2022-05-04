@@ -860,7 +860,7 @@ synShare φ τ ρse₁ ρse₂ e₃ =
               _  → return ()
 
               -- And this line
-        cleartextτ ← (makeCleartextType (AddTop ρse₁) τ None)
+        cleartextτ ← (makeCleartextType (AddTop ρse₁) τ False)
       --  wfcond ← wf_type cleartextτ m
         subcond  ←  localL terModeL m (chkExp e₃ cleartextτ)
         guardErr (eq_mode (union_m p q)  m ) $
@@ -872,7 +872,7 @@ synShare φ τ ρse₁ ρse₂ e₃ =
               , ("m", pretty m)
             ]
 
-        (makeEncryptedType (AddTop ρse₂) φ τ (Some (AddTop ρse₂)))
+        (makeEncryptedType (AddTop ρse₂) φ τ (Some (AddTop ρse₂)) True)
 
 ---  |-m e : encrypted by p type @p
 --  q != empty set since it is a principal and p union q = m
@@ -888,7 +888,7 @@ synReveal φ τ ρse₁ ρse₂ e₃ =
         m  ← askL terModeL
         p ←  elabEMode (AddTop ρse₁)
         q ←  elabEMode (AddTop ρse₂)
-        encryptedτ ← (makeEncryptedType (AddTop ρse₁) φ τ)
+        encryptedτ ← (makeEncryptedType (AddTop ρse₁) φ τ False)
         subcond  ←  localL terModeL m (chkExp e₃ encryptedτ)
         guardErr (eq_mode (union_m p q)  m ) $
           typeError "synReveal: p union q /= m" $ frhs
@@ -899,7 +899,7 @@ synReveal φ τ ρse₁ ρse₂ e₃ =
               , ("m", pretty m)
             ]
 
-        (makeCleartextType (AddTop ρse₂) τ)
+        (makeCleartextType (AddTop ρse₂) τ True)
 
 
 --  |-m e : cleartext type @p
@@ -928,7 +928,7 @@ synComm τ ρse₁ ρse₂ e₃ =
                 _  → return ()
 
               -- And this line
-        cleartextτ ← (makeCleartextType (AddTop ρse₁) τ)
+        cleartextτ ← (makeCleartextType (AddTop ρse₁) τ False)
       --  wfcond ← wf_type cleartextτ m
         subcond  ←  localL terModeL m (chkExp e₃ cleartextτ)
         guardErr (eq_mode (union_m p q)  m ) $
@@ -939,7 +939,7 @@ synComm τ ρse₁ ρse₂ e₃ =
               , ("puq", pretty (union_m p q))
               , ("m", pretty m)
             ]
-        (makeCleartextType (AddTop ρse₂) τ)
+        (makeCleartextType (AddTop ρse₂) τ True)
 
 -- If there is one but not all cleartext, all of them get converted to the same phi
 -- gamma |- m e1 : bool^phi@m
