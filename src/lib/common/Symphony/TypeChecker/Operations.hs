@@ -313,7 +313,7 @@ subtype_embed tyS tyT d =
     do
       p ← extractProt
       embdedTyS ← (embedShare tyS)
-      embedSubCond ← (embdedTyS == tyT)
+      embedSubCond ← (subtype embdedTyS tyT d)
       subCond ← (subtype tyS tyT d)
       return (embedSubCond ⩓ subCond) 
   else
