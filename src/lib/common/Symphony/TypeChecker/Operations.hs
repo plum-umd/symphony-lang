@@ -313,14 +313,14 @@ subtype_embed tyS tyT d =
     do
       pO ← (extractProt tyT)
       case pO of
-        (Some (p, loc))  → do 
-
+        (Some (p, l))  → do 
+          loc ← elabMode l
           embedTyS ← (embedShare p loc tyS )
           embedSubCond ← (subtype embedTyS tyT d)
           subCond ← (subtype tyS tyT d)
           return (embedSubCond ⩓ subCond) 
   else
-    return (subtype tyS tyT d)
+    (subtype tyS tyT d)
 
 -- Check if tyT >: tyS
 supertype :: STACK ⇒ Type → Type →  𝑃 (TVar, TVar)  → EM 𝔹
