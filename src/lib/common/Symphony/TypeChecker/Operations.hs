@@ -42,8 +42,8 @@ extractProt τ =
  case τ of
   (SecT _  sigma)   →
     case sigma of
-      (ShareT p' loc sigma') → do
-        l' ← (elabEMode loc)
+      (ShareT p loc sigma') → do
+        l ← (elabEMode loc)
         return (Some (p, l))
       (loctyₗ :×: loctyᵣ) →  return (extractProt loctyₗ )
       -- return (extractProt loctyᵣ  ) Not needed cause either all cleartext or shared  _ ← (wf_share_type loctyᵣ m p l)
