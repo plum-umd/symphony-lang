@@ -1289,7 +1289,14 @@ synExpR e = case e of
   AscrE e τ → synAscr e τ
 
     -- Share, Reveal, and Send
-  ShareE φ τ ρse₁ ρse₂ e₃  → synShare φ τ ρse₁ ρse₂ e₃
+  ShareE φ τ ρse₁ ρse₂ e₃  → do
+        m  ← askL terModeL
+        typeError "synShare:  m" $ frhs
+            [
+              ("m", pretty m)
+            ]
+  
+  --synShare φ τ ρse₁ ρse₂ e₃
   RevealE φ τ ρse₁ ρse₂ e₃ → synReveal φ τ ρse₁ ρse₂ e₃
   SendE τ ρse₁ ρse₂ e₃     → synComm τ ρse₁ ρse₂ e₃
 
