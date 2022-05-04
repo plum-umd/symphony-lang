@@ -1194,6 +1194,7 @@ synTApp e τ =
   let c = synExp e
   in do
     m ← askL terModeL
+    bigM ← askL terModeScopeL
     _ ← wf_type τ m bigM
     τ' ← c
     case τ' of
