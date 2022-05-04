@@ -1615,7 +1615,7 @@ makeCleartextType em sigma update =
       loctyₜ' ← (makeCleartextType em τₜ) 
       return (SecT em (ListT loctyₜ') )
     (ArrT locO τₜ)  → do
-      loctyₜ' ← (makeEncryptedType em φ τₜ))
+      loctyₜ' ← (makeEncryptedType em φ τₜ)
       return (SecT em (ArrT (if update then (Some em) else locO) loctyₜ'))
 
     _  → typeError "makeShareType: sigma is not shareable to made cleartext" $ frhs
@@ -1635,10 +1635,10 @@ makeEncryptedType em φ sigma locO=
       loctyᵣ' ← (makeEncryptedType em φ loctyᵣ)
       return (SecT em (ShareT φ em (loctyₗ' :×: loctyᵣ')))
     (ListT τₜ)  → 
-      loctyₜ' ← (makeEncryptedType em φ τₜ))
+      loctyₜ' ← (makeEncryptedType em φ τₜ)
       return (SecT em (ShareT φ em (ListT loctyₜ')))
     (ArrT locO' τₜ)  → 
-      loctyₜ' ← (makeEncryptedType em φ τₜ))
+      loctyₜ' ← (makeEncryptedType em φ τₜ)
       return SecT em (ShareT φ em (ArrT (if update then (Some em) else locO) loctyₜ'))
     _  → typeError "makeEncryptedType: sigma is not shareable to made encryped" $ frhs
                   [ ("sigma", pretty sigma)
