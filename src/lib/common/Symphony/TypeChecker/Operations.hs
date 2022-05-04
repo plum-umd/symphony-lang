@@ -1611,10 +1611,10 @@ makeCleartextType em sigma update =
       loctyₗ' ← (makeCleartextType em loctyₗ )
       loctyᵣ' ← (makeCleartextType em loctyᵣ)
       return (SecT em (loctyₗ':×: loctyᵣ'))
-    (ListT τₜ)  → 
+    (ListT τₜ)  →  do
       loctyₜ' ← (makeCleartextType em τₜ) )
       return (ListT loctyₜ') 
-    (ArrT locO τₜ)  → 
+    (ArrT locO τₜ)  → do
       loctyₜ' ← (makeEncryptedType em φ τₜ))
       return (ListT (if update then (Some em) else locO) loctyₜ')
 
@@ -1645,3 +1645,73 @@ makeEncryptedType em φ sigma locO=
                   ]
 
 
+
+------------------------------------------------
+-- Static Evaluation of Principal Expressions --
+------------------------------------------------
+setToList :: STACK ⇒ (𝑃 a)  → (𝐿 a)
+setToList myset = list𝐼 (iter myset)
+
+listToSet :: STACK ⇒ (Ord a) ⇒ (𝐿 a)  → (𝑃 a)
+listToSet mylist = pow𝐼 (iter mylist)
+
+inPrins ∷ STACK ⇒ (𝑃 𝕏) → PrinExp →  𝔹
+inPrins prins  ρe = case  ρe of
+  VarPE x       → x ∈ prins
+  -- get rid of
+  AccessPE x n₁ → False
+
+
+
+elabPrinExp ∷ STACK ⇒ PrinExp → EM PrinVal
+elabPrinExp ρe =  do
+  synPrinExp ρe
+  case  ρe of
+  VarPE x       → 
+    return (SinglePV (𝕩name x))
+  -- get rid of
+  AccessPE x n₁ → todoError
+
+elabPrinSetExp ∷ STACK ⇒ PrinSetExp → EM ((𝑃 PrinVal) ∨ ())
+elabPrinSetExp ρse = do
+  synPrinSetExp ρe
+  case  ρse of
+  PowPSE ρel → do
+    prins ← askL terPrinsL
+    if (and (map (inPrins prins) ρel)) then do
+      pvl ← (mapM elabPrinExp ρel )
+      (let ρvs = (listToSet pvl) in (return (Inl ρvs)))
+    else
+      return (Inr ())
+  VarPSE _  → return (Inr ())
+  AnyPSE → return (Inr ())
+  _ → todoError
+
+
+elabEMode ∷ STACK ⇒ EMode → EM ModeAny
+elabEMode l =  do
+  em ← ((mapM elabPrinSetExp) l)
+  case em of
+    Top → return (AddAny Top)
+    AddTop  (Inl ρvs) → return (AddAny (AddTop ρvs))
+    _  → return Any
+
+
+elabPrinVal :: STACK ⇒ PrinVal → EM PrinExp
+elabPrinVal ρv = case  ρv of
+  (SinglePV ρ)    → return (VarPE (var ρ))
+  (AccessPV ρ n₁) → return (AccessPE (var ρ) n₁)
+
+
+
+-- turn powerset to list, map the list, convert to prinsetexp
+elabPrinValSet :: STACK ⇒ (𝑃 PrinVal)  → EM PrinSetExp
+elabPrinValSet ρvs =
+    let ρvl = (setToList ρvs) in do
+    ρel ← (mapM elabPrinVal ρvl)
+    (return (PowPSE ρel))
+
+elabMode ∷ STACK ⇒ ModeAny → EM EMode
+elabMode m = case m of
+  (Any) → return (AddTop AnyPSE)
+  (AddAny  ρvs) → (mapM elabPrinValSet ρvs)
