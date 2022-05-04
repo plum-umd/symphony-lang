@@ -1061,7 +1061,7 @@ wf_share_type :: Type → ModeAny →  Prot → ModeAny → EM ()
 wf_share_type ty m p l=
   case ty of
     -- WF-Loc
-    SecT em' loc_ty) → do
+    (SecT em' loc_ty) → do
       m' ← (elabEMode em')
       guardErr (supermode m m') $
         typeError "wf_share_type: m is not a superset of m'" $ frhs
