@@ -1256,8 +1256,8 @@ synExpR e = case e of
   -- Literals--
   BulE        → do 
     m  ← askL terModeL
-    typeError "m'" $ frhs
-        [ ("m'", pretty m')
+    typeError "m" $ frhs
+        [ ("m", pretty m)
         ]
     synBul
   BoolE b     → synBool b
