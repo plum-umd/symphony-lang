@@ -93,6 +93,9 @@ embedShare φ l τ =
         (ListT τₜ)  →   do
           τₜ' ← (embedShare φ l τₜ)
           return (SecT l' (ShareT φ l (ListT τₜ') ))
+        (ArrT someO τₜ)  →   do
+          τₜ' ← (embedShare φ l τₜ)
+          return (SecT l' (ShareT φ l (ArrT (Some l) τₜ') ))
         _ → typeError "EmbedShare: τ is not a well type" $ frhs
                   [ ("τ", pretty τ)
                   ]
