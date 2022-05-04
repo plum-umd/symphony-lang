@@ -8,7 +8,7 @@ def hammingDist bs0 bs1 = par {A, B}
     else
       let inc = mux if bs0.i == bs1.i then 0n else 1n in
       hammingDistRec (i + 1n) (distance + inc)
-  in hammingDistRec (share [gmw, ℕ : {A, B} → {A, B}] 0n ) (share [gmw, ℕ : {A, B} → all] 0n )
+  in hammingDistRec (share [gmw, ℕ : {A, B} → {A, B}] 0n ) (share [gmw, ℕ : {A, B} → {A, B}] 0n )
 
 def main () = par {A,B}
   let inputA = par {A} read (array {A} ℕ) from "hamming-1k.txt" in
