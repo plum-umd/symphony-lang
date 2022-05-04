@@ -7,7 +7,7 @@ import Symphony.TypeChecker.Error
 import Symphony.TypeChecker.TLM hiding (TLR)
 import Symphony.TypeChecker.EM
 import Symphony.TypeChecker.Env
-
+import Symphony.TypeChecker
 -----------------
 --- Primitives ---
 -----------------
@@ -1664,13 +1664,18 @@ inPrins prins  ρe = case  ρe of
 
 
 elabPrinExp ∷ STACK ⇒ PrinExp → EM PrinVal
-elabPrinExp ρe = case  ρe of
-  VarPE x       → return (SinglePV (𝕩name x))
+elabPrinExp ρe =  do
+  synPrinExp ρe
+  case  ρe of
+  VarPE x       → 
+    return (SinglePV (𝕩name x))
   -- get rid of
   AccessPE x n₁ → todoError
 
 elabPrinSetExp ∷ STACK ⇒ PrinSetExp → EM ((𝑃 PrinVal) ∨ ())
-elabPrinSetExp ρse = case  ρse of
+elabPrinSetExp ρse = do
+  synPrinSetExp ρe
+  case  ρse of
   PowPSE ρel → do
     prins ← askL terPrinsL
     if (and (map (inPrins prins) ρel)) then do
