@@ -1101,10 +1101,10 @@ synBundleUnionHelper τ₁ τ₂ =
 
     case τ₁ of
       (SecT loc₁ (ISecT loc₁' τ₁'))  → do
-          guardErr (isEmbedable τ₁) $
-            typeError "synBundleAccess: τ₁' is not a common cleartext type'" $ frhs
-              [ ("τ₁'", pretty τ₁')
-              ]
+        guardErr (isEmbedable τ₁) $
+          typeError "synBundleAccess: τ₁' is not a common cleartext type'" $ frhs
+            [ ("τ₁'", pretty τ₁')
+            ]
         m  ← askL terModeL
         l₁ ← elabEMode loc₁
         --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
