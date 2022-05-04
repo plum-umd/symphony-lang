@@ -3,7 +3,7 @@ principal A B
 def hammingDist bs0 bs1 =
   let len = size bs0 in
   let hammingDistRec = fun [hammingDistRec] i distance →
-    mux if i == len then
+    if i == len then
       distance
     else
       let inc = mux if bs0.i == bs1.i then 0n else 1n in
