@@ -848,7 +848,7 @@ synShare φ τ ρse₁ ρse₂ e₃ =
         m  ← askL terModeL
         typeError "synShare:  m" $ frhs
             [
-              , ("m", pretty m)
+              ("m", pretty m)
             ]{-
         -- Literally this line is the only line that needs to change
         p ←  elabEMode (AddTop (ρse₁))
