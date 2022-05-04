@@ -313,9 +313,10 @@ subtype_embed tyS tyT d =
     do
       pO ← (extractProt tyT)
       case pO of
-        (Some (l, p))  → do 
-          embdedTyS ← (embedShare tyS l p)
-          embedSubCond ← (subtype embdedTyS tyT d)
+        (Some (p, loc))  → do 
+
+          embedTyS ← (embedShare p loc tyS )
+          embedSubCond ← (subtype embedTyS tyT d)
           subCond ← (subtype tyS tyT d)
           return (embedSubCond ⩓ subCond) 
   else
