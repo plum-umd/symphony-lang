@@ -311,11 +311,13 @@ subtype_embed :: STACK ⇒ Type → Type → 𝑃 (TVar, TVar) →  EM 𝔹
 subtype_embed tyS tyT d = 
   if ((isEmbedable tyS)  ⩓ (isShared tyT)) then
     do
-      (Some (l, p)) ← (extractProt tyT)
-      embdedTyS ← (embedShare tyS l p)
-      embedSubCond ← (subtype embdedTyS tyT d)
-      subCond ← (subtype tyS tyT d)
-      return (embedSubCond ⩓ subCond) 
+      pO ← (extractProt tyT)
+      case pO of
+        (Some (l, p))  → do 
+          embdedTyS ← (embedShare tyS l p)
+          embedSubCond ← (subtype embdedTyS tyT d)
+          subCond ← (subtype tyS tyT d)
+          return (embedSubCond ⩓ subCond) 
   else
     return (subtype tyS tyT d)
 
