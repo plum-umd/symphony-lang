@@ -1,7 +1,6 @@
 principal A B
 
-
-def hammingDist bs0 bs1 = par {A,B}
+def hammingDist bs0 bs1 =
   let len = size bs0 in
   let hammingDistRec = fun [hammingDistRec] i distance →
     if i == len then
@@ -9,9 +8,8 @@ def hammingDist bs0 bs1 = par {A,B}
     else
       let inc = mux if bs0.i == bs1.i then 0n else 1n in
       hammingDistRec (i + 1n) (distance + inc)
-  in hammingDistRec (share [gmw, ℕ : {A, B} → {A,B}] 0n ) (share [gmw, ℕ : {A, B} → {A,B}] 0n)
+  in hammingDistRec (share [gmw, ℕ : all → all] 0n ) (share [gmw, ℕ : all → all] 0n )
 
-def main : (unit@all -> nat@{A})@all 
 def main () = par {A,B}
   let inputA = par {A} read (array {A} ℕ) from "hamming-1k.txt" in
   let inputB = par {B} read (array {B} ℕ) from "hamming-1k.txt" in
