@@ -1045,8 +1045,8 @@ wf_share_loctype sigma m p l=
           _ ← (wf_share_type loctyᵣ m p l)
           return ()
         _  → typeError "wf_share_loctype: sigma is not well formed encrypted type" $ frhs
-        [ ("sigma", pretty sigma)
-        ]s
+              [ ("sigma", pretty sigma)
+              ]
       
     (loctyₗ :×: loctyᵣ) → do
       _ ← (wf_share_type loctyₗ m p l)
