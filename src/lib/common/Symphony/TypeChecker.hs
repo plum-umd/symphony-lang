@@ -118,6 +118,9 @@ synBul ∷ STACK ⇒ EM Type
 synBul =  do
   m ← askL terModeL
   em ← elabMode m
+  typeError "m" $ frhs
+             [ ("m", pretty m)
+             ]
   return $ SecT em $ BaseT UnitT
 
 -- ------ T-Bool
@@ -846,10 +849,6 @@ synShare φ τ ρse₁ ρse₂ e₃ =
         t₁ ← c₁
         t₂ ← c₂
         m  ← askL terModeL
-        typeError "synShare:  m" $ frhs
-            [
-              ("m", pretty m)
-            ]{-
         -- Literally this line is the only line that needs to change
         p ←  elabEMode (AddTop (ρse₁))
         qs ← elabPrinSetExp ρse₂
@@ -877,7 +876,7 @@ synShare φ τ ρse₁ ρse₂ e₃ =
             ]
 
         (makeEncryptedType (AddTop ρse₂) φ τ True)
--}
+
 ---  |-m e : encrypted by p type @p
 --  q != empty set since it is a principal and p union q = m
 -- ------T-Share
@@ -1289,14 +1288,7 @@ synExpR e = case e of
   AscrE e τ → synAscr e τ
 
     -- Share, Reveal, and Send
-  ShareE φ τ ρse₁ ρse₂ e₃  → do
-        m  ← askL terModeL
-        typeError "synShare:  m" $ frhs
-            [
-              ("m", pretty m)
-            ]
-  
-  --synShare φ τ ρse₁ ρse₂ e₃
+  ShareE φ τ ρse₁ ρse₂ e₃  → synShare φ τ ρse₁ ρse₂ e₃
   RevealE φ τ ρse₁ ρse₂ e₃ → synReveal φ τ ρse₁ ρse₂ e₃
   SendE τ ρse₁ ρse₂ e₃     → synComm τ ρse₁ ρse₂ e₃
 
