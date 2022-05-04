@@ -439,14 +439,16 @@ checkLam self𝑂 ψs e τ =
                     l₁ ← elabEMode $ effectMode η
                     l₂ ← elabEMode loc
                     guardErr (eq_mode m l₁) $
-                      typeError "checkLam: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+                      typeError "checkLam: ⊢ₘ _ ˡ→ _ ; m ≢ l₁ in τ" $ frhs
                       [ ("m", pretty m)
                       , ("l", pretty l₁)
+                      , ("τ", pretty τ)
                       ]
                     guardErr (eq_mode m l₂) $
-                      typeError "checkLam: ⊢ₘ _ ˡ→ _ ; m ≢ l₂" $ frhs
+                      typeError "checkLam: ⊢ₘ _ ˡ→ _ ; m ≢ l₂ in τ" $ frhs
                       [ ("m", pretty m)
                       , ("l", pretty l₂)
+                      , ("τ", pretty τ)
                       ]
                     case ψs of
                       Nil → do
