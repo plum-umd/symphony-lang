@@ -796,15 +796,11 @@ synPar ρse₁ e₂ =
       c₂ = synExp e₂
   in do
     t₁ ← c₁
-    t₂ ← c₂
     m  ← askL terModeL
     l ← elabEMode (AddTop ρse₁)
     let m' = inter_m m l
-    if m' ≢  (AddAny (AddTop bot)) then do
-      typeError "m'" $ frhs
-        [ ("m'", pretty m')
-        ]
- --     localL terModeL m' c₂
+    if m' ≢  (AddAny (AddTop bot)) then
+      localL terModeL m' c₂
     else
       --  |-empty t
       --  m  union p == empty set
@@ -819,14 +815,10 @@ checkPar ρse₁ e₂ τ=
       c₂ = synExp e₂
   in do
     t₁ ← c₁
-    t₂ ← c₂
     m  ← askL terModeL
     l ← elabEMode (AddTop ρse₁)
     let m' = inter_m m l
     if m' ≢  (AddAny (AddTop bot)) then do
-   {-   typeError "m'" $ frhs
-        [ ("m'", pretty m')
-        ]-}
       τ' ← localL terModeL m' c₂
       subcond  ← subtype τ' τ pø
       guardErr subcond $
@@ -1245,12 +1237,7 @@ chkExpR e τ =
 
 
 synExp :: STACK ⇒ Exp → EM Type
-synExp e = do 
-    m  ← askL terModeL
-    typeError "m" $ frhs
-        [ ("m", pretty m)
-        ]
-        --localL terSourceL (Some $ atag e) (synExpR (extract e))
+synExp e = localL terSourceL (Some $ atag e) (chkExpR (extract e) τ)
 
 
 synExpR ∷ STACK ⇒ ExpR → EM Type
