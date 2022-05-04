@@ -1664,18 +1664,14 @@ inPrins prins  ρe = case  ρe of
 
 
 elabPrinExp ∷ STACK ⇒ PrinExp → EM PrinVal
-elabPrinExp ρe =  do
-  synPrinExp ρe
-  case  ρe of
+elabPrinExp ρe =  case  ρe of
   VarPE x       → 
     return (SinglePV (𝕩name x))
   -- get rid of
   AccessPE x n₁ → todoError
 
 elabPrinSetExp ∷ STACK ⇒ PrinSetExp → EM ((𝑃 PrinVal) ∨ ())
-elabPrinSetExp ρse = do
-  synPrinSetExp ρe
-  case  ρse of
+elabPrinSetExp ρse = case  ρse of
   PowPSE ρel → do
     prins ← askL terPrinsL
     if (and (map (inPrins prins) ρel)) then do
