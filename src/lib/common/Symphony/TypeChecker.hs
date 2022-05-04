@@ -800,6 +800,13 @@ synPar ρse₁ e₂ =
     m  ← askL terModeL
     l ← elabEMode (AddTop ρse₁)
     let m' = inter_m m l
+    typeError "synShare: m inter l = m'" $ frhs
+            [
+              ("m", pretty m)
+              , ("l", pretty l)
+              , ("m inter l", pretty (inter_m m l))
+              , ("m'", pretty m')
+            ]
     if m' ≢  (AddAny (AddTop bot)) then
       localL terModeL m' c₂
     else
