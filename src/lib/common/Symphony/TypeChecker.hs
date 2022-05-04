@@ -801,6 +801,9 @@ synPar ρse₁ e₂ =
     l ← elabEMode (AddTop ρse₁)
     let m' = inter_m m l
     if m' ≢  (AddAny (AddTop bot)) then
+        typeError "m'" $ frhs
+          [ ("m'", pretty m')
+          ]
       localL terModeL m' c₂
     else
       --  |-empty t
