@@ -777,7 +777,7 @@ synArraySize e =
             [ ("m", pretty m)
             , ("l", pretty l)
             ]
-          return (SecT em (BaseT (ℕT InfIPr)))
+          return (SecT em (BaseT (ℕT iprDefault)))
       _ →  typeError "synArrayRead: τ is not a located array" $ frhs
           [ ("τ", pretty τ)
 
