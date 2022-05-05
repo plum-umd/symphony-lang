@@ -22,7 +22,7 @@ def square x = x * x
 def euclideanDist: ((int@all × int@all)@all ->  ((int@all × int@all)@all -> int@all)@all)@all
 def euclideanDist (a0, a1) (b0, b1) = root ((square (a0 - b0)) + (square (a1 - b1)))
 
-def hammingDist : ( (array{{A, B}}((int[gmw]@{A, B}@{A, B} × int[gmw]@{A, B}@{A, B} )@{A, B}))@{A, B}  -> ((int[gmw]@{A, B}@{A, B} × int[gmw]@{A, B}@{A, B} )@{A, B} -> (int[gmw]@{A,B})@{A,B})@all)@all
+def minEuclideanDist : ( (array{{A, B}}((int[gmw]@{A, B}@{A, B} × int[gmw]@{A, B}@{A, B} )@{A, B}))@{A, B}  -> ((int[gmw]@{A, B}@{A, B} × int[gmw]@{A, B}@{A, B} )@{A, B} -> (int[gmw]@{A,B})@{A,B})@all)@all
 def minEuclideanDist vs pt =
   let len = size vs in
   let minRec = fun [minRec] i min ->
