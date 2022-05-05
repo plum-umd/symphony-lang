@@ -36,7 +36,7 @@ bindDecl = bindTypeTL
 bindDefn ∷ STACK ⇒ 𝕏 → 𝐿 Pat → Exp → TLM ()
 bindDefn x ψs e = asTLM $ do
   τ ← synVar x
-  (if (isEmpty ψs)) then
+  (if (isEmpty ψs) then
     (chkExp e τ)
   else
     (checkLam (Some x) ψs e τ)
