@@ -1,11 +1,12 @@
 principal A B
 
-def steps : (unit@all -> nat@all)@all
+def steps : nat@all
 def steps = 10n
 
-def maxInt : (unit@all -> int@all)@all
+def maxInt : int@all
 def maxInt = (2 ^ 31n) - 1
 
+def root : (nat@all -> nat@{A})@all
 def root x =
   let rootRec = fun [rootRec] i guess ->
     if i == 0n then
@@ -15,6 +16,7 @@ def root x =
   in
   rootRec steps 1
 
+def square : (nat@all -> nat@{A})@all
 def square x = x * x
 
 def euclideanDist (a0, a1) (b0, b1) = root ((square (a0 - b0)) + (square (a1 - b1)))
