@@ -1156,7 +1156,7 @@ get_intersect_loc_type x sigma m m' =
     (τ₁₁ :→: (η :* τ₁₂ :*isTL)) → do
       m₁₁  ← (get_intersect_type x τ₁₁ m m')
       m₁₂  ← (get_intersect_type x τ₁₂ m m')
-      return (inter_m  m₁₁ m₁₂ isTL)
+      return (inter_m  m₁₁ m₁₂)
     -- WF-Ref: The component type must be well formed
     (RefT _ τ')  →
       (get_intersect_type x τ' m m')
@@ -1218,7 +1218,7 @@ sublocty_wf sigma m bigM=
         ]
       τ₁₁' ← (superty_wf τ₁₁ m bigM)
       τ₁₂' ← (subty_wf τ₁₂ m bigM)
-      return (τ₁₁' :→:  (η :* τ₁₂') isTL)
+      return (τ₁₁' :→:  (η :* τ₁₂' :* isTL))
     -- WF-Ref: The component type must be well formed
     (RefT loc τ)  → do
       τ' ← (subty_wf τ m bigM)
