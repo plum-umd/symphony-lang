@@ -1238,8 +1238,8 @@ chkExpR e τ =
               [ ("e", pretty e)
               , ("τ", pretty τ)
               , ("τ'", pretty τ')
-              , ("(isEmbedable tyS)", pretty (isEmbedable tyS))
-              , ("(isShared tyT)", pretty (isShared tyT))
+              , ("(isEmbedable tyS)", pretty (isEmbedable τ'))
+              , ("(isShared tyT)", pretty (isShared τ))
               ]
 
 
