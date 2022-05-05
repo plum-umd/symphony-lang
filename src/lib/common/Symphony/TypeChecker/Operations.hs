@@ -1435,13 +1435,13 @@ type_subst x ty ty' =
     RecT x' ty'' → 
       if x ≡ x' 
         then (return ty) 
-        else 
+        else do
           locty' ← (loc_type_subst x locty ty')
           return (RecT x locty')
     ForallT x' ty'' → 
       if x ≡ x' 
         then (return ty) 
-        else 
+        else do
           locty' ← (loc_type_subst x locty ty')
           return (RecT x locty')
     _ → typeError "type_subst: ty is not well structured" $ frhs
