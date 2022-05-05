@@ -19,6 +19,7 @@ def root x =
 def square : (int@all -> int@{A})@all
 def square x = x * x
 
+def square : ((int × int)@all -> (int × int)@{A})@all
 def euclideanDist (a0, a1) (b0, b1) = root ((square (a0 - b0)) + (square (a1 - b1)))
 
 def minEuclideanDist vs pt =
