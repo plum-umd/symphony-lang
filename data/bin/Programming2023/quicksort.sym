@@ -1,0 +1,65 @@
+principal A B C
+
+def lwzShuffle P C a =
+  par P
+    let a = share [gmw, array ℤ : P → C] a in
+    let _ = par C (shuffle C a) in
+    share [gmw, array ℤ : C → P] a
+
+-- shuffle the vector `a` shared among `P` with corruption threshold `t < |P|`
+def lwz P t a =
+  -- compute all subsets of `C` of size `t`
+  let Cs = subsets P t in
+  -- shuffle `a` among each subset
+  list_foldl a (lwzShuffle P) Cs
+
+def partition P a l h =
+  let pivot = a.(nat h) in
+
+  let i = ref (l - 1) in
+
+  let partitionRec = λ [partitionRec] j ->
+    if (int j) < h then
+      let ltPivot = reveal [gmw, 𝔹 : P -> P] a.j <= pivot in
+      let _ =
+        if ltPivot then
+          let _ = i := !i + 1 in
+          let _ = swap a (nat !i) j in
+          ()
+        else ()
+      in partitionRec (j + 1n)
+    else ()
+  in
+  let _ = partitionRec (nat l) in
+
+  let _ = i := !i + 1 in
+  let _ = swap a (nat !i) (nat h) in
+  !i
+
+def qs P a l h =
+  if (l < h) && (l >= 0) then
+    let idx = partition P a l h in
+    let _ = qs P a l (idx - 1) in
+    let _ = qs P a (idx + 1) h in
+    ()
+  else ()
+
+def quickSort P a =
+  let n = partySetSize P in
+  let m = size a in
+  let a = lwz P (n - 1n) a in -- Shuffle the array among `|P| - 1` parties
+  let _ = qs P a 0 ((int m) - 1) in
+  a
+
+def main () = par {A,B,C}
+  let inputA = par {A} read (array ℤ) from "quicksort.txt" in
+  let inputB = par {B} read (array ℤ) from "quicksort.txt" in
+  let inputC = par {C} read (array ℤ) from "quicksort.txt" in
+
+  let P = {A,B,C} in
+  let shA = share [gmw, array ℤ : {A} → P] inputA in
+  let shB = share [gmw, array ℤ : {B} → P] inputB in
+  let shC = share [gmw, array ℤ : {C} → P] inputC in
+
+  let a = arrayConcat [shA; shB; shC] in
+  reveal [gmw, array ℤ : {A,B,C} → {A,B,C}] (quickSort P a)

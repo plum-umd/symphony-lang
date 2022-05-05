@@ -347,6 +347,11 @@ foreign import ccall unsafe "gmw_int_lte" gmw_int_lte ∷ Ptr CGmw → Ptr CGmwI
 gmwIntLte ∷ (STACK, Monad m, MonadIO m) ⇒ Gmw → GmwInt → GmwInt → m GmwBool
 gmwIntLte gmw z₁ z₂ = io $ GmwBool ^$ gmwBinary gmw_int_lte gmw_bool_drop gmw (unGmwInt z₁) (unGmwInt z₂)
 
+foreign import ccall unsafe "gmw_int_lt" gmw_int_lt ∷ Ptr CGmw → Ptr CGmwInt → Ptr CGmwInt → IO (Ptr CGmwBool)
+
+gmwIntLt ∷ (STACK, Monad m, MonadIO m) ⇒ Gmw → GmwInt → GmwInt → m GmwBool
+gmwIntLt gmw z₁ z₂ = io $ GmwBool ^$ gmwBinary gmw_int_lt gmw_bool_drop gmw (unGmwInt z₁) (unGmwInt z₂)
+
 foreign import ccall unsafe "gmw_int32_get" gmw_int32_get ∷ Ptr CGmw → Ptr CGmwInt → IO CInt
 
 gmwIntGet ∷ (Monad m, MonadIO m) ⇒ Gmw → IPrecision → GmwInt → m ℤ

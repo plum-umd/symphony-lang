@@ -1,3 +1,0 @@
-principal A
-
-def main () = par {A} L 10

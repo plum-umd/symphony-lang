@@ -956,6 +956,32 @@ def subsets P t =
       append (map (fun C -> C + { ρ }) Cs1) Cs2
     }
 
+-- Push the parties in `P` onto `a` (starting at index 0)
+def pushParties P a =
+  let n = partySetSize P in
+  let m = size a in
+  if n <= m then
+    let pushRec = λ [pushRec] i Q →
+      case Q
+      { {}          → ()
+      ; { ρ } \/ Q' →
+        let _ = a.i ← ρ in
+        pushRec (i + 1n) Q'
+      }
+    in pushRec 0n P
+  else •
+
+def popParties a n =
+  let m = size a in
+  if n <= m then
+    let popRec = λ [popRec] i Q →
+      if i < n then
+        let ρ = a.i in
+        popRec (i + 1n) ({ ρ } + Q)
+      else Q
+    in popRec 0n { }
+  else •
+
 -----------------------
 -- Secure Randomness --
 -----------------------

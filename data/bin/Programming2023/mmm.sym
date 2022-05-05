@@ -1,0 +1,34 @@
+principal A B C D
+
+def compete wealth ρ₁ ρ₂ =
+  let res = par { ρ₁, ρ₂ }
+    let x = share [gmw, ℕ : {ρ₁} → {ρ₁,ρ₂}] wealth@ρ₁ in
+    let y = share [gmw, ℕ : {ρ₂} → {ρ₁,ρ₂}] wealth@ρ₂ in
+    y <= x
+  in
+  if reveal [gmw, 𝔹 : {ρ₁,ρ₂} → {A,B,C,D}] res then ρ₁ else ρ₂
+
+def round P wealth =
+  case P
+  { { ρ₁ } ∪ { ρ₂ } ∪ P' →
+    let ρ'  = compete wealth ρ₁ ρ₂ in
+    let P'' = round P' wealth in
+    { ρ' } + P''
+  ; _                    → P
+  }
+
+def tournament Q wealth =
+  case Q
+  { { winner } ∪ {} → winner
+  ; _               →
+    let winners = round Q wealth in
+    tournament winners wealth
+  }
+
+def getWealth ρ = read ℕ from "mmm.txt"
+
+def main () =
+  let P = { A, B, C, D } in
+  par P
+    let wealth = bundle_up P getWealth in
+    tournament P wealth

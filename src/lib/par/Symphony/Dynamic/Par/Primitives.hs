@@ -120,6 +120,7 @@ primBaseVal op bvs = do
     (ModO  , [ IntV pr₁ (EncZV ρvs (GmwZ z₁)), IntV pr₂ (EncZV _ (GmwZ z₂)) ]) | pr₁ ≡ pr₂ → IntV pr₁ ^$ EncZV ρvs ^$ GmwZ ^$ do { gmw ← getOrMkGmw ρvs ; gmwIntMod gmw z₁ z₂ }
 
     (EqO , [ IntV pr₁ (EncZV ρvs (GmwZ z₁)), IntV pr₂ (EncZV _ (GmwZ z₂)) ]) | pr₁ ≡ pr₂ → BoolV ^$ EncBV ρvs ^$ GmwB ^$ do { gmw ← getOrMkGmw ρvs ; gmwIntEq gmw z₁ z₂ }
+    (LTO , [ IntV pr₁ (EncZV ρvs (GmwZ z₁)), IntV pr₂ (EncZV _ (GmwZ z₂)) ]) | pr₁ ≡ pr₂ → BoolV ^$ EncBV ρvs ^$ GmwB ^$ do { gmw ← getOrMkGmw ρvs ; gmwIntLt gmw z₁ z₂ }
     (LTEO, [ IntV pr₁ (EncZV ρvs (GmwZ z₁)), IntV pr₂ (EncZV _ (GmwZ z₂)) ]) | pr₁ ≡ pr₂ → BoolV ^$ EncBV ρvs ^$ GmwB ^$ do { gmw ← getOrMkGmw ρvs ; gmwIntLte gmw z₁ z₂ }
 
     (CondO, [ BoolV (EncBV ρvs (GmwB b)), IntV pr₁ (EncZV _ (GmwZ z₁)), IntV pr₂ (EncZV _ (GmwZ z₂)) ]) | pr₁ ≡ pr₂ →
