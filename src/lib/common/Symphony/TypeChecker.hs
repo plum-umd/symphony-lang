@@ -431,7 +431,7 @@ synLet ψ e₁ e₂ =
 checkLam ∷ STACK ⇒ 𝑂 Var → 𝐿 Pat → Exp →  Type → EM ()
 checkLam self𝑂 ψs e τ =
   case τ of
-    SecT loc (τ₁₁ :→: (η :* τ₁₂) isTL)   →
+    SecT loc (τ₁₁ :→: (η :* τ₁₂ :* isTL))   →
       case self𝑂 of
       None      →
                   do
@@ -477,7 +477,7 @@ synApp e₁ e₂ =
   in do
     τ₁ ← c₁
     case τ₁ of
-      SecT loc (τ₁₁ :→: (η :* τ₁₂) isTL) → do
+      SecT loc (τ₁₁ :→: (η :* τ₁₂ :* isTL)) → do
         m  ← askL terModeL
         l₁ ← elabEMode $ effectMode η
         l₂ ← elabEMode loc
@@ -1346,9 +1346,9 @@ modifyLocTyTL  ty =
       τₜ' ←  (modifyLocTyTL x τₜ ty)
       return (ListT τₜ')
     -- WF-Fun: m must be same as mode, t1 must be well formed and t2 must be well formed
-    (τ₁₁ :→: (η :* τ₁₂) _) → do
+    (τ₁₁ :→: (η :* τ₁₂ :* _)) → do
       τ₁₂' ← (modifyLocTyTL x τ₁₂ ty)
-      return (τ₁₁ :→:  (η :* τ₁₂') True)
+      return (τ₁₁ :→:  (η :* τ₁₂' :* True))
     -- WF-Ref: The component type must be well formed
     (RefT loc τ)  → do
       τ' ← (modifyLocTyTL x τ ty)
