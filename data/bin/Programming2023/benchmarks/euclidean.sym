@@ -8,11 +8,11 @@ def maxInt = (2 ^ 31n) - 1
 
 def root : (nat@all -> nat@{A})@all
 def root x =
-  let rootRec = fun [rootRec] i guess ->
+  let rootRec = (fun [rootRec] i guess ->
     if i == 0n then
       guess
     else
-      rootRec (i - 1n) ((guess + (x / guess)) / 2)
+      rootRec (i - 1n) ((guess + (x / guess)) / 2)):(nat@all -> (nat@all -> nat@{A}))@all
   in
   rootRec steps 1
 
