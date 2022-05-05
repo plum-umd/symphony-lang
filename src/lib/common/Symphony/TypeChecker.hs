@@ -1343,7 +1343,7 @@ modifyLocTyTL sigma=
       loctyᵣ' ← (modifyLocTyTL loctyᵣ)
       return (loctyₗ' :×: loctyᵣ')
     (ListT τₜ)  → do
-      τₜ' ←  (modifyLocTyTL x τₜ)
+      τₜ' ←  (modifyLocTyTL τₜ)
       return (ListT τₜ')
     -- WF-Fun: m must be same as mode, t1 must be well formed and t2 must be well formed
     (τ₁₁ :→: (η :* τ₁₂ :* _)) → do
@@ -1377,7 +1377,7 @@ modifyTyTL ty =
       return (RecT x τy'')
     ForallT x ty' → do
       τy'' ← (modifyLocTyTL ty')
-      return (ForAllT x τy'')
+      return (ForallT x τy'')
     _ → typeError "modifyLocTyTL: sigma is not well structured" $ frhs
         [ ("ty", pretty ty )
         ]
