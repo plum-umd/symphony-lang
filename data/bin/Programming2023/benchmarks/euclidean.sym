@@ -16,7 +16,7 @@ def root x =
   in
   rootRec steps 1
 
-def square : (int@all -> int@{A})@all
+def square : (int@all -> int@{all})@all
 def square x = x * x
 
 def euclideanDist: ((int@all × int@all)@all ->  ((int@all × int@all)@all -> (int@all × int@all)@all)@all)@all
