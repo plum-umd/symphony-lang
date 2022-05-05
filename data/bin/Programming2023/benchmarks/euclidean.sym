@@ -25,12 +25,12 @@ def euclideanDist (a0, a1) (b0, b1) = root ((square (a0 - b0)) + (square (a1 - b
 def minEuclideanDist : ( (array{{A, B}}((int[gmw]@{A, B}@{A, B} × int[gmw]@{A, B}@{A, B} )@{A, B}))@{A, B}  -> ((int[gmw]@{A, B}@{A, B} × int[gmw]@{A, B}@{A, B} )@{A, B} -> (int[gmw]@{A,B})@{A,B})@all)@all
 def minEuclideanDist vs pt = par {A, B}
   let len = size vs in
-  let minRec = fun [minRec] i min ->
+  let minRec = (fun [minRec] i min ->
     if i == len then
       min
     else
       let dist = euclideanDist vs.i pt in
-      minRec (i + 1n) (mux if dist <= min then dist else min)
+      minRec (i + 1n) (mux if dist <= min then dist else min)): (nat@{A,B} -> {{A,B}} (int[gmw]@{A,B}@{A,B} -> {{A, B}} int[gmw]@{A,B}@{A,B})@{A,B} )@{A,B}
   in
   minRec 0n maxInt
 
