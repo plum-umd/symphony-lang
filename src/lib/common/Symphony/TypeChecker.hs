@@ -1371,7 +1371,7 @@ modifyTyTL ty =
     SecT em locty → do
       locty' ← (modifyLocTyTL locty)
       return (SecT em locty')
-    VarT x  →  ty
+    VarT x  →  return ty
     RecT x ty'→ do
       τy'' ← (modifyLocTyTL ty')
       return (RecT x τy'')
