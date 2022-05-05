@@ -6,7 +6,7 @@ def steps = 10n
 def maxInt : int@all
 def maxInt = (2 ^ 31n) - 1
 
-def root : (nat@all -> int@{A})@all
+def root : (int@all -> int@{A})@all
 def root x =
   let rootRec = (fun [rootRec] i guess ->
     if i == 0n then
