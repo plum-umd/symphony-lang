@@ -19,7 +19,7 @@ def root x =
 def square : (int@all -> int@all)@all
 def square x = x * x
 
-def euclideanDist: ((int@all × int@all)@{A, B} ->  ((int@all × int@all)@all -> int@all)@all)@all
+def euclideanDist: ((int@{A, B} × int@{A, B})@{A, B} ->  ((int@{A, B} × int@{A, B})@{A, B} -> int@all)@all)@all
 def euclideanDist (a0, a1) (b0, b1) = root ((square (a0 - b0)) + (square (a1 - b1)))
 
 def minEuclideanDist : ( (array{{A, B}}((int[gmw]@{A, B}@{A, B} × int[gmw]@{A, B}@{A, B} )@{A, B}))@{A, B}  -> ((int[gmw]@{A, B}@{A, B} × int[gmw]@{A, B}@{A, B} )@{A, B} -> (int[gmw]@{A,B})@{A,B})@all)@all
