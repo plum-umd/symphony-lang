@@ -1333,7 +1333,7 @@ modifyLocTyTL sigma=
   case sigma of
     -- WF-Base (Based off WF-INT)
     BaseT bt → return sigma
-    ShareT p loc loc_ty  → (modifyTyTL  loc_ty)
+    ShareT p loc loc_ty  → (modifyLocTyTL  loc_ty)
     -- WF-Sum: t1 must be well formed and t2 must be well formed
     (loctyₗ :+: loctyᵣ) → do
       loctyₗ' ← (modifyTyTL loctyₗ)
