@@ -1328,7 +1328,7 @@ bindTypeTL x τ = do
   modifyL ttlsEnvL ((x ↦ τ) ⩌)
 
 
-modifyLocTyTL ::  STACK ⇒ Type → EM Type
+modifyLocTyTL ::  STACK ⇒ Type → TLM Type
 modifyLocTyTL sigma=
   case sigma of
     -- WF-Base (Based off WF-INT)
@@ -1365,7 +1365,7 @@ modifyLocTyTL sigma=
         [ ("sigma", pretty sigma )
         ]
 
-modifyTyTL ::  STACK ⇒  Type → EM Type
+modifyTyTL ::  STACK ⇒  Type → TLM Type
 modifyTyTL ty =
   case ty of
     -- WF-Loc
