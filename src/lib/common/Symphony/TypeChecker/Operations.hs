@@ -230,8 +230,8 @@ subtype_loc loctyS loctyT d = case loctyS of
   -- t1' <: t1 t2 <: t2'
   -- -------Sub-Fun
   -- t1 m -> t2 <: t1' m -> t2'
-  (τ₁₁ :→: (η :* τ₁₂) isTL) → case loctyT of
-    (τ₁₁' :→: (η' :* τ₁₂') isTL') → do
+  (τ₁₁ :→: (η :* τ₁₂ :* isTL)) → case loctyT of
+    (τ₁₁' :→: (η' :* τ₁₂' :* isTL')) → do
         l ← elabEMode $ effectMode η
         l' ← elabEMode $ effectMode η'
         loccondₗ ← (subtype τ₁₁' τ₁₁ d)
@@ -424,8 +424,8 @@ eq_locty locty locty'=
     (ListT τₜ)  →  case locty' of
       (ListT τₜ') → (eq_type τₜ τₜ')
       _ → return False
-    (τ₁₁ :→: (η :* τ₁₂) isTL) → case locty' of
-      (τ₁₁' :→: (η' :* τ₁₂') isTL') → do
+    (τ₁₁ :→: (η :* τ₁₂ :* isTL)) → case locty' of
+      (τ₁₁' :→: (η' :* τ₁₂' :* isTL')) → do
         l ← elabEMode $ effectMode η
         l' ← elabEMode $ effectMode η'
         loccondₗ ← (eq_type τ₁₁' τ₁₁)
@@ -565,8 +565,8 @@ locty_meet locty locty' =
     -- t1' <: t1 t2 <: t2'
   -- -------Sub-Fun
   -- t1 m -> t2 <: t1' m -> t2's
-  (τ₁₁ :→: (η :* τ₁₂) isTL) → case locty' of
-    (τ₁₁' :→: (η' :* τ₁₂') isTL) → do
+  (τ₁₁ :→: (η :* τ₁₂ :* isTL)) → case locty' of
+    (τ₁₁' :→: (η' :* τ₁₂' :*isTL)) → do
         l ← elabEMode $ effectMode η
         l' ← elabEMode $ effectMode η'
         guardErr (eq_mode l l') $
@@ -800,8 +800,8 @@ locty_join locty locty' =
   -- t1' <: t1 t2 <: t2'
   -- -------Sub-Fun
   -- t1 m -> t2 <: t1' m -> t2'
-  (τ₁₁ :→: (η :* τ₁₂) isTL) → case locty' of
-    (τ₁₁' :→: (η' :* τ₁₂') isTL') → do
+  (τ₁₁ :→: (η :* τ₁₂ :* isTL)) → case locty' of
+    (τ₁₁' :→: (η' :* τ₁₂' :* isTL')) → do
         l ← elabEMode $ effectMode η
         l' ← elabEMode $ effectMode η'
         guardErr (eq_mode l l') $
@@ -1153,7 +1153,7 @@ get_intersect_loc_type x sigma m m' =
     (ListT τₜ)  →
       (get_intersect_type x τₜ m m')
     -- WF-Fun: m must be same as mode, t1 must be well formed and t2 must be well formed
-    (τ₁₁ :→: (η :* τ₁₂) isTL) → do
+    (τ₁₁ :→: (η :* τ₁₂ :*isTL)) → do
       m₁₁  ← (get_intersect_type x τ₁₁ m m')
       m₁₂  ← (get_intersect_type x τ₁₂ m m')
       return (inter_m  m₁₁ m₁₂ isTL)
@@ -1209,7 +1209,7 @@ sublocty_wf sigma m bigM=
       τₜ' ← (subty_wf τₜ m bigM)
       return (ListT τₜ')
     -- WF-Fun: m must be same as mode, t1 must be well formed and t2 must be well formed
-    (τ₁₁ :→: (η :* τ₁₂) isTL) → do
+    (τ₁₁ :→: (η :* τ₁₂ :* isTL)) → do
       l ← elabEMode $ effectMode η
       guardErr (isTL ⩔ eq_mode m l) $
         typeError "subloctype_wf: Not well formed: The function is not top level or m != l" $ frhs
@@ -1310,7 +1310,7 @@ superlocty_wf sigma m bigM =
       τₜ' ← (superty_wf τₜ m bigM)
       return (ListT τₜ')
     -- WF-Fun: t1 must be well formed and t2 must be well formed
-    (τ₁₁ :→: (η :* τ₁₂) isTL) → do
+    (τ₁₁ :→: (η :* τ₁₂ :* isTL)) → do
       l ← elabEMode $ effectMode η
       guardErr (isTL ⩔ eq_mode m l) $
         typeError "subloctype_wf: Not well formed: The function is not top level or m != l" $ frhs
@@ -1405,10 +1405,10 @@ loc_type_subst x sigma ty =
       τₜ' ←  (type_subst x τₜ ty)
       return (ListT τₜ')
     -- WF-Fun: m must be same as mode, t1 must be well formed and t2 must be well formed
-    (τ₁₁ :→: (η :* τ₁₂) isTL) → do
+    (τ₁₁ :→: (η :* τ₁₂ :* isTL)) → do
       τ₁₁' ←  (type_subst x τ₁₁ ty)
       τ₁₂' ← (type_subst x τ₁₂ ty)
-      return (τ₁₁' :→:  (η :* τ₁₂') isTL)
+      return (τ₁₁' :→:  (η :* τ₁₂' :* isTL))
     -- WF-Ref: The component type must be well formed
     (RefT loc τ)  → do
       τ' ← (type_subst x τ ty)
