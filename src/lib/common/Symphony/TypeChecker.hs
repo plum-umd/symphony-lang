@@ -1324,6 +1324,7 @@ asTLM eM = do
 bindTypeTL ∷ STACK ⇒ 𝕏 → Type → TLM ()
 bindTypeTL x τ = do
   _ ← asTLM $ (wf_type τ (AddAny Top) dø)
+  τ' ←modifyTyTL
   modifyL ttlsEnvL ((x ↦ τ) ⩌)
 
 
