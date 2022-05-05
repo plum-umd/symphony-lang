@@ -1333,33 +1333,33 @@ modifyLocTyTL sigma=
   case sigma of
     -- WF-Base (Based off WF-INT)
     BaseT bt → return sigma
-    ShareT p loc loc_ty  → (modifyLocTyTL  loc_ty)
+    ShareT p loc loc_ty  → (modifyTyTL  loc_ty)
     -- WF-Sum: t1 must be well formed and t2 must be well formed
     (loctyₗ :+: loctyᵣ) → do
-      loctyₗ' ← (modifyLocTyTL loctyₗ)
-      loctyᵣ' ← (modifyLocTyTL loctyᵣ)
+      loctyₗ' ← (modifyTyTL loctyₗ)
+      loctyᵣ' ← (modifyTyTL loctyᵣ)
       return (loctyₗ' :+: loctyᵣ')
     (loctyₗ :×: loctyᵣ)  → do
-      loctyₗ' ← (modifyLocTyTL loctyₗ)
-      loctyᵣ' ← (modifyLocTyTL loctyᵣ)
+      loctyₗ' ← (modifyTyTL loctyₗ)
+      loctyᵣ' ← (modifyTyTL loctyᵣ)
       return (loctyₗ' :×: loctyᵣ')
     (ListT τₜ)  → do
-      τₜ' ←  (modifyLocTyTL τₜ)
+      τₜ' ←  (modifyTyTL τₜ)
       return (ListT τₜ')
     -- WF-Fun: m must be same as mode, t1 must be well formed and t2 must be well formed
     (τ₁₁ :→: (η :* τ₁₂ :* _)) → do
-      τ₁₂' ← (modifyLocTyTL τ₁₂)
+      τ₁₂' ← (modifyTyTL τ₁₂)
       return (τ₁₁ :→:  (η :* τ₁₂' :* True))
     -- WF-Ref: The component type must be well formed
     (RefT loc τ)  → do
-      τ' ← (modifyLocTyTL τ )
+      τ' ← (modifyTyTL τ )
       return (RefT loc τ')
     -- WF-Ref: The component type must be well formed
     (ArrT loc τ)  → do
-      τ' ← (modifyLocTyTL τ )
+      τ' ← (modifyTyTL τ )
       return (ArrT loc τ')
     (ISecT loc loc_ty) → do
-      loc_ty' ← (modifyLocTyTL loc_ty)
+      loc_ty' ← (modifyTyTL loc_ty)
       (return (ISecT loc loc_ty'))
     _  → typeError "modifyLocTyTL: sigma is not well structured" $ frhs
         [ ("sigma", pretty sigma )
