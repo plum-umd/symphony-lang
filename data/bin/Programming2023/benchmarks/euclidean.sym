@@ -1,9 +1,9 @@
 principal A B
 
-def steps : nat@all
+def steps : (unit@all -> nat@all)@all
 def steps = 10n
 
-def maxInt : nat@all
+def maxInt : (unit@all -> nat@all)@all
 def maxInt = (2 ^ 31n) - 1
 
 def root x =
