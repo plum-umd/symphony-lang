@@ -1319,7 +1319,7 @@ superlocty_wf sigma m bigM =
         ]
       τ₁₁' ← (subty_wf τ₁₁ m bigM)
       τ₁₂' ← (superty_wf τ₁₂ m bigM)
-      return (τ₁₁' :→:  (η :* τ₁₂') isTL)
+      return (τ₁₁' :→:  (η :* τ₁₂' :* isTL))
     -- WF-Ref: The component type must be well formed
     (RefT loc τ)  → do
       τ' ← (superty_wf τ m bigM)
@@ -1436,13 +1436,13 @@ type_subst x ty ty' =
       if x ≡ x' 
         then (return ty) 
         else do
-          locty' ← (loc_type_subst x locty ty')
+          locty' ← (loc_type_subst x ty'' ty')
           return (RecT x locty')
     ForallT x' ty'' → 
       if x ≡ x' 
         then (return ty) 
         else do
-          locty' ← (loc_type_subst x locty ty')
+          locty' ← (loc_type_subst x ty'' ty')
           return (RecT x locty')
     _ → typeError "type_subst: ty is not well structured" $ frhs
         [ ("ty", pretty ty )
