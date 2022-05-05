@@ -1,6 +1,6 @@
 principal A B
 
-def hammingDist : ( (array{{A, B}}((nat[gmw]@{A,B})@{A,B}))@{A,B}  -> ((array{{A, B}}((nat[gmw]@{A,B})@{A,B}))@{A,B} -> nat[gmw]@{A,B}@{A,B})@all)@all
+def hammingDist : ( (array{{A, B}}((nat[gmw]@{A,B})@{A,B}))@{A,B}  -> ((array{{A, B}}((nat[gmw]@{A,B})@{A,B}))@{A,B} -> (nat[gmw]@{A,B})@{A,B})@all)@all
 def hammingDist bs0 bs1 = par {A, B}
   let len = size bs0 in
   let hammingDistRec = (fun [hammingDistRec] i distance →
@@ -8,7 +8,7 @@ def hammingDist bs0 bs1 = par {A, B}
       distance
     else
       let inc = mux if bs0.i == bs1.i then 0n else 1n in
-      hammingDistRec (i + 1n) (distance + inc)): (nat@{A,B} -> {{A,B}} (nat[gmw]@{A,B}@{A,B} -> {{A, B}} nat[gmw]@{A,B}@{A,B})@{A,B} )@{A,B}
+      hammingDistRec (i + 1n) (distance + inc)): (nat@{A,B} -> {{A,B}} ( (nat[gmw]@{A,B})@{A,B} -> {{A, B}} (nat[gmw]@{A,B}@){A,B})@{A,B} )@{A,B}
   in hammingDistRec 0n 0n
 
 def main : (unit@all -> nat@{A})@all
