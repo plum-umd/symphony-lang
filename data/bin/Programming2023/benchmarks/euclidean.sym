@@ -12,7 +12,7 @@ def root x =
     if i == 0n then
       guess
     else
-      rootRec (i - 1n) ((guess + (x / guess)) / 2)):(nat@all -> (nat@all -> int@all)@all)@all
+      rootRec (i - 1n) ((guess + (x / guess)) / 2)):(nat@all -> (int@all -> int@all)@all)@all
   in
   rootRec steps 1
 
