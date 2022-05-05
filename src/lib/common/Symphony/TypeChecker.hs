@@ -1328,37 +1328,37 @@ bindTypeTL x τ = do
 
 
 modifyLocTyTL ::  STACK ⇒ Type → EM Type
-modifyLocTyTL  ty =
+modifyLocTyTL sigma=
   case sigma of
     -- WF-Base (Based off WF-INT)
     BaseT bt → return sigma
-    ShareT p loc loc_ty  → (modifyLocTyTL  x loc_ty ty)
+    ShareT p loc loc_ty  → (modifyLocTyTL  loc_ty ty)
     -- WF-Sum: t1 must be well formed and t2 must be well formed
     (loctyₗ :+: loctyᵣ) → do
-      loctyₗ' ← (modifyLocTyTL x loctyₗ ty)
-      loctyᵣ' ← (modifyLocTyTL x loctyᵣ ty)
+      loctyₗ' ← (modifyLocTyTL loctyₗ ty)
+      loctyᵣ' ← (modifyLocTyTL loctyᵣ ty)
       return (loctyₗ' :+: loctyᵣ')
     (loctyₗ :×: loctyᵣ)  → do
-      loctyₗ' ← (modifyLocTyTL x loctyₗ ty)
-      loctyᵣ' ← (modifyLocTyTL x loctyᵣ ty)
+      loctyₗ' ← (modifyLocTyTL loctyₗ ty)
+      loctyᵣ' ← (modifyLocTyTL loctyᵣ ty)
       return (loctyₗ' :×: loctyᵣ')
     (ListT τₜ)  → do
       τₜ' ←  (modifyLocTyTL x τₜ ty)
       return (ListT τₜ')
     -- WF-Fun: m must be same as mode, t1 must be well formed and t2 must be well formed
     (τ₁₁ :→: (η :* τ₁₂ :* _)) → do
-      τ₁₂' ← (modifyLocTyTL x τ₁₂ ty)
+      τ₁₂' ← (modifyLocTyTL τ₁₂ ty)
       return (τ₁₁ :→:  (η :* τ₁₂' :* True))
     -- WF-Ref: The component type must be well formed
     (RefT loc τ)  → do
-      τ' ← (modifyLocTyTL x τ ty)
+      τ' ← (modifyLocTyTL τ ty)
       return (RefT loc τ')
     -- WF-Ref: The component type must be well formed
     (ArrT loc τ)  → do
-      τ' ← (modifyLocTyTL x τ ty)
+      τ' ← (modifyLocTyTL τ ty)
       return (ArrT loc τ')
     (ISecT loc loc_ty) → do
-      loc_ty' ← (modifyLocTyTL x loc_ty ty)
+      loc_ty' ← (modifyLocTyTL loc_ty ty)
       (return (ISecT loc loc_ty'))
     _  → typeError "modifyLocTyTL: sigma is not well structured" $ frhs
         [ ("sigma", pretty sigma )
@@ -1369,14 +1369,14 @@ modifyTyTL ty =
   case ty of
     -- WF-Loc
     SecT em locty → do
-      locty' ← (loc_type_subst x locty ty')
+      locty' ← (modifyLocTyTL locty)
       return (SecT em locty')
     VarT x  →  ty
     RecT x ty'→ do
-      τy'' ← (modifyLocTyTL x τ ty)
+      τy'' ← (modifyLocTyTL ty')
       return (RecT x τy'')
     ForallT x ty' → do
-      τy'' ← (modifyLocTyTL x τ ty)
+      τy'' ← (modifyLocTyTL ty')
       return (ForAllT x τy'')
     _ → typeError "modifyLocTyTL: sigma is not well structured" $ frhs
         [ ("ty", pretty ty )
