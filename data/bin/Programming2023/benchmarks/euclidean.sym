@@ -16,7 +16,7 @@ def root x =
   in
   rootRec steps 1
 
-def square : (nat@all -> nat@{A})@all
+def square : (int@all -> int@{A})@all
 def square x = x * x
 
 def euclideanDist (a0, a1) (b0, b1) = root ((square (a0 - b0)) + (square (a1 - b1)))
