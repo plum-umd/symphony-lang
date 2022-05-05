@@ -566,7 +566,7 @@ locty_meet locty locty' =
   -- -------Sub-Fun
   -- t1 m -> t2 <: t1' m -> t2's
   (τ₁₁ :→: (η :* τ₁₂ :* isTL)) → case locty' of
-    (τ₁₁' :→: (η' :* τ₁₂' :*isTL)) → do
+    (τ₁₁' :→: (η' :* τ₁₂' :* isTL')) → do
         l ← elabEMode $ effectMode η
         l' ← elabEMode $ effectMode η'
         guardErr (eq_mode l l') $
@@ -811,7 +811,7 @@ locty_join locty locty' =
             ]
         meet_τ₁₁ ← (locty_meet τ₁₁ τ₁₁')
         join_τ₁₂ ← (locty_join τ₁₂ τ₁₂')
-        return (meet_τ₁₁ :→: (η :* join_τ₁₂) (isTL ⩔ isTL'))
+        return (meet_τ₁₁ :→: (η :* join_τ₁₂)  :* (isTL ⩔ isTL'))
 
     -- t <: t'
   -- -------Sub-RefRO
@@ -998,13 +998,13 @@ wf_loctype sigma m bigM =
       _ ← (wf_type τₜ m bigM)
       return ()
     -- WF-Fun: m must be same as mode, t1 must be well formed and t2 must be well formed
-    (τ₁₁ :→: (η :* τ₁₂)) → do
+    (τ₁₁ :→: (η :* τ₁₂  :* isTL)) → do
       m  ← askL terModeL
       l ← elabEMode $ effectMode η
       _ ← (wf_type τ₁₁ m bigM)
       _ ← (wf_type τ₁₂ m bigM)
-      guardErr (eq_mode m l) $
-        typeError "wf_loctype: Not well formed m != l" $ frhs
+       guardErr (isTL ⩔ eq_mode m l) $
+        typeError "wf_loctype: Not well formed: The function is not top level or m != l" $ frhs
         [ ("m", pretty m)
         , ("l", pretty l)
         ]
