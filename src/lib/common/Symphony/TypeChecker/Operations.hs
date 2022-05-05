@@ -1001,7 +1001,7 @@ wf_loctype sigma m bigM =
       _ ← (wf_type τ₁₁ m bigM)
       _ ← (wf_type τ₁₂ m bigM)
       guardErr (eq_mode m l) $
-        typeError "Not well formed m != l" $ frhs
+        typeError "wf_loctype: Not well formed m != l" $ frhs
         [ ("m", pretty m)
         , ("l", pretty l)
         ]
