@@ -321,7 +321,7 @@ subtype_embed tyS tyT d =
           embedTyS ← (embedShare p loc tyS )
           embedSubCond ← (subtype embedTyS tyT d)
           subCond ← (subtype tyS tyT d)
-          guardErr embedSubConds  $
+          guardErr embedSubCond  $
             typeError "subtype_embed: embedTyS tyT" $ frhs
                   [ ("tyS", pretty tyS)
                   , ("tyT", pretty tyT)
