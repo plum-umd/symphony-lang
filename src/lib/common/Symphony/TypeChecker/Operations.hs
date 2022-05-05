@@ -576,7 +576,7 @@ locty_meet locty locty' =
             ]
         join_τ₁₁ ← (locty_join τ₁₁ τ₁₁')
         meet_τ₁₂ ← (locty_meet τ₁₂ τ₁₂')
-        return (join_τ₁₁ :→: (η :* meet_τ₁₂)  :* (isTL ⩓ isTL'))
+        return (join_τ₁₁ :→: (η :* meet_τ₁₂  :* (isTL ⩓ isTL')))
     -- t <: t'
   -- -------Sub-RefRO
   -- ref _ t <: ref RO t'
