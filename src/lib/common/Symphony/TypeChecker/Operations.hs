@@ -34,10 +34,14 @@ primType op τs = case (op, tohs τs) of
   (CondO,  [ 𝔹T, 𝔹T,     𝔹T     ])             → return 𝔹T
   (CondO,  [ 𝔹T, ℤT pr₁, ℤT pr₂ ]) | pr₁ ≡ pr₂ → return $ ℤT pr₁
   (CondO,  [ 𝔹T, ℕT pr₁, ℕT pr₂ ]) | pr₁ ≡ pr₂ → return $ ℕT pr₁
+  (ExpO    ,[ℕT pr₁, ℕT pr₂ ])      | pr₁ ≡ pr₂ → return $ ℕT pr
+  (ExpO    ,[ℤT pr₁, ℕT pr₂ ])      | pr₁ ≡ pr₂ → return $ ℤT pr
+  --(ExpO    ,[FltV p₁ f₁,FltV p₂ f₂])         |p₁≡p₂→ return $ FltV p₁ $ f₁ ^ f₂
   _ → typeError "primType: there are no return types for operation op and types τs " $ frhs
                   [  ("op", pretty op)
                   ,  ("τs", pretty τs)
                   ]
+
 
 -- Gets protocol of type that is either all cleartext or shared
 extractProt :: STACK ⇒ Type → EM (𝑂 (Prot, ModeAny) )
