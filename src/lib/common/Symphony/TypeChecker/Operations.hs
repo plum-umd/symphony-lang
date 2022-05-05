@@ -576,7 +576,7 @@ locty_meet locty locty' =
             ]
         join_τ₁₁ ← (locty_join τ₁₁ τ₁₁')
         meet_τ₁₂ ← (locty_meet τ₁₂ τ₁₂')
-        return (join_τ₁₁ :→: (η :* meet_τ₁₂) (isTL ⩓ isTL'))
+        return (join_τ₁₁ :→: (η :* meet_τ₁₂)  :* (isTL ⩓ isTL'))
     -- t <: t'
   -- -------Sub-RefRO
   -- ref _ t <: ref RO t'
@@ -811,7 +811,7 @@ locty_join locty locty' =
             ]
         meet_τ₁₁ ← (locty_meet τ₁₁ τ₁₁')
         join_τ₁₂ ← (locty_join τ₁₂ τ₁₂')
-        return (meet_τ₁₁ :→: (η :* join_τ₁₂)  :* (isTL ⩔ isTL'))
+        return (meet_τ₁₁ :→: (η :* join_τ₁₂ :* (isTL ⩔ isTL')))
 
     -- t <: t'
   -- -------Sub-RefRO
@@ -1003,7 +1003,7 @@ wf_loctype sigma m bigM =
       l ← elabEMode $ effectMode η
       _ ← (wf_type τ₁₁ m bigM)
       _ ← (wf_type τ₁₂ m bigM)
-       guardErr (isTL ⩔ eq_mode m l) $
+      guardErr (isTL ⩔ eq_mode m l) $
         typeError "wf_loctype: Not well formed: The function is not top level or m != l" $ frhs
         [ ("m", pretty m)
         , ("l", pretty l)
