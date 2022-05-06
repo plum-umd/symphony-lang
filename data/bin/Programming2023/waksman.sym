@@ -1,6 +1,6 @@
-principal A
+principal A B C
 
-// https://github.com/samee/obliv-c/blob/master/test/oblivc/psi/waksman.c#L5
+-- https://github.com/samee/obliv-c/blob/master/test/oblivc/psi/waksman.c#L5
 def waksmanSwapCount n =
   if n <= 1n then
     0n
@@ -10,52 +10,200 @@ def waksmanSwapCount n =
     else
       (n - 1n) + (waksmanSwapCount (n / 2n)) + (waksmanSwapCount ((n + 1n) / 2n))
 
-def waksmanSwitches arr output offset =
-  let n = size arr in
+-- https://github.com/samee/obliv-c/blob/master/test/oblivc/psi/waksman.c#L15
+def waksmanNetworkMut n net1 net2 offset =
+  let j = ref 0n in
 
-  let inv        = array[n] ⊥ in
-  let arr1       = array[n / 2n] ⊥ in
-  let arr2       = array[(n + 1n) / 2n] ⊥ in
-  let outputTail = array[(n - 1n) / 2n] ⊥ in
-  let isSet      = array[n] false in
+  if 1n < n then
+    let init = λ [init] i →
+      if i < (n - 1n) then
+        let _ = net1.(offset + !j) ← i in
+        let _ = net2.(offset + !j) ← i + 1n in
+        let _ = j := !j + 1n in
+        init (i + 2n)
+      else ()
+    in
 
-  let initializeInv = fun [initializeInv] i ->
-    if i < n then
-      let _ = inv.(arr.i) <- i in ()
-    else ()
+    let _ = init 0n in
+
+    let jd = waksmanNetworkMut (n / 2n) net1 net2 (offset + !j) in
+
+    let lhs = λ [lhs] i →
+      if i < jd then
+        let _ = net1.(offset + i + !j) ← 2n * net1.(offset + i + !j) in
+        let _ = net2.(offset + i + !j) ← 2n * net2.(offset + i + !j) in
+        lhs (i + 1n)
+      else ()
+    in
+
+    let _ = lhs 0n in
+    let _ = j := !j + jd in
+
+    let jd = waksmanNetworkMut ((n + 1n) / 2n) net1 net2 (offset + !j) in
+
+    let rhs = λ [rhs] i →
+      if i < jd then
+        let _ = net1.(offset + i + !j) ← (if not (net1.(offset + i + !j) == (n / 2n)) then 2n * net1.(offset + i + !j) + 1n else n - 1n) in
+        let _ = net2.(offset + i + !j) ← (if not (net2.(offset + i + !j) == (n / 2n)) then 2n * net2.(offset + i + !j) + 1n else n - 1n) in
+        rhs (i + 1n)
+      else ()
+    in
+
+    let _ = rhs 0n in
+    let _ = j := !j + jd in
+
+    let final = λ [final] i →
+      if i < n - 2n then
+        let _ = net1.(offset + !j) ← i in
+        let _ = net2.(offset + !j) ← i + 1n in
+        let _ = j := !j + 1n in
+        final (i + 2n)
+      else ()
+    in
+
+    let _ = final 0n in
+
+    !j
+  else
+    0n
+
+def waksmanNetwork n swapCount =
+  let net1 = array[swapCount] 0n in
+  let net2 = array[swapCount] 0n in
+  let _    = waksmanNetworkMut n net1 net2 0n in
+  (net1, net2)
+
+-- https://github.com/samee/obliv-c/blob/master/test/oblivc/psi/waksman.c#L50
+def waksmanSwitchesMut n arr output offset =
+  if 1n < n then
+    let inv  = array[n] ⊥ in
+    let arr1 = array[n / 2n] ⊥ in
+    let arr2 = array[(n + 1n) / 2n] ⊥ in
+    let outputTail = array[(n - 1n) / 2n] ⊥ in
+    let isSet = array[n] false in
+
+    let used = ref 0n in
+
+    let init = λ [init] i →
+      if i < n then
+        let _ = inv.(arr.i) ← i in
+        init (i + 1n)
+      else ()
+    in
+
+    let _ = init 0n in
+
+    let mainLoop = λ [mainLoop] i →
+      if 0n < i then
+        let i = i - 1n in
+        let _ =
+          if not isSet.i then
+            let innerLoop = λ [innerLoop] j →
+              let prej = arr.j in
+              let _    = isSet.j ← true in
+
+              let _ = if (prej / 2n) < (n / 2n) then
+                        let _ = output.(offset + (prej / 2n)) ← bool (1n - (prej % 2n)) in
+                        let _ = used := !used + 1n in
+                        ()
+                      else ()
+              in
+
+              let _ = arr2.(j / 2n) ← (prej / 2n) in
+
+              let _ = if (j / 2n) < ((n - 1n) / 2n) then
+                        let _ = outputTail.(j / 2n) ← bool (1n - (j % 2n)) in
+                        ()
+                      else ()
+              in
+
+              if not ((n % 2n == 1n) && (prej == (n - 1n))) then
+                let prenj = prej xor 1n in
+                let nxtj = inv.prenj in
+                let _ = isSet.nxtj ← true in
+
+                let _ = arr1.(nxtj / 2n) ← (prenj / 2n) in
+                let _ = if (nxtj / 2n) < ((n - 1n) / 2n) then
+                          let _ = outputTail.(nxtj / 2n) ← bool (nxtj % 2n) in
+                          ()
+                        else ()
+                in
+                let nxtj = nxtj xor 1n in
+                if not ((nxtj / 2n) == (i / 2n)) then
+                  innerLoop nxtj
+                else ()
+              else ()
+            in
+
+            innerLoop i
+          else ()
+        in
+        mainLoop i
+      else ()
+    in
+
+    let _ = mainLoop n in
+
+    let _ = used := !used + (waksmanSwitchesMut (n / 2n) arr1 output (offset + !used)) in
+    let _ = used := !used + (waksmanSwitchesMut ((n + 1n) / 2n) arr2 output (offset + !used)) in
+
+    let final = λ [final] i →
+      if i < (n - 1n) / 2n then
+        let _ = output.(offset + !used) ← outputTail.i in
+        let _ = used := !used + 1n in
+        final (i + 1n)
+      else ()
+    in
+
+    let _ = final 0n in
+
+    !used
+  else
+    0n
+
+def waksmanSwitches n swapCount P =
+  let pi       = permutation P n in
+  let switches = array[swapCount] ⊥ in
+  let _ = waksmanSwitchesMut n pi switches 0n in
+  switches
+
+-- Generate the Waksman network and apply one set of switches (control bits) to `a`
+def waksmanApply n swapCount a =
+  let (net1, net2) = waksmanNetwork n swapCount in
+  λ switch →
+    let applyRec = λ [applyRec] i →
+      if i < swapCount then
+        let _ = secSwap a switch.i net1.i net2.i in
+        applyRec (i + 1n)
+      else ()
+    in
+
+    applyRec 0n
+
+-- Shuffle `a` by applying the Waksman network `|P|` times, with individually chosen control bits
+def waksman P a =
+  let n         = size a in
+  let swapCount = waksmanSwapCount n in
+
+  let switches = pset_map (λ ρ →
+                   let switch = par { ρ } waksmanSwitches n swapCount { ρ } in
+                   share [gmw, array 𝔹 : { ρ } → P] switch
+                   )
+                 P
   in
-  let _ = initializeInv 0n in
 
-  let mainLoop = fun [mainLoop] i ->
-    if 0 < i then
-      let _ =
-        if not (isSet.i) then
-          let innerLoop = fun [innerLoop] j ->
-            ...
-          in innerLoop i
-        else ()
-      in
-      mainLoop (i - 1n)
-    else ()
-  in
-  let _ = mainLoop n in
+  let _ = iter (waksmanApply n swapCount a) switches in
+  a
 
-  let _ used := !used + (waksmanSwitches arr1 (n / 2n)        output !used) in
-  let _ used := !used + (waksmanSwitches arr2 ((n + 1n) / 2n) output !used) in
+def main () = par {A,B,C}
+  let inputA = par {A} read (array ℤ) from "waksman.txt" in
+  let inputB = par {B} read (array ℤ) from "waksman.txt" in
+  let inputC = par {C} read (array ℤ) from "waksman.txt" in
 
-  let assignOutput = fun [assignOutput] i ->
-    if i < ((n - 1n) / 2n) then
-      let u = !used in
-      let _ = output.u <- outputTail.i in
-      let _ = used := u + 1n in
-      assignOutput (i + 1n)
-    else ()
-  in
-  let _ = assignOutput 0n in
+  let P = {A,B,C} in
+  let shA = share [gmw, array ℤ : {A} → P] inputA in
+  let shB = share [gmw, array ℤ : {B} → P] inputB in
+  let shC = share [gmw, array ℤ : {C} → P] inputC in
 
-  !used
-
-def main () = par {A}
-  let n   = waksmanSwapCount 10n in
-  let out = array[n] false in
-  waksmanSwitches (permutation {A} 10n) (
+  let a = arrayConcat [shA; shB; shC] in
+  reveal [gmw, array ℤ : {A,B,C} → {A,B,C}] (waksman P a)

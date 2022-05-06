@@ -148,6 +148,7 @@ lexer = lexerBasic puns kws prim ops
       , "not","¬"
       , "||","∨"
       , "&&","∧"
+      , "xor", "⊻"
       , "true","false"
       , "L","R"
       , "abs_val"
@@ -729,6 +730,7 @@ pExp = fmixfixWithContext "exp" $ concat
   -- prim[⊙](e,…,e)
   , fmixInfixL levelPLUS $ do concat [cpSyntaxVoid "∨",cpSyntaxVoid "||"] ; return $ \ e₁ e₂ → PrimE OrO $ list [e₁,e₂]
   , fmixInfixL levelTIMES $ do concat [cpSyntaxVoid "∧",cpSyntaxVoid "&&"] ; return $ \ e₁ e₂ → PrimE AndO $ list [e₁,e₂]
+  , fmixInfixL levelPLUS $ do concat [cpSyntaxVoid "⊻",cpSyntaxVoid "xor"] ; return $ \ e₁ e₂ → PrimE XorO $ list [e₁,e₂]
   , fmixPrefix levelEXP $ do concat [cpSyntaxVoid "not",cpSyntaxVoid "¬"] ; return $ \ e → PrimE NotO $ list [e]
   , fmixInfixL levelPLUS $ do cpSyntaxVoid "+" ; return $ \ e₁ e₂ → PrimE PlusO $ list [e₁,e₂]
   , fmixInfixL levelPLUS $ do cpSyntaxVoid "-" ; return $ \ e₁ e₂ → PrimE MinusO $ list [e₁,e₂]
@@ -744,6 +746,9 @@ pExp = fmixfixWithContext "exp" $ concat
   , fmixPrefix levelAPP $ do cpSyntaxVoid "abs_val" ; return $ \ e → PrimE AbsO $ list [e]
   , fmixPrefix levelAPP $ do cpSyntaxVoid "sqrt" ; return $ \ e → PrimE SqrtO $ list [e]
   , fmixPrefix levelAPP $ do cpSyntaxVoid "log_base_2" ; return $ \ e → PrimE LogO $ list [e]
+  , fmixPrefix levelAPP $ do
+      cpSyntaxVoid "bool"
+      return $ \ e → PrimE BoolO $ list [e]
   , fmixPrefix levelAPP $ do
       cpSyntaxVoid "nat"
       ip ← pIPrecision

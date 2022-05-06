@@ -10,6 +10,8 @@ import Symphony.Dynamic.Par.Error
 
 import Symphony.Dynamic.Par.GMW
 
+import qualified Data.Bits as BITS
+
 metaBaseVal ∷ BaseVal → 𝑂 (Prot ∧ 𝑃 PrinVal)
 metaBaseVal bv = case bv of
   BoolV  (ClearBV _) → None
@@ -66,10 +68,14 @@ primBaseVal op bvs = do
 
     (CondO, [ BoolV (ClearBV b), BoolV (ClearBV b₁), BoolV (ClearBV b₂) ]) → return $ BoolV $ ClearBV $ if b then b₁ else b₂
 
+    (CondO, [ BoolV (EncBV ρvs (GmwB b₁)), BoolV (EncBV _ (GmwB b₂)), BoolV (EncBV _ (GmwB b₃)) ]) → BoolV ^$ EncBV ρvs ^$ GmwB ^$ do { gmw ← getOrMkGmw ρvs ; gmwBoolMux gmw b₁ b₂ b₃ }
+
     -- Naturals
     (NatO pr₁, [ NatV _ (ClearNV n) ]) → return $ NatV pr₁ $ ClearNV $ trPrNat pr₁ n
     (IntO pr₁, [ NatV _ (ClearNV n) ]) → return $ IntV pr₁ $ ClearZV $ trPrInt pr₁ $ int n
+    (BoolO   , [ NatV _ (ClearNV n) ]) → return $ BoolV    $ ClearBV $ n ≢ 0
 
+    (XorO  , [ NatV pr₁ (ClearNV n₁), NatV pr₂ (ClearNV n₂) ]) | pr₁ ≡ pr₂ → return $ NatV pr₁ $ ClearNV $ trPrNat pr₁ $ n₁ `BITS.xor` n₂
     (PlusO , [ NatV pr₁ (ClearNV n₁), NatV pr₂ (ClearNV n₂) ]) | pr₁ ≡ pr₂ → return $ NatV pr₁ $ ClearNV $ trPrNat pr₁ $ n₁ + n₂
     (MinusO, [ NatV pr₁ (ClearNV n₁), NatV pr₂ (ClearNV n₂) ]) | pr₁ ≡ pr₂ → return $ NatV pr₁ $ ClearNV $ trPrNat pr₁ $ buPrNat pr₁ $ n₁ - n₂
     (TimesO, [ NatV pr₁ (ClearNV n₁), NatV pr₂ (ClearNV n₂) ]) | pr₁ ≡ pr₂ → return $ NatV pr₁ $ ClearNV $ trPrNat pr₁ $ n₁ × n₂

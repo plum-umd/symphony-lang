@@ -143,6 +143,11 @@ def bundle_fold init f bdl = case bdl
 -- Party Set --
 ---------------
 
+def pset_map f P = case P
+  { {}         → []
+  ; { ρ } ∪ P' → f ρ :: pset_map f P'
+  }
+
 def pset_fold init f P = case P
   { {} -> init
   ; { p } \/ P' -> f p (pset_fold init f P')
@@ -906,6 +911,20 @@ def swap a i j =
   let tmp = a.i in
   let _   = a.i <- a.j in
   let _   = a.j <- tmp in
+  ()
+
+-- TODO: Define `xor` generically so we can always use this one
+--def secSwap a c i j =
+--  let v  = mux if c then a.i xor a.j else 0 in
+--  let _  = a.i ← a.i xor v in
+--  let _  = a.j ← a.j xor v in
+--  ()
+
+def secSwap a c i j =
+  let vi = mux if c then a.j else a.i in
+  let vj = mux if c then a.i else a.j in
+  let _  = a.i ← vi in
+  let _  = a.j ← vj in
   ()
 
 -- Copy all of `src` into `dst`, starting at `idx` in `dst`

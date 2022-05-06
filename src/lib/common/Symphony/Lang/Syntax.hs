@@ -361,6 +361,7 @@ makePrisms ''Pat
 data Op =
     OrO               -- e || e
   | AndO              -- e && e
+  | XorO              -- e ⊻ e
   | NotO              -- not e
   | PlusO             -- e + e
   | MinusO            -- e - e
@@ -377,6 +378,7 @@ data Op =
   | AbsO              -- abs_val e
   | SqrtO             -- sqrt e
   | LogO              -- log_base_2 e
+  | BoolO             -- bool
   | NatO IPrecision   -- nat#n.n
   | IntO IPrecision   -- int#n.n
   | FltO FPrecision   -- flt#n.n
