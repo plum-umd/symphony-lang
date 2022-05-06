@@ -118,6 +118,11 @@ def snd x = case x { (_, b) -> b }
 
 def some x = L x
 
+def is_some x = case x
+  { R () -> false
+  ; L _  -> true
+  }
+
 def none = R ()
 
 def option_fold v kN kS = case v
@@ -189,7 +194,7 @@ def map f l = list_fold [] (fun x xs -> f x :: xs) l
 
 def filter p l = case l
   { []      -> []
-  ; x :: xs -> if p x then x :: filter p xs else filter p xs
+  ; x :: xs -> mux if p x then x :: filter p xs else filter p xs
   }
 
 def length = list_fold 0n (fun _ n -> n + 1n)
@@ -233,6 +238,14 @@ def zip xs ys = case (xs,ys)
 def zip-map f l0 l1 = map (uncurry f) (zip l0 l1)
 
 def all_true l = elim-list l true and
+
+def some_true l = list_fold false or l
+
+def exists p l = some_true (map p l)
+
+def mem x l = exists (λ y → x ≡ y) l
+
+def catOptions l = list_fold [] (λ x acc → case x { R () -> acc ; L y -> y :: acc }) l
 
 def eq_lists l0 l1 = all_true (zip-map eq l0 l1)
 -- TODO: refactor, using eq-lists

@@ -59,6 +59,10 @@ primBaseVal ∷ Op → 𝐿 BaseVal → IM Val BaseVal
 primBaseVal op bvs = do
   bvs ← embedBaseVals bvs
   case (op, tohs bvs) of
+    -- Unit
+
+    (CondO, [ BoolV _, BulV, BulV ]) → return BulV
+
     -- Booleans
     (NotO, [ BoolV (ClearBV b) ]) → return $ BoolV $ ClearBV $ not b
 
@@ -67,6 +71,8 @@ primBaseVal op bvs = do
     (EqO , [ BoolV (ClearBV b₁), BoolV (ClearBV b₂) ]) → return $ BoolV $ ClearBV $ b₁ ≡ b₂
 
     (CondO, [ BoolV (ClearBV b), BoolV (ClearBV b₁), BoolV (ClearBV b₂) ]) → return $ BoolV $ ClearBV $ if b then b₁ else b₂
+
+    (OrO, [ BoolV (EncBV ρvs (GmwB b₁)), BoolV (EncBV _ (GmwB b₂)) ]) → BoolV ^$ EncBV ρvs ^$ GmwB ^$ do { gmw ← getOrMkGmw ρvs ; gmwBoolOr gmw b₁ b₂ }
 
     (CondO, [ BoolV (EncBV ρvs (GmwB b₁)), BoolV (EncBV _ (GmwB b₂)), BoolV (EncBV _ (GmwB b₃)) ]) → BoolV ^$ EncBV ρvs ^$ GmwB ^$ do { gmw ← getOrMkGmw ρvs ; gmwBoolMux gmw b₁ b₂ b₃ }
 

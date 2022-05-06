@@ -219,6 +219,7 @@ revealSendVal φ ρvsFr chansTo ṽ = do
       GMWP → do
         gmw  ← getOrMkGmw ρvsFr
         case bv of
+          BulV        → return ()
           BoolV bool  → do
             b ← elimGmwB *$ elimEncBV ρvsFr bool
             eachOn chansTo $ \ chanTo → gmwRevealSendGmwBool gmw chanTo b
@@ -233,27 +234,46 @@ revealSendVal φ ρvsFr chansTo ṽ = do
     ProdV ṽ₁ ṽ₂ → do
       revealSendVal φ ρvsFr chansTo ṽ₁
       revealSendVal φ ρvsFr chansTo ṽ₂
+    SumV b ṽ₁ ṽ₂ → do
+      revealSendVal φ ρvsFr chansTo $ KnownV $ BaseV $ BoolV b
+      revealSendVal φ ρvsFr chansTo ṽ₁
+      revealSendVal φ ρvsFr chansTo ṽ₂
+    ListV ṽs → do
+      let length = count ṽs
+      eachOn chansTo $ \ chanTo → channelSendNat chanTo iprDefault length
+      eachWith (revealSendVal φ ρvsFr chansTo) ṽs
     LocV _m (Inr a) → do
       let length = HS.fromIntegral $ length𝕍Mut a
       ṽs ← io $ values𝕍Mut a
       eachOn chansTo $ \ chanTo → channelSendNat chanTo iprDefault length
       eachWith (revealSendVal φ ρvsFr chansTo) ṽs
-    _           → todoCxt
+    _           → do { pptraceM v; todoCxt }
 
 revealRecvVal ∷ (STACK) ⇒ Prot → 𝐿 Channel → 𝑃 PrinVal → Type → IM Val Val
 revealRecvVal φ chansFr ρvsTo τ = KnownV ^$ case τ of
   BaseT bτ → BaseV ^$ case φ of
     GMWP → do
       case bτ of
+        UnitT → return BulV
         𝔹T    → BoolV   ^$ ClearBV ^$ gmwRevealRecvBool chansFr
         ℕT pr → NatV pr ^$ ClearNV ^$ gmwRevealRecvNat  chansFr pr
         ℤT pr → IntV pr ^$ ClearZV ^$ gmwRevealRecvInt  chansFr pr
         _     → todoCxt
     _    → todoCxt
   τ₁ :×: τ₂ → do
-      ṽ₁ ← revealRecvVal φ chansFr ρvsTo τ₁
-      ṽ₂ ← revealRecvVal φ chansFr ρvsTo τ₂
-      return $ ProdV ṽ₁ ṽ₂
+    ṽ₁ ← revealRecvVal φ chansFr ρvsTo τ₁
+    ṽ₂ ← revealRecvVal φ chansFr ρvsTo τ₂
+    return $ ProdV ṽ₁ ṽ₂
+  τ₁ :+: τ₂ → do
+    b  ← elimBool *$ elimBase *$ elimKnown *$ revealRecvVal φ chansFr ρvsTo $ BaseT 𝔹T
+    ṽ₁ ← revealRecvVal φ chansFr ρvsTo τ₁
+    ṽ₂ ← revealRecvVal φ chansFr ρvsTo τ₂
+    return $ SumV b ṽ₁ ṽ₂
+  ListT τ' → do
+    length ← access fstL ^$ fromSomeCxt *$ view consL ^$ mapMOn chansFr $ \ chanFr → channelRecvNat chanFr iprDefault
+    let ṽM = revealRecvVal φ chansFr ρvsTo τ'
+    ṽs ← exchange $ replicate length ṽM
+    return $ ListV $ list ṽs
   ArrT τ' → do
     length ← access fstL ^$ fromSomeCxt *$ view consL ^$ mapMOn chansFr $ \ chanFr → channelRecvNat chanFr iprDefault
     let ṽM = revealRecvVal φ chansFr ρvsTo τ'

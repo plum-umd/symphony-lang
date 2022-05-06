@@ -128,6 +128,11 @@ foreign import ccall unsafe "gmw_bool_and" gmw_bool_and ∷ Ptr CGmw → Ptr CGm
 gmwBoolAnd ∷ (Monad m, MonadIO m) ⇒ Gmw → GmwBool → GmwBool → m GmwBool
 gmwBoolAnd gmw v₁ v₂ = io $ GmwBool ^$ gmwBinary gmw_bool_and gmw_bool_drop gmw (unGmwBool v₁) (unGmwBool v₂)
 
+foreign import ccall unsafe "gmw_bool_or" gmw_bool_or ∷ Ptr CGmw → Ptr CGmwBool → Ptr CGmwBool → IO (Ptr CGmwBool)
+
+gmwBoolOr ∷ (Monad m, MonadIO m) ⇒ Gmw → GmwBool → GmwBool → m GmwBool
+gmwBoolOr gmw v₁ v₂ = io $ GmwBool ^$ gmwBinary gmw_bool_or gmw_bool_drop gmw (unGmwBool v₁) (unGmwBool v₂)
+
 foreign import ccall unsafe "gmw_bool_mux" gmw_bool_mux ∷ Ptr CGmw → Ptr CGmwBool → Ptr CGmwBool → Ptr CGmwBool → IO (Ptr CGmwBool)
 
 gmwBoolMux ∷ (Monad m, MonadIO m) ⇒ Gmw → GmwBool → GmwBool → GmwBool → m GmwBool

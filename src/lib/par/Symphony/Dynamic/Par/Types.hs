@@ -323,6 +323,9 @@ defaultBaseVal = \case
   ℙT    → undefined -- TODO
   ℙsT   → undefined -- TODO
 
+defaultVal ∷ Val → IM Val Val
+defaultVal ṽ = todoCxt
+
 -- Encrypted
 
 prettyEncrypted ∷ (Pretty a) ⇒ 𝑃 PrinVal → a → Doc

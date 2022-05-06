@@ -119,6 +119,7 @@ matchLClear boolₜ ṽₗ ψₗ = do
   bₜ ← abort𝑂 $ view clearBVL boolₜ
   if bₜ then matchVal ṽₗ ψₗ else abort
 
+{-
 matchLEnc ∷ (STACK) ⇒ BoolVal → Val → Pat → FailT (IM Val) (IM Val Val → IM Val Val)
 matchLEnc boolₜ ṽₗ ψₗ = do
   ṽₜ ← lift $ return $ KnownV $ BaseV $ BoolV boolₜ
@@ -127,12 +128,14 @@ matchLEnc boolₜ ṽₗ ψₗ = do
     ṽₗᵒ ← mapEnvL iCxtMPCPathConditionL (ṽₜ :&) $ fₗ xM
     ṽᵣᵒ ← return $ KnownV $ DefaultV
     muxVal ṽₜ ṽₗᵒ ṽᵣᵒ
+-}
 
 matchRClear ∷ (STACK) ⇒ BoolVal → Val → Pat → FailT (IM Val) (IM Val Val → IM Val Val)
 matchRClear boolₜ ṽᵣ ψᵣ = do
   bₜ ← abort𝑂 $ view clearBVL boolₜ
   if not bₜ then matchVal ṽᵣ ψᵣ else abort
 
+{-
 matchREnc ∷ (STACK) ⇒ BoolVal → Val → Pat → FailT (IM Val) (IM Val Val → IM Val Val)
 matchREnc boolₜ ṽᵣ ψᵣ = do
   ṽₜ ← lift $ return $ KnownV $ BaseV $ BoolV boolₜ
@@ -142,6 +145,7 @@ matchREnc boolₜ ṽᵣ ψᵣ = do
     ṽₗᵒ ← return $ KnownV $ DefaultV
     ṽᵣᵒ ← mapEnvL iCxtMPCPathConditionL (negṽₜ :&) $ fᵣ xM
     muxVal ṽₜ ṽₗᵒ ṽᵣᵒ
+-}
 
 matchVal ∷ (STACK) ⇒ Val → Pat → FailT (IM Val) (IM Val Val → IM Val Val)
 matchVal ṽ = \case
@@ -175,11 +179,11 @@ matchVal ṽ = \case
   LP ψₗ → do
     v ← lift $ elimKnown ṽ
     bvₜ :* ṽₗ :* _ṽᵣ ← abort𝑂 $ view sumVL v
-    tries [ matchLClear bvₜ ṽₗ ψₗ , matchLEnc bvₜ ṽₗ ψₗ ]
+    tries [ matchLClear bvₜ ṽₗ ψₗ ]
   RP ψᵣ → do
     v ← lift $ elimKnown ṽ
     bvₜ :* _ṽₗ :* ṽᵣ ← abort𝑂 $ view sumVL v
-    tries [ matchRClear bvₜ ṽᵣ ψᵣ , matchREnc bvₜ ṽᵣ ψᵣ ]
+    tries [ matchRClear bvₜ ṽᵣ ψᵣ ]
   NilP → do
     v ← lift $ elimKnown ṽ
     abort𝑂 $ view (nilL ⊚ listVL) v
@@ -221,6 +225,14 @@ muxVal ṽ₁ ṽ₂ ṽ₃ = do
   v₂ ← elimKnown ṽ₂
   v₃ ← elimKnown ṽ₃
   v ← case (v₂, v₃) of
+    (BaseV bv₂, DefaultV) → do
+      let bv₃ = defaultBaseVal $ typeFrBaseVal bv₂
+      bv ← primBaseVal CondO $ bv₁ :& bv₂ :& bv₃ :& Nil
+      return $ BaseV bv
+    (DefaultV, BaseV bv₃) → do
+      let bv₂ = defaultBaseVal $ typeFrBaseVal bv₃
+      bv ← primBaseVal CondO $ bv₁ :& bv₂ :& bv₃ :& Nil
+      return $ BaseV bv
     (BaseV bv₂, BaseV bv₃) → do
       bv ← primBaseVal CondO $ bv₁ :& bv₂ :& bv₃ :& Nil
       return $ BaseV bv
@@ -228,6 +240,18 @@ muxVal ṽ₁ ṽ₂ ṽ₃ = do
       ṽₗ ← muxVal ṽ₁ ṽ₂ₗ ṽ₃ₗ
       ṽᵣ ← muxVal ṽ₁ ṽ₂ᵣ ṽ₃ᵣ
       return $ ProdV ṽₗ ṽᵣ
+    (SumV b₂ ṽ₂₁ ṽ₂₂, SumV b₃ ṽ₃₁ ṽ₃₂) → do
+      b ← elimBool *$ primBaseVal CondO $ bv₁ :& (BoolV b₂) :& (BoolV b₃) :& Nil
+      ṽ₂ ← muxVal ṽ₁ ṽ₂₁ ṽ₃₁
+      ṽ₃ ← muxVal ṽ₁ ṽ₂₂ ṽ₃₂
+      return $ SumV b ṽ₂ ṽ₃
+    (DefaultV, ListV ṽs₃) → do
+      ṽs₂ ← mapM defaultVal ṽs₃
+      ṽs  ← mapM (curry (muxVal ṽ₁)) *$ fromSomeCxt $ zipSameLength ṽs₂ ṽs₃
+      return $ ListV ṽs
+    (ListV ṽs₂, ListV ṽs₃) → do
+      ṽs ← mapM (curry (muxVal ṽ₁)) *$ fromSomeCxt $ zipSameLength ṽs₂ ṽs₃
+      return $ ListV ṽs
     _ → throwIErrorCxt NotImplementedIError "oops!" $ frhs
         [ ("v₂", pretty v₂)
         , ("v₃", pretty v₃)

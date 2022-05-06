@@ -1,35 +1,18 @@
 principal A B
 
-def P = { A, B }
+def sec_filter p l = case l
+  { []      -> []
+  ; x :: xs -> (mux if p x then some x else none) :: sec_filter p xs
+  }
 
-def LEN = 1000
-
--- copy-pasted from stdlib
-def preprocess-lists-n p len zs =
-  if len == 0
-  then []
-  else (share[ yao, int : p -> P ] (par {p} get-head-or-default zs)) :: (preprocess-lists-n p (len - 1) (par {p} tail zs))
-
--- some/isMem: not in stdlib, but should be
-
-def read-ints s = [ ] -- TEST: dummy values
-
-def some ls = elim-list ls false or
-
-def is-mem ls x = some (map (fun y -> x == y) ls)
+def psi a b = sec_filter (λ x → mem x b) a
 
 -- main: top-level entry point:
-def main () = par P
-  -- read sets as lists of integers:
-  let data = read-ints "set-inter-inputs.txt" in
+def main () = par {A,B}
+  let inputA = par {A} read (list ℤ) from "intersection.txt" in
+  let inputB = par {B} read (list ℤ) from "intersection.txt" in
 
-  -- aShrs, bShrs: shares of A's data and B's data
-  let aShrs = preprocess-lists-n A LEN data in
-  let bShrs = preprocess-lists-n B LEN data in
+  let shareA = share [gmw, list ℤ : {A} → {A,B}] inputA in
+  let shareB = share [gmw, list ℤ : {B} → {A,B}] inputB in
 
-  -- reveal common members of A:
-  map (fun x -> reveal [ yao, int : P -> A ] x)
-    -- check if each member of aShrs is in bShrs
-    (filter (is-mem bShrs) aShrs) 
-
-  
+  catOptions (reveal [gmw, list (ℤ + unit) : {A,B} → {A,B}] (psi shareA shareB))
