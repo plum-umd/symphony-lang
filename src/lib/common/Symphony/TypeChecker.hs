@@ -1331,11 +1331,11 @@ asTLM eM = do
 
 bindTypeTL ∷ STACK ⇒ 𝕏 → Type → TLM ()
 bindTypeTL x τ = do
-  asTLM $ (wf_typeTL τ)
+  (wf_typeTL τ)
   modifyL ttlsEnvL ((x ↦ τ) ⩌)
 
-wf_typeTL ∷ STACK ⇒ Type → EM ()
-wf_typeTL τ =
+wf_typeTL ∷ STACK ⇒ Type → TLM ()
+wf_typeTL τ = asTLM $
   case τ of
     SecT loc (τ₁₁ :→: (η :* τ₁₂))   →
                   do
