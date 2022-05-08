@@ -103,7 +103,7 @@ checkLamTL self𝑂 ψs e τ =
                     l₁ ← elabEMode $ effectMode η
                     l₂ ← elabEMode loc
                     guardErr (eq_mode m l₁) $
-                      typeError "checkLamTL: ⊢ₘ _ ˡ→ _ ; the function is not top level and m ≢ l₁ in τ" $ frhs
+                      typeError "checkLamTL: ⊢ₘ _ ˡ→ _ ; m ≢ l₁ in τ" $ frhs
                       [ ("m", pretty m)
                       , ("l₁", pretty l₁)
                       , ("τ", pretty τ)
@@ -121,7 +121,7 @@ checkLamTL self𝑂 ψs e τ =
                       , ("τ", pretty τ)
                       ]
                       -- In case of the any case
-                    modifyMode ← localL terModeL l₁
+                    let modifyMode = localL terModeL l₁
                     case ψs of
                       Nil → do
                         modifyMode $ chkExp e τ₁₂
@@ -487,7 +487,7 @@ checkLam self𝑂 ψs e τ =
                     l₁ ← elabEMode $ effectMode η
                     l₂ ← elabEMode loc
                     guardErr (eq_mode m l₁) $
-                      typeError "checkLam: ⊢ₘ _ ˡ→ _ ; the function is not top level and m ≢ l₁ in τ" $ frhs
+                      typeError "checkLam: ⊢ₘ _ ˡ→ _ ; m ≢ l₁ in τ" $ frhs
                       [ ("m", pretty m)
                       , ("l₁", pretty l₁)
                       , ("τ", pretty τ)
@@ -530,7 +530,7 @@ synApp e₁ e₂ =
         l₁ ← elabEMode $ effectMode η
         l₂ ← elabEMode loc
         guardErr (eq_mode m l₁) $
-          typeError "synApp: ⊢ₘ _ ˡ→ _ ; the function is not top level and m ≢ l" $ frhs
+          typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
             [ ("m", pretty m)
             , ("l", pretty l₁)
           ]
@@ -539,12 +539,6 @@ synApp e₁ e₂ =
           [ ("m", pretty m)
           , ("l", pretty l₂)
           ]
-        guardErr (eq_mode l₁ l₂) $
-                      typeError "checkLam: ⊢ₘ _ ˡ→ _ ; ml₁ ≢ l₂ in τ" $ frhs
-                      [ ("l₁", pretty l₁)
-                      , ("l₂", pretty l₂)
-                      , ("τ", pretty τ)
-                      ]
         _ ← chkExp e₂ τ₁₁
 
         return τ₁₂
@@ -1378,5 +1372,5 @@ asTLM eM = do
 bindTypeTL ∷ STACK ⇒ 𝕏 → Type → TLM ()
 bindTypeTL x τ = do
   asTLM $ (wf_type τ Any dø)
-  modifyL ttlsEnvL ((x ↦ τ') ⩌)
+  modifyL ttlsEnvL ((x ↦ τ) ⩌)
 
