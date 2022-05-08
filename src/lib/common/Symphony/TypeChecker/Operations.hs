@@ -1471,6 +1471,7 @@ matchType τ ψ= case ψ of
   VarP x → return (bindTo  x τ)
   BulP → case τ of
     (SecT loc (BaseT (UnitT) )) →  do
+      
           m ← askL terModeL
           l ← elabEMode loc
           guardErr (eq_mode m l) $
