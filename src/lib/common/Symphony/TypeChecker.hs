@@ -1343,7 +1343,7 @@ wf_typeTL τ =
                     l₂ ← elabEMode loc
                     guardErr (eq_mode l₁ l₂) $
                       typeError " WFCheckTL: ⊢ₘ _ ˡ→ _ ; m ≢ l₂ in τ" $ frhs
-                      [ ("m", pretty m)
+                      [ ("l₁", pretty l₂)
                       , ("l₂", pretty l₂)
                       , ("τ", pretty τ)
                       ]
