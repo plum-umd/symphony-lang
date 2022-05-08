@@ -121,15 +121,15 @@ checkLamTL self𝑂 ψs e τ =
                       , ("τ", pretty τ)
                       ]
                       -- In case of the any case
-                    let modifyMode = localL terModeL l₁
                     case ψs of
                       Nil → do
-                        modifyMode $ chkExp e τ₁₂
+                        chkExp e τ₁₂
                       ψ :& Nil → do
                         bind ←  bindType τ₁₁ ψ
-                        modifyMode $ bind $ chkExp e τ₁₂
                       ψ :& ψs → do
                         bind ←  bindType τ₁₁ ψ
+                        let modifyMode = localL terModeL l₁
+                         _ ←  (wf_type τ Any dø)
                         modifyMode $ bind $ checkLam None ψs e τ₁₂
 
 
