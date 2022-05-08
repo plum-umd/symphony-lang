@@ -1005,7 +1005,6 @@ wf_loctype sigma m bigM =
       return ()
     -- WF-Fun: m must be same as mode, t1 must be well formed and t2 must be well formed
     (τ₁₁ :→: (η :* τ₁₂)) → do
-      m  ← askL terModeL
       l ← elabEMode $ effectMode η
       _ ← (wf_type τ₁₁ m bigM)
       _ ← (wf_type τ₁₂ m bigM)
@@ -1471,7 +1470,7 @@ matchType τ ψ= case ψ of
   VarP x → return (bindTo  x τ)
   BulP → case τ of
     (SecT loc (BaseT (UnitT) )) →  do
-      
+
           m ← askL terModeL
           l ← elabEMode loc
           guardErr (eq_mode m l) $
