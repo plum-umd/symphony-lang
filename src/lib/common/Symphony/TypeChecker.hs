@@ -1332,7 +1332,7 @@ asTLM eM = do
 bindTypeTL ∷ STACK ⇒ 𝕏 → Type → TLM ()
 bindTypeTL x τ = do
   asTLM $ (wf_typeTL τ Any dø)
-  modifyL sttlsEnvL ((x ↦ τ) ⩌)
+  modifyL ttlsEnvL ((x ↦ τ) ⩌)
 
 wf_typeTL ∷ STACK ⇒ Type → EM ()
 wf_typeTL τ =
