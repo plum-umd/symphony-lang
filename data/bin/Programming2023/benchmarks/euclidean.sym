@@ -6,7 +6,7 @@ def steps = par {A, B} 10n
 def maxInt : int@{A, B}
 def maxInt = par {A, B} (2 ^ 31n) - 1
 
-def root : (int@{A, B} -> {{A, B}} int@{A, B})@{A, B}
+
 def root x =
   let rootRec = (fun [rootRec] i guess ->
     if i == 0n then
@@ -22,7 +22,7 @@ def square x = x * x
 def euclideanDist: ((int@{A, B} × int@{A, B})@{A, B} -> {{A, B}}  ((int@{A, B} × int@{A, B})@{A, B} -> {{A, B}} int@{A, B})@{A, B})@{A, B}
 def euclideanDist (a0, a1) (b0, b1) = root ((square (a0 - b0)) + (square (a1 - b1)))
 
-
+def minEuclideanDist : ( (array{{A, B}}((int[gmw]@{A, B}@{A, B} × int[gmw]@{A, B}@{A, B} )@{A, B}))@{A, B}  -> {{A, B}} ((int[gmw]@{A, B}@{A, B} × int[gmw]@{A, B}@{A, B} )@{A, B} -> {{A, B}} (int[gmw]@{A,B})@{A,B})@{A, B})@{A,B}
 def minEuclideanDist vs pt =
   let len = size vs in
   let minRec = (fun [minRec] i min ->
