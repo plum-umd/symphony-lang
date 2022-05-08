@@ -36,10 +36,14 @@ bindDecl = bindTypeTL
 bindDefn ∷ STACK ⇒ 𝕏 → 𝐿 Pat → Exp → TLM ()
 bindDefn x ψs e = asTLM $ do
   τ ← synVar x
-  if (isEmpty ψs) then
-    (chkExp e τ)
-  else
-    localL terModeL Any $ (checkLamTL (Some x) ψs e τ)
+  wf_typeTL τ =
+  case τ of
+    SecT loc (τ₁₁ :→: (η :* τ₁₂))   →
+                  do
+                    l₁ ← elabEMode $ effectMode η
+                    localL terModeL l₁ $ (checkLam (Some x) ψs e τ)
+    _ →  (chkExp e τ)
+
 
 bindPrins ∷ STACK ⇒ STACK ⇒ 𝐿 PrinDecl → TLM ()
 bindPrins ρds = eachOn ρds bindPrin
@@ -88,50 +92,6 @@ synAppTL2 τ₁ τ₂ =
           [ ("τ₁", pretty τ₁)
           ]
 -}
-
--- z|-> (t1 m -> t2)@m, x|-> t1) union context |-m e t2
--- ------T-Lam
--- gamma |- m lambda z x .e : (t1 m -> t2 )@m
-checkLamTL ∷ STACK ⇒ 𝑂 Var → 𝐿 Pat → Exp →  Type → EM ()
-checkLamTL self𝑂 ψs e τ =
-  case τ of
-    SecT loc (τ₁₁ :→: (η :* τ₁₂))   →
-      case self𝑂 of
-      None      →
-                  do
-                    m  ← askL terModeL
-                    l₁ ← elabEMode $ effectMode η
-                    l₂ ← elabEMode loc
-                    guardErr (eq_mode m l₁) $
-                      typeError "checkLamTL: ⊢ₘ _ ˡ→ _ ; m ≢ l₁ in τ" $ frhs
-                      [ ("m", pretty m)
-                      , ("l₁", pretty l₁)
-                      , ("τ", pretty τ)
-                      ]
-                    guardErr (eq_mode m l₂) $
-                      typeError "checkLamTL: ⊢ₘ _ ˡ→ _ ; m ≢ l₂ in τ" $ frhs
-                      [ ("m", pretty m)
-                      , ("l₂", pretty l₂)
-                      , ("τ", pretty τ)
-                      ]
-                    guardErr (eq_mode l₁ l₂) $
-                      typeError "checkLamTL: ⊢ₘ _ ˡ→ _ ; ml₁ ≢ l₂ in τ" $ frhs
-                      [ ("l₁", pretty l₁)
-                      , ("l₂", pretty l₂)
-                      , ("τ", pretty τ)
-                      ]
-                      -- In case of the any case
-              
-                    case ψs of
-                      Nil → chkExp e τ₁₂
-                      ψ :& Nil → do
-                        bind ←  bindType τ₁₁ ψ
-                        bind $ chkExp e τ₁₂
-                      ψ :& ψs → do
-                        bind ←  bindType τ₁₁ ψ
-                        let modifyMode = localL terModeL l₁
-                        _ ←  (wf_type τ Any dø)
-                        modifyMode $ bind $ checkLam None ψs e τ₁₂
 
 
 ------------------------------
@@ -1375,3 +1335,18 @@ bindTypeTL x τ = do
   asTLM $ (wf_type τ Any dø)
   modifyL ttlsEnvL ((x ↦ τ) ⩌)
 
+wf_typeTL ∷ STACK ⇒ 𝑂 Var → 𝐿 Pat → Exp →  Type → TLM ()
+wf_typeTL τ =
+  case τ of
+    SecT loc (τ₁₁ :→: (η :* τ₁₂))   →
+                  do
+                    l₁ ← elabEMode $ effectMode η
+                    l₂ ← elabEMode loc
+                    guardErr (eq_mode l₁ l₂) $
+                      typeError " WFCheckTL: ⊢ₘ _ ˡ→ _ ; m ≢ l₂ in τ" $ frhs
+                      [ ("m", pretty m)
+                      , ("l₂", pretty l₂)
+                      , ("τ", pretty τ)
+                      ]
+                    asTLM $ (wf_type τ l₁ dø)
+    _ →  asTLM $ (wf_type τ Any dø)
