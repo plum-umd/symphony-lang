@@ -1334,7 +1334,7 @@ bindTypeTL x τ = do
   asTLM $ (wf_type τ Any dø)
   modifyL ttlsEnvL ((x ↦ τ) ⩌)
 
-wf_typeTL ∷ STACK ⇒ 𝑂 Var → 𝐿 Pat → Exp →  Type → TLM ()
+wf_typeTL ∷ STACK ⇒ Type → TLM ()
 wf_typeTL τ =
   case τ of
     SecT loc (τ₁₁ :→: (η :* τ₁₂))   →
