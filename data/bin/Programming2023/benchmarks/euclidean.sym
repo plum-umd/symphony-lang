@@ -34,6 +34,7 @@ def minEuclideanDist vs pt =
   in
   minRec 0n maxInt
 
+def main : (unit@all -> {all} int@{A, B})@all
 def main () = par {A,B}
   let inputA = par {A} read (array {A} (ℤ × ℤ)) from "euclidean-5.txt" in
   let inputB = par {B} read (ℤ × ℤ) from "euclidean-5.txt" in
