@@ -344,7 +344,7 @@ pType = cpNewContext "type" $ mixfix $ concat
         cpSyntaxVoid "}"
         return η
       let η₀ = Effect null null Top
-      return $ \ τ₁ τ₂ → τ₁ :→: (ifNone η₀ ηO :* τ₂ :* False)
+      return $ \ τ₁ τ₂ → τ₁ :→: (ifNone η₀ ηO :* τ₂ )
   -- (x : τ | c,…,c) →{η} τ
   , mixPrefix levelARROW $ do
       cpSyntaxVoid "("

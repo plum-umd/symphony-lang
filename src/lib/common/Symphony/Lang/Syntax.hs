@@ -322,7 +322,7 @@ data Type =
   | ListT Type                                --  list[n] τ                  /  list[n] τ
   | RefT (𝑂 EMode) Type                         --  ref{P} τ                   /  ref{P} τ
   | ArrT (𝑂 EMode) Type                       --  arr[P,n] τ                 /  arr[P,n] τ
-  | Type :→: (Effect ∧ Type ∧  𝔹)                     --  τ →{η} τ 𝔹                  /  τ ->{η} τ 𝔹
+  | Type :→: (Effect ∧ Type)                     --  τ →{η} τ 𝔹                  /  τ ->{η} τ 𝔹
   | (𝕏 ∧ Type ∧ 𝐿 Constr) :→†: (Effect ∧ Type)  --  (x : τ | c,…,c) →{η} τ     /  (x : τ | c,…,c) ->{η} τ
   | ForallT TVar Type   --  ∀ α:κ,…,α:κ | c,…,c. τ     /  forall α:κ,…,α:κ | c,…,c. τ
   | SecT EMode Type                             --  τ{P}                       /  τ{P}

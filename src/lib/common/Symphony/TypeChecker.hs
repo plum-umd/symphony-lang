@@ -434,14 +434,14 @@ synLet ψ e₁ e₂ =
 checkLam ∷ STACK ⇒ 𝑂 Var → 𝐿 Pat → Exp →  Type → EM ()
 checkLam self𝑂 ψs e τ =
   case τ of
-    SecT loc (τ₁₁ :→: (η :* τ₁₂ :* isTL))   →
+    SecT loc (τ₁₁ :→: (η :* τ₁₂))   →
       case self𝑂 of
       None      →
                   do
                     m  ← askL terModeL
                     l₁ ← elabEMode $ effectMode η
                     l₂ ← elabEMode loc
-                    guardErr (isTL ⩔(eq_mode m l₁)) $
+                    guardErr (eq_mode m l₁) $
                       typeError "checkLam: ⊢ₘ _ ˡ→ _ ; the function is not top level and m ≢ l₁ in τ" $ frhs
                       [ ("m", pretty m)
                       , ("l₁", pretty l₁)
@@ -450,6 +450,12 @@ checkLam self𝑂 ψs e τ =
                     guardErr (eq_mode m l₂) $
                       typeError "checkLam: ⊢ₘ _ ˡ→ _ ; m ≢ l₂ in τ" $ frhs
                       [ ("m", pretty m)
+                      , ("l₂", pretty l₂)
+                      , ("τ", pretty τ)
+                      ]
+                    guardErr (eq_mode l₁ l₂) $
+                      typeError "checkLam: ⊢ₘ _ ˡ→ _ ; ml₁ ≢ l₂ in τ" $ frhs
+                      [ ("l₁", pretty l₁)
                       , ("l₂", pretty l₂)
                       , ("τ", pretty τ)
                       ]
@@ -480,20 +486,26 @@ synApp e₁ e₂ =
   in do
     τ₁ ← c₁
     case τ₁ of
-      SecT loc (τ₁₁ :→: (η :* τ₁₂ :* isTL)) → do
+      SecT loc (τ₁₁ :→: (η :* τ₁₂)) → do
         m  ← askL terModeL
         l₁ ← elabEMode $ effectMode η
         l₂ ← elabEMode loc
-        guardErr (isTL ⩔ (eq_mode m l₁)) $
+        guardErr (eq_mode m l₁) $
           typeError "synApp: ⊢ₘ _ ˡ→ _ ; the function is not top level and m ≢ l" $ frhs
             [ ("m", pretty m)
             , ("l", pretty l₁)
           ]
-        guardErr (eq_mode m l₂) $
+        guardErr (eq_mode l₁ l₂) $
           typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l₂" $ frhs
           [ ("m", pretty m)
           , ("l", pretty l₂)
           ]
+        guardErr (eq_mode l₁ l₂) $
+                      typeError "checkLam: ⊢ₘ _ ˡ→ _ ; ml₁ ≢ l₂ in τ" $ frhs
+                      [ ("l₁", pretty l₁)
+                      , ("l₂", pretty l₂)
+                      , ("τ", pretty τ)
+                      ]
         _ ← chkExp e₂ τ₁₁
 
         return τ₁₂
@@ -1326,64 +1338,6 @@ asTLM eM = do
 
 bindTypeTL ∷ STACK ⇒ 𝕏 → Type → TLM ()
 bindTypeTL x τ = do
-  _ ← asTLM $ (wf_type τ (AddAny Top) dø)
-  τ' ← modifyTyTL τ
+  asTLM $ (wf_type τ Any dø)
   modifyL ttlsEnvL ((x ↦ τ') ⩌)
 
-
-modifyLocTyTL ::  STACK ⇒ Type → TLM Type
-modifyLocTyTL sigma=
-  case sigma of
-    -- WF-Base (Based off WF-INT)
-    BaseT bt → return sigma
-    ShareT p loc loc_ty  → do
-      loc_ty' ← (modifyLocTyTL  loc_ty)
-      return (ShareT p loc loc_ty')
-    -- WF-Sum: t1 must be well formed and t2 must be well formed
-    (loctyₗ :+: loctyᵣ) → do
-      loctyₗ' ← (modifyTyTL loctyₗ)
-      loctyᵣ' ← (modifyTyTL loctyᵣ)
-      return (loctyₗ' :+: loctyᵣ')
-    (loctyₗ :×: loctyᵣ)  → do
-      loctyₗ' ← (modifyTyTL loctyₗ)
-      loctyᵣ' ← (modifyTyTL loctyᵣ)
-      return (loctyₗ' :×: loctyᵣ')
-    (ListT τₜ)  → do
-      τₜ' ←  (modifyTyTL τₜ)
-      return (ListT τₜ')
-    -- WF-Fun: m must be same as mode, t1 must be well formed and t2 must be well formed
-    (τ₁₁ :→: (η :* τ₁₂ :* _)) → do
-      τ₁₂' ← (modifyTyTL τ₁₂)
-      return (τ₁₁ :→:  (η :* τ₁₂' :* True))
-    -- WF-Ref: The component type must be well formed
-    (RefT loc τ)  → do
-      τ' ← (modifyTyTL τ )
-      return (RefT loc τ')
-    -- WF-Ref: The component type must be well formed
-    (ArrT loc τ)  → do
-      τ' ← (modifyTyTL τ )
-      return (ArrT loc τ')
-    (ISecT loc loc_ty) → do
-      loc_ty' ← (modifyTyTL loc_ty)
-      (return (ISecT loc loc_ty'))
-    _  → typeError "modifyLocTyTL: sigma is not well structured" $ frhs
-        [ ("sigma", pretty sigma )
-        ]
-
-modifyTyTL ::  STACK ⇒  Type → TLM Type
-modifyTyTL ty =
-  case ty of
-    -- WF-Loc
-    SecT em locty → do
-      locty' ← (modifyLocTyTL locty)
-      return (SecT em locty')
-    VarT x  →  return ty
-    RecT x ty'→ do
-      τy'' ← (modifyLocTyTL ty')
-      return (RecT x τy'')
-    ForallT x ty' → do
-      τy'' ← (modifyLocTyTL ty')
-      return (ForallT x τy'')
-    _ → typeError "modifyLocTyTL: sigma is not well structured" $ frhs
-        [ ("ty", pretty ty )
-        ]
