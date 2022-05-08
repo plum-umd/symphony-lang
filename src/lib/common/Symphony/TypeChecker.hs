@@ -1348,4 +1348,4 @@ wf_typeTL τ = asTLM $
                       , ("τ", pretty τ)
                       ]
                     (wf_type τ l₁ dø)
-    _ →  (wf_type τ Any dø)
+    _ →  (wf_type τ (AddAny Top) dø)
