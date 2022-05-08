@@ -6,20 +6,20 @@ def steps = par {A, B} 10n
 def maxInt : int@{A, B}
 def maxInt = par {A, B} (2 ^ 31n) - 1
 
-def root : (int@{A, B} -> {{A, B}} int@{A, B})@{A, B}
+def root : (int[gmw]@{A, B}@{A, B} -> {{A, B}} int[gmw]@{A, B}@{A, B})@{A, B}
 def root x =
   let rootRec = (fun [rootRec] i guess ->
     if i == 0n then
       guess
     else
-      rootRec (i - 1n) ((guess + (x / guess)) / 2)):(nat@{A, B} -> {{A, B}} (int@{A, B} -> {{A, B}} int@{A, B})@{A, B})@{A, B}
+      rootRec (i - 1n) ((guess + (x / guess)) / 2)):(nat@{A, B} -> {{A, B}} (int[gmw]@{A, B}@{A, B} -> {{A, B}} int[gmw]@{A, B}@{A, B})@{A, B})@{A, B}
   in
   rootRec steps 1
 
-def square : (int@{A, B} -> {{A, B}} int@{A, B})@{A, B}
+def square : (int[gmw]@{A, B}@{A, B} -> {{A, B}} int[gmw]@{A, B}@{A, B})@{A, B}
 def square x = x * x
 
-def euclideanDist: ((int@{A, B} × int@{A, B})@{A, B} -> {{A, B}}  ((int@{A, B} × int@{A, B})@{A, B} -> {{A, B}} int@{A, B})@{A, B})@{A, B}
+def euclideanDist: ((int[gmw]@{A, B}@{A, B} × int[gmw]@{A, B}@{A, B})@{A, B} -> {{A, B}}  ((int[gmw]@{A, B}@{A, B} × int[gmw]@{A, B}@{A, B})@{A, B} -> {{A, B}} int[gmw]@{A, B}@{A, B})@{A, B})@{A, B}
 def euclideanDist (a0, a1) (b0, b1) = root ((square (a0 - b0)) + (square (a1 - b1)))
 
 def minEuclideanDist : ( (array{{A, B}}((int[gmw]@{A, B}@{A, B} × int[gmw]@{A, B}@{A, B} )@{A, B}))@{A, B}  -> {{A, B}} ((int[gmw]@{A, B}@{A, B} × int[gmw]@{A, B}@{A, B} )@{A, B} -> {{A, B}} (int[gmw]@{A,B})@{A,B})@{A, B})@{A,B}
