@@ -35,7 +35,7 @@ bindDecl = bindTypeTL
 
 bindDefn ∷ STACK ⇒ 𝕏 → 𝐿 Pat → Exp → TLM ()
 bindDefn x ψs e = asTLM $ do
-  τ ← synVar x
+  τ ← modifyL Any $ synVar x
   case τ of
     SecT loc (τ₁₁ :→: (η :* τ₁₂))   →
                   do
