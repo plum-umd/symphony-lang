@@ -26,9 +26,7 @@ inputPath ∷ (STACK) ⇒ PrinVal → 𝕊 → IM v 𝕊
 inputPath ρ fn = do
   b ← askL iCxtIsExampleL
   ppath ← prinDataPath ρ
-  if b
-  then io $ findFile $ concat ["input/", ppath, "/", fn]
-  else return $ concat ["data/input/",ppath, "/", fn]
+  fromSomeCxt *$ io $ findSymphonyFile "" $ concat ["input/", ppath, "/", fn]
 
 outputPath ∷ (STACK) ⇒ PrinVal → 𝕊 → IM v 𝕊
 outputPath ρ fn = do

@@ -21,6 +21,7 @@ data OptionsPar = OptionsPar
   { optParHelp   ∷ 𝔹
   , optParQuiet  ∷ 𝔹
   , optParParty  ∷ 𝑂 𝕊
+  , optParDir    ∷ 𝑂 𝕊
   , optParConfig ∷ 𝑂 𝕊
   , optParSeed   ∷ 𝑂 ℕ
   }
@@ -30,6 +31,7 @@ optionsPar₀ ∷ OptionsPar
 optionsPar₀ = OptionsPar
   { optParHelp   = False
   , optParQuiet  = False
+  , optParDir    = None
   , optParParty  = None
   , optParConfig = None
   , optParSeed   = None
@@ -40,6 +42,9 @@ optionsParDescr = frhs
   [ O.Option ['h'] [chars "help"]
              (O.NoArg $ update optParHelpL True)
            $ chars "show help"
+  , O.Option ['d'] [chars "dir"]
+             (O.ReqArg (\ s → update optParDirL $ Some $ build𝕊C s) $ chars "DIR")
+           $ chars "set data directory"
   , O.Option ['p'] [chars "party"]
              (O.ReqArg (\ s → update optParPartyL $ Some $ build𝕊C s) $ chars "PARTY")
            $ chars "set current party"
@@ -157,13 +162,14 @@ runPar opts args = do
   case args of
     path :& Nil → do
       let name = pbasename path
+      let dir = ifNone "" (optParDir opts)
       party    ← return $ mkParty (optParParty opts)
       prg      ← mkPrg (optParSeed opts)
       let configs = mkConfigs (optParConfig opts)
       channels ← mkChannels party (optParConfig opts)
-      stdLib   ← io $ parseFile *$ findFile "lib/stdlib.sym"
-      program  ← io $ parseFile *$ findFile path
-      v ← io $ evalProgram (θ₀ name party prg channels configs) (stdLib ⧺ program)
+      stdLib   ← io $ parseFile *$ fromSome ^$ findSymphonyFile dir "lib/stdlib.sym"
+      program  ← io $ parseFile *$ fromSome ^$ findSymphonyFile dir $ concat ["bin", "/", path]
+      v ← io $ evalProgram (θ₀ name party dir prg channels configs) (stdLib ⧺ program)
       return $ if not (optParQuiet opts) then pretty v else null
 
 #else

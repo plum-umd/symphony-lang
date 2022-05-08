@@ -86,6 +86,7 @@ type Store v = 𝑉 v
 data IParams = IParams
   { iParamsName      ∷ 𝕊
   , iParamsMe        ∷ PrinVal
+  , iParamsDir       ∷ 𝕊
   , iParamsPrg       ∷ Prg
   , iParamsChannels  ∷ PrinVal ⇰ Channel
   , iParamsConfigs   ∷ PrinVal ⇰ (Addr ∧ Port)
@@ -475,7 +476,7 @@ makeLenses ''IParams
 
 makePrettySum ''IParams
 
-θ₀ ∷ 𝕊 → PrinVal → Prg → (PrinVal ⇰ Channel) → (PrinVal ⇰ (Addr ∧ Port)) → IParams
+θ₀ ∷ 𝕊 → PrinVal → 𝕊 → Prg → (PrinVal ⇰ Channel) → (PrinVal ⇰ (Addr ∧ Port)) → IParams
 θ₀ = IParams
 
 -- ICxt
@@ -492,6 +493,9 @@ instance HasLens (ICxt v) (𝑂 SrcCxt) where
 
 iCxtMeL ∷ ICxt v ⟢ PrinVal
 iCxtMeL = iParamsMeL ⊚ iCxtParamsL
+
+iCxtDirL ∷ ICxt v ⟢ 𝕊
+iCxtDirL = iParamsDirL ⊚ iCxtParamsL
 
 iCxtPrgL ∷ ICxt v ⟢ Prg
 iCxtPrgL = iParamsPrgL ⊚ iCxtParamsL

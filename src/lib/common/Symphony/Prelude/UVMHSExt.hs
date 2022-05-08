@@ -8,6 +8,7 @@ import qualified Data.IORef as IOR
 import qualified Foreign.ForeignPtr as F
 import qualified Foreign.C.String as F
 import qualified Foreign.Ptr as Ptr
+import qualified System.Directory as Dir
 
 
 instance (POrd a) ⇒ POrd (AddTop a) where
@@ -304,3 +305,13 @@ mapKM𝐷 f d = dict ^$ mapMOn (iter d) $ \ (k :* v) → (k ↦) ^$ f k v
 
 mapKMOn𝐷 ∷ ∀ m k v₁ v₂ . (Monad m, Ord k) ⇒ (k ⇰ v₁) → (k → v₁ → m v₂) → m (k ⇰ v₂)
 mapKMOn𝐷 = flip mapKM𝐷
+
+findFile ∷ 𝐿 𝕊 → 𝕊 → IO (𝑂 𝕊)
+findFile dirs fn = do
+  pathHS ← Dir.findFile (tohs $ map chars dirs) (chars fn)
+  case pathHS of
+    HS.Nothing   → return None
+    HS.Just path → return $ Some $ fromChars path
+
+dcwd ∷ IO 𝕊
+dcwd = fromChars ^$ Dir.getCurrentDirectory

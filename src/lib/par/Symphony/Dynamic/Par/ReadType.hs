@@ -24,16 +24,16 @@ primRead s = case HS.reads $ chars s of
 
 inputPath ∷ (STACK) ⇒ PrinVal → 𝕊 → IM v 𝕊
 inputPath ρ file = do
+  userDir ← askL iCxtDirL
   ρPath ← prinDataPath ρ
-  io $ findFile $ concat [ inputDir , "/", ρPath , "/", file ]
+  fromSomeCxt *$ io $ findSymphonyFile userDir $ concat [ inputDir, "/", ρPath, "/", file]
   where inputDir = "input"
 
 outputPath ∷ (STACK) ⇒ PrinVal → 𝕊 → IM v 𝕊
 outputPath ρ file = do
+  userDir ← askL iCxtDirL
   ρPath ← prinDataPath ρ
-  path  ← io $ findFile $ concat [ outputDir, "/", ρPath, "/", file ]
-  io $ dtouch $ pdirectory path
-  return path
+  fromSomeCxt *$ io $ findSymphonyFile userDir $ concat [ outputDir, "/", ρPath, "/", file]
   where outputDir = "output"
 
 parseBaseVal ∷ (STACK) ⇒ BaseType → 𝕊 → IM v (𝕊 ∧ BaseVal)
