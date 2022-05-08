@@ -39,7 +39,7 @@ bindDefn x ψs e = asTLM $ do
   if (isEmpty ψs) then
     (chkExp e τ)
   else
-    (checkLam (Some x) ψs e τ)
+    (checkLamTL (Some x) ψs e τ)
 
 bindPrins ∷ STACK ⇒ STACK ⇒ 𝐿 PrinDecl → TLM ()
 bindPrins ρds = eachOn ρds bindPrin
