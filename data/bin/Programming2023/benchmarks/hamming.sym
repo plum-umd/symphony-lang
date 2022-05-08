@@ -1,7 +1,7 @@
 principal A B
 
-def hammingDist : ( (array{{A, B}}((nat[gmw]@{A,B})@{A,B}))@{A,B}  -> {all} ((array{{A, B}}((nat[gmw]@{A,B})@{A,B}))@{A,B} -> {all} (nat[gmw]@{A,B})@{A,B})@all)@all
-def hammingDist bs0 bs1 = par {A, B}
+def hammingDist : ( (array{{A, B}}((nat[gmw]@{A,B})@{A,B}))@{A,B}  -> {all} ((array{{A, B}}((nat[gmw]@{A,B})@{A,B}))@{A,B} -> {all} (nat[gmw]@{A,B})@{A,B})@{A, B})@{A, B}
+def hammingDist bs0 bs1 =
   let len = size bs0 in
   let hammingDistRec = (fun [hammingDistRec] i distance →
     if i == len then
