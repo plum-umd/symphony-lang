@@ -1010,7 +1010,7 @@ wf_loctype sigma m bigM =
       _ ← (wf_type τ₁₁ m bigM)
       _ ← (wf_type τ₁₂ m bigM)
       guardErr ( eq_mode m l) $
-        typeError "wf_loctype: Not well formed: The function is not top level or m != l" $ frhs
+        typeError "wf_loctype: Not well formed: m != l" $ frhs
         [ ("m", pretty m)
         , ("l", pretty l)
         ]
@@ -1218,7 +1218,7 @@ sublocty_wf sigma m bigM=
     (τ₁₁ :→: (η :* τ₁₂)) → do
       l ← elabEMode $ effectMode η
       guardErr (eq_mode m l) $
-        typeError "subloctype_wf: Not well formed: The function is not top level or m != l" $ frhs
+        typeError "subloctype_wf: Not well formed: m != l" $ frhs
         [ ("m", pretty m)
         , ("l", pretty l)
         ]
@@ -1319,7 +1319,7 @@ superlocty_wf sigma m bigM =
     (τ₁₁ :→: (η :* τ₁₂)) → do
       l ← elabEMode $ effectMode η
       guardErr (eq_mode m l) $
-        typeError "subloctype_wf: Not well formed: The function is not top level or m != l" $ frhs
+        typeError "subloctype_wf: Not well formed: m != l" $ frhs
         [ ("m", pretty m)
         , ("l", pretty l)
         ]
