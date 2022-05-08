@@ -88,6 +88,51 @@ synAppTL2 τ₁ τ₂ =
           [ ("τ₁", pretty τ₁)
           ]
 -}
+
+-- z|-> (t1 m -> t2)@m, x|-> t1) union context |-m e t2
+-- ------T-Lam
+-- gamma |- m lambda z x .e : (t1 m -> t2 )@m
+checkLamTL ∷ STACK ⇒ 𝑂 Var → 𝐿 Pat → Exp →  Type → EM ()
+checkLamTL self𝑂 ψs e τ =
+  case τ of
+    SecT loc (τ₁₁ :→: (η :* τ₁₂))   →
+      case self𝑂 of
+      None      →
+                  do
+                    m  ← askL terModeL
+                    l₁ ← elabEMode $ effectMode η
+                    l₂ ← elabEMode loc
+                    guardErr (eq_mode m l₁) $
+                      typeError "checkLamTL: ⊢ₘ _ ˡ→ _ ; the function is not top level and m ≢ l₁ in τ" $ frhs
+                      [ ("m", pretty m)
+                      , ("l₁", pretty l₁)
+                      , ("τ", pretty τ)
+                      ]
+                    guardErr (eq_mode m l₂) $
+                      typeError "checkLamTL: ⊢ₘ _ ˡ→ _ ; m ≢ l₂ in τ" $ frhs
+                      [ ("m", pretty m)
+                      , ("l₂", pretty l₂)
+                      , ("τ", pretty τ)
+                      ]
+                    guardErr (eq_mode l₁ l₂) $
+                      typeError "checkLamTL: ⊢ₘ _ ˡ→ _ ; ml₁ ≢ l₂ in τ" $ frhs
+                      [ ("l₁", pretty l₁)
+                      , ("l₂", pretty l₂)
+                      , ("τ", pretty τ)
+                      ]
+                      -- In case of the any case
+                    modifyMode ← localL terModeL l₁
+                    case ψs of
+                      Nil → do
+                        modifyMode $ chkExp e τ₁₂
+                      ψ :& Nil → do
+                        bind ←  bindType τ₁₁ ψ
+                        modifyMode $ bind $ chkExp e τ₁₂
+                      ψ :& ψs → do
+                        bind ←  bindType τ₁₁ ψ
+                        modifyMode $ bind $ checkLam None ψs e τ₁₂
+
+
 ------------------------------
 -- Checking for Expressions --
 ------------------------------
@@ -450,12 +495,6 @@ checkLam self𝑂 ψs e τ =
                     guardErr (eq_mode m l₂) $
                       typeError "checkLam: ⊢ₘ _ ˡ→ _ ; m ≢ l₂ in τ" $ frhs
                       [ ("m", pretty m)
-                      , ("l₂", pretty l₂)
-                      , ("τ", pretty τ)
-                      ]
-                    guardErr (eq_mode l₁ l₂) $
-                      typeError "checkLam: ⊢ₘ _ ˡ→ _ ; ml₁ ≢ l₂ in τ" $ frhs
-                      [ ("l₁", pretty l₁)
                       , ("l₂", pretty l₂)
                       , ("τ", pretty τ)
                       ]
