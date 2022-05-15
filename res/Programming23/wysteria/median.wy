@@ -1,0 +1,8 @@
+let w1 =par(A,B)= (wire {A} x1) ++ (wire {B} y1) in
+let b1 =sec(A B)= (w1[A] <= w1[B]) in
+let x3 =par(A)= if b1 then x2 else x1 in
+let y3 =par(B)= if b1 then y1 else y2 in
+let w2 =par(A,B)= (wire {A} x3) ++ (wire {B} y3) in
+let b2 =sec(A,B)= (w2[A] <= w2[B] ) in
+let m =sec(A,B)= if b2 then w2[A] else w2[B] in
+m

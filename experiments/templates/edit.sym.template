@@ -1,0 +1,56 @@
+principal A B
+
+def mux-min a b = mux if a <= b then a else b
+
+def initializeTable table len =
+  let initializeRow = fun [initializeRow] i ->
+    if i == len  + 1n then
+      ()
+    else
+      let _ = table.(i) <- i in
+      initializeRow (i + 1n)
+  in
+
+  let initializeColumn = fun [initializeColumn] j ->
+    if j == len + 1n then
+      ()
+    else
+      let _ = table.(len * j) <- j in
+      initializeColumn (j + 1n)
+  in
+
+  let _ = initializeRow 0n in
+  let _ = initializeColumn 0n in
+  ()
+
+def editDist str1 str2 =
+  let len       = size str1 in
+  let tableSize = (len + 1n) * (len + 1n) in
+  let table     = array[tableSize] 0n in
+  let _         = initializeTable table len in
+
+  let editDistRec = fun [editDistRec] i j ->
+    if i == len + 1n then
+      ()
+    else
+      if j == len + 1n then
+        editDistRec (i + 1n) 1n
+      else
+        let insert = table.(len * (i - 1n) + j) + 1n in
+        let delete = table.(len * i + (j - 1n)) + 1n in
+        let subst  = table.(len * (i - 1n) + (j - 1n)) + (mux if str1.(i - 1n) == str2.(j - 1n) then 0n else 1n) in
+        let _      = table.(len * i + j) <- mux-min insert (mux-min delete subst) in
+        editDistRec i (j + 1n)
+  in
+
+  let _ = editDistRec 1n 1n in
+  table.(len * len + len)
+
+def main () = par {A,B}
+  let inputA = par {A} read (array ℕ) from "edit-{{input-size}}.txt" in
+  let inputB = par {B} read (array ℕ) from "edit-{{input-size}}.txt" in
+
+  let shareA = share [{{protocol}}, array ℕ : {A} → {A,B}] inputA in
+  let shareB = share [{{protocol}}, array ℕ : {B} → {A,B}] inputB in
+
+  reveal [{{protocol}}, ℕ : {A,B} → {A}] (editDist shareA shareB)

@@ -1,0 +1,42 @@
+let f = \ (x:ps{true}) . \ (y:W x nat) .
+  let tmp2 @ par(x) =
+    let tmp @ sec(x) =
+      let initial = { #max : !Dummy, #second_max : !Dummy, #h:0, #i:0 } in
+      let re = wfold x [y; initial;
+                        \(accum:{#max:ps{true}, #second_max:ps{true}, #h:nat, #i:nat}) .
+                        \(notused:ps{true}) . \(b:nat).
+
+                        let currh = accum.#max in
+			let secondh = accum.#second_max in
+
+			let currhp = accum.#h in
+			let secondhp = accum.#i in
+
+			if b > accum.#h then
+			  { #max:notused, #second_max:currh, #h:b, #i:currhp}
+			else
+			  if b > accum.#i then
+			    { #max:currh, #second_max:notused, #h:currhp, #i:b }
+			  else
+			    accum
+	               ]
+     in
+     let hp = re.#max in
+     let shp = re.#second_max in
+     { #max : hp, #second_max : shp }
+   in
+   tmp
+  in
+  wcopy as x from tmp2
+in
+
+let a = {!Alice, !Bob, !Charlie} in
+
+let w1 = wire {!Alice}:14 in
+let w2 = wire {!Bob}:20 in
+let w3 = wire {!Charlie}:18 in
+
+let w7 = w1 ++ w2 in
+let w8 = w7 ++ w3 in
+
+(f a) w8

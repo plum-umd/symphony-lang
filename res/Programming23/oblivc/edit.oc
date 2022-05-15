@@ -1,0 +1,73 @@
+#include <stdio.h>
+#include <obliv.oh>
+
+#include "editdist.h"
+
+obliv int obliv_min(obliv int m, obliv int n){
+  obliv int res;
+  obliv if (m < n) {
+    res = m;
+  }
+  else {
+    res = n;
+  }
+  return res;
+}
+
+void shareIntList(obliv int *dest, int len, const int *src, int party) {
+  for (int i = 0; i < len; i++) {
+    dest[i] = feedOblivInt(src[i], party);
+  }
+
+  return;
+}
+
+obliv int *lookup(obliv int *table, int num_cols, int row, int col) {
+  return table + (num_cols * row) + col;
+ }
+
+void editDistance(void* args) {
+  protocolIO *io = args;
+
+  int i, j;
+
+  int len1 = ocBroadcastInt(io->in.len, 1);
+  int len2 = ocBroadcastInt(io->in.len, 2);
+
+  obliv int *str1 = malloc(sizeof(obliv int) * len1);
+  obliv int *str2 = malloc(sizeof(obliv int) * len2);
+
+  shareIntList(str1, len1, io->in.str, 1);
+  shareIntList(str2, len2, io->in.str, 2);
+  ocFlush(2);
+
+  // The edit distance table
+  obliv int *editTable = malloc(sizeof(obliv int) * (len1 + 1) * (len2 + 1));
+
+  // Initialize the table
+  for (i = 0; i < len1 + 1; i++) {
+    *(lookup(editTable, len1, i, 0)) = i;
+  }
+
+  for (j = 0; j < len2 + 1; j++) {
+    *(lookup(editTable, len1, 0, j)) = j;
+  }
+
+  obliv int insert, delete, sub;
+
+  // Compute edit distance
+  for (i = 1; i < len1 + 1; i++) {
+    for (j = 1; j < len2 + 1; j++) {
+      insert = *(lookup(editTable, len1, i - 1, j)) + 1;
+      delete = *(lookup(editTable, len1, i, j - 1)) + 1;
+      sub    = *(lookup(editTable, len1, i - 1, j - 1)) + (str1[i - 1] != str2[j - 1]);
+      *(lookup(editTable, len1, i , j)) = obliv_min(obliv_min(insert, delete), sub);
+    }
+  }
+
+  revealOblivInt(&io->out.dist, *(lookup(editTable, len1, len1, len2)), 0);
+
+  free(str1);
+  free(str2);
+  free(editTable);
+}

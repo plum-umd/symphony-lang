@@ -1,0 +1,8 @@
+principal Alice Bob Charlie
+
+def f y = ()
+
+def main () =
+  let x = {Alice, Bob, Charlie} in
+  let y = << Alice | 47 >> ++ << Bob | 12 >> ++ << Charlie | 55 >> in
+  par x (f y)

@@ -1,0 +1,73 @@
+#include <limits.h>
+
+#include <obliv.oh>
+#include "bio-matching.h"
+
+obliv obliv_sq(obliv int n){
+  return n * n;
+}
+
+obliv int obliv_sqrt(obliv int n) {
+  obliv int x = n / 2;
+  for (int i = 0; i < SQRT_ITERS; i++){
+    x = (x + n / x) / 2;
+  }
+
+  return x;
+}
+
+obliv int obliv_min(obliv int m, obliv int n){
+  obliv int res;
+  obliv if (m < n) {
+    res = m;
+  }
+  else {
+    res = n;
+  }
+  return res;
+}
+
+obliv int dist(obliv int *p0, obliv int *p1){
+  obliv int sum = 0;
+  sum += obliv_sq(p1[0] - p0[0]);
+  sum += obliv_sq(p1[1] - p0[1]);
+  return obliv_sqrt(sum);
+}
+
+void share_point(int party, obliv int *opt, int *pt){
+  for (int i = 0; i < 2; i++) {
+    opt[i] = feedOblivInt(pt[i], party);
+  }
+  return;
+}
+
+void bio_matching(void* args)
+{
+  protocolIO *io = args;
+
+  // share the database:
+  int db_len = ocBroadcastInt(io->in.a.len, 1);
+  obliv int* db = (obliv int*) malloc(sizeof(obliv int) * 2 * db_len);
+  int dummy[2] = { 0 };
+  for (int i = 0; i < db_len; i++) {
+    share_point(1, &db[2 * i], ocCurrentParty() == 1 ? &io->in.a.db[2 * i] : dummy);
+  }
+
+  // share the sample:
+  obliv int sample[2];
+  share_point(2, sample, io->in.b.sample);
+  ocFlush(2);
+
+  // find the minimum distance:
+  obliv int omin = INT_MAX;
+  for (int i = 0; i < db_len; i++){
+    omin = obliv_min(omin, dist(&db[2 * i], sample));
+  }
+
+  // reveal the minimum distance:
+  revealOblivInt(&io->out.min, omin, 0);
+
+  free(db);
+
+  return;
+}

@@ -1,0 +1,99 @@
+#include <obliv.oh>
+#include "db-analytics.h"
+
+obliv int obliv_sq(obliv int n){
+  return n * n;
+}
+
+void db_analytics(void* args){
+  protocolIO *io = args;
+
+  int n1 = ocBroadcastInt(io->in.len, 1);
+  int n2 = ocBroadcastInt(io->in.len, 2);
+
+  if (n1 != n2) {
+    exit(-1);
+  }
+
+  // build the concatenation of the databases.
+  obliv int *concatCol0 = malloc(sizeof(obliv int) * 2 * n1);
+  obliv int *concatCol1 = malloc(sizeof(obliv int) * 2 * n1);
+  for (int i = 0; i < n1; i++) {
+    concatCol0[i]      = feedOblivInt(io->in.db[2 * i], 1);
+    concatCol0[n1 + i] = feedOblivInt(io->in.db[2 * i], 2);
+
+    concatCol1[i]      = feedOblivInt(io->in.db[2 * i + 1], 1);
+    concatCol1[n1 + i] = feedOblivInt(io->in.db[2 * i + 1], 2);
+  }
+  ocFlush(2);
+
+  // compute the mean on column 2:
+  // join the databases:
+  obliv int sum = 0;
+  for (int i = 0; i < 2 * n1; i++) {
+    sum += concatCol1[i];
+  }
+  obliv int ounion_mean = sum / (2 * n1);
+  revealOblivInt(&io->out.union_mean, ounion_mean, 0);
+
+  // compute the variance on column 2:
+  obliv int dev = 0;
+  for (int i = 0; i < 2 * n1; i++) {
+    dev += obliv_sq(concatCol1[i] - ounion_mean);
+  }
+  obliv int ounion_var = dev / (2 * n1);
+  revealOblivInt(&io->out.union_variance, ounion_var, 0);
+
+  // join the databases:
+  obliv int* p0col0 = concatCol0;
+  obliv int* p1col0 = concatCol0 + n1;
+  obliv int* p0col1 = concatCol1;
+  obliv int* p1col1 = concatCol1 + n1;
+  obliv int* joinCol = malloc(sizeof(obliv int) * n1 * n1);
+  obliv int* isActual = malloc(sizeof(obliv int) * n1 * n1);
+  for (int i = 0; i < n1; i++) {
+    for (int j = 0; j < n1; j++) {
+      obliv if (p0col0[i] == p1col0[j]) {
+        isActual[i * n1 + j] = 1;
+      } else {
+        isActual[i * n1 + j] = 0;
+      }
+      joinCol[i * n1 + j] = p0col1[i];
+    }
+  }
+
+  // compute the number of actual elements:
+  obliv int numActuals = 0;
+  for (int i = 0; i < n1 * n1; i++){
+    obliv if (isActual[i]){
+      numActuals++;
+    }
+  }
+
+  // compute the mean:
+  sum = 0;
+  for (int i = 0; i < n1 * n1; i++){
+    obliv if (isActual[i]){
+      sum += joinCol[i];
+    }
+  }
+  obliv int ojoin_mean = sum / numActuals;
+  revealOblivInt(&io->out.join_mean, ojoin_mean, 0);
+
+  // compute the variance:
+  dev = 0;
+  for (int i = 0; i < n1 * n1; i++){
+    // AWK:
+    obliv x = obliv_sq(joinCol[i] - ojoin_mean);
+    obliv if (isActual[i]) {
+      dev += x;
+    }
+  }
+  obliv int ojoin_variance = dev / numActuals;
+  revealOblivInt(&io->out.join_variance, ojoin_variance, 0);
+
+  free(concatCol0);
+  free(concatCol1);
+  free(joinCol);
+  free(isActual);
+}

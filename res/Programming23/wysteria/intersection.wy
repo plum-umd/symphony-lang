@@ -1,0 +1,13 @@
+psi : (x: princ) -> (y: princ) -> (int -> int -> bool) ->
+      nat -> W {x, y}[ int ] -> [W {x, y} int] −par( { x, y } )-> unit
+let psi λ x. λ y. λ testeq . λ n. λ inp . λ out.
+  for i = 0 to (n − 1) do outer_loop:
+    for j = 0 to (n − 1) do inner_loop:
+      let xv =par(x)= inp [ x ] [ i ] in
+      let yv =par(y)= inp [ y ] [ j ] in
+      let w = wire x xv ++ wire y yv in
+      let eq =sec(x, y)= ( testeq w[ x] w[ y] ) in
+      if eq then ( out[ i ] <- w ; outer_loop (i + 1) )
+            else inner_loop (j + 1)
+    done
+  done

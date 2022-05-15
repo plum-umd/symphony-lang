@@ -1,0 +1,43 @@
+let gps = \ (x:ps{true}) . \ (y:W x nat) .
+
+  let tmp2 @ par(x) =
+    let tmp @ sec(x) =
+      let re =
+	(* create a wire bundle with each party mapped to their nearest neighbor *)
+        waps x [y; \(z:nat) .
+	        (* z is the current loc for which we are computing the nearest neighbor *)
+	        (* accumulator: #f is the principle, #g is my distance from him/her *)
+                wfold x [y; { #f : !Dummy, #g : 200 } (* initial accumulator *);
+         	         \(accum:{#f : ps{true}, #g:nat}) . \(currentp:ps{true}) . \(currentloc:nat).
+			 if z = currentloc then
+			   accum
+			 else
+			   let zminusloc =
+			     if z > currentloc then z - currentloc else currentloc - z
+			   in
+			   if accum.#g > zminusloc then
+			     { #f:currentp, #g:zminusloc }
+			   else
+			     accum
+		       ]
+              ]
+      in
+      (* re contains wire bundle of type W x { #f:ps, #g:nat *)
+      (* hide nearest neighbor location *)
+      waps x [re; \ (relem:{#f:ps{true}, #g:nat}). relem.#f]
+    in
+  tmp
+  in
+
+  wcopy as x from tmp2
+in
+
+let all = {!Alice, !Bob, !Charlie} in
+let w1 = wire {!Alice}:2 in
+let w2 = wire {!Bob}:8 in
+let w3 = wire {!Charlie}:5 in
+
+let w7 = w1 ++ w2 in
+let w8 = w7 ++ w3 in
+
+(gps all) w8

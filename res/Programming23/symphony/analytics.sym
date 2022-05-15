@@ -1,0 +1,121 @@
+principal A B
+
+def count vs =
+  let len = size vs in
+  let countRec = fun [countRec] i count ->
+    if i == len then
+      count
+    else
+      countRec (i + 1n) (count + (mux if vs.i then 1 else 0))
+  in
+  countRec 0n 0
+
+----------
+-- MEAN --
+----------
+
+def mean vs =
+  let len = size vs in
+  let sumRec = fun [sumRec] i sum ->
+    if i == len then
+      sum
+    else
+      sumRec (i + 1n) (sum + vs.i)
+  in
+  let sum = reveal [gmw, ℤ : {A,B} → {A,B}] (sumRec 0n 0) in
+
+  sum / (int len)
+
+def meanObliv vs inVs lenVs =
+  let len = size vs in
+  let sumRec = fun [sumRec] i sum ->
+    if i == len then
+      sum
+    else
+      sumRec (i + 1n) (sum + (mux if inVs.i then vs.i else 0))
+  in
+  let sum = sumRec 0n 0 in
+
+  sum / lenVs
+
+--------------
+-- VARIANCE --
+--------------
+
+def variance mean vs =
+  let len = size vs in
+  let sqDiffsRec = fun [sqDiffsRec] i diffs ->
+    if i == len then
+      diffs
+    else
+      let d = vs.i - mean in
+      sqDiffsRec (i + 1n) (diffs + (d * d))
+  in
+  let sqDiffs  = reveal [gmw, ℤ : {A,B} → {A,B}] (sqDiffsRec 0n 0) in
+
+  sqDiffs / (int len)
+
+def varianceObliv mean vs inVs lenVs =
+  let len = size vs in
+  let sqDiffsRec = fun [sqDiffsRec] i diffs ->
+    if i == len then
+      diffs
+    else
+      let d = vs.i - mean in
+      sqDiffsRec (i + 1n) (diffs + (mux if inVs.i then d * d else 0))
+  in
+  let sqDiffs = sqDiffsRec 0n 0 in
+
+  sqDiffs / lenVs
+
+def main () = par {A,B}
+  let inputA = par {A} read (array (ℤ × ℤ)) from "analytics-5.txt" in
+  let inputB = par {B} read (array (ℤ × ℤ)) from "analytics-5.txt" in
+
+  let sharedA = share [gmw, array (ℤ × ℤ) : {A} → {A,B}] inputA in
+  let sharedB = share [gmw, array (ℤ × ℤ) : {B} → {A,B}] inputB in
+
+  let len = size sharedA in
+  let unionLen = 2n * len in
+  let joinLen = len * len in
+
+  let unionCol0 = array[unionLen] 0 in
+  let unionCol1 = array[unionLen] 0 in
+
+  let union = fun [union] i ->
+    if i == len then
+      ()
+    else
+      let _ = unionCol0.i         <- fst sharedA.i in
+      let _ = unionCol0.(len + i) <- fst sharedB.i in
+
+      let _ = unionCol1.i         <- snd sharedA.i in
+      let _ = unionCol1.(len + i) <- snd sharedB.i in
+      union (i + 1n)
+  in
+  let _ = union 0n in
+
+  let joinCol1   = array[joinLen] 0 in
+  let inJoinCol1 = array[joinLen] false in
+
+  let join = fun [join] i j ->
+    if i == len then
+      ()
+    else
+      if j == len then
+        join (i + 1n) 0n
+      else
+        let inJoin = unionCol0.i == unionCol0.(len + j) in
+        let _      = joinCol1.(i * len + j) <- unionCol1.i in
+        let _      = inJoinCol1.(i * len + j) <- inJoin in
+        join i (j + 1n)
+  in
+  let _ = join 0n 0n in
+
+  let lenJoinCol1 = count inJoinCol1 in
+
+  let meanUnion = mean unionCol1 in
+  let varUnion  = variance meanUnion unionCol1 in
+  let meanJoin  = reveal [gmw, ℤ : {A,B} → {A,B}] (meanObliv joinCol1 inJoinCol1 lenJoinCol1) in
+  let varJoin   = reveal [gmw, ℤ : {A,B} → {A,B}] (varianceObliv meanJoin joinCol1 inJoinCol1 lenJoinCol1) in
+  [meanUnion; varUnion; meanJoin; varJoin]

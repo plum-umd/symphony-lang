@@ -1,0 +1,35 @@
+{- Second-Price Auction -}
+
+principal A B C D E F
+
+def placeBid (firstPlace, secondPlace, firstBid, secondBid)
+
+def auction P bids = par {P}
+  fold (-1, -1, 0, 0) placeBid bids
+
+
+def P bids = par {P}
+  fold (-1, -1, 0, 0)
+
+
+principal A[32]
+principal NullParty
+
+def P = A + { NullParty }
+
+def read-int = 6
+-- TEST: actual implementation
+-- read int from "auction-in.txt"
+
+def main () = par A
+  -- reveal the high bidder to principal A.0
+  reveal [yao, P : A -> A.0] snd
+    (fold (solo A as p in read-int) as p.bid
+      on share [yao, P * int * int : A.0 -> A ] (0, 0, NullParty)
+      as winner in
+        let (highBid, secondBid, highBidder) = winner in
+        let pShr = share [yao, P : p -> A] p in
+        let bidShr = share [yao, P : p -> A] bid in
+             mux if bidShr > highBid   then (bidShr,  highBid, pShr)
+        else mux if bidShr > secondBid then (highBid, bidShr,  highBidder)
+        else winner)

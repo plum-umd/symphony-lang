@@ -1,0 +1,45 @@
+principal A B C D E
+
+-- Choose a random party from the set `Q`
+def randomParty P Q =
+  let m = partySetSize Q in
+  let r = randMaxNat P m in
+  let choose = λ [choose] i Q1 Q2 →
+    case Q1
+    { {}           → ⊥ -- Impossible
+    ; { ρ } \/ Q1' →
+      if i < r then
+        choose (i + 1n) Q1' ({ ρ } + Q2)
+      else
+        (ρ, Q1' + Q2)
+    }
+  in choose 0n Q { }
+
+-- Elect a committee of size `k` from the set `P`
+def elect1 P k =
+  let n = partySetSize P in
+  if k <= n then
+    let electRec = λ [electRec] i Q S →
+      if i < k then
+        let (ρ, Q') = randomParty P Q in
+        electRec (i + 1n) Q' ({ ρ } + S)
+      else
+        S
+    in electRec 0n P { }
+  else
+    •
+
+def elect2 P k =
+  let n = partySetSize P in
+  let indexed = array[n] ⊥ in
+
+  let _ = pushParties P indexed in
+  let _ = shuffle P indexed in
+  popParties indexed k
+
+def main () =
+  let P = {A,B,C,D,E} in
+  par P
+    let k = 3n in
+    let C = elect2 P k in
+    C

@@ -147,6 +147,51 @@ impl Benchmark {
             .join(":")
     }
 
+    fn hamming_input(&self, party_a: bool) -> String {
+        let bit = if party_a { "0" } else { "1" };
+        (0..self.input_size)
+            .map(|_| bit)
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    fn edit_input(&self, party_a: bool) -> String {
+        if party_a {
+            (0..self.input_size)
+                .map(|i| i.to_string())
+                .collect::<Vec<_>>()
+                .join("\n")
+        } else {
+            (0..self.input_size)
+                .map(|i| if i % 2 == 0 { i } else { 0 }.to_string())
+                .collect::<Vec<_>>()
+                .join("\n")
+        }
+    }
+
+    fn euclidean_input(&self, party_a: bool) -> String {
+        if party_a {
+            (1..=self.input_size)
+                .map(|i| format!("{} {}", i, i))
+                .collect::<Vec<_>>()
+                .join("\n")
+        } else {
+            let xy = self.input_size + 3;
+            format!("{} {}", xy, xy)
+        }
+    }
+
+    fn analytics_input(&self, party_id: usize) -> String {
+        (1..=self.input_size)
+            .map(|i| format!("{} {}", party_id + i, party_id + self.input_size + i))
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    fn gcd_input(&self) -> String {
+        self.input_size.to_string()
+    }
+
     fn inputs(&self, root_dir: &Path) -> Vec<PathBuf> {
         let parties = self.parties();
 
@@ -159,20 +204,14 @@ impl Benchmark {
             let mut f = fs::File::create(&path).expect("TODO");
 
             let input = match self.program {
-                Hamming => {
-                    if party.eq("A") {
-                        "0"
-                    } else {
-                        "1"
-                    }
-                }
-                _ => todo!(),
+                Hamming => self.hamming_input(party.eq("A")),
+                Edit => self.edit_input(party.eq("A")),
+                Euclidean => self.euclidean_input(party.eq("A")),
+                Analytics => self.analytics_input(if party.eq("A") { 0 } else { 1 }),
+                Gcd => self.gcd_input(),
             };
-            let inputs = (0..self.input_size)
-                .map(|_| input)
-                .collect::<Vec<&str>>()
-                .join("\n");
-            f.write_all(inputs.as_bytes()).expect("TODO");
+
+            f.write_all(input.as_bytes()).expect("TODO");
             ret.push(path);
         }
 
@@ -201,7 +240,7 @@ impl Benchmark {
         path.file_name().unwrap().to_str().unwrap().to_string()
     }
 
-    fn run(&self, root_dir: &Path, handlebars: &mut Handlebars) -> Duration {
+    fn run_symphony(&self, root_dir: &Path, handlebars: &mut Handlebars) -> Duration {
         let parties: Vec<String> = self.parties();
         let hosts = self.hosts();
         let _inputs = self.inputs(root_dir);
@@ -212,24 +251,21 @@ impl Benchmark {
         let data_dir = root_dir.to_owned().to_str().unwrap().to_owned();
         let now = Instant::now();
         for party in &parties {
-            /*            println!(
+            println!(
                 "{:?}",
                 Command::new("symphony")
                     .arg("par")
-                    .arg("-q")
                     .args(["-d", &data_dir])
                     .args(["-p", party])
                     .args(["-c", &hosts])
                     .arg(&program)
-            ); */
+            );
             let handle = Command::new("symphony")
                 .arg("par")
-                .arg("-q")
                 .args(["-d", &data_dir])
                 .args(["-p", party])
                 .args(["-c", &hosts])
                 .arg(&program)
-                .stdout(std::process::Stdio::null())
                 .spawn()
                 .expect("TODO");
             handles.push(handle)
@@ -240,16 +276,34 @@ impl Benchmark {
         }
         now.elapsed()
     }
+
+    fn run(&self, root_dir: &Path, handlebars: &mut Handlebars) -> Duration {
+        match self.language {
+            Symphony => self.run_symphony(root_dir, handlebars),
+            _ => todo!(),
+        }
+    }
 }
 
 fn input_sizes(protocol: Protocol, program: Program) -> Vec<usize> {
-    [100, 200, 300, 400, 500].to_vec()
+    match (protocol, program) {
+        (Gmw, Hamming) => [100, 200, 300, 400, 500].to_vec(),
+        (_, Hamming) => [10000, 20000, 30000, 40000, 50000].to_vec(),
+        (Gmw, Edit) => [2, 3, 4, 5, 6].to_vec(),
+        (_, Edit) => [50, 80, 110, 140, 170].to_vec(),
+        (Gmw, Euclidean) => [2, 3, 4, 5, 6].to_vec(),
+        (_, Euclidean) => [100, 200, 300, 400, 500].to_vec(),
+        (Gmw, Analytics) => [2, 3, 4, 5, 6].to_vec(),
+        (_, Analytics) => [60, 70, 80, 90, 100].to_vec(),
+        (Gmw, Gcd) => [10, 20, 30, 40, 50].to_vec(),
+        (_, Gcd) => [500, 600, 700, 800, 900].to_vec(),
+    }
 }
 
 fn benchmarks() -> Vec<Benchmark> {
     let languages = [Symphony];
-    let programs = [Hamming];
-    let protocols = [Clear, Gmw];
+    let programs = [Hamming, Edit, Euclidean, Analytics, Gcd];
+    let protocols = [Gmw];
     let party_sizes = [2];
 
     let mut benchmarks = Vec::new();
@@ -275,7 +329,7 @@ fn benchmarks() -> Vec<Benchmark> {
 
 const SYMPHONY_DIR: &'static str = "/Users/ian/Projects/symphony-lang";
 
-fn update_path() {
+fn update_path_var() {
     let path_var = env::var("PATH").expect("TODO");
     let mut paths = env::split_paths(&path_var).collect::<Vec<_>>();
     paths.push(PathBuf::from(SYMPHONY_DIR));
@@ -295,13 +349,15 @@ fn main() {
     let mut handlebars = Handlebars::new();
     let root_dir = TempDir::new().expect("TODO");
 
-    update_path();
+    update_path_var();
     stdlib(root_dir.path());
 
-    let templates = [("hamming", "templates/hamming.sym.template")];
-
-    for (name, path) in templates {
-        handlebars.register_template_file(name, path).expect("TODO");
+    for program in [Hamming, Edit, Euclidean, Analytics, Gcd] {
+        let program_name = program.to_string();
+        let template = format!("templates/{}.sym.template", program_name);
+        handlebars
+            .register_template_file(&program_name, &template)
+            .expect("TODO");
     }
 
     for b in benchmarks() {

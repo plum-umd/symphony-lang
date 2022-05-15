@@ -1,0 +1,55 @@
+principal A B
+
+-- ORAM is an array of pairs, where π₁ is index and π₂ is data
+
+def dummy : ∀ α : ☆ . α{yao:A,B} -> int{yao:A,B} × α{yao:A,B}
+def dummy a = (-1, a)
+
+def rr' : ∀ α : ☆ . array (int{yao:A,B} × α{yao:A,B}) -> int{yao:A,B} -> int{yao:A,B} × α{yao:A,B} -> int{yao:A,B} × α{yao:A,B}
+def rr' oram idx acc i =
+  -- TODO(ins): I would like to get rid of this coercion
+  if i == nat (size oram) then
+    acc
+  else
+    let c        = oram.i
+    let idx', _  = c
+    let c', acc' = mux if idx == idx' then (acc, c) else (c, acc)
+    let _        = oram.i ← c' in
+    rr' oram idx acc' (i + 1n)
+
+def rr : ∀ α : ☆ . array (int{yao:A,B} × α{yao:A,B}) -> int{yao:A,B} -> α{yao:A,B} -> int{yao:A,B} × α{yao:A,B}
+def rr oram idx a = rr' oram idx (dummy a) 0n
+
+def add' : ∀ α : ☆ . array (int{yao:A,B} × α{yao:A,B}) -> int{yao:A,B} × α{yao:A,B} -> 𝟙
+def add' oram acc i =
+  -- TODO(ins): I would like to get rid of this coercion
+  if i == nat (size oram) then
+    ()
+  else
+    let c        = oram.i
+    let idx', _  = c
+    let c', acc' = mux if idx' == -1 then (acc, c) else (c, acc)
+    let _        = oram.i ← c' in
+    add' oram acc' (i + 1n)
+
+def add : ∀ α : ☆ . array (int{yao:A,B} × α{yao:A,B}) -> int{yao:A,B} -> α{yao:A,B} -> 𝟙
+def add oram idx v = add' oram (idx, v) 0n
+
+def initialize : ∀ α : ☆ . nat -> α{yao:A,B} -> array (int{yao:A,B} × α{yao:A,B})
+def initialize n a = array[n] (-1, a)
+
+def main () =
+  -- Create a new ORAM
+  let oram = initialize 2n 0n
+
+  -- A obliviously adds 10 at index 0, B cannot see the index or the value
+  let si1  = share{yao:A -> A,B} (par {A} 0)
+  let sa   = share{yao:A -> A,B} (par {A} 10n)
+  let _    = add oram si1 sa
+
+  -- B obliviously adds 20 at index 1, A cannot see the index or the value
+  let si2  = share{yao:B -> A,B} (par {B} 1)
+  let sb   = share{yao:B -> A,B} (par {B} 20n)
+  let _    = add oram si2 sb in
+
+  rr oram si1 22n

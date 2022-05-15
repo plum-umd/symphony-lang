@@ -1,0 +1,35 @@
+(* the arguments to f are, a party set and a wire bundle that contains a nat for each party in that set *)
+let f = \ (x:ps{true}) . \ (y:W x nat) .
+  (* tmp2 is the value returned from the secure computation, why do we have this? Rule [T-Let2] binds x with ambient mode, perhaps b     ecause we are in Top currently? Yes. See typechk.ml, line 663 *)
+  let tmp2 @ par(x) =
+  let tmp @ sec(x) =  (* start a secure block *)
+  let a = wfold x [y;  (* fold function, main a record with current richest principal and their salary *)
+ 	               { #f:!Dummy, #g:0 }; (* assume every one has > 0 salary *)
+	               \ (a:{#f:ps{true}, #g:nat}) . \(b:ps{true}) . \(c:nat) . (* ps is a single party, so can we add singleton in the refinement? *)
+                       if a.#g > c then (* accumulator is better, so leave as is *)
+			 a
+		       else
+			 {#f:b, #g:c} (* we have a new richest principal *)
+	              ]
+     in
+     a.#f
+    in
+    tmp
+  in
+  (* return a wire bundle with each principal mapped to the result *)
+  wire x:tmp2
+in
+
+let all = {!Alice, !Bob, !Charlie} in
+let w1 = wire {!Alice}:47 in
+let w2 = wire {!Bob}:12 in
+let w3 = wire {!Charlie}:55 in
+
+let w7 = w1 ++ w2 in
+let w8 = w7 ++ w3 in
+
+let check_effects @ par(all) = (f all) w8
+in
+
+(* this wcopy lifts the resulst from par(all) mode to Top, we could do better with Top, also see the comment above *)
+wcopy as all from check_effects

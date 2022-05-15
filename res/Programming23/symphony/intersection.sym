@@ -1,0 +1,18 @@
+principal A B
+
+def sec_filter p l = case l
+  { []      -> []
+  ; x :: xs -> (mux if p x then some x else none) :: sec_filter p xs
+  }
+
+def psi a b = sec_filter (λ x → mem x b) a
+
+-- main: top-level entry point:
+def main () = par {A,B}
+  let inputA = par {A} read (list ℤ) from "intersection.txt" in
+  let inputB = par {B} read (list ℤ) from "intersection.txt" in
+
+  let shareA = share [gmw, list ℤ : {A} → {A,B}] inputA in
+  let shareB = share [gmw, list ℤ : {B} → {A,B}] inputB in
+
+  catOptions (reveal [gmw, list (ℤ + unit) : {A,B} → {A,B}] (psi shareA shareB))

@@ -1,0 +1,40 @@
+#include<obliv.oh>
+#include"euclid.h"
+
+// ISSUE: relies on a cast from void*
+void euclid(void* args) {
+  protocolIO *io = args;
+
+  long n1 = 2880067194370816120;
+  long n2 = 4660046610375530309;
+
+  obliv long v1, v2, big, small, prevSmall;
+  long gcd;
+
+  long x;
+
+  v1 = feedOblivLong(n1, 1);
+  v2 = feedOblivLong(n2, 2);
+  ocFlush(2);
+
+  // order the inputs:
+  obliv if (v1 < v2) {
+    small = v1;
+    big = v2;
+  } else {
+    small = v2;
+    big = v1;
+  }
+
+  for (int i = 0; i < io->in.iters - 1; i++) {
+    obliv if (small != 0) {
+      prevSmall = small;
+      small = big % small;
+      big = prevSmall;
+    }
+  }
+
+  // ISSUE: code should compile without this
+  revealOblivLong(&gcd, big, 0);
+  io->out.gcd = gcd;
+}

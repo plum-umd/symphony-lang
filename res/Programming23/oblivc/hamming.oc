@@ -1,0 +1,44 @@
+#include <stdio.h>
+#include <obliv.oh>
+
+#include "hamming.h"
+
+void shareIntList(obliv int *dest, int len, const int *src, int party) {
+  for (int i = 0; i < len; i++) {
+    dest[i] = feedOblivInt(src[i], party);
+  }
+
+  return;
+}
+
+void hammingDistance(void* args)
+{
+  protocolIO *io = args;
+
+  int len1 = ocBroadcastInt(io->in.len, 1);
+  int len2 = ocBroadcastInt(io->in.len, 2);
+  int lenMin = len1 < len2 ? len1 : len2;
+
+  obliv int *str1 = malloc(sizeof(obliv int) * len1);
+  obliv int *str2 = malloc(sizeof(obliv int) * len2);
+
+  obliv int dist = 0;
+
+  shareIntList(str1, len1, io->in.str, 1);
+  shareIntList(str2, len2, io->in.str, 2);
+  ocFlush(2);
+
+  for (int i = 0; i < lenMin; i++) {
+    obliv if (str1[i] == str2[i]) {
+      dist += 0;
+    } else {
+      dist += 1;
+    }
+  }
+
+  revealOblivInt(&io->out.dist, dist, 0);
+  io->out.dist += len1 + len2 - 2 * lenMin;
+
+  free(str1);
+  free(str2);
+}
