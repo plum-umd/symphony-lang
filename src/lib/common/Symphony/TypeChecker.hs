@@ -35,14 +35,19 @@ bindTLR tlr = case tlr of
 bindDecl ∷ STACK ⇒ 𝕏 → Type → TLM ()
 bindDecl = bindTypeTL
 
+-- Binds definitions 
 bindDefn ∷ STACK ⇒ 𝕏 → 𝐿 Pat → Exp → TLM ()
 bindDefn x ψs e = asTLM $ do
+  -- First it gets the type of the variable given it can be any mode
   τ ← localL terModeL Any $ synVar x
   case τ of
+    -- If it is a function, it implicitly binds the variable as if there was a par block around the lambda
+    -- Then it checks the function in that mode
     SecT loc (τ₁₁ :→: (η :* τ₁₂))   →
                   do
                     l₁ ← elabEMode $ effectMode η
                     localL terModeL l₁ $ (checkLam (Some x) ψs e τ)
+    -- Otherwise it checks the function at top level
     _ →  (chkExp e τ)
 
 
@@ -52,7 +57,7 @@ bindPrins ρds = eachOn ρds bindPrin
           SinglePD ρ   →  do
             _ ← modifyL ttlsPrinsL ((single𝑃  (var ρ)) ∪)
             bindTypeTL (var ρ) $ (SecT Top (BaseT ℙT))
-     --     ArrayPD ρ _n → bindTypeTL (var ρ) $ (SecT Top (BaseT ℙsT))
+          ArrayPD ρ _n → typeError "bindTLR: No imports should be allowed in top level tlr" $  frhs [ ("tlr", pretty tlr)]
 
 
 
@@ -1269,6 +1274,7 @@ synExpR e = case e of
 -- Utilities --
 ---------------
 
+-- By default, expression monads have top level checked at the top mode and no mode scope givin the environment and principals
 asTLM ∷ STACK ⇒ EM a → TLM a
 asTLM eM = do
   γ ← getL ttlsEnvL
@@ -1279,7 +1285,7 @@ asTLM eM = do
 -- Checks the type is well formed at top level and binds it
 bindTypeTL ∷ STACK ⇒ 𝕏 → Type → TLM ()
 bindTypeTL x τ = do
-  _ ←  asTLM $ (wf_type τ (AddAny Top) dø)
+  _ ← (wf_typeTL τ)
   modifyL ttlsEnvL ((x ↦ τ) ⩌)
 
 wf_typeTL ∷ STACK ⇒ Type → TLM ()
@@ -1288,7 +1294,8 @@ wf_typeTL τ = asTLM $
     -- A function at top level can be checked as well formed at any mode
     -- This assumes that a par block of that mode is implicitly put around 
     -- the function that is bounded to the variable
-    -- Based on WF
+    -- Based on WF-Loc and WF-Fun given m == m' based on the fact we want to type check
+    -- this function later
     SecT loc (τ₁₁ :→: (η :* τ₁₂))   →
                   do
                     l₁ ← elabEMode $ effectMode η
@@ -1300,4 +1307,5 @@ wf_typeTL τ = asTLM $
                       , ("τ", pretty τ)
                       ]
                     (wf_type τ l₁ dø)
+    -- Otherwise, a well formedness check will be done at the top mode always
     _ →  (wf_type τ (AddAny Top) dø)
