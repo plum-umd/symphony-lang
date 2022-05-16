@@ -1279,7 +1279,7 @@ asTLM eM = do
 -- Checks the type is well formed at top level and binds it
 bindTypeTL ∷ STACK ⇒ 𝕏 → Type → TLM ()
 bindTypeTL x τ = do
-  _ ← (wf_type τ (AddAny Top) dø)
+  _ ←  asTLM $ (wf_type τ (AddAny Top) dø)
   modifyL ttlsEnvL ((x ↦ τ) ⩌)
 
 wf_typeTL ∷ STACK ⇒ Type → TLM ()
