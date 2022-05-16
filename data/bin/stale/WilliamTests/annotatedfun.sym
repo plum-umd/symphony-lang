@@ -1,4 +1,0 @@
-principal A B C
-
-def main : (unit@all -> unit@all)@all
-def main () = let f = (fun [g] x → x):(unit@all -> unit@all)@all in (f •)

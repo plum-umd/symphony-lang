@@ -1,4 +1,0 @@
-principal A B
-
-def main : (unit@all ->  bool@all)@all
-def main () =  let a = array[1n] true in a.0n <- false

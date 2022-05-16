@@ -195,8 +195,8 @@ eModeEqual loc loc' =
 -----------------
 
 -- Check if loctyS <: loctyT
-subtype_loc :: STACK ⇒ Type → Type →  𝑃 (TVar, TVar)  → EM 𝔹
-subtype_loc loctyS loctyT d = case loctyS of
+subtype_nonem_loc :: STACK ⇒ Type → Type →  𝑃 (TVar, TVar)  → EM 𝔹
+subtype_nonem_loc loctyS loctyT d = case loctyS of
   -- sigma = bty
   -- -------Sub-Refl
   -- sigma <: sigma
@@ -208,7 +208,7 @@ subtype_loc loctyS loctyT d = case loctyS of
       ShareT pT loc' loctyT → do
         l ← (elabEMode loc)
         l' ← (elabEMode loc')
-        loccond ← (subtype_loc loctyS loctyT d)
+        loccond ← (subtype_nonem_loc loctyS loctyT d)
         return ((eq_mode l l') ⩓ (pS ≡ pT) ⩓ loccond)
       _  → return False
   -- t1 <: t1' t2 <: t2'
@@ -217,8 +217,8 @@ subtype_loc loctyS loctyT d = case loctyS of
   (loctySₗ :+: loctySᵣ) → case loctyT of
     (loctyTₗ :+: loctyTᵣ) → do
 
-        loccondₗ ← (subtype loctySₗ loctyTₗ d)
-        loccondᵣ ← (subtype loctySᵣ loctyTᵣ d)
+        loccondₗ ← (subtype_nonem loctySₗ loctyTₗ d)
+        loccondᵣ ← (subtype_nonem loctySᵣ loctyTᵣ d)
         return (loccondₗ ⩓ loccondᵣ)
     _ → return False
   -- t1 <: t1' t2 <: t2'
@@ -226,12 +226,12 @@ subtype_loc loctyS loctyT d = case loctyS of
   -- t1 x t2 <: t1' x t2'
   (loctySₗ :×: loctySᵣ) → case loctyT of
     (loctyTₗ :×: loctyTᵣ) → do
-        loccondₗ ← (subtype loctySₗ loctyTₗ d)
-        loccondᵣ ← (subtype loctySᵣ loctyTᵣ d)
+        loccondₗ ← (subtype_nonem loctySₗ loctyTₗ d)
+        loccondᵣ ← (subtype_nonem loctySᵣ loctyTᵣ d)
         return (loccondₗ ⩓ loccondᵣ)
     _ → return False
   (ListT τₜ)  →  case loctyT of
-    (ListT τₜ') → (subtype τₜ τₜ' d)
+    (ListT τₜ') → (subtype_nonem τₜ τₜ' d)
     _ → return False
   -- t1' <: t1 t2 <: t2'
   -- -------Sub-Fun
@@ -240,36 +240,36 @@ subtype_loc loctyS loctyT d = case loctyS of
     (τ₁₁' :→: (η' :* τ₁₂')) → do
         l ← elabEMode $ effectMode η
         l' ← elabEMode $ effectMode η'
-        loccondₗ ← (subtype τ₁₁' τ₁₁ d)
-        loccondᵣ ← (subtype τ₁₂ τ₁₂' d)
+        loccondₗ ← (subtype_nonem τ₁₁' τ₁₁ d)
+        loccondᵣ ← (subtype_nonem τ₁₂ τ₁₂' d)
         return ((eq_mode l l') ⩓ loccondₗ ⩓ loccondᵣ)
         -- t <: t'
   -- -------Sub-RefRO
   -- ref _ t <: ref RO t'
   (RefT None τ) →  case loctyT of
-    (RefT None τ') → (subtype τ τ' d)
+    (RefT None τ') → (subtype_nonem τ τ' d)
     _  → return False
   (RefT _ τ) → case loctyT of
       -- sigma = refRW#m t
     -- -------Sub-Refl
     -- sigma <: sigma
-    (RefT None τ') → (subtype τ τ' d)
+    (RefT None τ') → (subtype_nonem τ τ' d)
     _  → (eq_locty loctyS loctyT)
     -- -------Sub-RefRO
   -- ref _ t <: ref RO t
   (ArrT None τ) →  case loctyT of
-    (ArrT None τ') → (subtype τ τ' d)
+    (ArrT None τ') → (subtype_nonem τ τ' d)
     _  → return False
   (ArrT _ τ) → case loctyT of
           -- sigma = refRW#m t
     -- -------Sub-Refl
     -- sigma <: sigma
-    (ArrT None τ') → (subtype τ τ' d)
+    (ArrT None τ') → (subtype_nonem τ τ' d)
     _  → (eq_locty loctyS loctyT)
   ISecT locS loctyS  → case loctyT of
       ISecT locT loctyT → do
         mcond ← (superemode locS locT)
-        loccond ← (subtype loctyS loctyT d)
+        loccond ← (subtype_nonem loctyS loctyT d)
         return (mcond ⩓ loccond)
   _ → return False
 
@@ -277,7 +277,7 @@ subtype_loc loctyS loctyT d = case loctyS of
 
 -- Check if tyS <: tyT
   -- d represents a set where if it contains (a,b) a = b or a <: b
-subtype :: STACK ⇒ Type → Type → 𝑃 (TVar, TVar) →  EM 𝔹
+subtype_nonem :: STACK ⇒ Type → Type → 𝑃 (TVar, TVar) →  EM 𝔹
 subtype tyS tyT d = case tyS of
     -- sigma <: sigma' m ⊇ m'
   -- -------Sub-Loc
@@ -285,7 +285,7 @@ subtype tyS tyT d = case tyS of
   SecT locS loctyS → case tyT of
       SecT locT loctyT → do
         mcond ← (superemode locS locT)
-        loccond ← (subtype_loc loctyS loctyT d)
+        loccond ← (subtype_nonem_loc loctyS loctyT d)
         return  (mcond ⩓ loccond)
       _ → return False
   VarT a → case tyT of
@@ -300,7 +300,7 @@ subtype tyS tyT d = case tyS of
   -- D |- mu a . t1 <: mu b . t2
   RecT a τ → case tyT of
       RecT a' τ' → do
-        subcond ← (subtype τ τ' ((single𝑃  (a, a')) ∪ d))
+        subcond ← (subtype_nonem τ τ' ((single𝑃  (a, a')) ∪ d))
         return ((a ≡ a') ⩓ subcond)
       _ → return False
   -- D, a = b |- t <: t'
@@ -308,7 +308,7 @@ subtype tyS tyT d = case tyS of
   -- D |- forall a.t <: forall a.t'
   ForallT a τ → case tyT of
       ForallT a' τ' → do
-        subcond ← (subtype τ τ' ((single𝑃  (a, a')) ∪ d))
+        subcond ← (subtype_nonem τ τ' ((single𝑃  (a, a')) ∪ d))
         return ((a ≡ a') ⩓ subcond)
       _ → return False
   _ → return False
@@ -316,8 +316,8 @@ subtype tyS tyT d = case tyS of
 
 -- Check if tyS <: tyT
   -- d represents a set where if it contains (a,b) a = b or a <: b
-subtype_embed :: STACK ⇒ Type → Type → 𝑃 (TVar, TVar) →  EM 𝔹
-subtype_embed tyS tyT d = 
+subtype :: STACK ⇒ Type → Type → 𝑃 (TVar, TVar) →  EM 𝔹
+subtype tyS tyT d = 
   if ((isEmbedable tyS)  ⩓ (isShared tyT)) then
     do
       pO ← (extractProt tyT)
@@ -325,11 +325,11 @@ subtype_embed tyS tyT d =
         (Some (p, l))  → do 
           loc ← elabMode l
           embedTyS ← (embedShare p loc tyS )
-          embedSubCond ← (subtype embedTyS tyT d)
-          subCond ← (subtype tyS tyT d)
+          embedSubCond ← (subtype_nonem embedTyS tyT d)
+          subCond ← (subtype_nonem tyS tyT d)
           return (embedSubCond ⩔ subCond) 
   else
-    (subtype tyS tyT d)
+    (subtype_nonem tyS tyT d)
 
 -- Check if tyT >: tyS
 supertype :: STACK ⇒ Type → Type →  𝑃 (TVar, TVar)  → EM 𝔹

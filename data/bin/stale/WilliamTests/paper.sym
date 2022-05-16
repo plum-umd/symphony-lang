@@ -1,4 +1,0 @@
-principal A B C
-
-def main : (unit@all -> int@{A})@all
-def main () = par {A, B} let x = par{A} 1 in let y = par{B} x in let z = par{C} 2 in x

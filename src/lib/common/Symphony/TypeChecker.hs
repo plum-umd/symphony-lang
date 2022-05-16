@@ -17,9 +17,7 @@ import Symphony.TypeChecker.Operations
 synProg ∷ STACK ⇒ 𝐿 TL → TLM Type
 synProg prog = do
   eachOn prog bindTL
-  asTLM $ do
-    τMain ← synVar $ var "main"
-    synApp (nullExp (VarE (var "main"))) (nullExp (BulE))
+  asTLM $ synApp (nullExp (VarE (var "main"))) (nullExp (BulE))
 
 bindTL ∷ STACK ⇒ TL → TLM ()
 bindTL tl = localL ttlrSourceL (Some $ atag tl) $ bindTLR $ extract tl
@@ -43,7 +41,7 @@ bindDefn x ψs e = asTLM $ do
   case τ of
     -- If it is a function, it implicitly binds the variable as if there was a par block around the lambda
     -- Then it checks the function in that mode
-    SecT loc (τ₁₁ :→: (η :* τ₁₂))   →
+    SecT _ (_ :→: (η :* _))   →
                   do
                     l₁ ← elabEMode $ effectMode η
                     localL terModeL l₁ $ (checkLam (Some x) ψs e τ)
@@ -51,6 +49,7 @@ bindDefn x ψs e = asTLM $ do
     _ →  (chkExp e τ)
 
 
+-- Makes the principal a principal type located at type based on introduction typing rules
 bindPrins ∷ STACK ⇒ STACK ⇒ 𝐿 PrinDecl → TLM ()
 bindPrins ρds = eachOn ρds bindPrin
   where bindPrin ρd = case ρd of
@@ -66,14 +65,16 @@ bindPrins ρds = eachOn ρds bindPrin
 ------------------------------
 
 -- ------ T-Var
+-- Gets the well formed supertype of the type from x's context
 synVar ∷ STACK ⇒ Var → EM Type
 synVar x = do
   env ← askL terEnvL
+  -- Uses the typing context
   case env ⋕? x of
     Some τ → do
       m ← askL terModeL
       bigM ← askL terModeScopeL
-      -- T-Var: gets the well formed supertype if there is one, if not error
+      -- gets the well formed supertype if there is one, if not error
       superty_wf τ m bigM
     None   → typeError "synVar: x ∉ Γ" $ frhs
              [ ("x", pretty x)
@@ -85,6 +86,7 @@ synVar x = do
 --- Primitives ---
 ------------------
 
+-- All the literal rules are based in basic introduction rules
 -- ------ T-Bt
 -- gamma |- m bt : basetype@m
 
@@ -98,40 +100,40 @@ synBul =  do
 
 -- ------ T-Bool
 -- gamma |- m b : bool@m
-synBool ∷ STACK ⇒ 𝔹 → EM Type
-synBool b =  do
+synBool ∷ STACK ⇒  EM Type
+synBool =  do
   m ← askL terModeL
   em ← elabMode m
   return $ SecT em $ BaseT 𝔹T
 
 -- ------ T-Nat
 -- gamma |- m n : nat@m
-synNat ∷ STACK ⇒ IPrecision → ℕ → EM Type
-synNat pr n = do
+synNat ∷ STACK ⇒ IPrecision  → EM Type
+synNat pr = do
   m ← askL terModeL
   em ← elabMode m
-  return $ SecT em $ BaseT $ℕT pr
+  return $ SecT em $ BaseT $ ℕT pr
 
 -- ------ T-Int
 -- gamma |- m i : int@m
-synInt ∷ STACK ⇒ IPrecision → ℤ → EM Type
-synInt pr z = do
+synInt ∷ STACK ⇒ IPrecision → EM Type
+synInt pr = do
   m ← askL terModeL
   em ← elabMode m
   return $ SecT em $ BaseT $ ℤT pr
 
 -- ------ T-Float
 -- gamma |- m d : float@m
-synFlt ∷ STACK ⇒ FPrecision → 𝔻 → EM Type
-synFlt pr d = do
+synFlt ∷ STACK ⇒ FPrecision → EM Type
+synFlt pr = do
   m ← askL terModeL
   em ← elabMode m
   return $ SecT em $ BaseT $ 𝔽T pr
 
 -- ------ T-String
 -- gamma |- m s : string@m
-synStr ∷ STACK ⇒  𝕊 → EM Type
-synStr s = do
+synStr ∷ STACK ⇒  EM Type
+synStr = do
   m ← askL terModeL
   em ← elabMode m
   return $ SecT em $ BaseT 𝕊T
@@ -139,22 +141,23 @@ synStr s = do
 -- gamma(x) = t
 -- ------ T-PrinExp
 -- gamma |- m b : t
+
+-- Basic introduction rule, but also checks and returns a type
 synPrinExp ∷ STACK ⇒ PrinExp → EM Type
 synPrinExp ρe = case ρe of
   VarPE x       → do
     ρτ ← (synVar x)
     m ← askL terModeL
     em ← elabMode m
-    subcond ← (subtype_embed ρτ (SecT em (BaseT ℙT)) pø )
+    subcond ← (subtype ρτ (SecT em (BaseT ℙT)) pø )
     guardErr subcond $
-      typeError "synPrin: ρe has type ρτ which is not a subtype of τ" $ frhs
+      typeError "synPrinExp: ρe has type ρτ which is not a subtype of τ" $ frhs
         [ ("ρτ", pretty ρe)
         , ("ρτ'", pretty ρτ)
         , ("τ'", pretty (SecT em (BaseT ℙT)))
         ]
-    return ρτ
-  AccessPE x n₁ → todoError
-
+    return (SecT em (BaseT ℙT))
+  AccessPE _ _ → typeError "synPrinExp: ρe is an access principal which is not allowed" $  frhs [ (" ρe", pretty ρe)]
 
 
 -- forall A in M = {A ...} gamma |- m A t t : prin@m
@@ -163,11 +166,12 @@ synPrinExp ρe = case ρe of
 synPrinSet ∷ STACK ⇒ PrinSetExp → EM Type
 synPrinSet ρse =
   case ρse of
+    -- If it is a variable, checks it is a subtype of the basic introduction type
   VarPSE x → do
     ρsτ ← (synVar x)
     m ← askL terModeL
     em ← elabMode m
-    subcond ← (subtype_embed ρsτ (SecT em (BaseT ℙsT)) pø )
+    subcond ← (subtype ρsτ (SecT em (BaseT ℙsT)) pø )
     guardErr subcond $
       typeError "synPrinSet: ρse has type ρsτ which is not a subtype of τ" $ frhs
         [ ("ρse", pretty ρse)
@@ -175,12 +179,13 @@ synPrinSet ρse =
         , ("τ'", pretty (SecT em (BaseT ℙT)))
         ]
     return ρsτ
+  -- If it a powerset, check all the variables in the powerset of type principal set
   PowPSE ρes → do
     _ ←  mapM synPrinExp ρes
     m ← askL terModeL
     em ← elabMode m
     return $ SecT em $ BaseT ℙsT
-  _    →  typeError "Must be a set of literals" $ frhs [("ρse", pretty ρse)]
+  _    →  typeError "synPrinSet: ρse must be a variable or a powerset" $ frhs [("ρse", pretty ρse)]
 
 -- T-Op
 --m <= m_i since it could be a subtype which means
@@ -196,8 +201,10 @@ synPrinSet ρse =
 -- --------
 -- gamma|- m op [e1, e2, ..., en] : : sigma^phi@m
 
+-- Based on T-Op
 synPrim ∷ STACK ⇒ Op → 𝐿 Exp → EM Type
 synPrim op es =
+  -- If there are no arguments, get the type and return it with the introduction rule
   if (isEmpty es) then
      do
        m ← askL terModeL
@@ -218,22 +225,20 @@ synPrim op es =
       -- The return type
       bt ← (primType op bs)
       let ps = list𝐼 (filterMap id pos) in
-        -- If all are cleartext, return the return type
-        if (isEmpty ps) then
-          return $ SecT em $ BaseT bt
-        else
-          case ps  of
-            -- Check that all protocols and encrpyted locations are the same and equal to m
-            -- meaning the protoocl is well formed
-            -- The encrypted location may not be necessary as wwe already asserted m
-            -- But well formed don't disallow it so we'll keep it
-            ((p, loc) :& _) → do
-              guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (eq_mode l m)) ps)) $
-                typeError "Not all protocols/encryptions are the same as p#loc" $ frhs
-                  [ ("ρ", pretty p)
-                  , ("loc'", pretty m)
-                  ]
-              return $ SecT em $ ShareT p em $ BaseT bt
+        case ps  of
+          -- If all are cleartext, return the return type
+          Nil → return $ SecT em $ BaseT bt
+          -- Check that all protocols and encrpyted locations are the same and equal to m
+          -- meaning the protoocl is well formed
+          -- The encrypted location may not be necessary as wwe already asserted m
+          -- But well formed don't disallow it so we'll keep it
+          ((p, _) :& _) → do
+            guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (eq_mode l m)) ps)) $
+              typeError "synPrin: Not all protocols/encryptions are the same as p#loc" $ frhs
+                [ ("ρ", pretty p)
+                , ("loc'", pretty m)
+                ]
+            return $ SecT em $ ShareT p em $ BaseT bt
 
 
 ---------------------------------
@@ -263,7 +268,14 @@ synProd eₗ eᵣ =
 checkL ∷ STACK ⇒ Exp → Type → EM ()
 checkL eₗ τ  =
   case τ of
-    (SecT em (τₗ  :+: _)) →do
+    (SecT loc (τₗ  :+: _)) → do
+      m ← askL terModeL
+      l ← elabEMode loc
+      guardErr (supermode l m) $
+        typeError "CheckL: loc in the type given _@loc is not a superset of m" $ frhs
+          [ (" τ", pretty  τ)
+          , ("loc'", pretty loc)
+          ]
       _ ← chkExp eₗ τₗ
       return ()
     _ → typeError "checkL: τ is not annotated correctly as a sumtype" $ frhs [ ("τ'", pretty τ)]
@@ -275,6 +287,13 @@ checkR ∷ STACK ⇒ Exp → Type → EM ()
 checkR eᵣ τ  =
   case τ of
     (SecT em (_  :+: τᵣ)) → do
+      m ← askL terModeL
+      l ← elabEMode loc
+      guardErr (supermode l m) $
+        typeError "CheckR: loc in the type given _@loc is not a superset of m" $ frhs
+          [ (" τ", pretty  τ)
+          , ("loc'", pretty loc)
+          ]
       _ ← chkExp eᵣ τᵣ
       return ()
     _ → typeError "checkR: τ is not annotated correctly as a sumtype" $ frhs [ ("τ'", pretty τ)]
@@ -330,7 +349,7 @@ synIf e₁ e₂ e₃ =
     τ₃ ← c₃
     m ← askL terModeL
     em  ← elabMode m
-    subcond ← subtype_embed τ₁ (SecT em (BaseT 𝔹T)) pø
+    subcond ← subtype τ₁ (SecT em (BaseT 𝔹T)) pø
     guardErr subcond $
       typeError "synIf: e₁ is not of type bool @ m" $ frhs
           [ ("m", pretty m),
@@ -362,13 +381,7 @@ synCase e ψes =
           ]
         τs ← mapM (synBind τ) ψes
         (joinList τs)
--- (x|-> t1) union context |-m e : t2
-synBind ∷ STACK ⇒ Type → (Pat ∧ Exp) → EM Type
-synBind τ₁ (ψ :* e₂) =
-  let c₂ = synExp e₂
-  in do
-    f  ← bindType τ₁ ψ
-    f c₂
+
 -----------------
 --- Functions ---
 -----------------
@@ -567,7 +580,7 @@ synRefRead e =
       (SecT loc (RefT _ τ'))  → do
         m  ← askL terModeL
         l ← elabEMode loc
-        --  dont need subcond  ←  (subtype_embed τ (SecT m (RefT t')))
+        --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
         guardErr (eq_mode m l) $
           typeError "synRefRead: m /≡ l" $ frhs
           [ ("m", pretty m)
@@ -649,7 +662,7 @@ synArrayRead e₁ e₂ =
       (SecT loc₁ (ArrT _ τ₁'))  → do
         m  ← askL terModeL
         l₁ ← elabEMode loc₁
-        --  dont need subcond  ←  (subtype_embed τ (SecT m (RefT t')))
+        --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
         guardErr (eq_mode m l₁) $
           typeError "synArrayRead: m /≡ l₁" $ frhs
           [ ("m", pretty m)
@@ -694,7 +707,7 @@ synArrayWrite e₁ e₂ e₃ =
         m  ← askL terModeL
         l₁₁ ← elabEMode loc₁₁
         l₁₂ ← elabEMode loc₁₂
-        --  dont need subcond  ←  (subtype_embed τ (SecT m (ArrT _ t')))
+        --  dont need subcond  ←  (subtype τ (SecT m (ArrT _ t')))
         guardErr ((eq_mode m l₁₁) ⩓ (eq_mode m l₁₂)) $
           typeError "synRefWrite: m /≡ l₁₁ or  m /≡ l₁₂" $ frhs
           [ ("m", pretty m)
@@ -731,7 +744,7 @@ synArraySize e =
           m  ← askL terModeL
           l ← elabEMode loc
           em ← elabMode m
-          --  dont need subcond  ←  (subtype_embed τ (SecT m (RefT t')))
+          --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
           guardErr (eq_mode m l) $
             typeError "synArraySize: m /≡ l" $ frhs
             [ ("m", pretty m)
@@ -782,7 +795,7 @@ checkPar ρse₁ e₂ τ=
     let m' = inter_m m l
     if m' ≢  (AddAny (AddTop bot)) then do
       τ' ← localL terModeL m' c₂
-      subcond  ← subtype_embed τ' τ pø
+      subcond  ← subtype τ' τ pø
       guardErr subcond $
         typeError "checkPar: τ' is not a subtype of τ" $ frhs
           [ ("τ'", pretty τ')
@@ -921,7 +934,7 @@ synMuxIf e₁ e₂ e₃ =do
           do
             case τs of
               (τ₁ :& (τ₂ :& (τ₃ :& Nil))) → do
-                subcond  ← (subtype_embed τ₁ (SecT em (BaseT 𝔹T)) pø  )
+                subcond  ← (subtype τ₁ (SecT em (BaseT 𝔹T)) pø  )
                 guardErr subcond $
                   typeError "synMuxIf: τ₁ is not a shared boolean" $ frhs
                     [  ("τ₁", pretty τ₁)
@@ -938,7 +951,7 @@ synMuxIf e₁ e₂ e₃ =do
               eτs ← (mapM (embedShare p em) τs )
               case eτs of
                 (τ₁ :& (τ₂ :& (τ₃ :& Nil))) → do
-                  subcond  ← (subtype_embed τ₁ (SecT em (ShareT p em (BaseT 𝔹T))) pø  )
+                  subcond  ← (subtype τ₁ (SecT em (ShareT p em (BaseT 𝔹T))) pø  )
                   guardErr subcond $
                     typeError "synMuxIf: τ₁ is not a shared boolean" $ frhs
                     [  ("τ₁", pretty τ₁)]
@@ -1030,7 +1043,7 @@ synBundleAccess e₁ ρe₂ =
       (SecT loc₁ (ISecT loc₁' τ₁'))  → do
         m  ← askL terModeL
         l₁ ← elabEMode loc₁
-        --  dont need subcond  ←  (subtype_embed τ (SecT m (RefT t')))
+        --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
         guardErr (eq_mode m l₁) $
           typeError "synBundleAccess: m /≡ l" $ frhs
           [ ("m", pretty m)
@@ -1067,7 +1080,7 @@ synBundleUnionHelper τ₁ τ₂ =
             ]
         m  ← askL terModeL
         l₁ ← elabEMode loc₁
-        --  dont need subcond  ←  (subtype_embed τ (SecT m (RefT t')))
+        --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
         guardErr (m ≡ l₁) $
           typeError "synBundle: m /≡ l" $ frhs
           [ ("m", pretty m)
@@ -1192,7 +1205,7 @@ chkExpR e τ =
       _ →
           do
             τ' ← synExpR e
-            subcond  ← (subtype_embed τ' τ pø)
+            subcond  ← (subtype τ' τ pø)
             guardErr subcond $
               typeError "checkExpR: e has type τ' which is not a subtype of τ" $ frhs
               [ ("e", pretty e)

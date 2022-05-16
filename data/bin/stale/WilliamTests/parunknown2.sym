@@ -1,4 +1,0 @@
-principal A B
-
-def main : (unit@all -> unit@{A})@all 
-def main () = let x = A in par {x} •

@@ -1,4 +1,0 @@
-principal A B
-
-def main : (unit@all ->  ( array{all} unit@all)@all)@all
-def main () =  array[1n] •

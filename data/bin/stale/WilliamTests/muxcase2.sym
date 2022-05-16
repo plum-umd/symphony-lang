@@ -1,4 +1,0 @@
-principal A B C
-
-def main : (unit@all  -> unit@{A})@all 
-def main () =  let a = (par {A, B, C } • )  in let b = (par {A, B, C } •) in par {A, B, C} (par {A, B, C } (reveal [yao, unit : {A,B,C} -> A] (mux case (share [yao, unit + unit : A -> {A,B,C}]  ((L a): ( unit@{A, B, C}  + unit@{A, B, C})@{A,B, C})) {L x → a;R y→y}  )))

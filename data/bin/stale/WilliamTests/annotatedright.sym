@@ -1,4 +1,0 @@
-principal A B C
-
-def main : (unit@all -> (( unit@all + bool@all)@all))@all
-def main () = let a = true in (R a):(( unit@all + bool@all)@all)
