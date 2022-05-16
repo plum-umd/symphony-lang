@@ -13,6 +13,7 @@ import Symphony.TypeChecker.Operations
 -- Checking for TL --
 ---------------------
 
+-- Gets the type of calling main  after doing binding
 synProg ∷ STACK ⇒ 𝐿 TL → TLM Type
 synProg prog = do
   eachOn prog bindTL
@@ -23,12 +24,13 @@ synProg prog = do
 bindTL ∷ STACK ⇒ TL → TLM ()
 bindTL tl = localL ttlrSourceL (Some $ atag tl) $ bindTLR $ extract tl
 
+-- Binds top level principals, declarations, and definitions
 bindTLR ∷ STACK ⇒ TLR → TLM ()
 bindTLR tlr = case tlr of
   PrinTL ρds          → bindPrins ρds
   DeclTL _brec x τ    → bindDecl x τ
   DefnTL _brec x ψs e → bindDefn x ψs e
-  ImportTL path       → todoError
+  ImportTL path       → typeError "bindTLR: No imports should be allowed in top level tlr" $  frhs [ ("tlr", pretty tlr)]
 
 bindDecl ∷ STACK ⇒ 𝕏 → Type → TLM ()
 bindDecl = bindTypeTL
@@ -51,46 +53,7 @@ bindPrins ρds = eachOn ρds bindPrin
             _ ← modifyL ttlsPrinsL ((single𝑃  (var ρ)) ∪)
             bindTypeTL (var ρ) $ (SecT Top (BaseT ℙT))
      --     ArrayPD ρ _n → bindTypeTL (var ρ) $ (SecT Top (BaseT ℙsT))
-{-
-synAppTL ∷ STACK ⇒ Type → Type → EM Type
-synAppTL τ₁ τ₂ = case τ₁ of
-  SecT loc (τ₁₁ :→: (η :* τ₁₂)) → do
-    m  ← askL terModeL
-    l₁ ← elabEMode $ effectMode η
-    l₂ ← elabEMode loc
-    guardErr (eq_mode m l₁) $
-      typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
-      [ ("m", pretty m)
-      , ("l", pretty l₁)
-      ]
-    return τ₂
-  _ → typeError "synApp: τ₁ ≢ (_ → _)@_" $ frhs
-      [ ("τ₁", pretty τ₁)
-      ]
 
-synAppTL2 ∷ STACK ⇒ Type → Type → EM Type
-synAppTL2 τ₁ τ₂ =
-    case τ₁ of
-      SecT loc (τ₁₁ :→: (η :* τ₁₂)) → do
-        m  ← askL terModeL
-        l₁ ← elabEMode $ effectMode η
-        l₂ ← elabEMode loc
-        subcond  ←  (subtype_embed τ₂ τ₁₂ pø )
-        guardErr (eq_mode m l₁) $
-          typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
-          [ ("m", pretty m)
-          , ("l", pretty l₁)
-          ]
-        guardErr (eq_mode m l₂) $
-          typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
-          [ ("m", pretty m)
-          , ("l", pretty l₁)
-          ]
-        return τ₂
-      _ → typeError "synApp: τ₁ ≢ (_ → _)@_" $ frhs
-          [ ("τ₁", pretty τ₁)
-          ]
--}
 
 
 ------------------------------
@@ -179,7 +142,7 @@ synPrinExp ρe = case ρe of
     em ← elabMode m
     subcond ← (subtype_embed ρτ (SecT em (BaseT ℙT)) pø )
     guardErr subcond $
-      typeError "checkPrin: ρe has type ρτ which is not a subtype of τ" $ frhs
+      typeError "synPrin: ρe has type ρτ which is not a subtype of τ" $ frhs
         [ ("ρτ", pretty ρe)
         , ("ρτ'", pretty ρτ)
         , ("τ'", pretty (SecT em (BaseT ℙT)))
@@ -187,23 +150,7 @@ synPrinExp ρe = case ρe of
     return ρτ
   AccessPE x n₁ → todoError
 
-{-
--- forall A in M = {A ...} gamma |- m A t t <: prin@all
-checkPrin ∷ STACK ⇒ PrinExp → EM ()
-checkPrin ρe =
-   do
-    ρτ ← (synVar ρe)
-    m ← askL terModeL
-    em ← elabMode m
-    subcond ← (subtype_embed ρτ (SecT em (BaseT ℙT)) pø )
-    guardErr subcond $
-      typeError "checkPrin: ρe has type ρτ which is not a subtype of τ" $ frhs
-        [ ("ρτ", pretty ρe)
-        , ("ρτ'", pretty ρτ)
-        , ("τ'", pretty (SecT em (BaseT ℙT)))
-        ]
-    return ()
--}
+
 
 -- forall A in M = {A ...} gamma |- m A t t : prin@m
 -- ------T-PrinSetExp
@@ -1329,20 +1276,25 @@ asTLM eM = do
   let r = ER { terSource = None, terMode = (AddAny Top), terEnv = γ, terModeScope = dø, terPrins = ps }
   evalEMErr r () eM
 
+-- Checks the type is well formed at top level and binds it
 bindTypeTL ∷ STACK ⇒ 𝕏 → Type → TLM ()
 bindTypeTL x τ = do
-  _ ← (wf_typeTL τ)
+  _ ← (wf_type τ (AddAny Top) dø)
   modifyL ttlsEnvL ((x ↦ τ) ⩌)
 
 wf_typeTL ∷ STACK ⇒ Type → TLM ()
 wf_typeTL τ = asTLM $
   case τ of
+    -- A function at top level can be checked as well formed at any mode
+    -- This assumes that a par block of that mode is implicitly put around 
+    -- the function that is bounded to the variable
+    -- Based on WF
     SecT loc (τ₁₁ :→: (η :* τ₁₂))   →
                   do
                     l₁ ← elabEMode $ effectMode η
                     l₂ ← elabEMode loc
                     guardErr (eq_mode l₁ l₂) $
-                      typeError " WFCheckTL: ⊢ₘ _ ˡ→ _ ; m ≢ l₂ in τ" $ frhs
+                      typeError " WFCheckTL: For τ = (τ₁₁ :→: (l₁ :* τ₁₂))@l₂, l₁ ≢ l₂ in τ" $ frhs
                       [ ("l₁", pretty l₂)
                       , ("l₂", pretty l₂)
                       , ("τ", pretty τ)
