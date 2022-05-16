@@ -57,7 +57,7 @@ bindPrins ρds = eachOn ρds bindPrin
           SinglePD ρ   →  do
             _ ← modifyL ttlsPrinsL ((single𝑃  (var ρ)) ∪)
             bindTypeTL (var ρ) $ (SecT Top (BaseT ℙT))
-          ArrayPD ρ _n → typeError "bindTLR: No imports should be allowed in top level tlr" $  frhs [ ("tlr", pretty tlr)]
+          ArrayPD _ _ → typeError "bindPrin: ρd is an array principal which is not allowed" $  frhs [ ("ρd", pretty ρd)]
 
 
 
