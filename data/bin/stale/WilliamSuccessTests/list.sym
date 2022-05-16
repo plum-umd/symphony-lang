@@ -1,0 +1,4 @@
+principal A B C
+
+def main : (unit@all ->  ((list[0] unit@all)@all))@all
+def main () = let a = • in let b = []:((list[0] unit@all)@all) in a,b

@@ -1,0 +1,4 @@
+principal A B
+
+def main : (unit@all -> unit@{A})@all 
+def main () = par {A} •

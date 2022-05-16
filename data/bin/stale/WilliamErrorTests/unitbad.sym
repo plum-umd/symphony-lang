@@ -1,0 +1,5 @@
+principal A B
+
+-- Fails because it is not a boolean
+def main : (unit@all -> bool@all)@all 
+def main () = •

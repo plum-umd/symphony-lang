@@ -1,0 +1,4 @@
+principal A B C
+
+def main : (unit@all -> (int)@{A,B,C})@all
+def main () = par {A, B, C } (send [int : A -> {A,B,C}] (par {A} 2) ) 

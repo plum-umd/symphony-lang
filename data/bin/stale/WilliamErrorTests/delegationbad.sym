@@ -1,0 +1,11 @@
+principal A B C D E
+
+-- gmw ≡ semi-honest, N-party, boolean sharing
+
+def main : (unit@all -> bool@{E})@all
+def main () = par {A,B,C,D,E}
+  let a = par {A,C,D} share [gmw, bool : {A} → {C,D}] (par {A} read bool from "delegation.txt") in
+  let b = par {B,C,D} share [gmw, bool : {B} → {C,D}] (par {B} read bool from "delegation.txt") in
+  let c = par {C,D} a && b in
+  par {A,B,E} reveal [gmw, bool : {A,B} → {E}] c
+  

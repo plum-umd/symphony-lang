@@ -1,0 +1,5 @@
+principal A B
+
+-- Should fail because the third part of the set is not a principal
+def main : (unit@all -> bool@all)@all 
+def main () = {A, B, •}
