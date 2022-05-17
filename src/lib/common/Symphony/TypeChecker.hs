@@ -1025,8 +1025,7 @@ synMuxCase e ψes =do
           (joinList τs')
         else
           case τ of
-            (SecT em (ShareT _ _ _ )) 
-            →
+            (SecT em (ShareT _ _ _ ))  →
               case ps  of
                 ((p, _) :& _) → do
                   guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (eq_mode l m)) ps)) $
