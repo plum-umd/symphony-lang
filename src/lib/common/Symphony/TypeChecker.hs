@@ -778,13 +778,13 @@ synArraySize e =
     case τ of
       SecT loc (ArrT _ _)  → do
           m  ← askL terModeL
-          em ← elabEMode m
+          em ← elabMode m
           l ← elabEMode loc
           --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
           guardErr (eq_mode m l) $
             typeError "synArraySize:  e ˡ→ arr@l; m /≡ l" $ frhs
-            [  ("e ", pretty e)
-              ("m", pretty m)
+            [  ("e", pretty e)
+            ,  ("m", pretty m)
             , ("l", pretty l)
             ]
           return (SecT em (BaseT (ℕT iprDefault)))
@@ -1033,7 +1033,7 @@ synMuxCase e ψes =do
                       [ ("ρ", pretty p)
                       , ("m'", pretty m)
                       , ("τs", pretty τs)
-                      , ("es", pretty es)
+                      , ("es", pretty ψes)
                       ]
                   eτs' ← (mapM (embedShare p em) τs' )
                   (joinList eτs')
