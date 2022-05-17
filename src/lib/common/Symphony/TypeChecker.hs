@@ -507,8 +507,8 @@ synRead τ e =
               ]
           return τ'
       _ →  typeError "synRead: ⊢ₘ  e ˡ→ τ which is not a located string" (frhs 
-      [ ("τ", pretty τ)  
-      , ("e", pretty e)])
+            [ ("τ", pretty τ)  
+            , ("e", pretty e)])
 
 
 
