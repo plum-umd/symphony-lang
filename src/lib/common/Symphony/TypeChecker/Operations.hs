@@ -1659,14 +1659,14 @@ cleartext_loctype sigma  =
       _ ← (cleartext_type  τ')
       return ()
     ISecT loc locty → do
-      _ ← (cleartext_type  τ')
+      _ ← (cleartext_type  locty)
       return ()
     _  → typeError "cleartext_loctype: sigma is not well formed cleartext located type" $ frhs
         [ ("sigma", pretty sigma )
         ]
 
 -- Asserts a type is a located cleartext type
-cleartext_type ::  STACK ⇒ Var   → Type → Type → EM Type
+cleartext_type ::  STACK ⇒ Type → EM Type
 cleartext_type ty =
   case ty of
     -- WF-Loc
