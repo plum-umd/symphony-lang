@@ -1156,7 +1156,7 @@ synBundleUnionHelper τ₁ τ₂ =
             q ← elabMode (union_m p₁ p₂)
             τ ←  (locty_join τ₁' τ₂')
             return  (SecT loc₂ (ISecT q τ))
-         _ →           typeError "synBundleUnionHelper: τ₂ is not a located bundle type'" $ frhs
+          _ →           typeError "synBundleUnionHelper: τ₂ is not a located bundle type'" $ frhs
               [ ("τ₂", pretty τ₁)
               ]
       _ →           typeError "synBundleUnionHelper: τ₁ is not a located bundle type'" $ frhs
