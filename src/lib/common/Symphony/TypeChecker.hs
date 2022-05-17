@@ -1258,7 +1258,7 @@ chkExpR e τ =
     bigM ← askL terModeScopeL
     -- Check it is well formed
     _ ← (wf_type τ m bigM)
-    \case
+    case e of
       LE eₗ        → chkL eₗ τ
       RE eᵣ        → chkR eᵣ τ
       NilE        → chkNil τ
