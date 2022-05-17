@@ -28,7 +28,7 @@ bindTLR tlr = case tlr of
   PrinTL ρds          → bindPrins ρds
   DeclTL _brec x τ    → bindDecl x τ
   DefnTL _brec x ψs e → bindDefn x ψs e
-  ImportTL path       → typeError "bindTLR: No imports should be allowed in top level tlr" $  frhs [ ("tlr", pretty tlr)]
+  ImportTL _       → typeError "bindTLR: No imports should be allowed in top level tlr" $  frhs [ ("tlr", pretty tlr)]
 
 bindDecl ∷ STACK ⇒ 𝕏 → Type → TLM ()
 bindDecl = bindTypeTL
@@ -295,7 +295,7 @@ chkNil ∷ STACK ⇒ Type → EM ()
 chkNil τ =
   case τ of
      -- Since the type is well formed, no subset check is needed
-    SecT _ (ListT τₜ)  → return ()
+    SecT _ (ListT _)  → return ()
     _  → typeError "chkNil: τ is not annotated correctly as a located list" $ frhs [ ("τ'", pretty τ)]
 
 -- T-Cons (t is the join of t' and t'')
@@ -315,7 +315,7 @@ synCons eₕ eₜ =
         join_t ← (ty_join τ τₜ)
         -- loc is a subset of em due to well formedness check, so we know to use loc
         return $ SecT loc $  ListT join_t
-      _ → typeError "synCons: eₜ is not a located list. It is of type " $ frhs
+      _ → typeError "synCons: eₜ is not a located list. It is of type τs" $ frhs
             [ ("eₜ'", pretty eₜ)
               , ("τs'", pretty τs)
             ]
@@ -377,7 +377,10 @@ synCase e ψes =
           ]
         τs ← mapM (synBind τ) ψes
         (joinList τs)
-
+      _ →  typeError "synCase: e is not a located type. It is of type τ" $ frhs
+            [ ("eₜ'", pretty eₜ)
+              , ("τ'", pretty τ)
+            ]
 -----------------
 --- Functions ---
 -----------------
@@ -407,18 +410,20 @@ chkLam self𝑂 ψs e τ =
                     m  ← askL terModeL
                     l₁ ← elabEMode $ effectMode η
                     l₂ ← elabEMode loc
+                    -- Since τ is well formed, we just need to check the locations ≢  m
                     guardErr (eq_mode m l₁) $
-                      typeError "chkLam: ⊢ₘ _ ˡ→ _ ; m ≢ l₁ in τ" $ frhs
+                      typeError "chkLam: m ≢ l₁ in τ = (t₁ -> l₂ t₂)@l₁" $ frhs
                       [ ("m", pretty m)
                       , ("l₁", pretty l₁)
                       , ("τ", pretty τ)
                       ]
                     guardErr (eq_mode m l₂) $
-                      typeError "chkLam: ⊢ₘ _ ˡ→ _ ; m ≢ l₂ in τ" $ frhs
+                      typeError  "chkLam: m ≢ l₂ in τ = (t₁ -> l₂ t₂)@l₁" $ frhs
                       [ ("m", pretty m)
                       , ("l₂", pretty l₂)
                       , ("τ", pretty τ)
                       ]
+                    -- Determines whether to check the lambda again with one less paramether
                     case ψs of
                       Nil → do
                         chkExp e τ₁₂
@@ -429,10 +434,9 @@ chkLam self𝑂 ψs e τ =
                       ψ :& ψs → do
                         bind ←  bindType τ₁₁ ψ
                         bind $ chkLam None ψs e τ₁₂
-
-
+      -- Function with a recursive version is same as function with none and the recursive function name boudned
       Some self → (bindTo self τ) (chkLam None ψs e τ)
-    _  → typeError "chkLam: Not annotated correctly" $ frhs [ ("τ'", pretty τ)]
+    _  → typeError "chkR: τ is not annotated correctly as a located function type" $ frhs [ ("τ'", pretty τ)]
 
 
 
@@ -450,20 +454,23 @@ synApp e₁ e₂ =
         m  ← askL terModeL
         l₁ ← elabEMode $ effectMode η
         l₂ ← elabEMode loc
+        -- Since τ₁ is well formed, we just need to check the locations ≢  m
         guardErr (eq_mode m l₁) $
-          typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
-            [ ("m", pretty m)
+          typeError "synApp: ⊢ₘ e₁ ˡ→ (t₁ -> l₂ t₂)@l₁ ; m ≢ l₁" $ frhs
+            [  ("e₁", pretty e₁)
+            ,  ("m", pretty m)
             , ("l", pretty l₁)
           ]
         guardErr (eq_mode l₁ l₂) $
-          typeError "synApp: ⊢ₘ _ ˡ→ _ ; m ≢ l₂" $ frhs
-          [ ("m", pretty m)
-          , ("l", pretty l₂)
+          typeError "synApp: ⊢ₘ e₁ ˡ→ (t₁ -> l₂ t₂)@l₁ ; m ≢ l₂" $ frhs
+            [  ("e₁", pretty e₁)
+            ,  ("m", pretty m)
+            , ("l", pretty l₁)
           ]
         _ ← chkExp e₂ τ₁₁
 
         return τ₁₂
-      _ → typeError "synApp: τ₁ ≢ (_ → _)@_" $ frhs
+      _ → typeError "synApp: ⊢ₘ e₁ ˡ→ τ₁ which is not a function"  $ frhs
           [ ("τ₁", pretty τ₁)
           ]
 
@@ -477,6 +484,7 @@ synRead τ e =
   in do
     m ← askL terModeL
     em ← elabMode m
+    -- Takes a type with no locations
     τ' ← makeCleartextType em τ False
     τ'' ← c
     _ ← case m of
@@ -484,8 +492,7 @@ synRead τ e =
       AddAny m'  → do
                     guardErr ( (map psize m') ≡ (AddTop 1)) $
                       typeError "synRead: ⊢ₘ ; |m| ≢  1" $ frhs
-                        [ ("m", pretty m)
-                        ]
+                        [  ("m", pretty m)]
                     return ()
 
     case τ'' of
@@ -493,12 +500,15 @@ synRead τ e =
         do
           l ← elabEMode loc
           guardErr (eq_mode m l) $
-            typeError "synRead: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
-              [ ("m", pretty m)
-                , ("l", pretty l)
+            typeError "synRead: ⊢ₘ  e ˡ→ 𝕊@l ; m ≢ l" $ frhs
+              [ ("e", pretty e)
+              , ("m", pretty m)
+              , ("l", pretty l)
               ]
           return τ'
-      _ →  typeError "synRead: ; e not a string" (frhs [("e", pretty e)])
+      _ →  typeError "synRead: ⊢ₘ  e ˡ→ τ which is not a located string" (frhs 
+      [ ("τ", pretty τ)  
+      , ("e", pretty e)])
 
 
 
@@ -508,39 +518,48 @@ synWrite e₁ e₂ =
       c₂ = synExp e₂
   in do
     m ← askL terModeL
-    τ ← c₁
-    τ' ← c₂
+    τ₁ ← c₁
+    τ₂ ← c₂
     _ ← case m of
       Any → return ()
       AddAny m'  → do
                     guardErr ( (map psize m') ≡ (AddTop 1)) $
                       typeError "synWrite: ⊢ₘ ; |m| ≢  1" $ frhs
-                        [ ("m", pretty m)
-                        ]
+                        [ ("m", pretty m)]
                     return ()
-    case τ of
-      (SecT loc bτ)  → do
-          l₁ ← elabEMode loc
+    case τ₁ of
+      (SecT loc₁ _)  → do
+          l₁ ← elabEMode loc₁
           guardErr (eq_mode m l₁) $
-            typeError "synWRite: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
+            typeError "synWrite: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
               [ ("m", pretty m)
                 , ("l", pretty l₁)
               ]
-          case τ' of
-            (SecT loc' (BaseT 𝕊T))  → do
-                                      l₂ ← elabEMode loc'
+          case τ₂ of
+            (SecT loc₂ (BaseT 𝕊T))  → do
+                                      l₂ ← elabEMode loc₂
                                       guardErr (eq_mode m l₂) $
-                                        typeError "synWRite: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
-                                          [ ("m", pretty m), ("l", pretty l₂)]
+                                        typeError "synWrite: ⊢ₘ  e₂ ˡ→ 𝕊@l₂ ; m ≢ l₂" $ frhs
+                                          [ ("e₂", pretty e₂)
+                                          , ("m", pretty m₂)
+                                          , ("l₂", pretty l₂)
+                                          ]
                                       return τ
-            _ →  typeError "synWrite: ; e not a string" (frhs [("e", pretty e₂)])
-      _ →  typeError "synWrite: ; e not a basetype" (frhs [("e", pretty e₁)])
+            _ →   typeError "synWrite: ⊢ₘ  e₂ ˡ→ τ₂ which is not a located string" (frhs 
+                  [ ("τ₂", pretty τ₂)  
+                  , ("e₂", pretty e₂)])
+
+      _ →   typeError "synWrite: ⊢ₘ  e ˡ→ τ which is not a located type" (frhs 
+      [ ("τ₁", pretty τ)  
+      , ("e₁", pretty e)])
+
 
 
 -------------------
 --- Type Annotations ---
 -------------------
 
+-- Does a check and returns the type
 synAscr :: STACK ⇒ Exp → Type →  EM Type
 synAscr e τ = do
   _ ← (chkExp e τ)
@@ -572,21 +591,21 @@ synRefRead e =
     τ ← c
     case τ of
       -- None is subtype
-      -- Writes are also read only
+      -- Writes are also read only so we do not need to care about the reference mode
       (SecT loc (RefT _ τ'))  → do
         m  ← askL terModeL
         l ← elabEMode loc
-        --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
         guardErr (eq_mode m l) $
-          typeError "synRefRead: m /≡ l" $ frhs
-          [ ("m", pretty m)
-          , ("l", pretty l)
-          ]
+          typeError "synRefRead:  ⊢ₘ  e ˡ→ ref@l ; m ≢ l" $ frhs
+                                          [ ("e", pretty e)
+                                          , ("m", pretty m)
+                                          , ("l", pretty l)
+                                          ]
         return τ'
-      _  → typeError "synRefRead: τ is not a located reference" $ frhs
-          [ ("τ", pretty τ)
-
-          ]
+      _  → typeError "synRefRead:  ⊢ₘ  e ˡ→ τ which is not a located reference type" $ frhs
+                                          [ ("e", pretty e)
+                                          , ("τ", pretty τ)
+                                          ]
 
 
 --  |-m e1 : (ref RW#m t)@m
@@ -606,16 +625,24 @@ synRefWrite e₁ e₂ =
         l₁₁ ← elabEMode loc₁₁
         l₁₂ ← elabEMode loc₁₂
         -- Does this due to reflexivity of sub-refl
-        guardErr ((eq_mode m l₁₁) ⩓ (eq_mode m l₁₂)) $
-          typeError "synRefWrite: m /≡ l₁₁ or  m /≡ l₁₂" $ frhs
-          [ ("m", pretty m)
-          , ("l₁₁", pretty l₁₁)
-          , ("l₁₂", pretty l₁₂)
-          ]
+        guardErr (eq_mode m l₁₁) $
+          typeError "synRefWrite:  ⊢ₘ  e₁ ˡ→ ref#l₁₂@l₁₁ ; m ≢ ll₁₁" $ frhs
+                                          [ ("e₁", pretty e₁)
+                                          , ("m", pretty m)
+                                          , ("l₁₁", pretty l)
+                                          ]
+        guardErr (eq_mode m l₁₂) $
+          typeError "synRefWrite:  ⊢ₘ  e₁ ˡ→ ref#l₁₂@l₁₁ ; m ≢ l₁₂" $ frhs
+                                          [ ("e₁", pretty e₁)
+                                          , ("m", pretty m)
+                                          , ("l₁₂", pretty l)
+                                          ]
         (ty_join  τ₁' τ₂)
 
-      _ → typeError "synRefWrite: τ₁ is not a located reference" $ frhs
-           [ ("τ₁", pretty τ₁)]
+      _ → typeError "synRefWrite:  ⊢ₘ  e₁ ˡ→ τ which is not a located writeable reference type" $ frhs
+                                          [ ("e₁", pretty e₁)
+                                          , ("τ₁", pretty τ₁)
+                                          ]
 
 --  |-m e1  nat@m
 -- |- m e2 t
@@ -629,18 +656,21 @@ synArray e₁ e₂ =
     τ₁  ← c₁
     τ₂ ← c₂
     case τ₁ of
-      (SecT loc (BaseT (ℕT _)))  → do
+      (SecT loc₁ (BaseT (ℕT _)))  → do
         m  ← askL terModeL
-        l ← elabEMode loc
+        l₁ ← elabEMode loc₁
         em ← elabMode m
-        guardErr (eq_mode m l) $
-          typeError "synArray: m /≡ l" $ frhs
-          [ ("m", pretty m)
-          , ("l", pretty l)
-          ]
+        guardErr (eq_mode m l₁) $
+          typeError "syArray: ⊢ₘ  e₁ ˡ→ ℕ@l₁ ; m ≢ l₁" $ frhs
+            [ ("e₁", pretty e₁)
+            , ("m", pretty m)
+            , ("l₁", pretty l₁)
+            ]
         return $ SecT em (ArrT (Some em) τ₂)
-      _  →  typeError "synArray: τ₁ is not a located natural number" $ frhs
-              [ ("τ₁", pretty τ₁)]
+      _  →    typeError "syArray: ⊢ₘ  e₁ ˡ→  τ₁ ; τ₁ is not a located natural number" $ frhs
+            [ ("e₁", pretty e₁)
+            , ("τ₁", pretty τ₁)
+            ]
 
 
 --  |-m e1 : (arr RO _ t)@m (every array is RO)
@@ -660,27 +690,30 @@ synArrayRead e₁ e₂ =
         l₁ ← elabEMode loc₁
         --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
         guardErr (eq_mode m l₁) $
-          typeError "synArrayRead: m /≡ l₁" $ frhs
-          [ ("m", pretty m)
-          , ("l₁", pretty l₁)
-          ]
+          typeError "synArrayRead:  ⊢ₘ  e₁ ˡ→ arr@l₁ ; m ≢ l₁" $ frhs
+                                          [ ("e₁", pretty e₁)
+                                          , ("m", pretty m)
+                                          , ("l", pretty l₁)
+                                          ]
 
         case τ₂ of
           (SecT loc₂ (BaseT (ℕT _)))  → do
             l₂ ← elabEMode loc₂
-            em ← elabMode m
             guardErr (eq_mode m l₂) $
-              typeError "synArray: m /≡ l" $ frhs
-              [ ("m", pretty m)
-                , ("l₂", pretty l₂)
-              ]
+               typeError "synArrayRead:  ⊢ₘ  e₂ ˡ→ ℕ@l ; m ≢ l₂" $ frhs
+                                          [ ("e₂", pretty e₂)
+                                          , ("m", pretty m)
+                                          , ("l₂", pretty l₂)
+                                          ]
             return τ₁'
-          _  →  typeError "synArrayRead: τ₂ is not a located natural number" $ frhs
-              [ ("τ₂", pretty τ₂)]
-      _  →  typeError "synArrayRead: τ₁ is not a located array" $ frhs
-          [ ("τ₁", pretty τ₁)
-
-          ]
+          _  →  typeError "synArrayRead:  ⊢ₘ  e₂ ˡ→ τ₂ which is not a located natural" $ frhs
+                                          [ ("e₂", pretty e₂)
+                                          , ("τ₂", pretty τ₂)
+                                          ]
+        _  →   typeError "synArrayRead:  ⊢ₘ  e₁ ˡ→ τ₁ which is not a located array" $ frhs
+                                          [ ("e₁", pretty e₁)
+                                          , ("τ₁", pretty τ₁)
+                                          ]
 
 
 --  |-m e1 : (arr RW#m t)@m
@@ -704,28 +737,35 @@ synArrayWrite e₁ e₂ e₃ =
         l₁₁ ← elabEMode loc₁₁
         l₁₂ ← elabEMode loc₁₂
         --  dont need subcond  ←  (subtype τ (SecT m (ArrT _ t')))
-        guardErr ((eq_mode m l₁₁) ⩓ (eq_mode m l₁₂)) $
-          typeError "synRefWrite: m /≡ l₁₁ or  m /≡ l₁₂" $ frhs
-          [ ("m", pretty m)
-          , ("l₁₁", pretty l₁₁)
-          , ("l₁₂", pretty l₁₂)
-          ]
+        guardErr (eq_mode m l₁₁) $
+          typeError "synArrayWrite:  ⊢ₘ  e₁ ˡ→ arr#l₁₂@l₁₁ ; m ≢ ll₁₁" $ frhs
+                                          [ ("e₁", pretty e₁)
+                                          , ("m", pretty m)
+                                          , ("l₁₁", pretty l)
+                                          ]
+        guardErr (eq_mode m l₁₂) $
+          typeError "synArrayWrite:  ⊢ₘ  e₁ ˡ→ arr#l₁₂@l₁₁ ; m ≢ l₁₂" $ frhs
+                                          [ ("e₁", pretty e₁)
+                                          , ("m", pretty m)
+                                          , ("l₁₂", pretty l)
+                                          ]
         case τ₂ of
           (SecT loc₂ (BaseT (ℕT _)))  → do
             l₂ ← elabEMode loc₂
-            em ← elabMode m
             guardErr (eq_mode m l₂) $
               typeError "synArrayWrite: m /≡ l₂" $ frhs
                 [ ("m", pretty m)
                   , ("l₂", pretty l₂)
                 ]
             (ty_join  τ₁' τ₃)
-          _  → typeError "synRefRead: τ₂ is not a located natural number" $ frhs
-                [ ("τ₂", pretty τ₂ )]
-      _  →  typeError "synArrayRead: τ₁ is not a located array" $ frhs
-          [ ("τ₁", pretty τ₁)
-
-          ]
+          _  →  typeError "synArrayWrite:  ⊢ₘ  e₂ ˡ→ τ₂ which is not a located natural" $ frhs
+                                          [ ("e₂", pretty e₂)
+                                          , ("τ₂", pretty τ₂)
+                                          ]
+      _  →   typeError "synArrayWrite:  ⊢ₘ  e₁ ˡ→ τ₁ which is not a located array" $ frhs
+                                          [ ("e₁", pretty e₁)
+                                          , ("τ₁", pretty τ₁)
+                                          ]
 
 --  |-m e1 : (arr RO t)@m (Any array)
 -- ------T-Size
@@ -736,21 +776,22 @@ synArraySize e =
   in do
     τ ← c
     case τ of
-      SecT loc (ArrT _ τ')  → do
+      SecT loc (ArrT _ _)  → do
           m  ← askL terModeL
           l ← elabEMode loc
-          em ← elabMode m
           --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
           guardErr (eq_mode m l) $
-            typeError "synArraySize: m /≡ l" $ frhs
-            [ ("m", pretty m)
+            typeError "synArraySize:  e₁ ˡ→ arr@l; m /≡ l" $ frhs
+            [  ("e₁ ", pretty e₁ )
+              ("m", pretty m)
             , ("l", pretty l)
             ]
           return (SecT em (BaseT (ℕT iprDefault)))
-      _ →  typeError "synArrayRead: τ is not a located array" $ frhs
-          [ ("τ", pretty τ)
-
-          ]
+                                              ]
+      _  →   typeError "synArraySize:  ⊢ₘ  e ˡ→ τ which is not a located array" $ frhs
+                                          [ ("e", pretty e)
+                                          , ("τ", pretty τ)
+                                          ]
 
 
 -----------
@@ -766,7 +807,7 @@ synPar ρse₁ e₂ =
   let c₁ = synPrinSet ρse₁
       c₂ = synExp e₂
   in do
-    t₁ ← c₁
+    _ ← c₁
     m  ← askL terModeL
     l ← elabEMode (AddTop ρse₁)
     let m' = inter_m m l
@@ -785,7 +826,7 @@ chkPar ρse₁ e₂ τ=
   let c₁ = synPrinSet ρse₁
       c₂ = synExp e₂
   in do
-    t₁ ← c₁
+    _ ← c₁
     m  ← askL terModeL
     l ← elabEMode (AddTop ρse₁)
     let m' = inter_m m l
@@ -800,7 +841,7 @@ chkPar ρse₁ e₂ τ=
       return ()
     else do
       bigM ← askL terModeScopeL
-      wfcond ← (wf_type τ  (AddAny (AddTop pø)) bigM)
+      _ ← (wf_type τ  (AddAny (AddTop pø)) bigM)
       return ()
 
 --  |-m e : cleartext type @p
@@ -812,62 +853,61 @@ synShare φ τ ρse₁ ρse₂ e₃ =
   let c₁ = synPrinSet ρse₁
       c₂ = synPrinSet ρse₂
       in do
-        t₁ ← c₁
-        t₂ ← c₂
+        _ ← c₁
+        _ ← c₂
         m  ← askL terModeL
-        -- Literally this line is the only line that needs to change
         p ←  elabEMode (AddTop (ρse₁))
         qs ← elabPrinSetExp ρse₂
         q ←  elabEMode (AddTop ρse₂)
         _ <-  case qs of
-              (Inl qs) → do
-                          guardErr (not (isEmpty  qs)) $
-                            typeError "synShare: q is empty" $ frhs
-                              [  ("q", pretty qs)
+              (Inl inner_qs) → do
+                          guardErr (not (isEmpty  inner_qs)) $
+                            typeError "synShare: share[p -> q] e is not well typed: q is empty" $ frhs
+                              [  ("q", pretty inner_qs)
                               ]
                           return ()
               _  → return ()
 
-              -- And this line
+         -- Makes a cleartext version of the given type without locations
         cleartextτ ← (makeCleartextType (AddTop ρse₁) τ False)
-      --  wfcond ← wf_type cleartextτ m
-        subcond  ←  localL terModeL m (chkExp e₃ cleartextτ)
+        _ ←  localL terModeL m (chkExp e₃ cleartextτ)
         guardErr (eq_mode (union_m p q)  m ) $
-          typeError "synShare: p union q /= m" $ frhs
+          typeError "synShare: ⊢ₘ  share[p -> q] e is not well typed: p union q /= m" $ frhs
             [
               ("p", pretty p)
               , ("q", pretty q)
               , ("puq", pretty (union_m p q))
               , ("m", pretty m)
             ]
-
+        -- Returns an encrypted version (with array mode changed) of the given type without locations
         (makeEncryptedType (AddTop ρse₂) φ τ True)
 
 ---  |-m e : encrypted by p type @p
 --  q != empty set since it is a principal and p union q = m
 -- ------T-Share
--- gamma |- m share[p -> q] e : cleartext type@ q
+-- gamma |- m reveal[p -> q] e : cleartext type@ q
 synReveal ∷ STACK ⇒ Prot → Type → PrinSetExp → PrinSetExp → Exp → EM Type
 synReveal φ τ ρse₁ ρse₂ e₃ =
   let c₁ = synPrinSet ρse₁
       c₂ = synPrinSet ρse₂
       in do
-        t₁ ← c₁
-        t₂ ← c₂
+        _ ← c₁
+        _ ← c₂
         m  ← askL terModeL
         p ←  elabEMode (AddTop ρse₁)
         q ←  elabEMode (AddTop ρse₂)
+         -- Makes an encrypted version of the given type without locations
         encryptedτ ← (makeEncryptedType (AddTop ρse₁) φ τ False)
-        subcond  ←  localL terModeL m (chkExp e₃ encryptedτ)
+        _  ←  localL terModeL m (chkExp e₃ encryptedτ)
         guardErr (eq_mode (union_m p q)  m ) $
-          typeError "synReveal: p union q /= m" $ frhs
+          typeError "synReveal: ⊢ₘ  reveal[p -> q] e is not well typed: p union q /= m" $ frhs
             [
               ("p", pretty p)
               , ("q", pretty q)
               , ("puq", pretty (union_m p q))
               , ("m", pretty m)
             ]
-
+         -- Returns a cleartext version (with array mode changed) of the given type without locations
         (makeCleartextType (AddTop ρse₂) τ True)
 
 
@@ -880,34 +920,32 @@ synComm τ ρse₁ ρse₂ e₃ =
   let c₁ = synPrinSet ρse₁
       c₂ = synPrinSet ρse₂
       in do
-        t₁ ← c₁
-        t₂ ← c₂
+        _ ← c₁
+        _ ← c₂
         m  ← askL terModeL
-        -- Literally this line is the only line that needs to change
         p ←  elabEMode (AddTop ρse₁)
         qs ← elabPrinSetExp ρse₂
         q ←  elabEMode (AddTop ρse₂)
         _ <-  case qs of
-                (Inl qs) → do
-                            guardErr (not (isEmpty  qs)) $
-                              typeError "syncOMM: q is empty" $ frhs
+                (Inl inner_qs) → do
+                            guardErr (not (isEmpty  inner_qs)) $
+                              typeError "syncComm: comm [p -> q] e is not well typed: q is empty" $ frhs
                               [ ("q", pretty qs)
                               ]
                             return ()
                 _  → return ()
 
-              -- And this line
         cleartextτ ← (makeCleartextType (AddTop ρse₁) τ False)
-      --  wfcond ← wf_type cleartextτ m
-        subcond  ←  localL terModeL m (chkExp e₃ cleartextτ)
+        _  ←  localL terModeL m (chkExp e₃ cleartextτ)
         guardErr (eq_mode (union_m p q)  m ) $
-          typeError "synComm: p union q /= m" $ frhs
+          typeError "synComm: share[p -> q] e is not well typed: p union q /= m" $ frhs
             [
               ("p", pretty p)
               , ("q", pretty q)
               , ("puq", pretty (union_m p q))
               , ("m", pretty m)
             ]
+        -- Returns a cleartext version (with array mode changed) of the given type without locations
         (makeCleartextType (AddTop ρse₂) τ True)
 
 -- If there is one but not all cleartext, all of them get converted to the same phi
@@ -932,26 +970,33 @@ synMuxIf e₁ e₂ e₃ =do
               (τ₁ :& (τ₂ :& (τ₃ :& Nil))) → do
                 subcond  ← (subtype τ₁ (SecT em (BaseT 𝔹T)) pø  )
                 guardErr subcond $
-                  typeError "synMuxIf: τ₁ is not a shared boolean" $ frhs
-                    [  ("τ₁", pretty τ₁)
-                    ]
+                  typeError "synMuxIf:  ⊢ₘ  e₁ ˡ→ τ₁ which is not a cleartext located boolean" $ frhs
+                                          [ ("e₁", pretty e)
+                                          , ("τ₁", pretty τ)
+                                          ]
                 (ty_join τ₂ τ₃)
+              _  → undefined 
         else
           case ps  of
-            ((p, loc) :& _) → do
+            ((p, _) :& _) → do
               guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (eq_mode l m)) ps)) $
-                typeError "synMuxIf: Not all protocols/encryptions are the same as p#loc" $ frhs
+                typeError "synMuxIf: Not all protocols/encryptions of  es' types  τs are the same as p#m" $ frhs
                   [ ("ρ", pretty p)
-                  , ("loc'", pretty m)
+                  , ("m'", pretty m)
+                  , ("τs", pretty τs)
+                  , ("es", pretty [e₁, e₂, e₃])
                   ]
               eτs ← (mapM (embedShare p em) τs )
               case eτs of
                 (τ₁ :& (τ₂ :& (τ₃ :& Nil))) → do
                   subcond  ← (subtype τ₁ (SecT em (ShareT p em (BaseT 𝔹T))) pø  )
                   guardErr subcond $
-                    typeError "synMuxIf: τ₁ is not a shared boolean" $ frhs
-                    [  ("τ₁", pretty τ₁)]
+                    typeError "synMuxIf:  ⊢ₘ  e₁ ˡ→ τ₁ which is not a shared located boolean" $ frhs
+                                  [ ("e₁", pretty e)
+                                  , ("τ₁", pretty τ)
+                                  ]
                   (ty_join τ₂ τ₃)
+                 _  → undefined 
 
 -- If there is one but not all cleartext, all of them get converted to the same phi
 -- Exceot us the furst
@@ -969,7 +1014,6 @@ synMuxCase e ψes =do
   let c = synExp e in do
     τ  ← c
     m ← askL terModeL
-    em ← elabMode m
     τs' ← mapM (synBind τ) ψes
     let τs = (τ :& τs') in do
       _ ← (mapM assertShareable τs)
@@ -982,15 +1026,18 @@ synMuxCase e ψes =do
           case τ of
             (SecT em (ShareT _ _ _ )) →
               case ps  of
-                ((p, loc) :& _) → do
+                ((p, _) :& _) → do
                   guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (eq_mode l m)) ps)) $
-                    typeError "synMuxCase: Not all protocols/encryptions are the same as p#loc" $ frhs
+                    typeError "synMuxCase: Not all protocols/encryptions of es' types  τs are the same as p#m" $ frhs
                       [ ("ρ", pretty p)
-                      , ("loc'", pretty m)
+                      , ("m'", pretty m)
+                      , ("τs", pretty τs)
+                      , ("es", pretty [e₁, e₂, e₃])
                       ]
                   eτs' ← (mapM (embedShare p em) τs' )
                   (joinList eτs')
-            _ → typeError "synMuxCase: The first expression e of type τ is cleartext while the some of all of the bodies is not" $ frhs
+                _  → undefined
+            _ → typeError "synMuxCase: The case expression's guard expression e of type τ is cleartext while the some of all of the bodies is not" $ frhs
                   [ ("e", pretty e)
                   , ("τ", pretty τ)
                   ]
@@ -1009,7 +1056,7 @@ synBundleIntro (pe :* e) =
           p ←  elabEMode (AddTop (PowPSE (frhs [pe])))
           p' ← elabEMode loc
           guardErr (p ≡ p') $
-            typeError "synBundleIntro: p /≡ p'" $ frhs
+            typeError "synBundleIntro: ⊢ₘ e → _@p'; <e, p> is not well typed: p /≡ p'" $ frhs
               [ ("p", pretty p)
               , ("p'", pretty p')
               ]
@@ -1022,26 +1069,28 @@ synBundle ρee𝐿 =
     τs ← (mapM synBundleIntro ρee𝐿)
     case τs of
       (τ :& τs') → (mfold τ synBundleUnionHelper τs')
-      _ → todoError
+      _ →   typeError "synBundle: An bundle with the empty list ρee𝐿 was given which is not implemented" $ frhs
+              [ ("ρee𝐿", pretty ρee𝐿)
+              ]
 
 synBundleAccess ∷ STACK ⇒ Exp → PrinExp → EM Type
 synBundleAccess e₁ ρe₂ =
   let c₁ = synExp e₁
       c₂ = synPrinExp ρe₂
   in do
-    τ₁ ← c₁
-    τ₂ ← c₂
+    _ ← c₁
+    _ ← c₂
     guardErr (isEmbedable τ₁) $
-      typeError "synBundleAccess: τ₁ is not a common cleartext type'" $ frhs
-      [ ("τ₁", pretty τ₁)
+      typeError "synBundleAccess: ⊢ₘ e₁ ˡ→ τ₁ which is not a embedable cleartext type'" $ frhs
+      [ ("e₁", pretty τ₁)
+      , ("τ₁", pretty τ₁)
       ]
     case τ₁ of
       (SecT loc₁ (ISecT loc₁' τ₁'))  → do
         m  ← askL terModeL
         l₁ ← elabEMode loc₁
-        --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
         guardErr (eq_mode m l₁) $
-          typeError "synBundleAccess: m /≡ l" $ frhs
+          typeError "synBundleAccess: e₁ ˡ→ bundle#τ@q@l, m /≡ l" $ frhs
           [ ("m", pretty m)
           , ("l", pretty l₁)
           ]
@@ -1049,7 +1098,7 @@ synBundleAccess e₁ ρe₂ =
           q ← elabEMode loc₁'
           p ←  elabEMode (AddTop (PowPSE (frhs [ρe₂])))
           guardErr (supermode q p)  $
-            typeError "synBundleAccess: not p <= q" $ frhs
+            typeError "synBundleAccess: BundleAcces e₁ p; e₁ ˡ→ bundle#τ@q@l: not p is not a subset of q" $ frhs
             [ ("p", pretty p)
               , ("q", pretty q)
             ]
@@ -1070,39 +1119,47 @@ synBundleUnionHelper τ₁ τ₂ =
 
     case τ₁ of
       (SecT loc₁ (ISecT loc₁' τ₁'))  → do
-        guardErr (isEmbedable τ₁) $
-          typeError "synBundleAccess: τ₁' is not a common cleartext type'" $ frhs
+        guardErr (isEmbedable τ₁') $
+          typeError "synBundleUnionHelper: ⊢ₘ τ₁ = bundle#τ₁'@p@l, where τ₁' is not a embedable cleartext type'" $ frhs
             [ ("τ₁'", pretty τ₁')
             ]
         m  ← askL terModeL
         l₁ ← elabEMode loc₁
-        --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
         guardErr (m ≡ l₁) $
-          typeError "synBundle: m /≡ l" $ frhs
-          [ ("m", pretty m)
+          typeError "synBundleUnionHelper: τ₁ = bundle#τ₁'@p@l,m /≡ l" $ frhs
+          [ ("τ₁", pretty τ₁)
+          , ("m", pretty m)
           , ("l", pretty l₁)
           ]
         case τ₂ of
           (SecT loc₂ (ISecT loc₂' τ₂'))  → do
+            guardErr (isEmbedable τ₂') $
+              typeError "synBundleUnionHelper: ⊢ₘ τ₂ = bundle#τ₁'@p@l, where τ₁' is not a embedable cleartext type'" $ frhs
+              [ ("τ₂'", pretty τ₂')
+              ]
             l₂ ← elabEMode loc₂
-            em ← elabMode m
             guardErr (m ≡ l₂) $
-              typeError "synBundle: m /≡ l" $ frhs
-              [ ("m", pretty m)
+              typeError "synBundleUnionHelper: τ₂ = bundle#τ₁'@p@l,m /≡ l" $ frhs
+              [ ("τ₂", pretty τ₂')
+                , ("m", pretty m)
                 , ("l", pretty l₂)
               ]
             p₁ ← elabEMode loc₁'
             p₂ ← elabEMode loc₂'
             guardErr (inter_m p₁ p₂ ≡ (AddAny (AddTop bot))) $
-              typeError "synBundle: p₁ ⊓ p₂ ≢  bot" $ frhs
+              typeError "synBundleUnionHelper:  τ₁ = bundle#τ₁'@p₁@l,; τ₂ = bundle#τ₁'@p₂@l; p₁ ⊓ p₂ ≢  bot" $ frhs
               [ ("p₁", pretty p₁)
-                , ("p₂", pretty p₂)
+                , ("p₂", pretty p₂)\
+                  ("τ₁'", pretty τ₁')
+                , ("τ₂", pretty τ₂)
               ]
             q ← elabMode (union_m p₁ p₂)
             τ ←  (locty_join τ₁' τ₂')
             return  (SecT loc₂ (ISecT q τ))
-        
-      _ →           typeError "synBundleAccess: τ₁ is not a bundle type'" $ frhs
+         _ →           typeError "synBundleUnionHelper: τ₂ is not a located bundle type'" $ frhs
+              [ ("τ₂", pretty τ₁)
+              ]
+      _ →           typeError "synBundleUnionHelper: τ₁ is not a located bundle type'" $ frhs
               [ ("τ₁", pretty τ₁)
               ]
 
@@ -1121,7 +1178,7 @@ chkFold e τ=
       substtype ←  type_subst a τ' τ
       _  ← chkExp e substtype
       return ()
-    _  → typeError "chkFold: Type is given is not a recursive type" $ frhs [ ("τ'", pretty τ)]
+    _  → typeError "chkFold: Type given τ is given is not a located recursive type" $ frhs [ ("τ'", pretty τ)]
 
 
 -- u = (mu alpha. t)
@@ -1135,7 +1192,9 @@ synUnfold e =
     τ ← c
     case τ of
       (RecT a τ')   →  (type_subst a τ' τ)
-      _  → typeError "synUnfold: Type given is not a recursive type" $ frhs [ ("τ'", pretty τ)]
+      _  → typeError "synUnfold: ⊢ₘ e ˡ→ τ which is not a recursive type" $ frhs 
+        [ (e, pretty e)
+        , ("τ'", pretty τ)]
 
 -------------------
 --- Universal Types ---
@@ -1170,7 +1229,7 @@ synTApp e τ =
     τ' ← c
     case τ' of
       (ForallT x τ₁') →  (type_subst x τ₁' τ)
-      _ → typeError " e has type τ' which is not a forall type " $ frhs
+      _ → typeError "synTApp: ⊢ₘ e ˡ→ τ which is not a forall type " $ frhs
             [ ("e", pretty e)
             , ("τ'", pretty τ')]
 
@@ -1202,7 +1261,7 @@ chkExpR e τ =
             τ' ← synExpR e
             subcond  ← (subtype τ' τ pø)
             guardErr subcond $
-              typeError "checkExpR: e has type τ' which is not a subtype of τ" $ frhs
+              typeError "chkExpR: synUnfold: ⊢ₘ e ˡ→ τ which is not a subtype of τ" $ frhs
               [ ("e", pretty e)
               , ("τ", pretty τ)
               , ("τ'", pretty τ')
