@@ -998,7 +998,7 @@ synMuxIf e₁ e₂ e₃ =do
                                   ]
                   (ty_join τ₂ τ₃)
                 _  → undefined 
-             _  → undefined 
+            _  → undefined 
 -- If there is one but not all cleartext, all of them get converted to the same phi
 -- Exceot us the furst
 -- T-Case (t is the join of t', t'', .... t'n)
