@@ -44,7 +44,7 @@ bindDefn x ψs e = asTLM $ do
     SecT _ (_ :→: (η :* _))   →
                   do
                     l₁ ← elabEMode $ effectMode η
-                    localL terModeL l₁ $ (checkLam (Some x) ψs e τ)
+                    localL terModeL l₁ $ (chkLam (Some x) ψs e τ)
     -- Otherwise it checks the function at top level
     _ →  (chkExp e τ)
 
@@ -265,8 +265,8 @@ synProd eₗ eᵣ =
 -- gamma |- m e : t |- m t' (already assumed since it is wellformed)
 -- ------T-Inj
 -- gamma |- m i1 e: (t + t')@m
-checkL ∷ STACK ⇒ Exp → Type → EM ()
-checkL eₗ τ  =
+chkL ∷ STACK ⇒ Exp → Type → EM ()
+chkL eₗ τ  =
   case τ of
     (SecT _ (τₗ  :+: _)) → do
       -- Since the type is well formed, no subset check is needed
@@ -277,8 +277,8 @@ checkL eₗ τ  =
 -- gamma |- m e : t |- m t' (already assumed since it is wellformed)
 -- ------T-Inj
 -- gamma |- m i2 e: (t' + t)@m
-checkR ∷ STACK ⇒ Exp → Type → EM ()
-checkR eᵣ τ  =
+chkR ∷ STACK ⇒ Exp → Type → EM ()
+chkR eᵣ τ  =
   case τ of
     -- Since the type is well formed, no subset check is needed
     (SecT _ (_  :+: τᵣ)) → do
@@ -312,6 +312,7 @@ synCons eₕ eₜ =
     τs ← cₜ
     case τs of
       SecT loc (ListT τₜ)  →  do
+        join_t ← (ty_join τ τₜ)
         -- loc is a subset of em due to well formedness check, so we know to use loc
         return $ SecT loc $  ListT join_t
       _ → typeError "synCons: eₜ is not a located list. It is of type " $ frhs
@@ -343,6 +344,13 @@ synIf e₁ e₂ e₃ =
           ]
     ty_join τ₂ τ₃
 
+-- (x|-> t1) union context |-m e : t2
+synBind ∷ STACK ⇒ Type → (Pat ∧ Exp) → EM Type
+synBind τ₁ (ψ :* e₂) =
+  let c₂ = synExp e₂
+  in do
+    f  ← bindType τ₁ ψ
+    f c₂
 
 -- T-Case (t is the join of t', t'', .... t'n)
 -- gamma |- m e : t_e@m' where m' <= m
@@ -1212,11 +1220,11 @@ synExpR e = case e of
 
   -- Literals--
   BulE        → synBul
-  BoolE b     → synBool b
-  NatE pr n   → synNat pr n
-  IntE pr z   → synInt pr z
-  FltE pr d   → synFlt pr d
-  StrE s      → synStr s
+  BoolE _     → synBool
+  NatE pr _   → synNat pr
+  IntE pr _   → synInt pr
+  FltE pr _   → synFlt pr
+  StrE _      → synStr
   PrinSetE es → synPrinSet es
   PrimE op es → synPrim op es
 
