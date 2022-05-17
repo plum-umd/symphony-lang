@@ -378,7 +378,7 @@ synCase e ψes =
         τs ← mapM (synBind τ) ψes
         (joinList τs)
       _ →  typeError "synCase: e is not a located type. It is of type τ" $ frhs
-            [ ("eₜ'", pretty eₜ)
+            [ ("e'", pretty e)
               , ("τ'", pretty τ)
             ]
 -----------------
@@ -541,17 +541,17 @@ synWrite e₁ e₂ =
                                       guardErr (eq_mode m l₂) $
                                         typeError "synWrite: ⊢ₘ  e₂ ˡ→ 𝕊@l₂ ; m ≢ l₂" $ frhs
                                           [ ("e₂", pretty e₂)
-                                          , ("m", pretty m₂)
+                                          , ("m", pretty m)
                                           , ("l₂", pretty l₂)
                                           ]
-                                      return τ
+                                      return τ₁
             _ →   typeError "synWrite: ⊢ₘ  e₂ ˡ→ τ₂ which is not a located string" (frhs 
                   [ ("τ₂", pretty τ₂)  
                   , ("e₂", pretty e₂)])
 
-      _ →   typeError "synWrite: ⊢ₘ  e ˡ→ τ which is not a located type" (frhs 
-              [ ("τ₁", pretty τ)  
-              , ("e₁", pretty e)])
+      _ →   typeError "synWrite: ⊢ₘ  e₁ˡ→ τ₁ which is not a located type" (frhs 
+              [ ("τ₁", pretty τ₁)  
+              , ("e₁", pretty e₁)])
 
 
 
@@ -629,13 +629,13 @@ synRefWrite e₁ e₂ =
           typeError "synRefWrite:  ⊢ₘ  e₁ ˡ→ ref#l₁₂@l₁₁ ; m ≢ ll₁₁" $ frhs
                                           [ ("e₁", pretty e₁)
                                           , ("m", pretty m)
-                                          , ("l₁₁", pretty l)
+                                          , ("l₁₁", pretty l₁₁)
                                           ]
         guardErr (eq_mode m l₁₂) $
           typeError "synRefWrite:  ⊢ₘ  e₁ ˡ→ ref#l₁₂@l₁₁ ; m ≢ l₁₂" $ frhs
                                           [ ("e₁", pretty e₁)
                                           , ("m", pretty m)
-                                          , ("l₁₂", pretty l)
+                                          , ("l₁₂", pretty l₁₂)
                                           ]
         (ty_join  τ₁' τ₂)
 
@@ -741,13 +741,13 @@ synArrayWrite e₁ e₂ e₃ =
           typeError "synArrayWrite:  ⊢ₘ  e₁ ˡ→ arr#l₁₂@l₁₁ ; m ≢ ll₁₁" $ frhs
                                           [ ("e₁", pretty e₁)
                                           , ("m", pretty m)
-                                          , ("l₁₁", pretty l)
+                                          , ("l₁₁", pretty l₁₁)
                                           ]
         guardErr (eq_mode m l₁₂) $
           typeError "synArrayWrite:  ⊢ₘ  e₁ ˡ→ arr#l₁₂@l₁₁ ; m ≢ l₁₂" $ frhs
                                           [ ("e₁", pretty e₁)
                                           , ("m", pretty m)
-                                          , ("l₁₂", pretty l)
+                                          , ("l₁₂", pretty l₁₂)
                                           ]
         case τ₂ of
           (SecT loc₂ (BaseT (ℕT _)))  → do
@@ -778,11 +778,12 @@ synArraySize e =
     case τ of
       SecT loc (ArrT _ _)  → do
           m  ← askL terModeL
+          em ← elabEMode m
           l ← elabEMode loc
           --  dont need subcond  ←  (subtype τ (SecT m (RefT t')))
           guardErr (eq_mode m l) $
-            typeError "synArraySize:  e₁ ˡ→ arr@l; m /≡ l" $ frhs
-            [  ("e₁ ", pretty e₁ )
+            typeError "synArraySize:  e ˡ→ arr@l; m /≡ l" $ frhs
+            [  ("e ", pretty e)
               ("m", pretty m)
             , ("l", pretty l)
             ]
@@ -971,8 +972,8 @@ synMuxIf e₁ e₂ e₃ =do
                 subcond  ← (subtype τ₁ (SecT em (BaseT 𝔹T)) pø  )
                 guardErr subcond $
                   typeError "synMuxIf:  ⊢ₘ  e₁ ˡ→ τ₁ which is not a cleartext located boolean" $ frhs
-                                          [ ("e₁", pretty e)
-                                          , ("τ₁", pretty τ)
+                                          [ ("e₁", pretty e₁)
+                                          , ("τ₁", pretty τ₁)
                                           ]
                 (ty_join τ₂ τ₃)
               _  → undefined 
@@ -992,8 +993,8 @@ synMuxIf e₁ e₂ e₃ =do
                   subcond  ← (subtype τ₁ (SecT em (ShareT p em (BaseT 𝔹T))) pø  )
                   guardErr subcond $
                     typeError "synMuxIf:  ⊢ₘ  e₁ ˡ→ τ₁ which is not a shared located boolean" $ frhs
-                                  [ ("e₁", pretty e)
-                                  , ("τ₁", pretty τ)
+                                  [ ("e₁", pretty e₁)
+                                  , ("τ₁", pretty τ₁)
                                   ]
                   (ty_join τ₂ τ₃)
                 _  → undefined 
@@ -1032,7 +1033,7 @@ synMuxCase e ψes =do
                       [ ("ρ", pretty p)
                       , ("m'", pretty m)
                       , ("τs", pretty τs)
-                      , ("es", pretty [e₁, e₂, e₃])
+                      , ("es", pretty es)
                       ]
                   eτs' ← (mapM (embedShare p em) τs' )
                   (joinList eτs')
@@ -1078,7 +1079,7 @@ synBundleAccess e₁ ρe₂ =
   let c₁ = synExp e₁
       c₂ = synPrinExp ρe₂
   in do
-    _ ← c₁
+    τ₁ ← c₁
     _ ← c₂
     guardErr (isEmbedable τ₁) $
       typeError "synBundleAccess: ⊢ₘ e₁ ˡ→ τ₁ which is not a embedable cleartext type'" $ frhs
@@ -1149,8 +1150,8 @@ synBundleUnionHelper τ₁ τ₂ =
             guardErr (inter_m p₁ p₂ ≡ (AddAny (AddTop bot))) $
               typeError "synBundleUnionHelper:  τ₁ = bundle#τ₁'@p₁@l,; τ₂ = bundle#τ₁'@p₂@l; p₁ ⊓ p₂ ≢  bot" $ frhs
               [ ("p₁", pretty p₁)
-                , ("p₂", pretty p₂)\
-                  ("τ₁'", pretty τ₁')
+                , ("p₂", pretty p₂)
+                ,  ("τ₁'", pretty τ₁')
                 , ("τ₂", pretty τ₂)
               ]
             q ← elabMode (union_m p₁ p₂)
@@ -1193,7 +1194,7 @@ synUnfold e =
     case τ of
       (RecT a τ')   →  (type_subst a τ' τ)
       _  → typeError "synUnfold: ⊢ₘ e ˡ→ τ which is not a recursive type" $ frhs 
-        [ (e, pretty e)
+        [ ("e", pretty e)
         , ("τ'", pretty τ)]
 
 -------------------
