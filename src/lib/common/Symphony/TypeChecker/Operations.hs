@@ -248,7 +248,7 @@ subtype_nonem_loc loctyS loctyT d = case loctyS of
 -- Check if tyS <: tyT
   -- d represents a set where if it contains (a,b) a = b or a <: b
 subtype_nonem :: STACK ⇒ Type → Type → 𝑃 (TVar, TVar) →  EM 𝔹
-subtype tyS tyT d = case tyS of
+subtype_nonem tyS tyT d = case tyS of
     -- sigma <: sigma' m ⊇ m'
   -- -------Sub-Loc
   -- sigma@m <: sigma'@m'
