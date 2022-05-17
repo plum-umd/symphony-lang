@@ -710,7 +710,7 @@ synArrayRead e₁ e₂ =
                                           [ ("e₂", pretty e₂)
                                           , ("τ₂", pretty τ₂)
                                           ]
-        _  →   typeError "synArrayRead:  ⊢ₘ  e₁ ˡ→ τ₁ which is not a located array" $ frhs
+      _  →   typeError "synArrayRead:  ⊢ₘ  e₁ ˡ→ τ₁ which is not a located array" $ frhs
                                           [ ("e₁", pretty e₁)
                                           , ("τ₁", pretty τ₁)
                                           ]
