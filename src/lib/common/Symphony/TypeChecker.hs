@@ -1372,7 +1372,7 @@ wf_typeTL τ = asTLM $
     -- the function that is bounded to the variable
     -- Based on WF-Loc and WF-Fun given m == m' based on the fact we want to type check
     -- this function later
-    SecT loc (τ₁₁ :→: (η :* τ₁₂))   →
+    SecT loc (_ :→: (η :* _))   →
                   do
                     l₁ ← elabEMode $ effectMode η
                     l₂ ← elabEMode loc
