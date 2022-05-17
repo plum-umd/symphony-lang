@@ -996,7 +996,7 @@ synMuxIf e₁ e₂ e₃ =do
                                   , ("τ₁", pretty τ)
                                   ]
                   (ty_join τ₂ τ₃)
-                 _  → undefined 
+                _  → undefined 
 
 -- If there is one but not all cleartext, all of them get converted to the same phi
 -- Exceot us the furst
