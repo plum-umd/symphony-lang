@@ -431,9 +431,9 @@ chkLam self𝑂 ψs e τ =
                         bind ←  bindType τ₁₁ ψ
                         bind $ chkExp e τ₁₂
 
-                      ψ :& ψs → do
+                      ψ :& tailψs → do
                         bind ←  bindType τ₁₁ ψ
-                        bind $ chkLam None ψs e τ₁₂
+                        bind $ chkLam None tailψs e τ₁₂
       -- Function with a recursive version is same as function with none and the recursive function name boudned
       Some self → (bindTo self τ) (chkLam None ψs e τ)
     _  → typeError "chkR: τ is not annotated correctly as a located function type" $ frhs [ ("τ'", pretty τ)]
@@ -998,7 +998,7 @@ synMuxIf e₁ e₂ e₃ =do
                                   ]
                   (ty_join τ₂ τ₃)
                 _  → undefined 
-
+             _  → undefined 
 -- If there is one but not all cleartext, all of them get converted to the same phi
 -- Exceot us the furst
 -- T-Case (t is the join of t', t'', .... t'n)
@@ -1025,7 +1025,8 @@ synMuxCase e ψes =do
           (joinList τs')
         else
           case τ of
-            (SecT em (ShareT _ _ _ )) →
+            (SecT em (ShareT _ _ _ )) 
+            →
               case ps  of
                 ((p, _) :& _) → do
                   guardErr (and (map (\(p', l) -> (p ≡ p') ⩓  (eq_mode l m)) ps)) $
@@ -1062,6 +1063,9 @@ synBundleIntro (pe :* e) =
               , ("p'", pretty p')
               ]
           return (SecT em (ISecT loc τ'))
+      _  → typeError "synBundleIntro: ⊢ₘ e → τ which is not a located type'" $ frhs
+              [ ("τ", pretty τ)
+              ]
 
 
 synBundle ∷ STACK ⇒ 𝐿 (PrinExp ∧ Exp) → EM Type
@@ -1104,6 +1108,9 @@ synBundleAccess e₁ ρe₂ =
               , ("q", pretty q)
             ]
           return (SecT (AddTop (PowPSE (frhs [ρe₂]))) τ₁')
+      _  → typeError "synBundleAccess: ⊢ₘ e → τ which is not a located bundle type'" $ frhs
+              [ ("τ", pretty τ)
+              ]
 
 synBundleUnion ∷ STACK ⇒ Exp → Exp → EM Type
 synBundleUnion e₁ e₂ =
@@ -1249,7 +1256,7 @@ chkExpR e τ =
     m  ← askL terModeL
     bigM ← askL terModeScopeL
     -- Check it is well formed
-    wfcond ← (wf_type τ m bigM)
+    _ ← (wf_type τ m bigM)
     case e of
       LE eₗ        → chkL eₗ τ
       RE eᵣ        → chkR eᵣ τ
@@ -1274,7 +1281,7 @@ synExp e = localL terSourceL (Some $ atag e) (synExpR (extract e))
 
 
 synExpR ∷ STACK ⇒ ExpR → EM Type
-synExpR e = case e of
+synExpR = \case
    -- Variables
   VarE x → synVar x
 
