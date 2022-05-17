@@ -268,17 +268,11 @@ synProd eₗ eᵣ =
 checkL ∷ STACK ⇒ Exp → Type → EM ()
 checkL eₗ τ  =
   case τ of
-    (SecT loc (τₗ  :+: _)) → do
-      m ← askL terModeL
-      l ← elabEMode loc
-      guardErr (supermode l m) $
-        typeError "CheckL: loc in the type given _@loc is not a superset of m" $ frhs
-          [ (" τ", pretty  τ)
-          , ("loc'", pretty loc)
-          ]
+    (SecT _ (τₗ  :+: _)) → do
+      -- Since the type is well formed, no subset check is needed
       _ ← chkExp eₗ τₗ
       return ()
-    _ → typeError "checkL: τ is not annotated correctly as a sumtype" $ frhs [ ("τ'", pretty τ)]
+    _ → typeError "chkL: τ is not annotated correctly as a located sumtype" $ frhs [ ("τ'", pretty τ)]
 
 -- gamma |- m e : t |- m t' (already assumed since it is wellformed)
 -- ------T-Inj
@@ -286,28 +280,23 @@ checkL eₗ τ  =
 checkR ∷ STACK ⇒ Exp → Type → EM ()
 checkR eᵣ τ  =
   case τ of
-    (SecT em (_  :+: τᵣ)) → do
-      m ← askL terModeL
-      l ← elabEMode loc
-      guardErr (supermode l m) $
-        typeError "CheckR: loc in the type given _@loc is not a superset of m" $ frhs
-          [ (" τ", pretty  τ)
-          , ("loc'", pretty loc)
-          ]
+    -- Since the type is well formed, no subset check is needed
+    (SecT _ (_  :+: τᵣ)) → do
       _ ← chkExp eᵣ τᵣ
       return ()
-    _ → typeError "checkR: τ is not annotated correctly as a sumtype" $ frhs [ ("τ'", pretty τ)]
+    _ → typeError "chkR: τ is not annotated correctly as a located sumtype" $ frhs [ ("τ'", pretty τ)]
 
 -- gamma |- m : t
 -- t = (list t') @m
 -- t is well formed in m
 -- --------
 -- gamma |- m (nil) : t
-checkNil ∷ STACK ⇒ Type → EM ()
-checkNil τ =
+chkNil ∷ STACK ⇒ Type → EM ()
+chkNil τ =
   case τ of
-    SecT em (ListT τₜ)  → return ()
-    x  → todoError
+     -- Since the type is well formed, no subset check is needed
+    SecT _ (ListT τₜ)  → return ()
+    _  → typeError "chkNil: τ is not annotated correctly as a located list" $ frhs [ ("τ'", pretty τ)]
 
 -- T-Cons (t is the join of t' and t'')
 -- gamma |- m e1 : t where t' <: t
@@ -322,12 +311,9 @@ synCons eₕ eₜ =
     τ  ← cₕ
     τs ← cₜ
     case τs of
-      SecT em' (ListT τₜ)  →  do
-        m ← askL terModeL
-        em ← elabMode m
-        join_t ← (ty_join τ  τₜ)
-        em'' ← (inter_em em' em)
-        return $ SecT em'' $  ListT join_t
+      SecT loc (ListT τₜ)  →  do
+        -- loc is a subset of em due to well formedness check, so we know to use loc
+        return $ SecT loc $  ListT join_t
       _ → typeError "synCons: eₜ is not a located list. It is of type " $ frhs
             [ ("eₜ'", pretty eₜ)
               , ("τs'", pretty τs)
@@ -351,7 +337,7 @@ synIf e₁ e₂ e₃ =
     em  ← elabMode m
     subcond ← subtype τ₁ (SecT em (BaseT 𝔹T)) pø
     guardErr subcond $
-      typeError "synIf: e₁ is not of type bool @ m" $ frhs
+      typeError "synIf: e₁ is not a subtype of type bool @ m" $ frhs
           [ ("m", pretty m),
             ("e₁", pretty e₁)
           ]
@@ -369,8 +355,8 @@ synCase e ψes =
   let c = synExp e
   in do
     τ  ← c
+    _  ← cleartext_type τ
     case τ of
-      (SecT loc (ShareT _ _ _)) → todoError
       (SecT loc _) → do
         m ← askL terModeL
         l ← elabEMode loc
@@ -401,8 +387,8 @@ synLet ψ e₁ e₂ =
 -- z|-> (t1 m -> t2)@m, x|-> t1) union context |-m e t2
 -- ------T-Lam
 -- gamma |- m lambda z x .e : (t1 m -> t2 )@m
-checkLam ∷ STACK ⇒ 𝑂 Var → 𝐿 Pat → Exp →  Type → EM ()
-checkLam self𝑂 ψs e τ =
+chkLam ∷ STACK ⇒ 𝑂 Var → 𝐿 Pat → Exp →  Type → EM ()
+chkLam self𝑂 ψs e τ =
   case τ of
     SecT loc (τ₁₁ :→: (η :* τ₁₂))   →
       case self𝑂 of
@@ -412,13 +398,13 @@ checkLam self𝑂 ψs e τ =
                     l₁ ← elabEMode $ effectMode η
                     l₂ ← elabEMode loc
                     guardErr (eq_mode m l₁) $
-                      typeError "checkLam: ⊢ₘ _ ˡ→ _ ; m ≢ l₁ in τ" $ frhs
+                      typeError "chkLam: ⊢ₘ _ ˡ→ _ ; m ≢ l₁ in τ" $ frhs
                       [ ("m", pretty m)
                       , ("l₁", pretty l₁)
                       , ("τ", pretty τ)
                       ]
                     guardErr (eq_mode m l₂) $
-                      typeError "checkLam: ⊢ₘ _ ˡ→ _ ; m ≢ l₂ in τ" $ frhs
+                      typeError "chkLam: ⊢ₘ _ ˡ→ _ ; m ≢ l₂ in τ" $ frhs
                       [ ("m", pretty m)
                       , ("l₂", pretty l₂)
                       , ("τ", pretty τ)
@@ -432,11 +418,11 @@ checkLam self𝑂 ψs e τ =
 
                       ψ :& ψs → do
                         bind ←  bindType τ₁₁ ψ
-                        bind $ checkLam None ψs e τ₁₂
+                        bind $ chkLam None ψs e τ₁₂
 
 
-      Some self → (bindTo self τ) (checkLam None ψs e τ)
-    _  → typeError "checkLam: Not annotated correctly" $ frhs [ ("τ'", pretty τ)]
+      Some self → (bindTo self τ) (chkLam None ψs e τ)
+    _  → typeError "chkLam: Not annotated correctly" $ frhs [ ("τ'", pretty τ)]
 
 
 
@@ -784,8 +770,8 @@ synPar ρse₁ e₂ =
       -- Default value
       return $ SecT (AddTop (PowPSE empty𝐿))  (BaseT UnitT)
 
-checkPar ∷ STACK ⇒  PrinSetExp → Exp → Type → EM ()
-checkPar ρse₁ e₂ τ=
+chkPar ∷ STACK ⇒  PrinSetExp → Exp → Type → EM ()
+chkPar ρse₁ e₂ τ=
   let c₁ = synPrinSet ρse₁
       c₂ = synExp e₂
   in do
@@ -797,7 +783,7 @@ checkPar ρse₁ e₂ τ=
       τ' ← localL terModeL m' c₂
       subcond  ← subtype τ' τ pø
       guardErr subcond $
-        typeError "checkPar: τ' is not a subtype of τ" $ frhs
+        typeError "chkPar: τ' is not a subtype of τ" $ frhs
           [ ("τ'", pretty τ')
           , ("τ", pretty τ)
           ]
@@ -1118,14 +1104,14 @@ synBundleUnionHelper τ₁ τ₂ =
 -- gamma |- m e : [(mu alpha. t)/ alpha] t
 -- ------T-Fold
 -- gamma |- fold [u] x : u
-checkFold ∷ STACK ⇒ Exp → Type → EM ()
-checkFold e τ=
+chkFold ∷ STACK ⇒ Exp → Type → EM ()
+chkFold e τ=
  case τ of
     (RecT a τ')   →  do
       substtype ←  type_subst a τ' τ
       _  ← chkExp e substtype
       return ()
-    _  → typeError "checkFold: Type is given is not a recursive type" $ frhs [ ("τ'", pretty τ)]
+    _  → typeError "chkFold: Type is given is not a recursive type" $ frhs [ ("τ'", pretty τ)]
 
 
 -- u = (mu alpha. t)
@@ -1195,13 +1181,12 @@ chkExpR e τ =
     -- Check it is well formed
     wfcond ← (wf_type τ m bigM)
     case e of
-      LE eₗ        → checkL eₗ τ
-      RE eᵣ        → checkR eᵣ τ
-      NilE        → checkNil τ
-      LamE self𝑂 ψs e → checkLam self𝑂 ψs e τ
-      ParE ρse₁ e₂ → checkPar ρse₁ e₂ τ
-      FoldE e → checkFold e τ
-      --UnfoldE e → synUnfold e
+      LE eₗ        → chkL eₗ τ
+      RE eᵣ        → chkR eᵣ τ
+      NilE        → chkNil τ
+      LamE self𝑂 ψs e → chkLam self𝑂 ψs e τ
+      ParE ρse₁ e₂ → chkPar ρse₁ e₂ τ
+      FoldE e → chkFold e τ
       _ →
           do
             τ' ← synExpR e

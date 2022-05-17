@@ -123,36 +123,6 @@ embedShare φ l τ =
 -- If it's well formed, the first two are uncessary
 
 
-
-{-
-embedShare :: STACK ⇒  Prot → EMode → Type → EM Type
-embedShare φ l τ =
-  case τ of
-    (SecT l' (ShareT φ' l'' (BaseT bτ))) → do
-      q ← elabEMode l
-      q'' ← elabEMode l''
-      guardErr ((q ≡ q'') ⩓ φ ≡ φ') $
-        typeError "Not well formed q != w'" $ frhs
-        [ ("q", pretty q)
-        , ("w", pretty q'')
-        ]
-      return (SecT l' (ShareT φ l (BaseT bτ)))
-    (SecT l' (BaseT bτ))  → return (SecT l' (ShareT φ l (BaseT bτ)))
-    (SecT l' (ShareT φ' l'' (τₗ :+: τᵣ))) → do
-      q ← elabEMode l
-      q'' ← elabEMode l''
-      guardErr ((q ≡ q'') ⩓ φ ≡ φ) $
-        todoError
-      τₗ' ← (embedShare φ l τₗ )
-      τᵣ' ← (embedShare φ l τᵣ )
-      return (SecT l' (ShareT φ l (τₗ' :+: τᵣ')))
-    (SecT l' (τₗ :+: τᵣ) )  → do
-      τₗ' ← (embedShare φ l τₗ )
-      τᵣ' ← (embedShare φ l τᵣ )
-      return (SecT l' (ShareT φ l (τₗ' :+: τᵣ')))
-    _ → todoError
--}
-
 -- Asserts it is shareable (only Cleartext)
 isEmbedable :: STACK ⇒   Type → 𝔹
 isEmbedable τ =
@@ -1653,6 +1623,57 @@ matchType τ ψ= case ψ of
 
 
 -- For MPC sutff
+
+
+-- Asserts a located type is cleartext
+cleartext_loctype :: STACK ⇒ Type →  EM ()
+cleartext_loctype sigma  =
+  case sigma of
+    BaseT bt → return ()
+    (ShareT _ _ _) → typeError "cleartext_loctype: sigma is a shared type which is not cleartext" $ frhs
+        [ ("sigma", pretty sigma)
+        ]
+    (loctyₗ :+: loctyᵣ)  → do
+      _ ← (cleartext_type  loctyₗ)
+      _ ← (cleartext_type  loctyᵣ)
+      return ()
+    -- WF-Prod: t1 must be well formed and t2 must be well formed
+    (loctyₗ :×: loctyᵣ)  → do
+      _ ← (cleartext_type  loctyₗ)
+      _ ← (cleartext_type  loctyᵣ)
+      return ()
+    (ListT τₜ)  → do
+      _ ← (cleartext_type  τₜ)
+      return ()
+    -- WF-Fun: m must be same as mode, t1 must be well formed and t2 must be well formed
+    (τ₁₁ :→: (_ :* τ₁₂)) → do
+      _ ← (cleartext_type  τ₁₂)
+      _ ← (cleartext_type  τ₁₂)
+      return ()
+    -- WF-Ref: The component type must be well formed
+    (RefT _ τ')  → do
+      _ ← (cleartext_type  τ')
+      return ()
+    -- WF-Ref: The component type must be well formed
+    (ArrT _ τ')  →  do
+      _ ← (cleartext_type  τ')
+      return ()
+    ISecT loc locty → do
+      _ ← (cleartext_type  τ')
+      return ()
+    _  → typeError "cleartext_loctype: sigma is not well formed cleartext located type" $ frhs
+        [ ("sigma", pretty sigma )
+        ]
+
+-- Asserts a type is a located cleartext type
+cleartext_type ::  STACK ⇒ Var   → Type → Type → EM Type
+cleartext_type ty =
+  case ty of
+    -- WF-Loc
+    SecT em locty → (cleartext_loctype  locty)
+    _ → typeError "cleartext_type: ty is not a located type" $ frhs
+        [ ("ty", pretty ty )
+        ]
 
 makeCleartextType :: EMode → Type → 𝔹 → EM Type
 makeCleartextType em sigma update =
