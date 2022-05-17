@@ -1262,9 +1262,9 @@ chkExpR e τ =
       LE eₗ        → chkL eₗ τ
       RE eᵣ        → chkR eᵣ τ
       NilE        → chkNil τ
-      LamE self𝑂 ψs e → chkLam self𝑂 ψs e τ
+      LamE self𝑂 ψs e' → chkLam self𝑂 ψs e' τ
       ParE ρse₁ e₂ → chkPar ρse₁ e₂ τ
-      FoldE e → chkFold e τ
+      FoldE e' → chkFold e' τ
       _ →
           do
             τ' ← synExpR e
