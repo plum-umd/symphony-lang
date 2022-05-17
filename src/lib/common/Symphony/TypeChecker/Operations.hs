@@ -1666,7 +1666,7 @@ cleartext_loctype sigma  =
         ]
 
 -- Asserts a type is a located cleartext type
-cleartext_type ::  STACK ⇒ Type → EM ())
+cleartext_type ::  STACK ⇒ Type → EM ()
 cleartext_type ty =
   case ty of
     -- WF-Loc
