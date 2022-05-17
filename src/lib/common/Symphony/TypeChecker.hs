@@ -360,9 +360,11 @@ synCase e ψes =
       (SecT loc _) → do
         m ← askL terModeL
         l ← elabEMode loc
+        -- Since τ is well formed, we just need to check l ≢  m
         guardErr (eq_mode m l) $
-          typeError "synCase: ⊢ₘ _ ˡ→ _ ; m ≢ l" $ frhs
-          [ ("m", pretty m)
+          typeError "synCase: ⊢ₘ e ˡ→ sigma@m ; m ≢ l" $ frhs
+          [ ("e", pretty e)
+          , ("m", pretty m)
           , ("l", pretty l)
           ]
         τs ← mapM (synBind τ) ψes
