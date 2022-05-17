@@ -1063,7 +1063,8 @@ synBundleIntro (pe :* e) =
               ]
           return (SecT em (ISecT loc τ'))
       _  → typeError "synBundleIntro: ⊢ₘ e → τ which is not a located type'" $ frhs
-              [ ("τ", pretty τ)
+              [ ("e", pretty e)
+              , ("τ", pretty τ)
               ]
 
 
@@ -1107,9 +1108,10 @@ synBundleAccess e₁ ρe₂ =
               , ("q", pretty q)
             ]
           return (SecT (AddTop (PowPSE (frhs [ρe₂]))) τ₁')
-      _  → typeError "synBundleAccess: ⊢ₘ e → τ which is not a located bundle type'" $ frhs
-              [ ("τ", pretty τ)
-              ]
+      _  → typeError "synBundleAccess: ⊢ₘ e₁ → τ₁ which is not a located bundle type'" $ frhs
+            [ ("e₁", pretty τ₁)
+            , ("τ₁", pretty τ₁)
+            ]
 
 synBundleUnion ∷ STACK ⇒ Exp → Exp → EM Type
 synBundleUnion e₁ e₂ =
