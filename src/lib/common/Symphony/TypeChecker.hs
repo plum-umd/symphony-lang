@@ -550,8 +550,8 @@ synWrite e₁ e₂ =
                   , ("e₂", pretty e₂)])
 
       _ →   typeError "synWrite: ⊢ₘ  e ˡ→ τ which is not a located type" (frhs 
-      [ ("τ₁", pretty τ)  
-      , ("e₁", pretty e)])
+              [ ("τ₁", pretty τ)  
+              , ("e₁", pretty e)])
 
 
 
