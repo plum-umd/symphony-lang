@@ -787,7 +787,7 @@ synArraySize e =
             , ("l", pretty l)
             ]
           return (SecT em (BaseT (ℕT iprDefault)))
-                                              ]
+                                              
       _  →   typeError "synArraySize:  ⊢ₘ  e ˡ→ τ which is not a located array" $ frhs
                                           [ ("e", pretty e)
                                           , ("τ", pretty τ)
