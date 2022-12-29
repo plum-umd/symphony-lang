@@ -91,6 +91,8 @@ library:
         - Symphony.Dynamic.Par.Channel.Types
         - Symphony.Dynamic.Par.Dist
         - Symphony.Dynamic.Par.Error
+        - Symphony.Dynamic.Par.Rep
+        - Symphony.Dynamic.Par.Rep.Types
         - Symphony.Dynamic.Par.GMW
         - Symphony.Dynamic.Par.GMW.Types
         - Symphony.Dynamic.Par.Operations

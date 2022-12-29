@@ -1,0 +1,10 @@
+def cond g t f = if g then t else f
+
+def max cond a b = cond (a <= b) b a
+
+def mux_max = max mux_cond
+
+def bundleFoldl init f b = case b
+  { ⟪⟫             → init
+  ; ⟪ ρ | v ⟫ ⧺ b' → bundleFoldl (f ρ v init) f b'
+  }

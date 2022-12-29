@@ -1,0 +1,15 @@
+def list_fold init f l = case l
+  { []      -> init
+  ; x :: xs -> f x (list_fold init f xs)
+  }
+
+def bundleFoldl init f b = case b
+  { ⟪⟫             → init
+  ; ⟪ ρ | v ⟫ ⧺ b' → bundleFoldl (f ρ v init) f b'
+  }
+
+def bundleMap f b = ...
+
+def fst x = case x { (a, _) -> a }
+
+def abs-val-int = ...

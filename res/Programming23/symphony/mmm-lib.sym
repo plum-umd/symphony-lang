@@ -1,0 +1,6 @@
+def bundleUpWith f P = case P
+  { {}         → ⟪⟫
+  ; { ρ } ∪ P' → ⟪ ρ | par { ρ } f ρ ⟫ ⧺ bundleUpWith f P'
+  }
+
+def bundleUp f = bundleUpWith f this

@@ -187,7 +187,7 @@ def waksman P a =
 
   let switches = pset_map (λ ρ →
                    let switch = par { ρ } waksmanSwitches n swapCount { ρ } in
-                   send [array 𝔹 : { ρ } → P] switch
+                   share [{{protocol}}, array 𝔹 : { ρ } → P] switch
                    )
                  P
   in
@@ -196,15 +196,14 @@ def waksman P a =
   a
 
 def main () = par {A,B,C}
-  let inputA = par {A} read (array ℤ) from "lwz.txt" in
-  let inputB = par {B} read (array ℤ) from "lwz.txt" in
-  let inputC = par {C} read (array ℤ) from "lwz.txt" in
+  let inputA = par {A} read (array ℤ) from "waksman-{{input-size}}.txt" in
+  let inputB = par {B} read (array ℤ) from "waksman-{{input-size}}.txt" in
+  let inputC = par {C} read (array ℤ) from "waksman-{{input-size}}.txt" in
 
   let P = {A,B,C} in
-  let shA = send [array ℤ : {A} → P] inputA in
-  let shB = send [array ℤ : {B} → P] inputB in
-  let shC = send [array ℤ : {C} → P] inputC in
+  let shA = share [{{protocol}}, array ℤ : {A} → P] inputA in
+  let shB = share [{{protocol}}, array ℤ : {B} → P] inputB in
+  let shC = share [{{protocol}}, array ℤ : {C} → P] inputC in
 
   let a = arrayConcat [shA; shB; shC] in
-  (waksman P a)
---  reveal [gmw, array ℤ : {A,B,C} → {A,B,C}] (waksman P a)
+  reveal [{{protocol}}, array ℤ : {A,B,C} → {A,B,C}] (waksman P a)

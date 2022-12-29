@@ -1,0 +1,4 @@
+def list_fold init f l = case l
+  { []      -> init
+  ; x :: xs -> f x (list_fold init f xs)
+  }

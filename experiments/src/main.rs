@@ -38,6 +38,8 @@ enum Program {
     Euclidean,
     Analytics,
     Gcd,
+    Lwz,
+    Waksman,
 }
 
 use Program::*;
@@ -50,6 +52,8 @@ impl Display for Program {
             Euclidean => "euclidean",
             Analytics => "analytics",
             Gcd => "gcd",
+            Lwz => "lwz",
+            Waksman => "waksman",
         };
 
         write!(f, "{}", name)
@@ -58,7 +62,7 @@ impl Display for Program {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 enum Protocol {
-    Clear,
+    Rep,
     Yao,
     Gmw,
 }
@@ -68,7 +72,7 @@ use Protocol::*;
 impl Display for Protocol {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let name = match self {
-            Clear => "clear",
+            Rep => "rep",
             Yao => "yao",
             Gmw => "gmw",
         };
@@ -192,11 +196,19 @@ impl Benchmark {
         self.input_size.to_string()
     }
 
+    fn shuffle_input(&self, party_id: usize) -> String {
+        let start = party_id * self.input_size;
+        (start..(start + self.input_size))
+            .map(|i| i.to_string())
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
     fn inputs(&self, root_dir: &Path) -> Vec<PathBuf> {
         let parties = self.parties();
 
         let mut ret = Vec::with_capacity(parties.len());
-        for party in parties {
+        for (i, party) in parties.iter().enumerate() {
             let mut path = root_dir.to_owned();
             path.push(format!("input/{}", party));
             fs::create_dir_all(&path).expect("TODO");
@@ -209,6 +221,8 @@ impl Benchmark {
                 Euclidean => self.euclidean_input(party.eq("A")),
                 Analytics => self.analytics_input(if party.eq("A") { 0 } else { 1 }),
                 Gcd => self.gcd_input(),
+                Lwz => self.shuffle_input(i),
+                Waksman => self.shuffle_input(i),
             };
 
             f.write_all(input.as_bytes()).expect("TODO");
@@ -251,7 +265,7 @@ impl Benchmark {
         let data_dir = root_dir.to_owned().to_str().unwrap().to_owned();
         let now = Instant::now();
         for party in &parties {
-            println!(
+            /*            println!(
                 "{:?}",
                 Command::new("symphony")
                     .arg("par")
@@ -259,13 +273,14 @@ impl Benchmark {
                     .args(["-p", party])
                     .args(["-c", &hosts])
                     .arg(&program)
-            );
+            ); */
             let handle = Command::new("symphony")
                 .arg("par")
                 .args(["-d", &data_dir])
                 .args(["-p", party])
                 .args(["-c", &hosts])
                 .arg(&program)
+                .stdout(std::process::Stdio::null())
                 .spawn()
                 .expect("TODO");
             handles.push(handle)
@@ -297,14 +312,18 @@ fn input_sizes(protocol: Protocol, program: Program) -> Vec<usize> {
         (_, Analytics) => [60, 70, 80, 90, 100].to_vec(),
         (Gmw, Gcd) => [10, 20, 30, 40, 50].to_vec(),
         (_, Gcd) => [500, 600, 700, 800, 900].to_vec(),
+        (Gmw, Lwz) => [10, 20, 30, 40, 50, 60, 70, 80, 90, 100].to_vec(),
+        (_, Lwz) => [10, 20, 30, 40, 50, 60, 70, 80, 90, 100].to_vec(),
+        (Gmw, Waksman) => [10, 20, 30, 40, 50, 60, 70, 80, 90, 100].to_vec(),
+        (_, Waksman) => [10, 20, 30, 40, 50, 60, 70, 80, 90, 100].to_vec(),
     }
 }
 
 fn benchmarks() -> Vec<Benchmark> {
     let languages = [Symphony];
-    let programs = [Hamming, Edit, Euclidean, Analytics, Gcd];
-    let protocols = [Gmw];
-    let party_sizes = [2];
+    let programs = [Lwz, Waksman];
+    let protocols = [Rep, Gmw];
+    let party_sizes = [3];
 
     let mut benchmarks = Vec::new();
 
@@ -352,7 +371,7 @@ fn main() {
     update_path_var();
     stdlib(root_dir.path());
 
-    for program in [Hamming, Edit, Euclidean, Analytics, Gcd] {
+    for program in [Hamming, Edit, Euclidean, Analytics, Gcd, Lwz, Waksman] {
         let program_name = program.to_string();
         let template = format!("templates/{}.sym.template", program_name);
         handlebars
@@ -360,12 +379,16 @@ fn main() {
             .expect("TODO");
     }
 
+    let samples = 5;
+
     for b in benchmarks() {
-        println!(
-            "{},{}",
-            b,
-            b.run(root_dir.path(), &mut handlebars).as_millis()
-        );
+        for _ in 0..samples {
+            println!(
+                "{},{}",
+                b,
+                b.run(root_dir.path(), &mut handlebars).as_millis()
+            );
+        }
     }
 }
 

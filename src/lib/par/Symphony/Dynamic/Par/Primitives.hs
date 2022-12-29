@@ -17,9 +17,12 @@ metaBaseVal bv = case bv of
   BoolV  (ClearBV _) → None
   NatV _ (ClearNV _) → None
   IntV _ (ClearZV _) → None
-  BoolV  (EncBV ρvs (GmwB _)) → Some $ GMWP :* ρvs
-  NatV _ (EncNV ρvs (GmwN _)) → Some $ GMWP :* ρvs
-  IntV _ (EncZV ρvs (GmwZ _)) → Some $ GMWP :* ρvs
+  BoolV  (EncBV ρvs (RepB _)) → Some $ RepP :* ρvs
+  NatV _ (EncNV ρvs (RepN _)) → Some $ RepP :* ρvs
+  IntV _ (EncZV ρvs (RepZ _)) → Some $ RepP :* ρvs
+  BoolV  (EncBV ρvs (GmwB _)) → Some $ GmwP :* ρvs
+  NatV _ (EncNV ρvs (GmwN _)) → Some $ GmwP :* ρvs
+  IntV _ (EncZV ρvs (GmwZ _)) → Some $ GmwP :* ρvs
   _ → None
 
 metaComb ∷ 𝑂 (Prot ∧ 𝑃 PrinVal) → 𝑂 (Prot ∧ 𝑃 PrinVal) → IM Val (𝑂 (Prot ∧ 𝑃 PrinVal))
@@ -42,7 +45,12 @@ embedBaseVal ∷ 𝑂 (Prot ∧ 𝑃 PrinVal) → BaseVal → IM Val BaseVal
 embedBaseVal meta bv = case meta of
   None            → return bv
   Some (φ :* ρvs) → case φ of
-    GMWP → do
+    RepP → case bv of
+      BoolV   (ClearBV b) → BoolV   ^$ EncBV ρvs ^$ return $ RepB b
+      NatV pr (ClearNV n) → NatV pr ^$ EncNV ρvs ^$ return $ RepN n
+      IntV pr (ClearZV z) → IntV pr ^$ EncZV ρvs ^$ return $ RepZ z
+      _ → return bv
+    GmwP → do
       gmw ← getOrMkGmw ρvs
       case bv of
         BoolV   (ClearBV b) → BoolV   ^$ EncBV ρvs ^$ GmwB ^$ gmwBoolConstant gmw b
@@ -59,11 +67,16 @@ primBaseVal ∷ Op → 𝐿 BaseVal → IM Val BaseVal
 primBaseVal op bvs = do
   bvs ← embedBaseVals bvs
   case (op, tohs bvs) of
-    -- Unit
+    -----------
+    -- Clear --
+    -----------
+
+    --- Unit
 
     (CondO, [ BoolV _, BulV, BulV ]) → return BulV
 
-    -- Booleans
+    --- Booleans
+
     (NotO, [ BoolV (ClearBV b) ]) → return $ BoolV $ ClearBV $ not b
 
     (AndO, [ BoolV (ClearBV b₁), BoolV (ClearBV b₂) ]) → return $ BoolV $ ClearBV $ b₁ ⩓ b₂
@@ -72,11 +85,8 @@ primBaseVal op bvs = do
 
     (CondO, [ BoolV (ClearBV b), BoolV (ClearBV b₁), BoolV (ClearBV b₂) ]) → return $ BoolV $ ClearBV $ if b then b₁ else b₂
 
-    (OrO, [ BoolV (EncBV ρvs (GmwB b₁)), BoolV (EncBV _ (GmwB b₂)) ]) → BoolV ^$ EncBV ρvs ^$ GmwB ^$ do { gmw ← getOrMkGmw ρvs ; gmwBoolOr gmw b₁ b₂ }
+    --- Naturals
 
-    (CondO, [ BoolV (EncBV ρvs (GmwB b₁)), BoolV (EncBV _ (GmwB b₂)), BoolV (EncBV _ (GmwB b₃)) ]) → BoolV ^$ EncBV ρvs ^$ GmwB ^$ do { gmw ← getOrMkGmw ρvs ; gmwBoolMux gmw b₁ b₂ b₃ }
-
-    -- Naturals
     (NatO pr₁, [ NatV _ (ClearNV n) ]) → return $ NatV pr₁ $ ClearNV $ trPrNat pr₁ n
     (IntO pr₁, [ NatV _ (ClearNV n) ]) → return $ IntV pr₁ $ ClearZV $ trPrInt pr₁ $ int n
     (BoolO   , [ NatV _ (ClearNV n) ]) → return $ BoolV    $ ClearBV $ n ≢ 0
@@ -96,17 +106,8 @@ primBaseVal op bvs = do
 
     (CondO, [ BoolV (ClearBV b)         , NatV pr₁ (ClearNV n₁)       , NatV pr₂ (ClearNV n₂)        ]) | pr₁ ≡ pr₂ → return $ NatV pr₁ $ ClearNV $ if b then n₁ else n₂
 
-    (PlusO , [ NatV pr₁ (EncNV ρvs (GmwN n₁)), NatV pr₂ (EncNV _ (GmwN n₂)) ]) | pr₁ ≡ pr₂ → NatV pr₁ ^$ EncNV ρvs ^$ GmwN ^$ do { gmw ← getOrMkGmw ρvs ; gmwNatAdd gmw n₁ n₂ }
-    (TimesO, [ NatV pr₁ (EncNV ρvs (GmwN n₁)), NatV pr₂ (EncNV _ (GmwN n₂)) ]) | pr₁ ≡ pr₂ → NatV pr₁ ^$ EncNV ρvs ^$ GmwN ^$ do { gmw ← getOrMkGmw ρvs ; gmwNatMul gmw n₁ n₂ }
+    --- Integers
 
-
-    (EqO   , [ NatV pr₁ (EncNV ρvs (GmwN n₁)), NatV pr₂ (EncNV _ (GmwN n₂)) ]) | pr₁ ≡ pr₂ → BoolV ^$ EncBV ρvs ^$ GmwB ^$ do { gmw ← getOrMkGmw ρvs ; gmwNatEq gmw n₁ n₂ }
-    (LTEO  , [ NatV pr₁ (EncNV ρvs (GmwN n₁)), NatV pr₂ (EncNV _ (GmwN n₂)) ]) | pr₁ ≡ pr₂ → BoolV ^$ EncBV ρvs ^$ GmwB ^$ do { gmw ← getOrMkGmw ρvs ; gmwNatLte gmw n₁ n₂ }
-
-    (CondO, [ BoolV (EncBV ρvs (GmwB b)), NatV pr₁ (EncNV _ (GmwN n₁)), NatV pr₂ (EncNV _ (GmwN n₂)) ]) | pr₁ ≡ pr₂ →
-      NatV pr₁ ^$ EncNV ρvs ^$ GmwN ^$ do { gmw ← getOrMkGmw ρvs ; gmwNatMux gmw b n₁ n₂ }
-
-    -- Integers
     (NatO pr₁, [ IntV _  (ClearZV i) ]) → return $ NatV pr₁ $ ClearNV $ trPrNat pr₁ $ natΩ i
     (IntO pr₁, [ IntV _  (ClearZV i) ]) → return $ IntV pr₁ $ ClearZV $ trPrInt pr₁ i
     (AbsO    , [ IntV pr (ClearZV i) ]) → return $ NatV pr  $ ClearNV $ zabs i
@@ -125,6 +126,71 @@ primBaseVal op bvs = do
 
     (CondO, [ BoolV (ClearBV b), IntV pr₁ (ClearZV i₁), IntV pr₂ (ClearZV i₂) ]) | pr₁ ≡ pr₂ → return $ IntV pr₁ $ ClearZV $ if b then i₁ else i₂
 
+    --- Principals
+
+    (EqO, [ PrinV ρv₁, PrinV ρv₂ ]) → return $ BoolV $ ClearBV $ ρv₁ ≡ ρv₂
+
+    --- Principal Sets
+
+    (PlusO, [ PrinSetV ρvs₁, PrinSetV ρvs₂ ]) → return $ PrinSetV $ PowPSV $ (elimPSV ρvs₁) ∪ (elimPSV ρvs₂)
+
+    ----------------
+    -- Replicated --
+    ----------------
+
+    --- Booleans
+
+    (OrO, [ BoolV (EncBV ρvs (RepB b₁)), BoolV (EncBV _ (RepB b₂)) ]) → BoolV ^$ EncBV ρvs ^$ RepB ^$ return $ b₁ ⩔ b₂
+
+    (CondO, [ BoolV (EncBV ρvs (RepB b₁)), BoolV (EncBV _ (RepB b₂)), BoolV (EncBV _ (RepB b₃)) ]) → BoolV ^$ EncBV ρvs ^$ RepB ^$ return $ if b₁ then b₂ else b₃
+
+    --- Naturals
+
+    (PlusO , [ NatV pr₁ (EncNV ρvs (RepN n₁)), NatV pr₂ (EncNV _ (RepN n₂)) ]) | pr₁ ≡ pr₂ → NatV pr₁ ^$ EncNV ρvs ^$ RepN ^$ return $ trPrNat pr₁ $ n₁ + n₂
+    (TimesO, [ NatV pr₁ (EncNV ρvs (RepN n₁)), NatV pr₂ (EncNV _ (RepN n₂)) ]) | pr₁ ≡ pr₂ → NatV pr₁ ^$ EncNV ρvs ^$ RepN ^$ return $ trPrNat pr₁ $ n₁ × n₂
+
+    (EqO   , [ NatV pr₁ (EncNV ρvs (RepN n₁)), NatV pr₂ (EncNV _ (RepN n₂)) ]) | pr₁ ≡ pr₂ → BoolV ^$ EncBV ρvs ^$ RepB ^$ return $ n₁ ≡ n₂
+    (LTEO  , [ NatV pr₁ (EncNV ρvs (RepN n₁)), NatV pr₂ (EncNV _ (RepN n₂)) ]) | pr₁ ≡ pr₂ → BoolV ^$ EncBV ρvs ^$ RepB ^$ return $ n₁ ≤ n₂
+
+    (CondO, [ BoolV (EncBV ρvs (RepB b)), NatV pr₁ (EncNV _ (RepN n₁)), NatV pr₂ (EncNV _ (RepN n₂)) ]) | pr₁ ≡ pr₂ → NatV pr₁ ^$ EncNV ρvs ^$ RepN ^$ return $ if b then n₁ else n₂
+
+    --- Integers
+
+    (PlusO , [ IntV pr₁ (EncZV ρvs (RepZ z₁)), IntV pr₂ (EncZV _ (RepZ z₂)) ]) | pr₁ ≡ pr₂ → IntV pr₁ ^$ EncZV ρvs ^$ RepZ ^$ return $ trPrInt pr₁ $ z₁ + z₂
+    (MinusO, [ IntV pr₁ (EncZV ρvs (RepZ z₁)), IntV pr₂ (EncZV _ (RepZ z₂)) ]) | pr₁ ≡ pr₂ → IntV pr₁ ^$ EncZV ρvs ^$ RepZ ^$ return $ trPrInt pr₁ $ z₁ - z₂
+    (TimesO, [ IntV pr₁ (EncZV ρvs (RepZ z₁)), IntV pr₂ (EncZV _ (RepZ z₂)) ]) | pr₁ ≡ pr₂ → IntV pr₁ ^$ EncZV ρvs ^$ RepZ ^$ return $ trPrInt pr₁ $ z₁ × z₂
+    (DivO  , [ IntV pr₁ (EncZV ρvs (RepZ z₁)), IntV pr₂ (EncZV _ (RepZ z₂)) ]) | pr₁ ≡ pr₂ → IntV pr₁ ^$ EncZV ρvs ^$ RepZ ^$ return $ trPrInt pr₁ $ if z₂ ≡ int 0 then z₁ else z₁ ⌿ z₂
+    (ModO  , [ IntV pr₁ (EncZV ρvs (RepZ z₁)), IntV pr₂ (EncZV _ (RepZ z₂)) ]) | pr₁ ≡ pr₂ → IntV pr₁ ^$ EncZV ρvs ^$ RepZ ^$ return $ trPrInt pr₁ $ if z₂ ≡ int 0 then z₁ else z₁ ÷ z₂
+
+    (EqO , [ IntV pr₁ (EncZV ρvs (RepZ z₁)), IntV pr₂ (EncZV _ (RepZ z₂)) ]) | pr₁ ≡ pr₂ → BoolV ^$ EncBV ρvs ^$ RepB ^$ return $ z₁ ≡ z₂
+    (LTO , [ IntV pr₁ (EncZV ρvs (RepZ z₁)), IntV pr₂ (EncZV _ (RepZ z₂)) ]) | pr₁ ≡ pr₂ → BoolV ^$ EncBV ρvs ^$ RepB ^$ return $ z₁ < z₂
+    (LTEO, [ IntV pr₁ (EncZV ρvs (RepZ z₁)), IntV pr₂ (EncZV _ (RepZ z₂)) ]) | pr₁ ≡ pr₂ → BoolV ^$ EncBV ρvs ^$ RepB ^$ return $ z₁ ≤ z₂
+
+    (CondO, [ BoolV (EncBV ρvs (RepB b)), IntV pr₁ (EncZV _ (RepZ z₁)), IntV pr₂ (EncZV _ (RepZ z₂)) ]) | pr₁ ≡ pr₂ → IntV pr₁ ^$ EncZV ρvs ^$ RepZ ^$ return $ if b then z₁ else z₂
+
+    ---------
+    -- GMW --
+    ---------
+
+    --- Booleans
+
+    (OrO, [ BoolV (EncBV ρvs (GmwB b₁)), BoolV (EncBV _ (GmwB b₂)) ]) → BoolV ^$ EncBV ρvs ^$ GmwB ^$ do { gmw ← getOrMkGmw ρvs ; gmwBoolOr gmw b₁ b₂ }
+
+    (CondO, [ BoolV (EncBV ρvs (GmwB b₁)), BoolV (EncBV _ (GmwB b₂)), BoolV (EncBV _ (GmwB b₃)) ]) → BoolV ^$ EncBV ρvs ^$ GmwB ^$ do { gmw ← getOrMkGmw ρvs ; gmwBoolMux gmw b₁ b₂ b₃ }
+
+    --- Naturals
+
+    (PlusO , [ NatV pr₁ (EncNV ρvs (GmwN n₁)), NatV pr₂ (EncNV _ (GmwN n₂)) ]) | pr₁ ≡ pr₂ → NatV pr₁ ^$ EncNV ρvs ^$ GmwN ^$ do { gmw ← getOrMkGmw ρvs ; gmwNatAdd gmw n₁ n₂ }
+    (TimesO, [ NatV pr₁ (EncNV ρvs (GmwN n₁)), NatV pr₂ (EncNV _ (GmwN n₂)) ]) | pr₁ ≡ pr₂ → NatV pr₁ ^$ EncNV ρvs ^$ GmwN ^$ do { gmw ← getOrMkGmw ρvs ; gmwNatMul gmw n₁ n₂ }
+
+    (EqO   , [ NatV pr₁ (EncNV ρvs (GmwN n₁)), NatV pr₂ (EncNV _ (GmwN n₂)) ]) | pr₁ ≡ pr₂ → BoolV ^$ EncBV ρvs ^$ GmwB ^$ do { gmw ← getOrMkGmw ρvs ; gmwNatEq gmw n₁ n₂ }
+    (LTEO  , [ NatV pr₁ (EncNV ρvs (GmwN n₁)), NatV pr₂ (EncNV _ (GmwN n₂)) ]) | pr₁ ≡ pr₂ → BoolV ^$ EncBV ρvs ^$ GmwB ^$ do { gmw ← getOrMkGmw ρvs ; gmwNatLte gmw n₁ n₂ }
+
+    (CondO, [ BoolV (EncBV ρvs (GmwB b)), NatV pr₁ (EncNV _ (GmwN n₁)), NatV pr₂ (EncNV _ (GmwN n₂)) ]) | pr₁ ≡ pr₂ →
+      NatV pr₁ ^$ EncNV ρvs ^$ GmwN ^$ do { gmw ← getOrMkGmw ρvs ; gmwNatMux gmw b n₁ n₂ }
+
+    --- Integers
+
     (PlusO , [ IntV pr₁ (EncZV ρvs (GmwZ z₁)), IntV pr₂ (EncZV _ (GmwZ z₂)) ]) | pr₁ ≡ pr₂ → IntV pr₁ ^$ EncZV ρvs ^$ GmwZ ^$ do { gmw ← getOrMkGmw ρvs ; gmwIntAdd gmw z₁ z₂ }
     (MinusO, [ IntV pr₁ (EncZV ρvs (GmwZ z₁)), IntV pr₂ (EncZV _ (GmwZ z₂)) ]) | pr₁ ≡ pr₂ → IntV pr₁ ^$ EncZV ρvs ^$ GmwZ ^$ do { gmw ← getOrMkGmw ρvs ; gmwIntSub gmw z₁ z₂ }
     (TimesO, [ IntV pr₁ (EncZV ρvs (GmwZ z₁)), IntV pr₂ (EncZV _ (GmwZ z₂)) ]) | pr₁ ≡ pr₂ → IntV pr₁ ^$ EncZV ρvs ^$ GmwZ ^$ do { gmw ← getOrMkGmw ρvs ; gmwIntMul gmw z₁ z₂ }
@@ -137,12 +203,6 @@ primBaseVal op bvs = do
 
     (CondO, [ BoolV (EncBV ρvs (GmwB b)), IntV pr₁ (EncZV _ (GmwZ z₁)), IntV pr₂ (EncZV _ (GmwZ z₂)) ]) | pr₁ ≡ pr₂ →
       IntV pr₁ ^$ EncZV ρvs ^$ GmwZ ^$ do { gmw ← getOrMkGmw ρvs ; gmwIntMux gmw b z₁ z₂ }
-
-    -- Principals
-    (EqO, [ PrinV ρv₁, PrinV ρv₂ ]) → return $ BoolV $ ClearBV $ ρv₁ ≡ ρv₂
-
-    -- Principal Sets
-    (PlusO, [ PrinSetV ρvs₁, PrinSetV ρvs₂ ]) → return $ PrinSetV $ PowPSV $ (elimPSV ρvs₁) ∪ (elimPSV ρvs₂)
 
     _ → do
       pptraceM (op, bvs)

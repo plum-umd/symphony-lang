@@ -8,6 +8,7 @@ import Symphony.Lang.Parser
 import Symphony.Dynamic.Par.Error
 import Symphony.Dynamic.Par.Prg
 import Symphony.Dynamic.Par.Channel
+import Symphony.Dynamic.Par.Rep
 import Symphony.Dynamic.Par.GMW
 
 import qualified Crypto.Random as R
@@ -45,21 +46,24 @@ data BoolVal =
   | EncBV (𝑃 PrinVal) EncBool
 
 data EncBool =
-    GmwB GmwBool
+    RepB RepBool
+  | GmwB GmwBool
 
 data NatVal =
     ClearNV ℕ
   | EncNV (𝑃 PrinVal) EncNat
 
 data EncNat =
-    GmwN GmwNat
+    RepN RepNat
+  | GmwN GmwNat
 
 data IntVal =
     ClearZV ℤ
   | EncZV (𝑃 PrinVal) EncInt
 
 data EncInt =
-    GmwZ GmwInt
+    RepZ ℤ
+  | GmwZ GmwInt
 
 -----------------
 -- ENVIRONMENT --
@@ -386,7 +390,14 @@ makePrisms ''EncBool
 
 instance Pretty EncBool where
   pretty eb = case eb of
-    GmwB _ → prettyProt GMWP $ ppCon "𝔹"
+    RepB _ → prettyProt RepP $ ppCon "𝔹"
+    GmwB _ → prettyProt GmwP $ ppCon "𝔹"
+
+elimRepB ∷ EncBool → IM Val 𝔹
+elimRepB eb = error𝑂 (view repBL eb) $
+                 throwIErrorCxt TypeIError "elimRepBool: view repBL eb ≡ None" $ frhs
+                 [ ("eb", pretty eb)
+                 ]
 
 elimGmwB ∷ EncBool → IM Val GmwBool
 elimGmwB eb = error𝑂 (view gmwBL eb) $
@@ -424,7 +435,14 @@ makePrisms ''EncNat
 
 instance Pretty EncNat where
   pretty en = case en of
-    GmwN _ → prettyProt GMWP $ ppCon "ℕ"
+    RepN _ → prettyProt RepP $ ppCon "ℕ"
+    GmwN _ → prettyProt GmwP $ ppCon "ℕ"
+
+elimRepN ∷ EncNat → IM Val ℕ
+elimRepN en = error𝑂 (view repNL en) $
+                throwIErrorCxt TypeIError "elimRepNat: view repNL en ≡ None" $ frhs
+                [ ("en", pretty en)
+                ]
 
 elimGmwN ∷ EncNat → IM Val GmwNat
 elimGmwN en = error𝑂 (view gmwNL en) $
@@ -462,7 +480,14 @@ makePrisms ''EncInt
 
 instance Pretty EncInt where
   pretty ez = case ez of
-    GmwZ _ → prettyProt GMWP $ ppCon "ℤ"
+    RepZ _ → prettyProt RepP $ ppCon "ℤ"
+    GmwZ _ → prettyProt GmwP $ ppCon "ℤ"
+
+elimRepZ ∷ EncInt → IM Val ℤ
+elimRepZ ez = error𝑂 (view repZL ez) $
+                throwIErrorCxt TypeIError "elimRepInt: view repZL ez ≡ None" $ frhs
+                [ ("ez", pretty ez)
+                ]
 
 elimGmwZ ∷ EncInt → IM Val GmwInt
 elimGmwZ ez = error𝑂 (view gmwZL ez) $

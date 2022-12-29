@@ -116,114 +116,16 @@ type TVar = 𝕏
 
 -- φ ∈ protocol ⩴  …
 data Prot =
-    PlainP -- plaintext
-  | YaoNP  -- yao
-  | Yao2P  -- yao2
-  | BGWP   -- bgw
-  | GMWP   -- gmw
-  | BGVP   -- bgv
-  | SPDZP  -- spdz
-  | AutoP  -- auto
+    RepP -- replicated
+  | YaoP -- yao
+  | GmwP -- gmw
   deriving (Eq,Ord,Show)
 
 instance Pretty Prot where
   pretty = \case
-    PlainP → ppBdr "plainP"
-    YaoNP → ppBdr "yaoNP"
-    Yao2P → ppBdr "yao2P"
-    BGWP → ppBdr "bgw"
-    GMWP → ppBdr "gmw"
-    BGVP → ppBdr "bgv"
-    SPDZP → ppBdr "spdz"
-    AutoP → ppBdr "auto"
-
--- Singleton for Prot
-data SProt (p ∷ Prot) where
-  SPlainP ∷ SProt 'PlainP
-  SYaoNP  ∷ SProt 'YaoNP
-  SYao2P  ∷ SProt 'Yao2P
-  SBGWP   ∷ SProt 'BGWP
-  SGMWP   ∷ SProt 'GMWP
-  SBGVP   ∷ SProt 'BGVP
-  SSPDZP  ∷ SProt 'SPDZP
-  SAutoP  ∷ SProt 'AutoP
-
-deriving instance Eq (SProt p)
-deriving instance Ord (SProt p)
-deriving instance Show (SProt p)
-
-instance Pretty (SProt p) where
-  pretty = \case
-    SPlainP → ppLit "SPlainP"
-    SYaoNP  → ppLit "SYaoNP"
-    SYao2P  → ppLit "SYao2P"
-    SBGWP   → ppLit "SBGWP"
-    SGMWP   → ppLit "SGMWP"
-    SBGVP   → ppLit "SBGVP"
-    SSPDZP  → ppLit "SSPDZP"
-    SAutoP  → ppLit "SAutoP"
-
-instance DEqable SProt where
-  deq sp₁ sp₂ = case (sp₁, sp₂) of
-    (SPlainP, SPlainP) → YesDEq
-    (SYaoNP , SYaoNP ) → YesDEq
-    (SYao2P , SYao2P ) → YesDEq
-    (SBGWP  , SBGWP  ) → YesDEq
-    (SGMWP  , SGMWP  ) → YesDEq
-    (SBGVP  , SBGVP  ) → YesDEq
-    (SSPDZP , SSPDZP ) → YesDEq
-    (SAutoP , SAutoP ) → YesDEq
-    _ → NoDEq
-
-instance DCmpable SProt where
-  dcmp sp₁ sp₂ = case (sp₁, sp₂) of
-    -- SPlain
-    (SPlainP, SPlainP) → EQDCmp
-    (SPlainP, _      ) → LTDCmp
-    -- SYaoNP
-    (SYaoNP , SPlainP) → GTDCmp
-    (SYaoNP , SYaoNP ) → EQDCmp
-    (SYaoNP , _      ) → LTDCmp
-    -- SYao2P
-    (SYao2P , SPlainP) → GTDCmp
-    (SYao2P , SYaoNP ) → GTDCmp
-    (SYao2P , SYao2P ) → EQDCmp
-    (SYao2P , _      ) → LTDCmp
-    -- SBGWP
-    (SBGWP  , SPlainP) → GTDCmp
-    (SBGWP  , SYaoNP ) → GTDCmp
-    (SBGWP  , SYao2P ) → GTDCmp
-    (SBGWP  , SBGWP  ) → EQDCmp
-    (SBGWP  , _      ) → LTDCmp
-    -- SGMWP
-    (SGMWP  , SAutoP ) → LTDCmp
-    (SGMWP  , SSPDZP ) → LTDCmp
-    (SGMWP  , SBGVP  ) → LTDCmp
-    (SGMWP  , SGMWP  ) → EQDCmp
-    (SGMWP  , _      ) → GTDCmp
-    -- SBGVP
-    (SBGVP  , SAutoP ) → LTDCmp
-    (SBGVP  , SSPDZP ) → LTDCmp
-    (SBGVP  , SBGVP  ) → EQDCmp
-    (SBGVP  , _      ) → GTDCmp
-    -- SSPDZP
-    (SSPDZP , SAutoP ) → LTDCmp
-    (SSPDZP , SSPDZP ) → EQDCmp
-    (SSPDZP , _      ) → GTDCmp
-    -- SAutoP
-    (SAutoP , SAutoP ) → EQDCmp
-    (SAutoP , _      ) → GTDCmp
-
-protFrSProt ∷ SProt p → Prot
-protFrSProt = \case
-  SPlainP → PlainP
-  SYaoNP  → YaoNP
-  SYao2P  → Yao2P
-  SBGWP   → BGWP
-  SGMWP   → GMWP
-  SBGVP   → BGVP
-  SSPDZP  → SPDZP
-  SAutoP  → AutoP
+    RepP → ppBdr "replicated"
+    YaoP → ppBdr "yao"
+    GmwP → ppBdr "gmw"
 
 ---------------
 -- Precision --

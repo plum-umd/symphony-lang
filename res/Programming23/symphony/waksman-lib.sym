@@ -1,0 +1,85 @@
+def swap a i j =
+  let tmp = a.i in
+  let _   = a.i <- a.j in
+  let _   = a.j <- tmp in
+  ()
+
+def secSwap a c i j =
+  let vi = mux if c then a.j else a.i in
+  let vj = mux if c then a.i else a.j in
+  let _  = a.i ← vi in
+  let _  = a.j ← vj in
+  ()
+
+def randMaxNat P max = randMax P ℕ max
+
+def randRangeNat P min max = min + (randMaxNat P (max - min))
+
+def shuffle P a =
+  let n = size a in
+  let shuffleRec = fun [shuffleRec] i ->
+    if i < n - 1n then
+      let j = randRangeNat P i n in
+      let _ = swap a i j in
+      shuffleRec (i + 1n)
+    else ()
+  in
+
+  if n >= 2n then shuffleRec 0n else ()
+
+def upTo n =
+  let a = array[n] 0n in
+
+  let upToRec = fun [upToRec] i ->
+    if i < n then
+      let _ = a.i <- i in
+      upToRec (i + 1n)
+    else ()
+  in
+
+  let _ = upToRec 0n in
+  a
+
+def permutation P n =
+  let a = upTo n in
+  let _ = shuffle P a in
+  a
+
+def psetFoldr init f P = case P
+  { {}         → init
+  ; { ρ } ∪ P' → f ρ (psetFoldr init f P')
+  }
+
+def psetMap f P = ...
+
+def list_foldl init f l = case l
+  { []      -> init
+  ; x :: xs -> list_foldl (f x init) f xs
+  }
+
+def thunk x = fun () -> x
+
+def iter f l = list_foldl () (fun x -> thunk (f x)) l
+
+def arrayCopyInto src dst idx =
+  let n = size src in
+
+  let copyIntoRec = fun [copyIntoRec] i ->
+    if i < n then
+      let _ = dst.(idx + i) <- src.i in
+      copyIntoRec (i + 1n)
+    else
+      ()
+  in
+
+  copyIntoRec 0n
+
+def arrayConcat arrs =
+  let len = list_foldl 0n plus (map (fun a -> size a) arrs) in
+  let ret = array[len] ⊥ in
+  let idx = ref 0n in
+  let ()  = iter (fun a ->
+    let _ = arrayCopyInto a ret !idx in
+    let _ = idx := !idx + (size a) in
+    ()) arrs in
+  ret

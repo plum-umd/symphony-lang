@@ -1,0 +1,5 @@
+def nat_fold z s n =
+  if n == 0n then z
+  else s (nat_fold z s (n - 1n))
+
+def bnd_rec f init fuel = nat_fold init f fuel

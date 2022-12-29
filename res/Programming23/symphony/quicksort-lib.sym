@@ -1,0 +1,98 @@
+def psetFoldl init f P = case P
+  { {}         → init
+  ; { ρ } ∪ P' → psetFoldl (f ρ init) f P'
+  }
+
+def psetSize = psetFoldl 0n (fun _ count → 1n + count)
+
+def swap a i j =
+  let tmp = a.i in
+  let _   = a.i <- a.j in
+  let _   = a.j <- tmp in
+  ()
+
+def randMaxNat P max = randMax P ℕ max
+
+def randRangeNat P min max = min + (randMaxNat P (max - min))
+
+def shuffle P a =
+  let n = size a in
+  let shuffleRec = fun [shuffleRec] i ->
+    if i < n - 1n then
+      let j = randRangeNat P i n in
+      let _ = swap a i j in
+      shuffleRec (i + 1n)
+    else ()
+  in
+
+  if n >= 2n then shuffleRec 0n else ()
+
+def list_foldl init f l = case l
+  { []      -> init
+  ; x :: xs -> list_foldl (f x init) f xs
+  }
+
+def list_fold init f l = case l
+  { []      -> init
+  ; x :: xs -> f x (list_fold init f xs)
+  }
+
+def map f l = list_fold [] (fun x xs -> f x :: xs) l
+
+def append xs ys = list_fold ys (fun x zs -> x :: zs) xs
+
+def subsets P t =
+  let m = psetSize P in
+  if t == 0n then [{ }]
+  else if t == m then [P]
+  else case P
+    { {}          -> ⊥
+    ; { ρ } \/ P' ->
+      let Cs1 = subsets P' (t - 1n) in
+      let Cs2 = subsets P' t in
+      append (map (fun C -> C + { ρ }) Cs1) Cs2
+
+def bundleUpWith f P = case P
+  { {}         → ⟪⟫
+  ; { ρ } ∪ P' → ⟪ ρ | par { ρ } f ρ ⟫ ⧺ bundleUpWith f P'
+  }
+
+def bundleUp f = bundleUpWith f this
+
+def thunk x = fun () -> x
+
+def iter f l = list_foldl () (fun x -> thunk (f x)) l
+
+def arrayCopyInto src dst idx =
+  let n = size src in
+
+  let copyIntoRec = fun [copyIntoRec] i ->
+    if i < n then
+      let _ = dst.(idx + i) <- src.i in
+      copyIntoRec (i + 1n)
+    else
+      ()
+  in
+
+  copyIntoRec 0n
+
+def arrayConcat arrs =
+  let len = list_foldl 0n plus (map (fun a -> size a) arrs) in
+  let ret = array[len] ⊥ in
+  let idx = ref 0n in
+  let ()  = iter (fun a ->
+    let _ = arrayCopyInto a ret !idx in
+    let _ = idx := !idx + (size a) in
+    ()) arrs in
+  ret
+
+def bundleFoldr init f b = case b
+  { ⟪⟫             → init
+  ; ⟪ ρ | v ⟫ ⧺ b' → f ρ v (bundleFoldr init f b')
+  }
+
+def bundleDom b = bundleFoldl { } (λ ρ _ P → { ρ } + P) b
+
+def bundleShare f b =
+  let P = bundleDom b in
+  bundleFoldr [] (fun ρ v acc → (f ρ P v) :: acc) b

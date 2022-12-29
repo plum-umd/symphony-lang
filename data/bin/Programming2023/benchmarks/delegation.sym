@@ -1,9 +1,0 @@
-principal A B C D E
-
--- gmw ≡ semi-honest, N-party, boolean sharing
-
-def main () = par {A,B,C,D,E}
-  let a = par {A,C,D} share [gmw, 𝔹 : {A} → {C,D}] (par {A} read 𝔹 from "delegation.txt") in
-  let b = par {B,C,D} share [gmw, 𝔹 : {B} → {C,D}] (par {B} read 𝔹 from "delegation.txt") in
-  let c = par {C,D} a && b in
-  par {C,D,E} reveal [gmw, 𝔹 : {C,D} → {E}] c

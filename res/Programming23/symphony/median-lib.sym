@@ -1,0 +1,5 @@
+def mux_cond g t f = mux if g then t else f
+
+def min cond a b = cond (a <= b) a b
+
+def mux_min = min mux_cond

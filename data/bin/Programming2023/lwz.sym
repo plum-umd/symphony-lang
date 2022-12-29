@@ -13,15 +13,12 @@ def lwz P t a =
   -- shuffle `a` among each subset
   list_foldl a (lwzShuffle P) Cs
 
+def readInput _      = read (array ℤ) from "lwz.txt"
+def shareInput ρ P v = share [gmw, array ℤ : { ρ } → P] v
+
 def main () = par {A,B,C}
-  let inputA = par {A} read (array ℤ) from "lwz.txt" in
-  let inputB = par {B} read (array ℤ) from "lwz.txt" in
-  let inputC = par {C} read (array ℤ) from "lwz.txt" in
-
-  let P = {A,B,C} in
-  let shA = share [gmw, array ℤ : {A} → P] inputA in
-  let shB = share [gmw, array ℤ : {B} → P] inputB in
-  let shC = share [gmw, array ℤ : {C} → P] inputC in
-
-  let a = arrayConcat [shA; shB; shC] in
-  reveal [gmw, array ℤ : {A,B,C} → {A,B,C}] (lwz P 2n a)
+  let P      = {A,B,C} in
+  let m      = psetSize P in
+  let input  = bundleUp readInput in
+  let shares = arrayConcat (bundleShare shareInput input) in
+  reveal [gmw, array ℤ : P → P] (lwz P (m - 1n) shares)

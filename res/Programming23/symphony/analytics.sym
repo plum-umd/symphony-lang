@@ -10,10 +10,6 @@ def count vs =
   in
   countRec 0n 0
 
-----------
--- MEAN --
-----------
-
 def mean vs =
   let len = size vs in
   let sumRec = fun [sumRec] i sum ->
@@ -37,10 +33,6 @@ def meanObliv vs inVs lenVs =
   let sum = sumRec 0n 0 in
 
   sum / lenVs
-
---------------
--- VARIANCE --
---------------
 
 def variance mean vs =
   let len = size vs in

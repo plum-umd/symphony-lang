@@ -130,33 +130,50 @@ def option_fold v kN kS = case v
   ; L x  -> kS x
   }
 
-------------
--- Bundle --
-------------
-
-def bundle_up P f = case P
-  { {} -> <<>>
-  ; { p } \/ P' -> << p | par { p } f p >> ++ bundle_up P' f
-  }
-
-def bundle_fold init f bdl = case bdl
-  { <<>> -> init
-  ; <<p | v>> ++ bdl' -> f p v (bundle_fold init f bdl')
-  }
-
 ---------------
 -- Party Set --
 ---------------
 
-def pset_map f P = case P
-  { {}         → []
-  ; { ρ } ∪ P' → f ρ :: pset_map f P'
+def psetFoldr init f P = case P
+  { {}         → init
+  ; { ρ } ∪ P' → f ρ (psetFoldr init f P')
   }
 
-def pset_fold init f P = case P
-  { {} -> init
-  ; { p } \/ P' -> f p (pset_fold init f P')
+def psetFoldl init f P = case P
+  { {}         → init
+  ; { ρ } ∪ P' → psetFoldl (f ρ init) f P'
   }
+
+def psetSize = psetFoldl 0n (fun _ count → 1n + count)
+
+
+
+------------
+-- Bundle --
+------------
+
+def bundleUpWith f P = case P
+  { {}         → ⟪⟫
+  ; { ρ } ∪ P' → ⟪ ρ | par { ρ } f ρ ⟫ ⧺ bundleUpWith f P'
+  }
+
+def bundleUp f = bundleUpWith f this
+
+def bundleFoldr init f b = case b
+  { ⟪⟫             → init
+  ; ⟪ ρ | v ⟫ ⧺ b' → f ρ v (bundleFoldr init f b')
+  }
+
+def bundleFoldl init f b = case b
+  { ⟪⟫             → init
+  ; ⟪ ρ | v ⟫ ⧺ b' → bundleFoldl (f ρ v init) f b'
+  }
+
+def bundleDom b = bundleFoldl { } (λ ρ _ P → { ρ } + P) b
+
+def bundleShare f b =
+  let P = bundleDom b in
+  bundleFoldr [] (fun ρ v acc → (f ρ P v) :: acc) b
 
 ----------
 -- List --
@@ -448,7 +465,6 @@ def elem-at i xs = case xs
   }
 
 -- Find out if an element is in a list of elements using a custom equality function
-def elem : (a -> a -> bool) -> a -> list a -> bool[bgw]@{A,B}
 def elem f y xs = case xs
   { [] -> false
   ; x::xs' -> (f x y) ? true >< (elem f y xs')
@@ -461,12 +477,12 @@ def preprocess-lists-n-pairs p t len zs=
   then []
   else
     let v = par {p} get-head-or-default-sum zs
-    in (share[ bgw, 𝟙 : p -> t ] v) :: (preprocess-lists-n-pairs p t (len - 1) (par {p} tail zs))
+    in (share[ gmw, 𝟙 : p -> t ] v) :: (preprocess-lists-n-pairs p t (len - 1) (par {p} tail zs))
 
 def preprocess-lists-n p t len zs =
   if len == 0
   then []
-  else (share[ bgw, 𝟙 : p -> t ] (par {p} get-head-or-default zs)) :: (preprocess-lists-n p t (len - 1) (par {p} tail zs))
+  else (share[ gmw, 𝟙 : p -> t ] (par {p} get-head-or-default zs)) :: (preprocess-lists-n p t (len - 1) (par {p} tail zs))
 
 def replicate x n =
   if n == 0n#32
@@ -969,15 +985,9 @@ def arrayConcat arrs =
 -- Party Sets --
 ----------------
 
--- Compute the size of the party set `P`
-def partySetSize P = case P
-  { {}           → 0n
-  ; { _ρ } \/ P' → 1n + (partySetSize P')
-  }
-
 -- Compute a list of all subsets of `P` of size `t < |P|`
 def subsets P t =
-  let m = partySetSize P in
+  let m = psetSize P in
   if t == 0n then [{ }]
   else if t == m then [P]
   else case P

@@ -1,0 +1,53 @@
+def randMaxNat P max = randMax P ℕ max
+
+def randRangeNat P min max = min + (randMaxNat P (max - min))
+
+def swap a i j =
+  let tmp = a.i in
+  let _   = a.i <- a.j in
+  let _   = a.j <- tmp in
+  ()
+
+def psetFoldl init f P = case P
+  { {}         → init
+  ; { ρ } ∪ P' → psetFoldl (f ρ init) f P'
+  }
+
+def psetSize = psetFoldl 0n (fun _ count → 1n + count)
+
+def shuffle P a =
+  let n = size a in
+  let shuffleRec = fun [shuffleRec] i ->
+    if i < n - 1n then
+      let j = randRangeNat P i n in
+      let _ = swap a i j in
+      shuffleRec (i + 1n)
+    else ()
+  in
+
+  if n >= 2n then shuffleRec 0n else ()
+
+def pushParties P a =
+  let n = psetSize P in
+  let m = size a in
+  if n <= m then
+    let pushRec = λ [pushRec] i Q →
+      case Q
+      { {}          → ()
+      ; { ρ } \/ Q' →
+        let _ = a.i ← ρ in
+        pushRec (i + 1n) Q'
+      }
+    in pushRec 0n P
+  else •
+
+def popParties a n =
+  let m = size a in
+  if n <= m then
+    let popRec = λ [popRec] i Q →
+      if i < n then
+        let ρ = a.i in
+        popRec (i + 1n) ({ ρ } + Q)
+      else Q
+    in popRec 0n { }
+  else •

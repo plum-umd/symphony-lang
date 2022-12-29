@@ -7,7 +7,6 @@ def sec_filter p l = case l
 
 def psi a b = sec_filter (λ x → mem x b) a
 
--- main: top-level entry point:
 def main () = par {A,B}
   let inputA = par {A} read (list ℤ) from "intersection.txt" in
   let inputB = par {B} read (list ℤ) from "intersection.txt" in

@@ -1,0 +1,14 @@
+def or b0 b1 = b0 || b1
+
+def list_fold init f l = case l
+  { []      -> init
+  ; x :: xs -> f x (list_fold init f xs)
+  }
+
+def map f l = list_fold [] (fun x xs -> f x :: xs) l
+
+def some_true l = list_fold false or l
+
+def exists p l = some_true (map p l)
+
+def mem x l = exists (λ y → x ≡ y) l

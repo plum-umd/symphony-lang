@@ -1,6 +1,5 @@
 principal A B C
 
--- https://github.com/samee/obliv-c/blob/master/test/oblivc/psi/waksman.c#L5
 def waksmanSwapCount n =
   if n <= 1n then
     0n
@@ -10,7 +9,6 @@ def waksmanSwapCount n =
     else
       (n - 1n) + (waksmanSwapCount (n / 2n)) + (waksmanSwapCount ((n + 1n) / 2n))
 
--- https://github.com/samee/obliv-c/blob/master/test/oblivc/psi/waksman.c#L15
 def waksmanNetworkMut n net1 net2 offset =
   let j = ref 0n in
 
@@ -73,7 +71,6 @@ def waksmanNetwork n swapCount =
   let _    = waksmanNetworkMut n net1 net2 0n in
   (net1, net2)
 
--- https://github.com/samee/obliv-c/blob/master/test/oblivc/psi/waksman.c#L50
 def waksmanSwitchesMut n arr output offset =
   if 1n < n then
     let inv  = array[n] ⊥ in
@@ -207,4 +204,3 @@ def main () = par {A,B,C}
 
   let a = arrayConcat [shA; shB; shC] in
   (waksman P a)
---  reveal [gmw, array ℤ : {A,B,C} → {A,B,C}] (waksman P a)
